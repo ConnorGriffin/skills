@@ -1,0 +1,22 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 scripts/validate.py
+      - run: python3 -m py_compile skills/spin-worktree/scripts/spin-worktree.py
+      - run: node --check skills/drive-local-webapp/scripts/driver.mjs
+      - run: node --check skills/drive-local-webapp/scripts/self-check.mjs

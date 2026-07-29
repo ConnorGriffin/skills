@@ -1,0 +1,5 @@
+node_modules/
+*.png
+*.capture.json
+.DS_Store
+__pycache__/

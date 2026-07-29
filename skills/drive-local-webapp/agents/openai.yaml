@@ -1,0 +1,4 @@
+interface:
+  display_name: "Drive Local Web App"
+  short_description: "Verify local web apps in headless Chromium"
+  default_prompt: "Use $drive-local-webapp to smoke-test and screenshot this local web app."
