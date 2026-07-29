@@ -1,0 +1,55 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Validate skill pack and reachable history
+        run: python3 scripts/validate.py
+      - name: Run public-interface behavior tests
+        run: python3 -m unittest -v tests.test_behavior
+      - name: Check DCO
+        if: github.event_name == 'pull_request'
+        run: >-
+          python3 scripts/check_dco.py
+          "${{ github.event.pull_request.base.sha }}"
+          "${{ github.event.pull_request.head.sha }}"
+      - name: Check Python, JavaScript, and shell syntax
+        run: |
+          python3 -m py_compile skills/spin-worktree/scripts/spin-worktree.py
+          node --check skills/drive-local-webapp/scripts/driver.mjs
+          node --check skills/drive-local-webapp/scripts/self-check.mjs
+          sh -n skills/cbm-onboard/scripts/cbm-onboard.sh
+          sh -n skills/cbm-onboard/scripts/cbm-reindex.sh
+      - name: Fresh-install through the standard skills CLI
+        run: >-
+          npx --yes skills@1.5.20 add . --skill '*'
+          --agent codex --copy --yes
+      - name: Verify installed skills
+        run: |
+          test -f .agents/skills/ui-mockups/SKILL.md
+          test -f .agents/skills/drive-local-webapp/SKILL.md
+          test -f .agents/skills/cbm-onboard/SKILL.md
+          test -f .agents/skills/spin-worktree/SKILL.md
+      - name: Install pinned browser driver dependencies
+        working-directory: skills/drive-local-webapp
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: Run browser driver self-check
+        working-directory: skills/drive-local-webapp
+        run: npm run self-check

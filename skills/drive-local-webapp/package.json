@@ -1,0 +1,13 @@
+{
+  "name": "drive-local-webapp-skill",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Reusable Playwright command driver bundled with the drive-local-webapp skill.",
+  "scripts": {
+    "self-check": "node scripts/self-check.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.61.1"
+  }
+}

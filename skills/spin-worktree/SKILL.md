@@ -1,0 +1,67 @@
+---
+name: spin-worktree
+description: Create an isolated Git worktree for issue, pull-request, branch, or parallel agent work without editing the control checkout. Use when starting task work from fresh remote state, avoiding a dirty or shared checkout, or preparing a dedicated worktree for another agent.
+---
+
+# Spin an isolated worktree
+
+Keep the ordinary checkout as the control checkout and create one worktree per
+task. The bundled helper refuses to update a dirty control checkout.
+
+By default worktrees live under `${AGENT_WORKTREE_ROOT:-~/worktrees}`:
+
+```text
+~/worktrees/<repository>/<task>
+```
+
+## Workflow
+
+1. Resolve the control repository and pass it explicitly with `--repo`.
+2. Resolve this installed skill's directory.
+3. Run one of the commands below.
+4. Report the exact path and use it as the working directory.
+5. Do not remove the worktree automatically. Cleanup belongs to task closeout
+   after merge.
+
+New issue branch:
+
+```sh
+python3 <spin-worktree-skill-directory>/scripts/spin-worktree.py \
+  --repo /path/to/repository \
+  --issue 317 \
+  --slug rescue-context
+```
+
+Existing pull-request branch, discovered with GitHub CLI:
+
+```sh
+python3 <spin-worktree-skill-directory>/scripts/spin-worktree.py \
+  --repo /path/to/repository \
+  --pr 321
+```
+
+Existing branch:
+
+```sh
+python3 <spin-worktree-skill-directory>/scripts/spin-worktree.py \
+  --repo /path/to/repository \
+  --branch codex/issue-316 \
+  --name pr321
+```
+
+Use `--dry-run` to inspect commands. Override defaults with
+`--worktree-root`, `--remote`, `--base`, or `--branch-prefix`.
+
+## Guardrails
+
+- Use one worktree path and branch per task.
+- Never switch branches in another agent's active worktree.
+- Do not reuse an existing target path unless inspection proves it belongs to
+  the same task.
+- New issue work updates the remote and starts from its current default branch
+  unless `--base` is supplied.
+- Existing local branches do not require a remote.
+- Pull-request discovery requires authenticated `gh`. A same-repository head
+  is fetched when needed. A fork head fails with the exact fork and branch to
+  configure, rather than pretending it exists under `origin`.
+- `--name` accepts one relative directory leaf, never a path.

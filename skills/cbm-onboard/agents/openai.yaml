@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codebase Memory Onboard"
+  short_description: "Index and keep a repository graph current"
+  default_prompt: "Use $cbm-onboard to register this repository with codebase-memory-mcp."

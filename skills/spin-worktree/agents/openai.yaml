@@ -1,0 +1,4 @@
+interface:
+  display_name: "Spin Worktree"
+  short_description: "Create isolated Git worktrees for tasks"
+  default_prompt: "Use $spin-worktree to create an isolated worktree for this task."
