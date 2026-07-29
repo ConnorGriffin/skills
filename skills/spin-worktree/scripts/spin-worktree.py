@@ -63,6 +63,18 @@ def slugify(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-") or "task"
 
 
+def safe_leaf(value: str) -> str:
+    if (
+        not value
+        or value in {".", ".."}
+        or Path(value).is_absolute()
+        or "/" in value
+        or "\\" in value
+    ):
+        raise SpinError("--name must be one safe relative directory name")
+    return value
+
+
 def repository_root(path: Path) -> Path:
     try:
         value = run(
@@ -140,16 +152,27 @@ def discover_pr_branch(repo: Path, pull_request: int) -> str:
             "view",
             str(pull_request),
             "--json",
-            "headRefName",
-            "--jq",
-            ".headRefName",
+            "headRefName,isCrossRepository,headRepository,headRepositoryOwner",
         ],
         cwd=repo,
         capture=True,
     )
-    if not value:
+    try:
+        metadata = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise SpinError(f"could not resolve pull request #{pull_request}") from error
+    branch = metadata.get("headRefName")
+    if not branch:
         raise SpinError(f"could not resolve pull request #{pull_request}")
-    return value
+    if metadata.get("isCrossRepository"):
+        owner = (metadata.get("headRepositoryOwner") or {}).get("login", "unknown")
+        repository = (metadata.get("headRepository") or {}).get("name", "unknown")
+        raise SpinError(
+            f"pull request #{pull_request} comes from fork {owner}/{repository}; "
+            "add that fork as a Git remote, fetch its head branch, then rerun with "
+            f"--branch {branch}"
+        )
+    return str(branch)
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -182,6 +205,8 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> int:
     arguments = parse_arguments()
     try:
+        if arguments.name is not None:
+            safe_leaf(arguments.name)
         repo = repository_root(Path(arguments.repo).expanduser())
         require_clean(repo, dry_run=arguments.dry_run)
         root = Path(arguments.worktree_root).expanduser().resolve()
@@ -195,24 +220,25 @@ def main() -> int:
                 if arguments.slug
                 else f"{arguments.branch_prefix}/issue-{arguments.issue}"
             )
-            task_name = arguments.name or str(arguments.issue)
+            task_name = safe_leaf(arguments.name or str(arguments.issue))
             start_point = f"{arguments.remote}/{base}"
             new_branch = True
         else:
             branch = arguments.branch or discover_pr_branch(repo, arguments.pr)
-            git(
-                repo,
-                "fetch",
-                arguments.remote,
-                branch,
-                dry_run=arguments.dry_run,
-            )
-            task_name = arguments.name or (
-                f"pr{arguments.pr}" if arguments.pr else slugify(branch)
+            task_name = safe_leaf(
+                arguments.name
+                or (f"pr{arguments.pr}" if arguments.pr else slugify(branch))
             )
             start_point = branch
             new_branch = not local_branch_exists(repo, branch)
             if new_branch:
+                git(
+                    repo,
+                    "fetch",
+                    arguments.remote,
+                    branch,
+                    dry_run=arguments.dry_run,
+                )
                 git(
                     repo,
                     "branch",

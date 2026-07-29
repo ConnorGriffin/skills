@@ -1,8 +1,8 @@
 # Connor Griffin's agent skills
 
-Portable workflows for coding agents. Each skill is self-contained under
-[`skills/`](skills/) and works with clients that support the Agent Skills
-format.
+A portable skill pack for coding agents. Skills live under [`skills/`](skills/)
+and work with clients that support the Agent Skills format. Some skills compose:
+the UI workflow uses the bundled browser driver for rendered evidence.
 
 ## Included skills
 
@@ -15,18 +15,19 @@ format.
 
 ## Install
 
-Install one skill with the standard [`skills` CLI](https://github.com/vercel-labs/skills):
-
-```sh
-npx skills add ConnorGriffin/skills --skill ui-mockups
-```
-
-Install the UI workflow and its browser driver together:
+Install the primary UI workflow with its required browser driver using the
+standard [`skills` CLI](https://github.com/vercel-labs/skills):
 
 ```sh
 npx skills add ConnorGriffin/skills \
   --skill ui-mockups \
   --skill drive-local-webapp
+```
+
+Install another skill by itself:
+
+```sh
+npx skills add ConnorGriffin/skills --skill spin-worktree
 ```
 
 Install every skill:
@@ -42,16 +43,23 @@ hooks.
 
 ## Optional upstream skills
 
-`ui-mockups` can use interviewing, design-system, and module-design skills when
-they are already installed. Those are optional enhancements, not hidden runtime
-requirements. Install them from their owners rather than from this repository:
+Optional integrations are enhancements, not hidden runtime requirements:
+
+- **Codebase Memory:** accelerates structural exploration. Without it, use
+  ordinary repository search and file reads.
+- **`grilling`:** sharpens the UI brief. Without it, run the short inline
+  interview described by `ui-mockups`.
+- **`codebase-design`:** helps shape non-trivial render logic. Without it, keep
+  the shipping module shape and preserve locality.
+- **`impeccable`:** adds a final visual-quality audit. Without it, run the
+  explicit contrast, focus, overflow, and target-size checks.
+
+Install Matt Pocock's optional skills from their owner rather than copying them
+into this pack:
 
 ```sh
 npx skills add mattpocock/skills --skill grilling --skill codebase-design
 ```
-
-The workflow also recognizes an installed `impeccable` skill for its final
-visual-quality gate.
 
 ## Development
 

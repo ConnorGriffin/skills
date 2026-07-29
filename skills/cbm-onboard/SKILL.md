@@ -25,8 +25,10 @@ project. Never index a directory containing several repositories.
 
    The script resolves linked worktrees to the maintained checkout, reconciles
    a marked baseline inside `.cbmignore`, preserves custom exclusions, and adds
-   a managed reindex block to `.git/hooks/post-commit` without deleting an
-   existing hook.
+   a managed reindex block to Git's configured `post-commit` hook without
+   deleting an existing shell hook. It refuses symlink targets. A non-shell
+   foreign hook is left unchanged with a warning because composing it would be
+   unsafe.
 
 3. Verify the project through the available Codebase Memory MCP interface with
    `index_status` or `list_projects`.

@@ -12,9 +12,18 @@ specification.
 
 Use `drive-local-webapp` to render and exercise the mockups. If it is not
 installed, ask to install it from this repository before the screenshot phase.
-Use parallel subagents when the client supports them. Optional interviewing,
-module-design, and visual-audit skills may improve the workflow, but their
-absence is not a blocker.
+Use parallel subagents when the client supports them.
+
+Optional integrations have explicit fallbacks:
+
+- Use Codebase Memory for structural discovery when available; otherwise use
+  repository search and direct file reads.
+- Use `grilling` to sharpen the brief when installed; otherwise run the inline
+  interview in step 3.
+- Use `codebase-design` for a non-trivial render module when installed;
+  otherwise preserve the shipping module shape and keep the logic local.
+- Use `impeccable` for the final craft gate when installed; otherwise perform
+  the manual checks in step 7.
 
 ## Choose the review mode
 

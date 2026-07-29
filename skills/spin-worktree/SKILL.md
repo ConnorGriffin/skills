@@ -60,5 +60,8 @@ Use `--dry-run` to inspect commands. Override defaults with
   the same task.
 - New issue work updates the remote and starts from its current default branch
   unless `--base` is supplied.
-- Pull-request discovery requires authenticated `gh`; known branch names do
-  not.
+- Existing local branches do not require a remote.
+- Pull-request discovery requires authenticated `gh`. A same-repository head
+  is fetched when needed. A fork head fails with the exact fork and branch to
+  configure, rather than pretending it exists under `origin`.
+- `--name` accepts one relative directory leaf, never a path.

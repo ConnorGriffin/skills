@@ -80,7 +80,8 @@ Use `:text-is("Label")` for exact text. Playwright's `:has-text()` is
 case-insensitive substring matching and can silently click the wrong control.
 
 Keep screenshots outside the target repository. The driver defaults to the
-system temporary directory, or use `DRIVER_SCREENSHOT_DIR`.
+system temporary directory, or use `DRIVER_SCREENSHOT_DIR`. It refuses to
+overwrite an existing screenshot path.
 
 ## Common failures
 

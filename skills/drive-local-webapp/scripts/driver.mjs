@@ -15,7 +15,7 @@
 
 import { chromium } from "playwright";
 import { createInterface } from "node:readline";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -27,6 +27,17 @@ let shotCount = 0;
 
 function selector(value) {
   return value.startsWith("text=") ? `text=${value.slice(5)}` : value;
+}
+
+async function writeNewScreenshot(file, contents) {
+  try {
+    await writeFile(file, contents, { flag: "wx" });
+  } catch (error) {
+    if (error?.code === "EEXIST") {
+      throw new Error(`screenshot path already exists: ${file}`);
+    }
+    throw error;
+  }
 }
 
 async function launchBrowser() {
@@ -118,7 +129,8 @@ async function main() {
         if (!path.isAbsolute(file)) {
           throw new Error("screenshot path must be absolute");
         }
-        await page.screenshot({ path: file, fullPage: true });
+        const screenshot = await page.screenshot({ fullPage: true });
+        await writeNewScreenshot(file, screenshot);
         console.log(`OK screenshot ${file}`);
       } else if (command === "console" && argument === "--errors") {
         console.log(`CONSOLE_ERRORS ${JSON.stringify(consoleErrors)}`);

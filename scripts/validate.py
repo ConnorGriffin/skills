@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -15,11 +16,29 @@ FORBIDDEN = (
     re.compile("/" + "Users/"),
     re.compile("~/" + "Code/" + "ConnorGriffin"),
     re.compile("Connor's " + r"(?:real browser|rule)"),
+    re.compile("nt" + "fy", re.IGNORECASE),
     re.compile("t" + "connect", re.IGNORECASE),
     re.compile(r"BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY"),
     re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+    re.compile(r"\bsk-[A-Za-z0-9]{20,}\b"),
+    re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
 )
 LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+HISTORY_PATTERN = "|".join(
+    (
+        "/" + "Users/",
+        "~/" + "Code/" + "ConnorGriffin",
+        "Connor's " + "(real browser|rule)",
+        "nt" + "fy",
+        "t" + "connect",
+        "BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY",
+        "gh[pousr]_[A-Za-z0-9_]{20,}",
+        "AKIA[0-9A-Z]{16}",
+        "sk-[A-Za-z0-9]{20,}",
+        "xox[baprs]-[A-Za-z0-9-]{10,}",
+    )
+)
 
 
 def fail(errors: list[str], message: str) -> None:
@@ -62,6 +81,51 @@ def validate_links(path: Path, errors: list[str]) -> None:
             fail(errors, f"{path.relative_to(ROOT)}: broken link: {target}")
 
 
+def validate_reachable_history(errors: list[str]) -> None:
+    commits = subprocess.run(
+        ["git", "rev-list", "--all"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if commits.returncode != 0:
+        fail(errors, f"history scan failed: {commits.stderr.strip()}")
+        return
+    for revision in commits.stdout.splitlines():
+        scan = subprocess.run(
+            ["git", "grep", "-I", "-q", "-E", HISTORY_PATTERN, revision, "--", "."],
+            cwd=ROOT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if scan.returncode == 0:
+            fail(errors, f"reachable history contains a forbidden value at {revision}")
+        elif scan.returncode != 1:
+            fail(errors, f"history content scan failed at {revision}")
+
+    objects = subprocess.run(
+        ["git", "rev-list", "--objects", "--all"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if objects.returncode != 0:
+        fail(errors, f"history path scan failed: {objects.stderr.strip()}")
+        return
+    for line in objects.stdout.splitlines():
+        _, separator, object_path = line.partition(" ")
+        if not separator:
+            continue
+        for pattern in FORBIDDEN:
+            if pattern.search(object_path):
+                fail(errors, f"reachable history contains a forbidden path")
+
+
 def main() -> int:
     errors: list[str] = []
     actual = {path.name for path in SKILLS.iterdir() if path.is_dir()}
@@ -94,6 +158,8 @@ def main() -> int:
         metadata = SKILLS / skill / "agents" / "openai.yaml"
         if not metadata.exists():
             fail(errors, f"skills/{skill}: missing agents/openai.yaml")
+
+    validate_reachable_history(errors)
 
     if errors:
         print("\n".join(f"ERROR: {error}" for error in errors), file=sys.stderr)
