@@ -79,6 +79,24 @@ as blocked. Put every actual decision to me.
    offer it in one line instead. Rewrite until the checks pass; do not
    send the draft that fails them.
 
+## Standards grounding
+
+When the plan touches code structure and the project has an engineering
+standards document (a charter, architecture guide, or design doc the repo or
+your global instructions provide), it is part of the frontier, not an
+implementation detail:
+
+- **Interface shape is a decision, not a byproduct.** If the plan adds or
+  reshapes a module, put its front door on the frontier explicitly — what the
+  caller sees, judged by the deep-module test (an interface far simpler than
+  its implementation) — and load `/codebase-design` for the vocabulary when it
+  is available. A plan that leaves interface shape to build time is how
+  shallow modules happen.
+- **Edge cases are priced, not assumed.** An edge case earns handling only if
+  it is reachable from real inputs (`ground it` measures this). Default the
+  answer to "don't handle it"; make me overrule the default rather than making
+  me strip speculative hardening out later.
+
 ## Docs as you go (default)
 
 When the session is grounded in a repo, load the `/domain-modeling` skill at

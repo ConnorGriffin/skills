@@ -19,6 +19,11 @@ issues only when no open decision can invalidate their subtree.
 - **Keep one source for each answer.** The resolution lives in its ticket comment. The map
   keeps only a one-line gist and link. An ADR keeps only the lasting ruling.
 - **Work one decision per session.** Parallel AFK research tickets are the sole exception.
+- **Ground structural decisions in the project's standards.** When a decision ticket
+  settles module or interface shape, judge it by the project's engineering standards
+  document (charter, architecture guide) when one exists, and load `/codebase-design`
+  for the vocabulary when it is available. Interface shape is a decision the map
+  resolves, never one left implicit for the build session.
 - **Use GitHub's native structure.** Read
   [references/github-tracker.md](references/github-tracker.md) before any tracker action.
   Do not replace child issues, blocking relationships, or label claims with body text.
