@@ -66,10 +66,15 @@ definitions below are the fallback.
    revisions routinely introduce fresh defects (a fix that patches the
    objected hole and opens a different one), and objections whose "cheapest
    fix" was applied verbatim still need verifying against the real machinery.
-4. **Converge with fresh eyes.** When the reviewer has no surviving
-   objections, the plan is *provisionally* clean — but a reviewer verifying
-   fixes to their own objections is anchored on them. For anything
-   non-trivial, final countersign comes from one more **fresh cold pass**: a
+4. **Converge — with fresh eyes only when the review drew blood or the plan
+   is load-bearing.** A first pass that countersigns clean on a
+   modest-blast-radius plan is final: there are no revisions to attack, and a
+   second panel would only re-confirm. But if any blocking objection forced a
+   revision, or the plan is load-bearing/hard-to-reverse (standards, machinery
+   that governs other agents, migrations — where a miss propagates), the
+   reviewer's "no surviving objections" is only *provisionally* clean — a
+   reviewer verifying fixes to their own objections is anchored on them.
+   Final countersign then comes from one more **fresh cold pass**: a
    new reviewer with no context from the first, told the plan already
    survived a review so shallow objections are gone — dig for what a first
    pass misses: interactions with machinery the plan doesn't mention,
