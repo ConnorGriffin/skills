@@ -1,0 +1,98 @@
+---
+name: grilling
+description: Interview the user relentlessly about a plan or design. Use when the user wants to stress-test a plan before building, or uses any 'grill' trigger phrases.
+---
+
+Interview me relentlessly about every aspect of this plan until we reach a
+shared understanding. Map the plan as a **design tree**: every decision branches
+into the decisions that depend on it.
+
+Work the tree in **rounds**. The **frontier** is every decision whose
+prerequisites are already settled — everything I can answer now without either
+of us guessing at an earlier answer. Ask the whole frontier in one numbered
+round, then wait for my answers before continuing. Keep tightly coupled
+questions together so I can scroll through the round and dictate answers by
+number.
+
+After each response, record the settled decisions, recompute the frontier, and
+ask the next round. If one answer could materially change whether or how another
+question should be asked, those questions are not on the same frontier: ask the
+dependency first and save the downstream question for a later round.
+
+Finding facts is your job; making decisions is mine. If a frontier question
+needs a fact from the environment, explore it instead of asking me. When
+subagents are available, dispatch fact-finding to a subagent and continue with
+the rest of the frontier; treat only questions downstream of that exploration
+as blocked. Put every actual decision to me.
+
+## Voice rules — I have not read the code as deeply as you have
+
+1. **Phrase every question as app behavior, not code.** "When a refund lands
+   20 minutes after the order it belongs to, should the order absorb it or
+   does it stand alone as its own line?" — never "should `merge_events`
+   dedupe by `source_event_id`?" A code term is allowed only as a one-line
+   parenthetical when it genuinely disambiguates.
+
+2. **Hard budget: ≤6 lines per question.** Number every question. Include the
+   question, 2–3 concrete options
+   grounded in real examples where possible ("on June 30 this would have
+   meant…"), and your recommended answer. No preamble, no context essay, no
+   restating what we've already agreed. Depth only when I ask for it. A
+   verbose question makes me agree just to make it stop — that produces a
+   confidently wrong spec, which is worse than no spec.
+
+3. **Make shorthand answers easy.** Use stable numbers within the session and
+   concise, distinct option labels so answers like "1 yes; 2 B; 3 your
+   recommendation" are unambiguous. Accept free-form or partial answers too;
+   carry unanswered decisions into the next round without re-asking settled
+   ones.
+
+4. **`explain` escape hatch.** If I say "explain", stop and produce a proper
+   explainer for the current question — a diagram, worked example, or
+   screenshot-illustrated HTML page — open it in my browser, then re-ask the
+   question.
+
+5. **`ground it` escape hatch — and offer it proactively.** If I say "I'm not
+   sure", "ground this in my real data", or similar, stop asking and run a
+   **read-only** exploration against the real data: how often does this case
+   occur, what's the actual impact, what would each option have done on my
+   real history. Come back with a ≤6-line verdict — prevalence, impact,
+   recommendation — and re-ask the question with the options now priced.
+   When the honest basis for an answer is my data rather than my preference,
+   don't demand an opinion: lead with "I can measure this — want me to?"
+   Real data may be sensitive (a production database snapshot containing real
+   customer records, say): explorations are strictly read-only, and never copy
+   real data outside the repo's sanctioned paths. If the repo documents a
+   fresh-snapshot pull for its real data, run that first and ground against
+   the snapshot, never a live or authoritative database.
+
+6. **"I don't know" is an accepted answer.** Offer it where genuine. Convert
+   it into either a `ground it` measurement or an explicit "decide at
+   implementation, here's the default" note — never pressure a choice.
+
+7. **Check every question before sending — especially deep in a session.**
+   Drift back into jargon happens precisely when the topic gets technical
+   and the conversation gets long. Before each question, verify: ≤6 lines?
+   Phrased as app behavior? Code symbols only in parentheticals? If the
+   question seems to *need* the technical backstory to be answerable,
+   that's not license to inline it — that's the `explain` artifact's job:
+   offer it in one line instead. Rewrite until the checks pass; do not
+   send the draft that fails them.
+
+## Docs as you go (default)
+
+When the session is grounded in a repo, load the `/domain-modeling` skill at
+the start and apply it throughout: the moment a decision crystallises that
+constrains architecture or behavior, write the ADR (`docs/adr/`); the moment
+a fuzzy term gets sharpened, update the glossary (`CONTEXT.md`). Write them
+as they land, not in a batch at the end — a decision that only exists in
+chat is lost to the next session. Challenge terms against the existing
+glossary as you interview.
+
+## Closing
+
+The session is done when the frontier is empty: every branch has been visited
+and nothing remains silently assumed. End with a compact summary of every
+decision made (the shared understanding), flag anything deferred or defaulted,
+and list the ADRs/glossary entries written during the session. Do not enact the
+plan until I confirm we have reached a shared understanding.

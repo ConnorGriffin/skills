@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grilling"
+  short_description: "Interview the user until a plan is fully settled"
+  default_prompt: "Use $grilling to stress-test this plan before building."

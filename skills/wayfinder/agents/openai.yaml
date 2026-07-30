@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wayfinder"
+  short_description: "Map a foggy effort as decision tickets"
+  default_prompt: "Use $wayfinder to chart this large effort as decision tickets and work the next clear decision."

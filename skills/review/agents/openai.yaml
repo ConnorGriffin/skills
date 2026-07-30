@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review"
+  short_description: "Review a diff against standards and spec in parallel"
+  default_prompt: "Use $review to review the changes since this fixed point along the standards and spec axes."
