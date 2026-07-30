@@ -13,6 +13,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | [`cbm-onboard`](skills/cbm-onboard/SKILL.md) | Index a repository with codebase-memory-mcp and keep it current | `codebase-memory-mcp` on `PATH` |
 | [`spin-worktree`](skills/spin-worktree/SKILL.md) | Create isolated Git worktrees for issue and PR work | Git; GitHub CLI only for `--pr` discovery |
 | [`grilling`](skills/grilling/SKILL.md) | Relentlessly interview the user to stress-test a plan or design before building | — |
+| [`plan-review`](skills/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | Parallel-agent support recommended |
 | [`wayfinder`](skills/wayfinder/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `grilling`, `ui-mockups` |
 | [`research`](skills/research/SKILL.md) | Investigate a question against primary sources and capture findings as Markdown in the repo | — |
 | [`prototype`](skills/prototype/SKILL.md) | Build a throwaway prototype — a terminal app for logic questions or switchable UI variants in the real app | — |
