@@ -12,6 +12,14 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | [`drive-local-webapp`](skills/drive-local-webapp/SKILL.md) | Drive and screenshot a local web app with headless Chromium | Node.js 20+; installs Playwright locally |
 | [`cbm-onboard`](skills/cbm-onboard/SKILL.md) | Index a repository with codebase-memory-mcp and keep it current | `codebase-memory-mcp` on `PATH` |
 | [`spin-worktree`](skills/spin-worktree/SKILL.md) | Create isolated Git worktrees for issue and PR work | Git; GitHub CLI only for `--pr` discovery |
+| [`grilling`](skills/grilling/SKILL.md) | Relentlessly interview the user to stress-test a plan or design before building | — |
+| [`wayfinder`](skills/wayfinder/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `grilling`, `ui-mockups` |
+| [`research`](skills/research/SKILL.md) | Investigate a question against primary sources and capture findings as Markdown in the repo | — |
+| [`prototype`](skills/prototype/SKILL.md) | Build a throwaway prototype — a terminal app for logic questions or switchable UI variants in the real app | — |
+| [`interface-craft`](skills/interface-craft/SKILL.md) | Design distinctive, production-quality web and product interfaces | — |
+| [`tdd`](skills/tdd/SKILL.md) | Test-driven development through public interfaces, red-green-refactor | — |
+| [`review`](skills/review/SKILL.md) | Review changed code against the project's standards and the originating issue | — |
+| [`implement`](skills/implement/SKILL.md) | Implement a PRD or issue set via `tdd`, then `review`, then commit | `tdd` and `review` from this pack |
 
 ## Install
 
@@ -47,19 +55,26 @@ Optional integrations are enhancements, not hidden runtime requirements:
 
 - **Codebase Memory:** accelerates structural exploration. Without it, use
   ordinary repository search and file reads.
-- **`grilling`:** sharpens the UI brief. Without it, run the short inline
-  interview described by `ui-mockups`.
-- **`codebase-design`:** helps shape non-trivial render logic. Without it, keep
-  the shipping module shape and preserve locality.
+- **`codebase-design`:** referenced by `tdd`; helps shape non-trivial module
+  interfaces. Without it, keep the shipping module shape and preserve locality.
+- **`domain-modeling`:** referenced by `grilling` and `wayfinder`; maintains a
+  project's domain vocabulary. Without it, ground terms in the repo's own docs.
 - **`impeccable`:** adds a final visual-quality audit. Without it, run the
   explicit contrast, focus, overflow, and target-size checks.
 
-Install Matt Pocock's optional skills from their owner rather than copying them
-into this pack:
+Install Matt Pocock's optional skills from their repository:
 
 ```sh
-npx skills add mattpocock/skills --skill grilling --skill codebase-design
+npx skills add mattpocock/skills --skill codebase-design --skill domain-modeling
 ```
+
+## Attribution
+
+The `implement`, `tdd`, `review`, and `prototype` skills are adopted from — and
+`grilling` is derived from — [Matt Pocock's skills
+repository](https://github.com/mattpocock/skills) (MIT, copyright (c) 2026 Matt
+Pocock), lightly edited here to be self-contained. See [LICENSE](LICENSE) and
+[NOTICE](NOTICE).
 
 ## Development
 
@@ -74,6 +89,8 @@ Contributions require a Signed-off-by trailer under the
 
 ## License and support
 
-Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Security reports belong
+MIT, from v0.2.0 onward (v0.1.0 was published under Apache-2.0, and that grant
+stands for copies taken at that tag). See [LICENSE](LICENSE) and
+[NOTICE](NOTICE). Security reports belong
 in the private channel described in [SECURITY.md](SECURITY.md); everything else
 uses GitHub issues.

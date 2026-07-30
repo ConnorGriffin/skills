@@ -1,9 +1,13 @@
 Connor Griffin's agent skills
 Copyright 2026 Connor Griffin
 
-The ui-mockups workflow composes with, but does not redistribute, skills from
-Matt Pocock's public skills repository:
-https://github.com/mattpocock/skills
+This repository is MIT licensed; see LICENSE for the authoritative license and
+copyright notices.
+
+The implement, tdd, review, and prototype skills are adopted from, and the
+grilling skill is derived from, Matt Pocock's public skills repository
+(https://github.com/mattpocock/skills), MIT licensed,
+copyright (c) 2026 Matt Pocock.
 
 The installation examples use the open source skills CLI:
 https://github.com/vercel-labs/skills

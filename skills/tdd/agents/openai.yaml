@@ -1,0 +1,4 @@
+interface:
+  display_name: "TDD"
+  short_description: "Build features test-first, one vertical slice at a time"
+  default_prompt: "Use $tdd to build this behavior test-first, one red-green cycle at a time."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement"
+  short_description: "Build the work described in a PRD or issues"
+  default_prompt: "Use $implement to build the work described in this PRD or set of issues."

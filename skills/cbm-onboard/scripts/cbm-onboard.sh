@@ -50,7 +50,7 @@ trap 'rm -f "$MANAGED_TMP" "$OUTPUT_TMP" "$HOOK_TMP"' EXIT
     ".venv/" "venv/" "env/" "__pycache__/" "*.pyc" \
     ".pytest_cache/" ".mypy_cache/" ".ruff_cache/" ".tox/" \
     "node_modules/" "dist/" "build/" "*.egg-info/" \
-    ".agentflow/" ".claude/worktrees/" ".codex/worktrees/" \
+    ".agentflow/" ".claude/worktrees/" ".codex/worktrees/" ".impeccable/" \
     "*.db" "*.sqlite" "*.sqlite3" "*.csv" "*.parquet" \
     ".env" ".env.*" "*.pem" "*.key" "*.p12" "*.pfx" \
     ".aws/" ".ssh/" ".secrets/" "secrets/" "credentials/" "*.log"

@@ -41,10 +41,10 @@ jobs:
           --agent codex --copy --yes
       - name: Verify installed skills
         run: |
-          test -f .agents/skills/ui-mockups/SKILL.md
-          test -f .agents/skills/drive-local-webapp/SKILL.md
-          test -f .agents/skills/cbm-onboard/SKILL.md
-          test -f .agents/skills/spin-worktree/SKILL.md
+          for skill in ui-mockups drive-local-webapp cbm-onboard spin-worktree \
+            research interface-craft implement tdd review prototype grilling wayfinder; do
+            test -f ".agents/skills/$skill/SKILL.md"
+          done
       - name: Install pinned browser driver dependencies
         working-directory: skills/drive-local-webapp
         run: |
