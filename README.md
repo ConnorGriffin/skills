@@ -74,6 +74,8 @@ Contributions require a Signed-off-by trailer under the
 
 ## License and support
 
-Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Security reports belong
+MIT, from v0.2.0 onward (v0.1.0 was published under Apache-2.0, and that grant
+stands for copies taken at that tag). See [LICENSE](LICENSE) and
+[NOTICE](NOTICE). Security reports belong
 in the private channel described in [SECURITY.md](SECURITY.md); everything else
 uses GitHub issues.
