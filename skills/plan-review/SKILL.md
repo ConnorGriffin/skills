@@ -66,26 +66,29 @@ definitions below are the fallback.
    revisions routinely introduce fresh defects (a fix that patches the
    objected hole and opens a different one), and objections whose "cheapest
    fix" was applied verbatim still need verifying against the real machinery.
-4. **Converge — with fresh eyes only when the review drew blood or the plan
-   is load-bearing.** A first pass that countersigns clean on a
-   modest-blast-radius plan is final: there are no revisions to attack, and a
-   second panel would only re-confirm. But if any blocking objection forced a
-   revision, or the plan is load-bearing/hard-to-reverse (standards, machinery
-   that governs other agents, migrations — where a miss propagates), the
-   reviewer's "no surviving objections" is only *provisionally* clean — a
-   reviewer verifying fixes to their own objections is anchored on them.
-   Final countersign then comes from one more **fresh cold pass**: a
-   new reviewer with no context from the first, told the plan already
-   survived a review so shallow objections are gone — dig for what a first
-   pass misses: interactions with machinery the plan doesn't mention,
-   contradictions between the plan's own decided constraints, and claims that
-   are subtly rather than obviously wrong. Its objections loop back through
-   step 3; a fresh pass with no blocking objections ends the review — state
-   **countersigned** plainly.
-5. **Cap the churn.** If blocking objections are still arriving after three
-   full cycles, the plan doesn't need more review — it needs its open
-   questions settled with the user (interrogate the plan's decisions with
-   them directly). Say so and stop.
+4. **Terminate by stakes, not by pass count.**
+   - **Ordinary plan** (modest blast radius, downstream review exists as a
+     backstop): one panel. If it drew blood, fix and have the same reviewer
+     re-verify the deltas; then done. Plan review here only needs to catch
+     what is *expensive* to catch later, not everything.
+   - **Load-bearing or hard-to-reverse plan** (standards, machinery other
+     agents inherit, migrations — anywhere a miss propagates): the review
+     ends only when a **fresh cold pass returns no blocking objections**.
+     The objecting reviewer's own re-verification never terminates — a
+     reviewer verifying fixes to their own objections is anchored on them.
+     After each revision cycle converges, launch a new reviewer with no
+     context from the previous ones, told the plan already survived review
+     so shallow objections are gone — dig for what earlier passes miss:
+     interactions with machinery the plan doesn't mention, contradictions
+     between the plan's own decided constraints, and claims that are subtly
+     rather than obviously wrong. Its objections loop back through step 3.
+     A clean fresh pass ends the review: state **countersigned** plainly.
+5. **Hard cap: three panels.** Adversarial reviewers rarely return
+   empty-handed, so as real defects deplete, late panels drift toward
+   plausible-but-marginal objections — and every revision cycle is new
+   attack surface. Blocking objections still arriving at the cap mean the
+   plan has unsettled decisions, not undiscovered typos: take those
+   decisions to the user directly. Say so and stop.
 
 ## Calibration
 
