@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan Review"
+  short_description: "Adversarially review a plan or work order before building."
+  default_prompt: "Use $plan-review to stress-test this plan, spec, or brief with cold reviewers before anything gets built."

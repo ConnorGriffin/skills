@@ -16,14 +16,14 @@ Identify which question is being answered — from the user's prompt, the surrou
 
 The two branches produce very different artifacts — getting this wrong wastes the whole prototype. If the question is genuinely ambiguous and the user isn't reachable, default to whichever branch better matches the surrounding code (a backend module → logic; a page or component → UI) and state the assumption at the top of the prototype.
 
-### Prototype vs. ui-mockups
+### Prototype vs. ui-craft
 
-The UI branch overlaps with the `ui-mockups` skill — pick deliberately:
+The UI branch overlaps with the `ui-craft` skill — pick deliberately:
 
-- **`ui-mockups`** is a *pre-implementation* exploration. It produces standalone static HTML mockups, outside the app, screenshotted and iterated until a visual spec is **locked**. Reach for it when nothing is built yet and the deliverable is an agreed-on design.
+- **`ui-craft`** is a *pre-implementation* exploration. It produces standalone static HTML mockups, outside the app, screenshotted and iterated until a visual spec is **locked**. Reach for it when nothing is built yet and the deliverable is an agreed-on design.
 - **`prototype`'s UI branch** produces throwaway *runnable* variants **inside the actual app**, wired to real routing, components, and data. Reach for it when the question can only be answered by real app behavior — interaction, live state, existing components under real content.
 
-If you only need to see what it should look like, use `ui-mockups`. If you need to feel how it behaves, prototype it in the app.
+If you only need to see what it should look like, use `ui-craft`. If you need to feel how it behaves, prototype it in the app.
 
 ## Rules that apply to both
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Craft"
+  short_description: "Lock, build, critique, audit, and polish user-facing surfaces."
+  default_prompt: "Use $ui-craft for this surface: lock a visual spec, build to a lock with fidelity evidence, critique with personas, audit against the lock, or run the polish gate."

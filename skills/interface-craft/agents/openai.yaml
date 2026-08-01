@@ -1,4 +1,0 @@
-interface:
-  display_name: "Interface Craft"
-  short_description: "Build distinctive, usable web interfaces."
-  default_prompt: "Use $interface-craft to design or redesign this interface with a grounded visual direction and production-quality craft."

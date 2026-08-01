@@ -9,6 +9,11 @@ grilling skill is derived from, Matt Pocock's public skills repository
 (https://github.com/mattpocock/skills), MIT licensed,
 copyright (c) 2026 Matt Pocock.
 
+The ui-craft skill absorbs reference material and the design-antipattern
+detector from Paul Bakaus's Impeccable project
+(https://github.com/pbakaus/impeccable), Apache License 2.0,
+copyright Paul Bakaus. See that repository's LICENSE for terms.
+
 The installation examples use the open source skills CLI:
 https://github.com/vercel-labs/skills
 

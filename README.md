@@ -8,16 +8,15 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
-| [`ui-mockups`](skills/ui-mockups/SKILL.md) | Explore grounded UI directions and lock one visual spec before implementation | `drive-local-webapp` for rendered review; parallel-agent support is recommended |
+| [`ui-craft`](skills/ui-craft/SKILL.md) | Full surface lifecycle: lock a visual spec, build to it, critique with personas, audit against the lock, polish, re-settle | `drive-local-webapp` for rendered review; parallel-agent support is recommended |
 | [`drive-local-webapp`](skills/drive-local-webapp/SKILL.md) | Drive and screenshot a local web app with headless Chromium | Node.js 20+; installs Playwright locally |
 | [`cbm-onboard`](skills/cbm-onboard/SKILL.md) | Index a repository with codebase-memory-mcp and keep it current | `codebase-memory-mcp` on `PATH` |
 | [`spin-worktree`](skills/spin-worktree/SKILL.md) | Create isolated Git worktrees for issue and PR work | Git; GitHub CLI only for `--pr` discovery |
 | [`grilling`](skills/grilling/SKILL.md) | Relentlessly interview the user to stress-test a plan or design before building | — |
 | [`plan-review`](skills/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | Parallel-agent support recommended |
-| [`wayfinder`](skills/wayfinder/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `grilling`, `ui-mockups` |
+| [`wayfinder`](skills/wayfinder/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `grilling`, `ui-craft` |
 | [`research`](skills/research/SKILL.md) | Investigate a question against primary sources and capture findings as Markdown in the repo | — |
 | [`prototype`](skills/prototype/SKILL.md) | Build a throwaway prototype — a terminal app for logic questions or switchable UI variants in the real app | — |
-| [`interface-craft`](skills/interface-craft/SKILL.md) | Design distinctive, production-quality web and product interfaces | — |
 | [`tdd`](skills/tdd/SKILL.md) | Test-driven development through public interfaces, red-green-refactor | — |
 | [`review`](skills/review/SKILL.md) | Review changed code against the project's standards and the originating issue | — |
 | [`implement`](skills/implement/SKILL.md) | Implement a PRD or issue set via `tdd`, then `review`, then commit | `tdd` and `review` from this pack |
@@ -29,7 +28,7 @@ standard [`skills` CLI](https://github.com/vercel-labs/skills):
 
 ```sh
 npx skills add ConnorGriffin/skills \
-  --skill ui-mockups \
+  --skill ui-craft \
   --skill drive-local-webapp
 ```
 

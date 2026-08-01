@@ -12,18 +12,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 EXPECTED = {
-    "ui-mockups",
     "drive-local-webapp",
     "cbm-onboard",
     "spin-worktree",
     "research",
-    "interface-craft",
     "implement",
     "tdd",
     "review",
     "prototype",
     "grilling",
     "wayfinder",
+    "plan-review",
+    "ui-craft",
 }
 FORBIDDEN = (
     re.compile("/" + "Users/"),

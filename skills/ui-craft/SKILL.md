@@ -1,0 +1,109 @@
+---
+name: ui-craft
+description: The full lifecycle for user-facing surfaces — explore a screen as radically different grounded HTML mockups and lock a visual spec; implement a locked spec with fidelity evidence; critique a UI with heuristics and personas (including repo-specific personas); audit a live surface against its lock and for a11y/responsive/anti-pattern quality; run the pre-ship polish gate; or re-settle a locked term. Use when asked to design, mock up, redesign, build, critique, audit, polish, or verify any screen, dashboard, flow, component, or other UI. Not for backend-only work, and not for module/API design ("interface" in the code sense — use codebase-design for that).
+---
+
+# UI craft
+
+One skill for the whole life of a user-facing surface: **lock** a visual spec,
+**build** to it, **critique** it, **audit** it, **polish** it, **re-settle** it.
+It replaces `ui-mockups`, `interface-craft`, and the absorbed parts of
+`impeccable` (Apache-2.0, by Paul Bakaus — see the repo NOTICE).
+
+Vocabulary guard: in the engineering charter, *interface* means a module's API.
+This skill owns **surfaces** — rendered UI. If the request is about a Python
+class, function signature, or module boundary, this is the wrong skill.
+
+## Setup (every invocation)
+
+1. Resolve this skill's installed directory as `UI_CRAFT_SKILL_DIR` (e.g.
+   `~/.claude/skills/ui-craft`). Absorbed references may still say
+   `IMPECCABLE_SKILL_DIR`; it is the same directory.
+2. Run `node $UI_CRAFT_SKILL_DIR/scripts/context.mjs` once per session
+   (`--target <path>` inside a monorepo). It prints PRODUCT.md / DESIGN.md or
+   reports `NO_PRODUCT_MD` — in that case follow `reference/init.md` first.
+   Ignore any `UPDATE_AVAILABLE` directive; this is a maintained fork.
+3. Read the project's design system: tokens, theme, one representative
+   component or page. Use what's there when it works.
+4. Read the matching register reference: `reference/brand.md` when design IS
+   the product (marketing, landing, portfolio), `reference/product.md` when
+   design SERVES the product (app UI, dashboards, tools).
+5. New project with no committed tokens: run
+   `node $UI_CRAFT_SKILL_DIR/scripts/palette.mjs` for a brand seed.
+
+## The lock is the contract
+
+A surface that has been through `lock` has, next to its mockup:
+
+- a `★ LOCKED` header in the mockup HTML, and
+- a **lock manifest** — `mockups/<surface>.lock.md` — the checkable inventory
+  every other mode reads. Format in `reference/lock.md`.
+
+Rules that bind every mode:
+
+- **No arbitration in private.** If two locked artifacts disagree, or a locked
+  term collides with the app's shipped design system beyond what the
+  manifest's precedence line settles, stop and ask. Implementer judgment never
+  silently overrides a lock.
+- **Deviation = re-settle.** Any build or refactor that changes a locked term
+  goes through `re-settle` (dated, sanctioned, recorded) — never a quiet diff.
+- **Evidence over green gates.** A surface is done when every manifest term
+  has evidence, not when the test suite passes.
+
+## Modes
+
+Route on the first word (or obvious intent). Read the mode's reference before
+acting — it defines the flow.
+
+| Mode | Job | Reference |
+| --- | --- | --- |
+| `lock [surface]` | Explore grounded variants, converge, lock spec + manifest | [reference/lock.md](reference/lock.md) |
+| `build [surface]` | Implement a locked spec; ship the fidelity ledger | [reference/build.md](reference/build.md) |
+| `critique [target]` | Heuristic scoring, slop verdict, persona walkthroughs | [reference/critique.md](reference/critique.md) |
+| `audit [target]` | Technical checks (a11y, contrast, responsive, detector) + lock-fidelity audit when a manifest exists | [reference/audit.md](reference/audit.md) |
+| `polish [target]` | Pre-ship quality gate; includes the manifest walk | [reference/polish.md](reference/polish.md) |
+| `resettle [term]` | Amend a locked term with record-keeping | [reference/resettle.md](reference/resettle.md) |
+| `init` / `document` | Project context setup / generate DESIGN.md | [reference/init.md](reference/init.md), [reference/document.md](reference/document.md) |
+
+No argument: recommend the 1–3 most useful modes from context (unlocked
+mockups → `lock`; open manifest without a ledger → `build`; never critiqued →
+`critique`), then list the table. Never auto-run a mode.
+
+General design invocations with no mode match (e.g. "make this less bland",
+"fix the spacing") run under `critique`-then-fix using
+[reference/design-rules.md](reference/design-rules.md).
+
+## Design rules (all modes)
+
+[reference/design-rules.md](reference/design-rules.md) carries the shared
+craft discipline: the design-brief template, token-system-before-components,
+typography/color/layout/motion rules, the absolute bans (side-stripes,
+gradient text, default glassmorphism, hero-metric template, identical card
+grids, eyebrow-on-every-section…), the AI-slop and category-reflex tests, and
+the layered critique order. It is required reading for `lock`, `build`, and
+any general invocation; the other modes consult it as needed.
+
+## Personas
+
+Persona walkthroughs live in `critique` (five built-in archetypes plus
+project-specific ones). **Repo personas win:** if the repo has its own persona
+definitions (a `.claude/qa/` directory, or a location named in its
+CLAUDE.md/AGENTS.md), use those personas — a diabetic user, a concerned
+parent — instead of inventing equivalents, and follow the repo's sweep
+protocol when one exists.
+
+## Grounding rules (inherited from ui-mockups, apply everywhere)
+
+- Ground every artifact in the app's real tokens, shipping UI/chart library
+  at its shipping version, and real data shape from a **safe, manufactured
+  fixture** — never production, personal, health, credential, or customer
+  data.
+- Vary the concept, not the decoration; three variants that differ only in
+  color are one design.
+- Inspect rendered output — source review alone never validates a visual
+  artifact. Use `drive-local-webapp` for rendering; ask to install it if
+  missing.
+- Keep `mockups/INDEX.md` as the surface ledger (one row per surface:
+  Surface / Concept / Status / Issue / File). `locked` rows are binding
+  precedent; `shipped` rows defer to the app itself. Every mode that touches
+  a lock updates the ledger in the same change — a stale ledger is a defect.

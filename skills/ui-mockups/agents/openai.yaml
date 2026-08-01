@@ -1,4 +1,0 @@
-interface:
-  display_name: "UI Mockups"
-  short_description: "Design grounded UI variants before implementation"
-  default_prompt: "Use $ui-mockups to explore and lock visual directions for this UI surface."

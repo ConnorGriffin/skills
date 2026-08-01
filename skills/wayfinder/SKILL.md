@@ -86,7 +86,7 @@ Apply exactly one ticket-type label:
   if it is unavailable, leave the ticket unclaimed and tell the human rather than
   substituting a generic search pass. The label is a promise of AFK-ability — an unattended
   session may be dispatched for an unclaimed research ticket, so apply it honestly.
-- **`wayfinder:prototype` (HITL):** Invoke `/ui-mockups`. Produce repository-grounded
+- **`wayfinder:prototype` (HITL):** Invoke `/ui-craft`. Produce repository-grounded
   variants, iterate with the human, and finish with a locked visual spec linked from the
   ticket. That artifact also satisfies any later review gate that demands a locked design.
 - **`wayfinder:grilling` (HITL):** Invoke `/grilling`, plus a domain-modelling skill when
@@ -257,7 +257,7 @@ Hand off a subtree as soon as all of these are true:
 - no open decision anywhere on the map could invalidate its outcome, constraints, or
   acceptance criteria;
 - every relevant load-bearing ruling is in an ADR;
-- any user-facing surface has a locked `/ui-mockups` spec.
+- any user-facing surface has a locked `/ui-craft` spec.
 
 File a new ordinary GitHub issue in the repository that will build it. Do **not** make it a
 child decision ticket, and do **not** add any `wayfinder:*` label. Whatever intake your
