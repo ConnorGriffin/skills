@@ -518,8 +518,8 @@ Seed color (anchor for your primary brand color):
 
 This is the brand's anchor — a single beautiful color. Compose the rest of
 the palette around it using YOUR judgment, the brief (PRODUCT.md /
-DESIGN.md / the user's prompt), and the color-strategy guidance already in
-SKILL.md.
+DESIGN.md / the user's prompt), and the color-strategy guidance in the
+register reference (reference/brand.md or reference/product.md).
 
 How to use:
 
@@ -584,14 +584,15 @@ How to use:
      • muted    — secondary text. Ink pulled 40% toward bg, keeping ink's
                   hue. Must reach ≥3.5:1 contrast vs bg.
 
-4. Pick a color STRATEGY (the four steps from SKILL.md):
+4. Pick a color STRATEGY (registers detailed in reference/brand.md and
+   reference/product.md):
      • Restrained: tinted neutrals + accent ≤10% — product default
      • Committed: one saturated color carries 30-60% — identity-driven
      • Full palette: 3-4 named roles each used deliberately — brand work
      • Drenched: the surface IS the color — campaign, hero, statement
    The brief picks the strategy. A startup dashboard ≠ a perfume brand.
 
-Hard rules (already in SKILL.md, recapped because the seed step is where
+Hard rules (already in reference/design-rules.md, recapped because the seed step is where
 they actually bite):
 
   - OKLCH only — never hex. Never #RRGGBB.

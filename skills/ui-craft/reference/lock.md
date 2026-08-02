@@ -17,7 +17,8 @@ agent cannot silently drift from: a ★ LOCKED mockup plus a lock manifest.
 
 ### 1. Ledger
 
-Read `mockups/INDEX.md` (create if absent). `locked` entries are binding
+Read `mockups/INDEX.md` (create if absent; one row per surface, columns
+Surface / Concept / Status / Issue / File). `locked` entries are binding
 precedent for adjacent surfaces; for `shipped` entries the app is ground
 truth, not old mockup markup.
 

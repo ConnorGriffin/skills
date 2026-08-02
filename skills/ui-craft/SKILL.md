@@ -1,14 +1,14 @@
 ---
 name: ui-craft
-description: The full lifecycle for user-facing surfaces — explore a screen as radically different grounded HTML mockups and lock a visual spec; implement a locked spec with fidelity evidence; critique a UI with heuristics and personas (including repo-specific personas); audit a live surface against its lock and for a11y/responsive/anti-pattern quality; run the pre-ship polish gate; or re-settle a locked term. Use when asked to design, mock up, redesign, build, critique, audit, polish, or verify any screen, dashboard, flow, component, or other UI. Not for backend-only work, and not for module/API design ("interface" in the code sense — use codebase-design for that).
+description: Lifecycle for user-facing surfaces — lock a visual spec from grounded HTML mockups, build to a lock with fidelity evidence, critique/audit/polish a UI, or re-settle a locked term. Use for any request to design, review, or verify rendered UI (screens, dashboards, flows, components). Not for backend-only work or module/API design ("interface" in the code sense — use codebase-design for that).
 ---
 
 # UI craft
 
 One skill for the whole life of a user-facing surface: **lock** a visual spec,
 **build** to it, **critique** it, **audit** it, **polish** it, **re-settle** it.
-It replaces `ui-mockups`, `interface-craft`, and the absorbed parts of
-`impeccable` (Apache-2.0, by Paul Bakaus — see the repo NOTICE).
+Parts absorbed from `impeccable` (Apache-2.0, by Paul Bakaus — see the repo
+NOTICE).
 
 Vocabulary guard: in the engineering charter, *interface* means a module's API.
 This skill owns **surfaces** — rendered UI. If the request is about a Python
@@ -17,12 +17,17 @@ class, function signature, or module boundary, this is the wrong skill.
 ## Setup (every invocation)
 
 1. Resolve this skill's installed directory as `UI_CRAFT_SKILL_DIR` (e.g.
-   `~/.claude/skills/ui-craft`). Absorbed references may still say
-   `IMPECCABLE_SKILL_DIR`; it is the same directory.
+   `~/.claude/skills/ui-craft`).
 2. Run `node $UI_CRAFT_SKILL_DIR/scripts/context.mjs` once per session
    (`--target <path>` inside a monorepo). It prints PRODUCT.md / DESIGN.md or
    reports `NO_PRODUCT_MD` — in that case follow `reference/init.md` first.
    Ignore any `UPDATE_AVAILABLE` directive; this is a maintained fork.
+   If `node` is unavailable or a script here errors, say so, read
+   PRODUCT.md / DESIGN.md directly, and continue — the scripts are
+   accelerators, not gates.
+
+For `lock`, `build`, and general design invocations only:
+
 3. Read the project's design system: tokens, theme, one representative
    component or page. Use what's there when it works.
 4. Read the matching register reference: `reference/brand.md` when design IS

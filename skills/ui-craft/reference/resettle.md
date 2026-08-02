@@ -18,7 +18,8 @@ time; it may never *apply* one on its own judgment.
      verbatim strings if they moved;
    - sibling locked artifacts the term appears in (the other form factor's
      mock, a copy spec) so the locked set stays self-consistent;
-   - `mockups/INDEX.md` if the surface's status or files changed.
+   - `mockups/INDEX.md` if the surface's status or files changed (columns
+     Surface / Concept / Status / Issue / File).
 3. If the term had a `LOCK:` assertion, update the assertion in the same
    change and prove the new one can fail.
 4. If a build is in flight, update its fidelity ledger row from
