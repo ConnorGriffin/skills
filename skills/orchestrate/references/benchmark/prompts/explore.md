@@ -1,0 +1,3 @@
+Area: codebase exploration. Context worktree (read-only): $WT_AGENTFLOW — the agentflow autonomous issue->PR fleet daemon, checked out at the commit under test.
+Task: map how a ready GitHub issue becomes a merged PR in this system. Name every stage, the modules/files implementing each (with file:line evidence), the labels/gates that move work between stages, and where each provider is dispatched. Note anything load-bearing a new contributor would miss.
+Output: a structured markdown map. Be complete but do not pad. HARD RULE: the context directory is strictly read-only — never modify, patch, or stash anything in it.

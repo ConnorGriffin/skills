@@ -24,6 +24,7 @@ EXPECTED = {
     "wayfinder",
     "plan-review",
     "ui-craft",
+    "orchestrate",
 }
 FORBIDDEN = (
     re.compile("/" + "Users/"),
