@@ -141,7 +141,7 @@ For each issue, tag with **P0-P3 severity** (see [Issue Severity below](#issue-s
 
 Auto-select 2-3 personas most relevant to this interface type (use the selection table in the reference). If `CLAUDE.md` contains a `## Design Context` section from `ui-craft init`, also generate 1-2 project-specific personas from the audience/brand info.
 
-**Repo personas win.** If the repo defines its own personas — a `.claude/qa/` directory, or a location named in its CLAUDE.md/AGENTS.md — use those instead of inventing equivalents, and follow the repo's sweep protocol when one exists. The built-in archetypes only fill roles the repo's set doesn't cover.
+**Repo personas win.** If the repo defines its own personas — canonically `.claude/qa/personas/*.md` (written by `init`'s persona-panel step), or a location named in its CLAUDE.md/AGENTS.md — use those instead of inventing equivalents, and follow the repo's sweep protocol when one exists. The built-in archetypes only fill roles the repo's set doesn't cover.
 
 For each selected persona, walk through the primary user action and list specific red flags found:
 
@@ -205,6 +205,10 @@ This is fire-and-forget. Do not show the user the helper's JSON output; only the
 **After presenting findings**, convert actionable decisions into visual either/or choices rather than prose questions—this is the default, not optional. These choices shape the action plan.
 
 **Visual decision widgets (primary approach)**: When a widget tool is available (`mcp__visualize__show_widget` or equivalent), render one widget containing 3-5 numbered questions. Each question describes a single tension found in plain English (no jargon, no CSS specifics), followed by 2-3 side-by-side option cards. Each card shows a small faithful visual preview of that option—rendered with actual fonts and colors where practical—plus a label (mark the recommended one "(recommended)") and a "Pick this" button wired via `sendPrompt()` to send a message identifying the question and chosen option. Purely mechanical fixes—unambiguous P0/P1 issues with one right answer—are not questions; list them in a single sentence as "I'll just fix these" and include them in the plan. Before rendering any widget, call `mcp__visualize__read_me` silently. After rendering, STOP and wait for picks via sendPrompt messages; accept prose answers as well.
+
+**Panel verdicts annotate, never decide.** If a `/ui-craft consensus` panel (see reference/consensus.md) has already settled one of these questions, still ask it — mark the winning option's label "(recommended, panel 3-0)" or note the split. The panel is advisory; the user picks.
+
+**Offer the panel once.** If several findings pulled the personas in genuinely different directions, add one line after the widget: "These trade-offs split the personas — I can have them hash it out themselves (`/ui-craft consensus`) and bring back a negotiated recommendation." Offer it at most once per session, only when repo personas exist (`.claude/qa/personas/`), and never auto-run it.
 
 **Fallback to prose questions (CLI-only sessions)**: If no widget tool is available, ask targeted prose questions based on specific findings. Adapt these to what you actually found; never ask generic questions:
 

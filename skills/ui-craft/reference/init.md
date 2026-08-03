@@ -4,17 +4,18 @@ The setup command for a project. One codebase crawl feeds everything it writes:
 
 - **PRODUCT.md** (strategic): root project file for register, target users, product purpose, brand personality, anti-references, strategic design principles. Answers "who/what/why".
 - **DESIGN.md** (visual): root project file for visual theme, color palette, typography, components, layout. Follows the [DESIGN.md format spec](https://raw.githubusercontent.com/google-labs-code/design.md/main/docs/spec.md). Answers "how it looks".
+- **`.claude/qa/personas/`** (reviewer personas): 3 distinct user-situation personas with lens, job, and concrete rules, plus a RANKING.md for tie-breaks. Fed to `/ui-craft critique` and required by `/ui-craft consensus`.
 - **`.impeccable/live/config.json`** (live mode): pre-configured so `/ui-craft live` boots straight into variant mode with no first-time detour.
 
 It closes by pointing the user at the best command to run next. Every other impeccable command reads PRODUCT.md and DESIGN.md before doing any work.
 
 ## Step 1: Load current state
 
-Check what already exists. PRODUCT.md and DESIGN.md live at the project root, or under `.agents/context/` or `docs/` (case-insensitive). Read whichever are present with your native file tool. Also note whether `.impeccable/live/config.json` already exists (Step 6 leaves it untouched if so).
+Check what already exists. PRODUCT.md and DESIGN.md live at the project root, or under `.agents/context/` or `docs/` (case-insensitive). Read whichever are present with your native file tool. Also note whether `.impeccable/live/config.json` already exists (Step 7 leaves it untouched if so).
 
 Decision tree:
 - **Neither file exists (empty project or no context yet)**: do Steps 2-4 (write PRODUCT.md), then decide on DESIGN.md based on whether there's code to analyze.
-- **PRODUCT.md exists, DESIGN.md missing**: skip to Step 5 and offer to run `/ui-craft document` for DESIGN.md.
+- **PRODUCT.md exists, DESIGN.md missing**: skip to Step 6 and offer to run `/ui-craft document` for DESIGN.md.
 - **PRODUCT.md exists but has no `## Register` section (legacy)**: add it. Infer a hypothesis from the codebase (see Step 2), confirm with the user, write the field.
 - **Both exist**: STOP and call the AskUserQuestion tool to clarify. Ask which file to refresh. Skip the one the user doesn't want changed.
 - **Just DESIGN.md exists (unusual)**: do Steps 2-4 to produce PRODUCT.md.
@@ -25,7 +26,7 @@ If init was invoked as a setup blocker by another command, such as `/ui-craft cr
 
 ## Step 2: Explore the codebase
 
-Before asking questions, thoroughly scan the project to discover what you can. This single crawl feeds PRODUCT.md, DESIGN.md, **and** the live-mode framework detection in Step 6, so be thorough once rather than re-scanning later:
+Before asking questions, thoroughly scan the project to discover what you can. This single crawl feeds PRODUCT.md, DESIGN.md, **and** the live-mode framework detection in Step 7, so be thorough once rather than re-scanning later:
 
 - **README and docs**: Project purpose, target audience, any stated goals
 - **Package.json / config files**: Tech stack, dependencies, existing design libraries, **and the framework** (Vite/SPA, Next.js, Nuxt, SvelteKit, Astro, multi-page static) plus the HTML entry the browser actually loads
@@ -41,7 +42,7 @@ Also form a **register hypothesis** from what you find:
 
 Register is a hypothesis at this point, not a decision; Step 3 confirms it.
 
-Note what you've learned and what remains unclear. Also note any rough edges worth a follow-up command (thin hierarchy, flat or gray palette, missing error/empty states, dull copy); Step 7 turns these into concrete recommendations without re-analyzing.
+Note what you've learned and what remains unclear. Also note any rough edges worth a follow-up command (thin hierarchy, flat or gray palette, missing error/empty states, dull copy); Step 8 turns these into concrete recommendations without re-analyzing.
 
 ## Step 3: Ask strategic questions (for PRODUCT.md)
 
@@ -124,7 +125,24 @@ Register is either `brand` or `product` as a bare value. No prose, no commentary
 
 Write to `PROJECT_ROOT/PRODUCT.md`. If `.impeccable.md` existed, the loader already renamed it; merge into that content rather than starting from scratch.
 
-## Step 5: Decide on DESIGN.md
+## Step 5: Derive the persona panel
+
+Personas feed directly into `/ui-craft critique` (walkthrough scoring) and are **required** by `/ui-craft consensus` (group review). Build them now.
+
+From the freshly written PRODUCT.md, extract exactly 3 reviewer personas — distinct real user **situations**, not demographic sketches. A situation is the concrete context when someone uses this product: *e.g. printed recipe cards → mid-cook glancer, first-time cook, shopper*. If the product has only two genuine situations, split the heavier one into two lenses (first-time vs repeat, or different stages of the job).
+
+**Draft** each persona as `.claude/qa/personas/<name>.md` with:
+- **Lens**: the single question they judge everything by (*e.g. "does this stay readable mid-hands-full?"*)
+- **Job**: what they concretely do when reviewing a rendered surface (*e.g. "glance mid-cooking, spot what changed, move on"*)
+- **Rules/red flags**: what they must flag, in specifics—not vague ("is clear") but concrete (*e.g. "text smaller than 14px", "requires two-step navigation", "lacks progress indicator"*)
+
+Model the format on a stress-tester: lens + job + concrete rules, no fluff.
+
+Also draft `.claude/qa/personas/RANKING.md` with: the tie-break order derived from the product's PRIMARY use per PRODUCT.md (e.g. *"cards are used while cooking → glancer outranks shopper on ties"*), one sentence of justification. If primacy is genuinely unclear, ask the user one question and record the answer.
+
+**Confirm the drafted personas with the user** before writing files (same etiquette as Step 4). If `.claude/qa/personas/` already exists, offer a refresh per file rather than silently overwriting.
+
+## Step 6: Decide on DESIGN.md
 
 Offer `/ui-craft document` either way. Two paths:
 
@@ -135,11 +153,11 @@ If the user agrees, delegate to `/ui-craft document` (it auto-detects scan vs se
 
 If the user prefers to skip, mention they can run `/ui-craft document` any time later.
 
-## Step 6: Configure live mode (when code exists)
+## Step 7: Configure live mode (when code exists)
 
 Live mode is not part of this fork (it stayed with the upstream impeccable skill); skip live-mode pre-configuration entirely.
 
-## Step 7: Recommend starting points, then wrap up
+## Step 8: Recommend starting points, then wrap up
 
 Summarize tersely:
 - Register captured (brand / product)

@@ -68,6 +68,7 @@ acting — it defines the flow.
 | `audit [target]` | Technical checks (a11y, contrast, responsive, detector) + lock-fidelity audit when a manifest exists | [reference/audit.md](reference/audit.md) |
 | `polish [target]` | Pre-ship quality gate; includes the manifest walk | [reference/polish.md](reference/polish.md) |
 | `resettle [term]` | Amend a locked term with record-keeping | [reference/resettle.md](reference/resettle.md) |
+| `consensus [question]` | Settle a contested design decision via a 3-persona vote-and-negotiate panel (advisory; requires repo personas) | [reference/consensus.md](reference/consensus.md) |
 | `init` / `document` | Project context setup / generate DESIGN.md | [reference/init.md](reference/init.md), [reference/document.md](reference/document.md) |
 
 No argument: recommend the 1–3 most useful modes from context (unlocked
@@ -92,10 +93,12 @@ any general invocation; the other modes consult it as needed.
 
 Persona walkthroughs live in `critique` (five built-in archetypes plus
 project-specific ones). **Repo personas win:** if the repo has its own persona
-definitions (a `.claude/qa/` directory, or a location named in its
-CLAUDE.md/AGENTS.md), use those personas — a diabetic user, a concerned
-parent — instead of inventing equivalents, and follow the repo's sweep
-protocol when one exists.
+definitions (canonically `.claude/qa/personas/*.md` — written by `init`'s
+persona-panel step — or a location named in its CLAUDE.md/AGENTS.md), use
+those personas — a diabetic user, a concerned parent — instead of inventing
+equivalents, and follow the repo's sweep protocol when one exists. The
+`consensus` mode requires these repo personas and refuses to run on generic
+archetypes.
 
 ## Grounding rules (inherited from ui-mockups, apply everywhere)
 
