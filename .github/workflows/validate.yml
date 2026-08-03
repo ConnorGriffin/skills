@@ -41,8 +41,9 @@ jobs:
           --agent codex --copy --yes
       - name: Verify installed skills
         run: |
-          for skill in ui-mockups drive-local-webapp cbm-onboard spin-worktree \
-            research interface-craft implement tdd review prototype grilling wayfinder; do
+          for skill in drive-local-webapp cbm-onboard spin-worktree research \
+            implement tdd review prototype grilling wayfinder plan-review \
+            ui-craft orchestrate; do
             test -f ".agents/skills/$skill/SKILL.md"
           done
       - name: Install pinned browser driver dependencies
