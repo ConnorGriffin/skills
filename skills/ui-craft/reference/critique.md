@@ -202,23 +202,22 @@ This is fire-and-forget. Do not show the user the helper's JSON output; only the
 
 ### Ask the User
 
-**After presenting findings**, use targeted questions based on what was actually found. STOP and ask in prose, one question at a time. These answers will shape the action plan.
+**After presenting findings**, convert actionable decisions into visual either/or choices rather than prose questions—this is the default, not optional. These choices shape the action plan.
 
-Ask questions along these lines (adapt to the specific findings; do NOT ask generic questions):
+**Visual decision widgets (primary approach)**: When a widget tool is available (`mcp__visualize__show_widget` or equivalent), render one widget containing 3-5 numbered questions. Each question describes a single tension found in plain English (no jargon, no CSS specifics), followed by 2-3 side-by-side option cards. Each card shows a small faithful visual preview of that option—rendered with actual fonts and colors where practical—plus a label (mark the recommended one "(recommended)") and a "Pick this" button wired via `sendPrompt()` to send a message identifying the question and chosen option. Purely mechanical fixes—unambiguous P0/P1 issues with one right answer—are not questions; list them in a single sentence as "I'll just fix these" and include them in the plan. Before rendering any widget, call `mcp__visualize__read_me` silently. After rendering, STOP and wait for picks via sendPrompt messages; accept prose answers as well.
 
-1. **Priority direction**: Based on the issues found, ask which category matters most to the user right now. For example: "I found problems with visual hierarchy, color usage, and information overload. Which area should we tackle first?" Offer the top 2-3 issue categories as options.
+**Fallback to prose questions (CLI-only sessions)**: If no widget tool is available, ask targeted prose questions based on specific findings. Adapt these to what you actually found; never ask generic questions:
 
-2. **Design intent**: If the critique found a tonal mismatch, ask whether it was intentional. For example: "The interface feels clinical and corporate. Is that the intended tone, or should it feel warmer/bolder/more playful?" Offer 2-3 tonal directions as options based on what would fix the issues found.
+1. **Priority direction**: "I found problems with [X], [Y], and [Z]. Which area should we tackle first?" Offer the top 2-3 categories.
+2. **Design intent**: For tonal mismatches, ask if they were intentional and offer 2-3 directions that would fix the issues.
+3. **Scope**: "I found N issues. Want to address everything, or focus on the top 3?" Offer options like "Top 3 only", "All issues", "Critical only".
+4. **Constraints** (optional): If findings touch many areas, ask if anything should stay as-is—prevents the plan from touching areas the user considers done.
 
-3. **Scope**: Ask how much the user wants to take on. For example: "I found N issues. Want to address everything, or focus on the top 3?" Offer scope options like "Top 3 only", "All issues", "Critical issues only".
-
-4. **Constraints** (optional; only ask if relevant): If the findings touch many areas, ask if anything is off-limits. For example: "Should any sections stay as-is?" This prevents the plan from touching things the user considers done.
-
-**Rules for questions**:
-- Every question must reference specific findings from the report. Never ask generic "who is your audience?" questions.
-- Keep it to 2-4 questions maximum. Respect the user's time.
+**Rules for both approaches**:
+- Every question references specific findings. Never ask generic "who is your audience?" questions.
+- Keep to 2-4 questions in prose, up to 5 in a widget. Respect the user's time.
 - Offer concrete options, not open-ended prompts.
-- If findings are straightforward (e.g., only 1-2 clear issues), skip questions and go directly to Recommended Actions.
+- If findings are straightforward (only 1-2 clear issues), skip questions and go directly to Recommended Actions.
 
 ### Recommended Actions
 
