@@ -89,9 +89,9 @@ Apply exactly one ticket-type label:
 - **`wayfinder:prototype` (HITL):** Invoke `/ui-craft`. Produce repository-grounded
   variants, iterate with the human, and finish with a locked visual spec linked from the
   ticket. That artifact also satisfies any later review gate that demands a locked design.
-- **`wayfinder:grilling` (HITL):** Invoke `/grilling`, plus a domain-modelling skill when
-  one is available; ask one question at a time. Never answer the human's side of the
-  exchange.
+- **`wayfinder:interview` (HITL):** Invoke `/scope`'s interview mode, plus a
+  domain-modelling skill when one is available; ask one question at a time. Never
+  answer the human's side of the exchange.
 - **`wayfinder:task` (HITL):** A prerequisite that genuinely needs the human in the loop.
   It earns a place only by unblocking a decision, not by delivering the destination — and
   it is never an execution errand: a prerequisite that must *change the world* before a
@@ -131,8 +131,8 @@ not add it to `Decisions so far`.
 
 When the user brings a loose idea:
 
-1. Run `/grilling`, and a domain-modelling skill when one is available, to name the
-   destination. The destination fixes scope, so settle it first.
+1. Run `/scope`'s interview mode, and a domain-modelling skill when one is available, to
+   name the destination. The destination fixes scope, so settle it first.
 2. Grill breadth-first across the effort. Surface precise decisions, dependency order, and
    coarse fog without resolving any ticket.
 3. If the route is already clear and fits one session, stop and tell the user a map would

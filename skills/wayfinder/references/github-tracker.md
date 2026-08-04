@@ -14,9 +14,17 @@ the state of any issue:
 gh label create wayfinder:map       --color 5319e7 --description "Map of decisions for a multi-session effort" --force
 gh label create wayfinder:research  --color 0e8a16 --description "AFK research decision" --force
 gh label create wayfinder:prototype --color 1d76db --description "HITL locked UI mockup decision" --force
-gh label create wayfinder:grilling  --color fbca04 --description "HITL grilling or domain decision" --force
+gh label create wayfinder:interview --color fbca04 --description "HITL interview or domain decision" --force
 gh label create wayfinder:task      --color c5def5 --description "Prerequisite action that unblocks a decision" --force
 gh label create wayfinder:awaiting-disposition --color bfdadc --description "Completed research awaiting human disposition" --force
+```
+
+Repositories labeled under the pre-scope vocabulary carry `wayfinder:grilling` instead of
+`wayfinder:interview`. Renaming the label migrates every ticket that carries it in one
+step — run this before the create block, and skip it when the old label is absent:
+
+```sh
+gh label edit wayfinder:grilling --name wayfinder:interview --description "HITL interview or domain decision" 2>/dev/null || true
 ```
 
 Every map and decision ticket carries exactly one of the first five ticket-type labels.
@@ -36,7 +44,7 @@ gh issue create --repo OWNER/REPO --title "Map: <destination>" \
   --body-file /path/to/map-body.md --label wayfinder:map
 
 gh issue create --repo OWNER/REPO --title "Decide <question>" \
-  --body-file /path/to/ticket-body.md --label wayfinder:grilling
+  --body-file /path/to/ticket-body.md --label wayfinder:interview
 ```
 
 Capture the returned URLs or resolve titles immediately; never guess issue numbers.

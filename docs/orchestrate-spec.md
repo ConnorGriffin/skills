@@ -1,6 +1,6 @@
 # /orchestrate — locked spec (2026-08-03)
 
-Settled in a grilling session; this file is the fixed reference the finished
+Settled in a scope interview session; this file is the fixed reference the finished
 skill is compared against. Changes after this point are deviations and must be
 called out, not silently absorbed.
 
