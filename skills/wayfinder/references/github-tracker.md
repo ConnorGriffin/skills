@@ -19,14 +19,6 @@ gh label create wayfinder:task      --color c5def5 --description "Prerequisite a
 gh label create wayfinder:awaiting-disposition --color bfdadc --description "Completed research awaiting human disposition" --force
 ```
 
-Repositories labeled under the pre-scope vocabulary carry `wayfinder:grilling` instead of
-`wayfinder:interview`. Renaming the label migrates every ticket that carries it in one
-step — run this before the create block, and skip it when the old label is absent:
-
-```sh
-gh label edit wayfinder:grilling --name wayfinder:interview --description "HITL interview or domain decision" 2>/dev/null || true
-```
-
 Every map and decision ticket carries exactly one of the first five ticket-type labels.
 `wayfinder:awaiting-disposition` is additional state compatible with exactly one ticket-type
 label; it is not a second ticket type and is distinct from the transient
