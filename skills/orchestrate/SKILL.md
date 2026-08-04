@@ -81,6 +81,11 @@ When coordinator mode runs a ui-craft lifecycle, the delegation split is:
 
 - **Mockup drafts (lock phase)**: Sol; Spark when a design system or existing
   lock is there to reuse (and for fast iteration rounds); Opus escalation.
+  **Fan out one sub-agent per concept direction, in parallel** — each agent
+  gets the brief plus exactly one named direction and never sees the others'
+  output. Never ask a single agent for N variants: one context produces N
+  shades of one idea, and the divergence the lock phase exists to compare is
+  lost. Iteration rounds on an already-chosen direction may stay single-agent.
 - **Visual judgment** — critiquing renders, deciding what locks: stays with the
   coordinator (verification + operator-facing decisions). Persona-critique
   reading passes may go to Terra/Opus, but the lock call is surfaced to the
