@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scope"
+  short_description: "Triage front door: classify the dominant uncertainty and route to one specialist skill"
+  default_prompt: "Use $scope to figure out how to approach this before building."

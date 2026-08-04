@@ -12,10 +12,10 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | [`drive-local-webapp`](skills/drive-local-webapp/SKILL.md) | Drive and screenshot a local web app with headless Chromium | Node.js 20+; installs Playwright locally |
 | [`cbm-onboard`](skills/cbm-onboard/SKILL.md) | Index a repository with codebase-memory-mcp and keep it current | `codebase-memory-mcp` on `PATH` |
 | [`spin-worktree`](skills/spin-worktree/SKILL.md) | Create isolated Git worktrees for issue and PR work | Git; GitHub CLI only for `--pr` discovery |
-| [`grilling`](skills/grilling/SKILL.md) | Relentlessly interview the user to stress-test a plan or design before building | — |
+| [`scope`](skills/scope/SKILL.md) | Triage front door for work that isn't ready to build: classify the dominant uncertainty and route to one specialist skill, including a bundled interview mode | — |
 | [`plan-review`](skills/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | Parallel-agent support recommended |
 | [`orchestrate`](skills/orchestrate/SKILL.md) | Flip the session into coordinator mode: delegate all real work to sub-agents routed by an empirically benchmarked model capability table | Codex CLI for GPT-tier sub-agents; table re-benchmarked per its bundled procedure |
-| [`wayfinder`](skills/wayfinder/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `grilling`, `ui-craft` |
+| [`wayfinder`](skills/wayfinder/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `scope`'s interview mode, `ui-craft` |
 | [`research`](skills/research/SKILL.md) | Investigate a question against primary sources and capture findings as Markdown in the repo | — |
 | [`prototype`](skills/prototype/SKILL.md) | Build a throwaway prototype — a terminal app for logic questions or switchable UI variants in the real app | — |
 | [`tdd`](skills/tdd/SKILL.md) | Test-driven development through public interfaces, red-green-refactor | — |
@@ -58,7 +58,7 @@ Optional integrations are enhancements, not hidden runtime requirements:
   ordinary repository search and file reads.
 - **`codebase-design`:** referenced by `tdd`; helps shape non-trivial module
   interfaces. Without it, keep the shipping module shape and preserve locality.
-- **`domain-modeling`:** referenced by `grilling` and `wayfinder`; maintains a
+- **`domain-modeling`:** referenced by `scope`'s interview mode and `wayfinder`; maintains a
   project's domain vocabulary. Without it, ground terms in the repo's own docs.
 - **`impeccable`:** adds a final visual-quality audit. Without it, run the
   explicit contrast, focus, overflow, and target-size checks.
@@ -72,7 +72,7 @@ npx skills add mattpocock/skills --skill codebase-design --skill domain-modeling
 ## Attribution
 
 The `implement`, `tdd`, `review`, and `prototype` skills are adopted from — and
-`grilling` is derived from — [Matt Pocock's skills
+`scope`'s interview mode is derived from — [Matt Pocock's skills
 repository](https://github.com/mattpocock/skills) (MIT, copyright (c) 2026 Matt
 Pocock), lightly edited here to be self-contained. See [LICENSE](LICENSE) and
 [NOTICE](NOTICE).

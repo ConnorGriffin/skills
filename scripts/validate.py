@@ -20,7 +20,7 @@ EXPECTED = {
     "tdd",
     "review",
     "prototype",
-    "grilling",
+    "scope",
     "wayfinder",
     "plan-review",
     "ui-craft",

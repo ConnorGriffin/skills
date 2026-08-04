@@ -1,29 +1,26 @@
----
-name: grilling
-description: Interview the user relentlessly about a plan or design. Use when the user wants to stress-test a plan before building, or uses any 'grill' trigger phrases.
----
+# Interview mode
 
-Interview me relentlessly about every aspect of this plan until we reach a
-shared understanding. Map the plan as a **design tree**: every decision branches
-into the decisions that depend on it.
+Routed here from `scope` when a concrete plan or design exists but is untested.
+Interview me relentlessly about every aspect of the plan until we reach a shared
+understanding. Map the plan as a **design tree**: every decision branches into the
+decisions that depend on it.
 
-Work the tree in **rounds**. The **frontier** is every decision whose
-prerequisites are already settled — everything I can answer now without either
-of us guessing at an earlier answer. Ask the whole frontier in one numbered
-round, then wait for my answers before continuing. Keep tightly coupled
-questions together so I can scroll through the round and dictate answers by
-number.
+Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are
+already settled — everything I can answer now without either of us guessing at an
+earlier answer. Ask the whole frontier in one numbered round, then wait for my answers
+before continuing. Keep tightly coupled questions together so I can scroll through the
+round and dictate answers by number.
 
-After each response, record the settled decisions, recompute the frontier, and
-ask the next round. If one answer could materially change whether or how another
-question should be asked, those questions are not on the same frontier: ask the
+After each response, record the settled decisions in the scope ledger, recompute the
+frontier, and ask the next round. If one answer could materially change whether or how
+another question should be asked, those questions are not on the same frontier: ask the
 dependency first and save the downstream question for a later round.
 
-Finding facts is your job; making decisions is mine. If a frontier question
-needs a fact from the environment, explore it instead of asking me. When
-subagents are available, dispatch fact-finding to a subagent and continue with
-the rest of the frontier; treat only questions downstream of that exploration
-as blocked. Put every actual decision to me.
+Finding facts is your job; making decisions is mine. If a frontier question needs a
+fact from the environment, explore it instead of asking me. When subagents are
+available, dispatch fact-finding to a subagent and continue with the rest of the
+frontier; treat only questions downstream of that exploration as blocked. Put every
+actual decision to me.
 
 ## Voice rules — I have not read the code as deeply as you have
 
@@ -97,20 +94,20 @@ implementation detail:
   answer to "don't handle it"; make me overrule the default rather than making
   me strip speculative hardening out later.
 
-## Docs as you go (default)
+## Docs as you go
 
-When the session is grounded in a repo, load the `/domain-modeling` skill at
-the start and apply it throughout: the moment a decision crystallises that
-constrains architecture or behavior, write the ADR (`docs/adr/`); the moment
-a fuzzy term gets sharpened, update the glossary (`CONTEXT.md`). Write them
-as they land, not in a batch at the end — a decision that only exists in
-chat is lost to the next session. Challenge terms against the existing
+Load the `domain-modeling` skill at the start when available, and apply it throughout:
+the moment a decision crystallises that constrains architecture or behavior, append it
+to the scope ledger's `Decisions` section with its disposition tag (`→ ADR`, `→ issue`,
+or `inline`); the moment a fuzzy term gets sharpened, update the glossary
+(`CONTEXT.md`). Write these as they land, not in a batch at the end — a decision that
+only exists in chat is lost to the next session. Challenge terms against the existing
 glossary as you interview.
 
 ## Closing
 
-The session is done when the frontier is empty: every branch has been visited
-and nothing remains silently assumed. End with a compact summary of every
-decision made (the shared understanding), flag anything deferred or defaulted,
-and list the ADRs/glossary entries written during the session. Do not enact the
-plan until I confirm we have reached a shared understanding.
+The session is done when the frontier is empty: every branch has been visited and
+nothing remains silently assumed. End with a compact summary of every decision made
+(the shared understanding), flag anything deferred or defaulted, and confirm every
+ledger disposition — `→ ADR`, `→ issue` — has been discharged per scope's exit
+protocol. Do not enact the plan until I confirm we have reached a shared understanding.
