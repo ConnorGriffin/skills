@@ -14,6 +14,9 @@ SKILLS = ROOT / "skills"
 EXPECTED = {
     "drive-local-webapp",
     "cbm-onboard",
+    "ci-design",
+    "codebase-design",
+    "domain-modeling",
     "spin-worktree",
     "research",
     "implement",

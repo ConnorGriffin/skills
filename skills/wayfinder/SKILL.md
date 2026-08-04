@@ -297,6 +297,9 @@ Wayfinder handoff: #<map>
 Wayfinder candidate: <candidate id — only when this issue came from a research disposition>
 ```
 
+Before filing, run `/plan-review` on the brief above — a finding can still change the issue
+body before the marker/dependency triad below is written.
+
 Before filing, reconcile existing handoff facts in GitHub. The two trailing marker lines are
 the issue's durable identity: keep `Wayfinder handoff: #<map>` byte-for-byte, and carry
 `Wayfinder candidate:` only when a research disposition produced this issue, repeating that

@@ -1,0 +1,4 @@
+interface:
+  display_name: "CI Design"
+  short_description: "Vocabulary and principles for designing well-scoped, low-noise CI"
+  default_prompt: "Use $ci-design to shape or audit this CI setup."
