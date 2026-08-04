@@ -159,4 +159,6 @@ Good interfaces make testing natural:
 - **Exploring alternative interfaces** — see
   [references/DESIGN-IT-TWICE.md](references/DESIGN-IT-TWICE.md): spin up
   parallel sub-agents to design the interface several radically different
-  ways, then compare on depth, locality, and seam placement.
+  ways, then compare on depth, locality, and seam placement. `/design-an-interface`
+  automates this pattern — reach for it directly when you just want the parallel
+  designs run, not the background here.

@@ -15,8 +15,10 @@ Classify the **dominant** uncertainty — the one that, if resolved, makes the o
 tractable — and route to exactly one of:
 
 - **Big and foggy, many interlocking decisions that block each other** → `wayfinder`.
-- **A concrete plan or design exists but is untested** → interview mode
+- **A concrete plan or design exists in someone's head, untested** → interview mode
   ([references/interview.md](references/interview.md), in this skill).
+- **A written plan, work order, spec, or brief exists and needs stress-testing
+  before anything is built** → `plan-review`.
 - **Missing facts answerable from docs or sources** → `research`.
 - **Only answerable by feeling it out in running code** → `prototype`.
 - **The dominant uncertainty is what a user-facing surface should look like** →
@@ -25,8 +27,8 @@ tractable — and route to exactly one of:
   question at a time, always — never a menu of questions.
 
 If the request already names a specialist by trigger phrase (a `grill`-style trigger
-names interview mode; a wayfinder map names `wayfinder`), route there directly without
-re-diagnosing.
+names interview mode; `stress-test this plan` names `plan-review`; a wayfinder map
+names `wayfinder`), route there directly without re-diagnosing.
 
 ## Ledger — required
 
