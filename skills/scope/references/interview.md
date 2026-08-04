@@ -88,7 +88,9 @@ implementation detail:
   caller sees, judged by the deep-module test (an interface far simpler than
   its implementation) — and load `/codebase-design` for the vocabulary when it
   is available. A plan that leaves interface shape to build time is how
-  shallow modules happen.
+  shallow modules happen. `design-it-twice` (`skills/codebase-design/`) may be
+  offered right there as a grounding step for this frontier question, the same
+  way `ground it` grounds any other one.
 - **Edge cases are priced, not assumed.** An edge case earns handling only if
   it is reachable from real inputs (`ground it` measures this). Default the
   answer to "don't handle it"; make me overrule the default rather than making
