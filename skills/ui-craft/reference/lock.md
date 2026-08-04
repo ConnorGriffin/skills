@@ -40,33 +40,55 @@ named concept directions that differ in layout metaphor, information
 hierarchy, or interaction model — not decoration. Use `scope`'s interview mode to
 sharpen the brief when installed.
 
-### 4. Fan out
+### 4. Prep the shared scaffold
+
+Once per surface, the orchestrator (or one cheap prep agent) extracts the
+chrome every variant would otherwise reinvent — from an approved existing
+mockup if one exists, else built fresh:
+
+- `mockups/_theme.css` — theme tokens (light+dark), base page/card styles,
+  the mock-shell layout (a plain width-constrained column).
+- `mockups/_shell.js` — ES module: `loadCapture(name)` fetch glue for the
+  capture fixtures, `renderMockBar()` (state + theme toggle groups,
+  `?theme=dark` deep-link), `resolveColors()` for theme-aware chart options.
+- `mockups/SCAFFOLD.md` — ~30 lines telling variant agents what the scaffold
+  provides, how to link it, and what remains theirs (concept-specific markup
+  and chart render logic).
+
+The chart-library CDN `<script>` tag cannot live in the ES module (load
+order); it stays a documented copy-paste line in SCAFFOLD.md.
+
+**Mock chrome is recessive:** width constraint, state/theme toggles, one-line
+concept note — no device bezels, frames, or decoration. Chrome that exists to
+serve the mockup gets out of the way.
+
+### 5. Fan out
 
 One fresh subagent per concept, using
 [variant-agent-prompt.md](variant-agent-prompt.md) filled with the grounding
-kit and shared brief. Each writes `mockups/<surface>-<concept>.html` (+
+kit, shared brief, and SCAFFOLD.md. Each writes `mockups/<surface>-<concept>.html` (+
 `-chart.js` when render logic is non-trivial). Sequential with isolated
 briefs if parallel agents are unavailable.
 
-### 5. Render and inspect
+### 6. Render and inspect
 
 Serve `mockups/` over HTTP; render every required state with
 `drive-local-webapp`; inspect the actual images and console errors.
 Screenshots go outside the repo.
 
-### 6. Review tersely
+### 7. Review tersely
 
 One line of design bet + one line of judgment per variant; recommend one.
 Incorporate feedback by re-rendering, not arguing from source.
 
-### 7. Persona round and craft gate
+### 8. Persona round and craft gate
 
 Walk the primary task as 2–3 relevant personas (repo personas first — see
 SKILL.md); name the first concrete element that stalls each walkthrough and
 fix it. Then run the `audit` technical checks (contrast, keyboard focus,
 overflow, target sizes) on the finalist.
 
-### 8. Lock
+### 9. Lock
 
 Locking is complete only when ALL of these exist:
 

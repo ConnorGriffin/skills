@@ -16,6 +16,14 @@ differs from the named sibling concepts>
 
 <screen or component, the one question it must answer, and hard constraints>
 
+## Shared scaffold (mandatory)
+
+`mockups/_theme.css` and `mockups/_shell.js` exist for this surface — read
+`mockups/SCAFFOLD.md` and follow it. Link the stylesheet, import the module,
+use `loadCapture()`, `renderMockBar()`, and `resolveColors()` from it. Do NOT
+re-implement theme tokens, base card styles, mockbar chrome, or fetch glue —
+build only the concept-specific markup and chart render logic.
+
 ## Grounding kit
 
 - Theme: <tokens copied from the named source files, light and dark>
