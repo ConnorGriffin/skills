@@ -26,9 +26,11 @@ build only the concept-specific markup and chart render logic.
 
 ## Grounding kit
 
-- Theme: <tokens copied from the named source files, light and dark>
+Theme tokens and fetch glue live in the scaffold above — do not restate them
+here.
+
 - UI/chart library: <library, exact version, and existing loading pattern>
-- Data: `fetch('./<surface>.capture.json')` using <real field names and shape>
+- Data shape: `loadCapture('<surface>')` returns <real field names and shape>
 - Render source: <shipping module or component to fork>
 
 Use only the safe development fixture or captured demo payload supplied here.
