@@ -77,6 +77,14 @@ repository](https://github.com/mattpocock/skills) (MIT, copyright (c) 2026 Matt
 Pocock), lightly edited here to be self-contained. See [LICENSE](LICENSE) and
 [NOTICE](NOTICE).
 
+## Shared profile
+
+[`profile/`](profile/README.md) holds a machine-agnostic global-instructions
+layer (communication rules, working preferences, an engineering charter) meant
+to be `@`-imported from a local checkout of this repo into each machine's own
+`CLAUDE.md`/`AGENTS.md`, with machine-specific overlays staying private. See
+[`profile/README.md`](profile/README.md) for setup.
+
 ## Development
 
 Run the repository checks with:
