@@ -12,6 +12,28 @@ tell the operator this skill has no Codex-parent mode; the dispatch mechanics
 below are Claude Code machinery. Codex models are reached via `codex exec`
 (continue an existing Codex session with `codex exec resume`).
 
+## Codex headroom gate — run at invocation
+
+Before any routing, check whether the Codex side has budget left:
+
+1. Probe fresh: run a trivial one-word `codex exec` (cheapest Codex model,
+   `--sandbox read-only`), then parse the `rate_limits` event from the newest
+   rollout under `~/.codex/sessions/**/*.jsonl`. Headroom =
+   `100 − primary.used_percent`. Never trust a snapshot from an old session —
+   it may be days stale.
+2. If headroom ≤ 5%, or the probe itself fails with a rate-limit error, the
+   session runs **Claude-only**: drop every Codex route (Sol, Terra, Luna,
+   Spark) from routing and never reference Codex models in delegations for the
+   rest of the session. Tell the operator once, with the measured headroom and
+   `resets_at`.
+3. Same rule mid-session: if any later Codex delegation fails with a rate-limit
+   error, flip to Claude-only from that point on.
+
+Claude-only routing uses each row's Claude rungs. Two rows have no Claude rung:
+plan/spec writing routes to **Opus with a mandatory coordinator fail-safe
+review** of the spec (the table's polarity-error warning is the reason the
+review is not optional); prototyping routes straight to **Opus**.
+
 ## The coordinator ruling (behavioral core)
 
 - The main session acts as coordinator, not developer: it plans, scopes, reviews,
@@ -38,7 +60,8 @@ below are Claude Code machinery. Codex models are reached via `codex exec`
    novel-solution brainstorming · documentation writing · code review.
 2. Read `references/routing-table.md` and pick the **cheapest model that clears
    the bar** for that area. Honor the table's bans (e.g. Luna for UI mockups,
-   Haiku for unverified exploration citations).
+   Haiku for unverified exploration citations) and the headroom gate above —
+   in Claude-only mode, Codex rungs are skipped as if absent from the table.
 3. **Never delegate to Fable** — it is the coordinator tier only.
 4. Mechanics: Claude models via the Agent tool with a `model` override — a
    read-only agent type (e.g. Explore) for read-tasks, `isolation: "worktree"`
