@@ -52,6 +52,10 @@ review is not optional); prototyping routes straight to **Opus**.
 - The coordinator keeps for itself: small mechanical glue (git/gh plumbing,
   toggles, log checks, daemon restarts), verification probes, and all
   communication/decisions with the operator.
+- Worktree creation is not raw git plumbing: when preparing a worktree for a
+  sub-agent (or any task work), invoke the `spin-worktree` skill so worktrees
+  land under its `~/worktrees/<repository>/<task>` convention, not ad-hoc
+  paths next to the checkout.
 
 ## Routing
 
