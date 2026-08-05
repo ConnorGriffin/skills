@@ -30,26 +30,28 @@ actual decision to me.
    dedupe by `source_event_id`?" A code term is allowed only as a one-line
    parenthetical when it genuinely disambiguates.
 
-2. **Hard budget: ≤6 lines per question, rendered in exactly this format:**
+2. **Hard budget: ≤6 lines per question, rendered in exactly this format
+   (★ locked 2026-08-05, see interview-format.lock.md):**
 
    ```
    **1. Question, phrased as behavior?**
    > A. first option
    > B. second option
    > C. third option
-
-   *rec B: one-line why*
+   > &nbsp;&nbsp;&nbsp;&nbsp;↳ *rec B: one-line why*
    ```
 
-   The question line is bold and numbered. Options live in a blockquote, one
-   per line, capital letters with periods, never bulleted, never in a table.
-   The recommendation sits below the quote on its own italic line, visually
-   diminished relative to the options, with its why in the same breath.
-   Options are 2–4, concrete, grounded in real examples where possible ("on
-   June 30 this would have meant…"). No em-dashes anywhere. No preamble, no
-   context essay, no restating what we've already agreed. Depth only when I
-   ask for it. A verbose question makes me agree just to make it stop — that
-   produces a confidently wrong spec, which is worse than no spec.
+   Each question is one visual unit: bold numbered question line, then a
+   single blockquote holding the options (one per line, capital letters with
+   periods, never bulleted, never in a table) and, as its last line, the
+   recommendation — indented with non-breaking spaces, led by ↳, fully
+   italic, why in the same breath — visually subordinate to the options
+   above it. Options are 2–4, concrete, grounded in real examples where
+   possible ("on June 30 this would have meant…"). No em-dashes anywhere in
+   rendered questions. No preamble, no context essay, no restating what
+   we've already agreed. Depth only when I ask for it. A verbose question
+   makes me agree just to make it stop — that produces a confidently wrong
+   spec, which is worse than no spec.
 
 3. **Accept shorthand answers; never coach them.** Use stable numbers within
    the session and concise, distinct option labels so answers like "1 yes;
