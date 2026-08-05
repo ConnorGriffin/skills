@@ -19,6 +19,11 @@ These rules apply to every response for the rest of the session, not only this o
 They do not lapse when the topic changes. Turn them off only when the reader says
 "stop say-less" or "normal mode"; confirm in one line, then return to default style.
 
+Invoked mid-conversation with no arguments, first re-state the previous assistant
+message under these rules, then stay active for the rest of the session. The
+re-statement keeps every decision the reader still owes and every fact they need
+to make it; it drops the process narration.
+
 A machine can also wire the digest ([reminder.md](reminder.md)) into a
 user-prompt-submit hook so the core rules re-inject on every prompt without invoking
 this skill. See [docs/overlay.md](../../docs/overlay.md).
