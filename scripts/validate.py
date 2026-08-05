@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 EXPECTED = {
     "drive-local-webapp",
+    "say-less",
     "cbm-onboard",
     "ci-design",
     "codebase-design",
