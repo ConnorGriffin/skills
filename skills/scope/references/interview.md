@@ -30,19 +30,33 @@ actual decision to me.
    dedupe by `source_event_id`?" A code term is allowed only as a one-line
    parenthetical when it genuinely disambiguates.
 
-2. **Hard budget: ≤6 lines per question.** Number every question. Include the
-   question, 2–3 concrete options
-   grounded in real examples where possible ("on June 30 this would have
-   meant…"), and your recommended answer. No preamble, no context essay, no
-   restating what we've already agreed. Depth only when I ask for it. A
-   verbose question makes me agree just to make it stop — that produces a
-   confidently wrong spec, which is worse than no spec.
+2. **Hard budget: ≤6 lines per question, rendered in exactly this format:**
 
-3. **Make shorthand answers easy.** Use stable numbers within the session and
-   concise, distinct option labels so answers like "1 yes; 2 B; 3 your
-   recommendation" are unambiguous. Accept free-form or partial answers too;
-   carry unanswered decisions into the next round without re-asking settled
-   ones.
+   ```
+   **1. Question, phrased as behavior?**
+   > A. first option
+   > B. second option
+   > C. third option
+
+   *rec B: one-line why*
+   ```
+
+   The question line is bold and numbered. Options live in a blockquote, one
+   per line, capital letters with periods, never bulleted, never in a table.
+   The recommendation sits below the quote on its own italic line, visually
+   diminished relative to the options, with its why in the same breath.
+   Options are 2–4, concrete, grounded in real examples where possible ("on
+   June 30 this would have meant…"). No em-dashes anywhere. No preamble, no
+   context essay, no restating what we've already agreed. Depth only when I
+   ask for it. A verbose question makes me agree just to make it stop — that
+   produces a confidently wrong spec, which is worse than no spec.
+
+3. **Accept shorthand answers; never coach them.** Use stable numbers within
+   the session and concise, distinct option labels so answers like "1 yes;
+   2 B; 3 rec" are unambiguous — and never print instructions on how to
+   answer ("answer like…"); the format makes it obvious. Accept free-form or
+   partial answers too; carry unanswered decisions into the next round
+   without re-asking settled ones.
 
 4. **`explain` escape hatch.** If I say "explain", stop and produce a proper
    explainer for the current question — a diagram, worked example, or
