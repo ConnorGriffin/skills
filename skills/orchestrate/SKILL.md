@@ -67,7 +67,12 @@ review is not optional); prototyping routes straight to **Opus**.
    Haiku for unverified exploration citations) and the headroom gate above —
    in Claude-only mode, Codex rungs are skipped as if absent from the table.
 3. **Never delegate to Fable** — it is the coordinator tier only.
-4. Mechanics: Claude models via the Agent tool with a `model` override — a
+4. Every delegation is labeled with its model tier so the operator can see the
+   route: Agent-tool dispatches prefix the `description` with the model name
+   (`<Model>: <task description>`, e.g. `Sonnet 5: standards review of phase 1
+   diff`); Codex `codex exec` runs name the model in the coordinator's
+   narration line. Applies to escalation retries too (the new tier's name).
+5. Mechanics: Claude models via the Agent tool with a `model` override — a
    read-only agent type (e.g. Explore) for read-tasks, `isolation: "worktree"`
    for write-tasks, so the harness enforces what the prompt asks. Codex models
    via `codex exec -m <model> -c model_reasoning_effort=medium --sandbox
