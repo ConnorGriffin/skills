@@ -11,27 +11,31 @@ BIN="${CODEBASE_MEMORY_BIN:-$(command -v codebase-memory-mcp 2>/dev/null || true
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REINDEX="$SCRIPT_DIR/cbm-reindex.sh"
-TARGET="${1:-.}"
-ROOT="$(git -C "$TARGET" worktree list --porcelain 2>/dev/null |
-  awk '/^worktree / { print substr($0, 10); exit }')"
+
+THIS_CHECKOUT=0
+TARGET="."
+for arg in "$@"; do
+  case "$arg" in
+    --this-checkout) THIS_CHECKOUT=1 ;;
+    *) TARGET="$arg" ;;
+  esac
+done
+
+if [ "$THIS_CHECKOUT" -eq 1 ]; then
+  ROOT="$(git -C "$TARGET" rev-parse --show-toplevel 2>/dev/null || true)"
+else
+  ROOT="$(git -C "$TARGET" worktree list --porcelain 2>/dev/null |
+    awk '/^worktree / { print substr($0, 10); exit }')"
+fi
 [ -n "$ROOT" ] || {
   printf 'not a Git repository: %s\n' "$TARGET" >&2
   exit 1
 }
 
 IGNORE="$ROOT/.cbmignore"
-HOOK_PATH="$(git -C "$ROOT" rev-parse --git-path hooks/post-commit)"
-case "$HOOK_PATH" in
-  /*) HOOK="$HOOK_PATH" ;;
-  *) HOOK="$ROOT/$HOOK_PATH" ;;
-esac
 
 [ ! -L "$IGNORE" ] || {
   printf 'refusing symlink target: %s\n' "$IGNORE" >&2
-  exit 1
-}
-[ ! -L "$HOOK" ] || {
-  printf 'refusing symlink target: %s\n' "$HOOK" >&2
   exit 1
 }
 
@@ -105,21 +109,44 @@ else
   printf '%s\n' "$IGNORE is already current"
 fi
 
-mkdir -p "$(dirname "$HOOK")"
-INSTALL_HOOK=1
-if [ -e "$HOOK" ]; then
-  FIRST_LINE="$(sed -n '1p' "$HOOK")"
-  if ! printf '%s\n' "$FIRST_LINE" |
-    grep -Eq '^#!.*[/[:space:]](ba|da|k|z)?sh([[:space:]]|$)'; then
-    printf 'SKIP hook installation: existing hook is not a shell script; left unchanged: %s\n' \
-      "$HOOK" >&2
-    INSTALL_HOOK=0
-  fi
-else
-  printf '%s\n' "#!/bin/sh" >"$HOOK_TMP"
-fi
+COMMON_DIR="$(git -C "$ROOT" rev-parse --git-common-dir)"
+case "$COMMON_DIR" in
+  /*) : ;;
+  *) COMMON_DIR="$ROOT/$COMMON_DIR" ;;
+esac
 
-if [ "$INSTALL_HOOK" -eq 1 ]; then
+for HOOK_NAME in post-commit post-merge post-checkout; do
+  # Install into the repo-local hooks dir directly (git-common-dir, worktree-
+  # safe), not via `git rev-parse --git-path`: a global core.hooksPath
+  # override (e.g. a dotfiles-managed dispatcher) makes --git-path resolve
+  # outside the repo, which this script would then correctly refuse as a
+  # symlink target. The repo-local path is what such dispatchers themselves
+  # run first, so installing there composes with them instead of being
+  # silently shadowed.
+  HOOK="$COMMON_DIR/hooks/$HOOK_NAME"
+
+  if [ -L "$HOOK" ]; then
+    printf 'refusing symlink target: %s\n' "$HOOK" >&2
+    continue
+  fi
+
+  : >"$HOOK_TMP"
+  mkdir -p "$(dirname "$HOOK")"
+  INSTALL_HOOK=1
+  if [ -e "$HOOK" ]; then
+    FIRST_LINE="$(sed -n '1p' "$HOOK")"
+    if ! printf '%s\n' "$FIRST_LINE" |
+      grep -Eq '^#!.*[/[:space:]](ba|da|k|z)?sh([[:space:]]|$)'; then
+      printf 'SKIP hook installation: existing hook is not a shell script; left unchanged: %s\n' \
+        "$HOOK" >&2
+      INSTALL_HOOK=0
+    fi
+  else
+    printf '%s\n' "#!/bin/sh" >"$HOOK_TMP"
+  fi
+
+  [ "$INSTALL_HOOK" -eq 1 ] || continue
+
   if [ -e "$HOOK" ]; then
     awk -v begin="$BEGIN_HOOK" -v end="$END_HOOK" '
       { lines[++n] = $0 }
@@ -147,16 +174,23 @@ if [ "$INSTALL_HOOK" -eq 1 ]; then
   fi
   {
     printf '\n%s\n' "$BEGIN_HOOK"
-    printf '"%s" "%s"\n' "$REINDEX" "$ROOT"
+    if [ "$HOOK_NAME" = "post-checkout" ]; then
+      printf '%s\n' '[ "$3" = "1" ] || exit 0'
+    fi
+    printf '"%s"\n' "$REINDEX"
     printf '%s\n' "$END_HOOK"
   } >>"$HOOK_TMP"
   cp "$HOOK_TMP" "$HOOK"
   chmod +x "$HOOK"
   printf '%s\n' "installed managed reindex command in $HOOK"
-fi
+done
 
-PAYLOAD="$(python3 -c \
-  'import json,sys; print(json.dumps({"repo_path": sys.argv[1], "mode": "full"}))' \
-  "$ROOT")"
-"$BIN" cli index_repository "$PAYLOAD"
-printf '%s\n' "indexed $ROOT"
+if [ "${CBM_SKIP_INDEX:-0}" = "1" ]; then
+  printf '%s\n' "skipped initial index (CBM_SKIP_INDEX=1): $ROOT"
+else
+  PAYLOAD="$(python3 -c \
+    'import json,sys; print(json.dumps({"repo_path": sys.argv[1], "mode": "full"}))' \
+    "$ROOT")"
+  "$BIN" cli index_repository "$PAYLOAD"
+  printf '%s\n' "indexed $ROOT"
+fi
