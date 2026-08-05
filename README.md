@@ -21,6 +21,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | [`tdd`](skills/tdd/SKILL.md) | Test-driven development through public interfaces, red-green-refactor | — |
 | [`review`](skills/review/SKILL.md) | Review changed code against the project's standards and the originating issue | — |
 | [`implement`](skills/implement/SKILL.md) | Implement a PRD or issue set via `tdd`, then `review`, then commit | `tdd` and `review` from this pack |
+| [`say-less`](skills/say-less/SKILL.md) | Answer-first output shaping with a per-repo glossary of approved terms; adapted from i-have-adhd, merged with this pack's reader-preference rules and an ASD-STE100 subset | Optional prompt hook for always-on digest; see [docs/overlay.md](docs/overlay.md) |
 
 ## Install
 

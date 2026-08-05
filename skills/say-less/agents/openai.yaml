@@ -1,0 +1,4 @@
+interface:
+  display_name: "Say Less"
+  short_description: "Answer-first output shaping with a per-repo glossary of approved terms"
+  default_prompt: "Use $say-less to shape all output: answer first, domain language, nothing after the answer."
