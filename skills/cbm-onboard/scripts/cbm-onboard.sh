@@ -115,18 +115,26 @@ case "$COMMON_DIR" in
   *) COMMON_DIR="$ROOT/$COMMON_DIR" ;;
 esac
 
+# Honor an explicit core.hooksPath (e.g. a dotfiles-managed dispatcher):
+# install alongside it rather than shadowing it under .git/hooks. Fall back
+# to the repo-local, worktree-safe hooks dir when unset.
+HOOKS_PATH="$(git -C "$ROOT" config --get core.hooksPath 2>/dev/null || true)"
+if [ -n "$HOOKS_PATH" ]; then
+  case "$HOOKS_PATH" in
+    /*) HOOKS_DIR="$HOOKS_PATH" ;;
+    *) HOOKS_DIR="$ROOT/$HOOKS_PATH" ;;
+  esac
+else
+  HOOKS_DIR="$COMMON_DIR/hooks"
+fi
+
+HOOK_SYMLINK_REFUSED=0
 for HOOK_NAME in post-commit post-merge post-checkout; do
-  # Install into the repo-local hooks dir directly (git-common-dir, worktree-
-  # safe), not via `git rev-parse --git-path`: a global core.hooksPath
-  # override (e.g. a dotfiles-managed dispatcher) makes --git-path resolve
-  # outside the repo, which this script would then correctly refuse as a
-  # symlink target. The repo-local path is what such dispatchers themselves
-  # run first, so installing there composes with them instead of being
-  # silently shadowed.
-  HOOK="$COMMON_DIR/hooks/$HOOK_NAME"
+  HOOK="$HOOKS_DIR/$HOOK_NAME"
 
   if [ -L "$HOOK" ]; then
     printf 'refusing symlink target: %s\n' "$HOOK" >&2
+    HOOK_SYMLINK_REFUSED=1
     continue
   fi
 
@@ -184,6 +192,8 @@ for HOOK_NAME in post-commit post-merge post-checkout; do
   chmod +x "$HOOK"
   printf '%s\n' "installed managed reindex command in $HOOK"
 done
+
+[ "$HOOK_SYMLINK_REFUSED" -eq 0 ] || exit 1
 
 if [ "${CBM_SKIP_INDEX:-0}" = "1" ]; then
   printf '%s\n' "skipped initial index (CBM_SKIP_INDEX=1): $ROOT"
