@@ -27,6 +27,7 @@ EXPECTED = {
     "scope",
     "wayfinder",
     "plan-review",
+    "persona-review",
     "ui-craft",
     "orchestrate",
 }
@@ -42,6 +43,10 @@ FORBIDDEN = (
     re.compile(r"\bsk-[A-Za-z0-9]{20,}\b"),
     re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
 )
+PERSONA_REVIEW_ALLOWLIST = {
+    "SKILL.md",
+    "agents/openai.yaml",
+}
 LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 HISTORY_PATTERN = "|".join(
     (
@@ -97,6 +102,20 @@ def validate_links(path: Path, errors: list[str]) -> None:
             fail(errors, f"{path.relative_to(ROOT)}: link escapes repository: {target}")
         elif not resolved.exists():
             fail(errors, f"{path.relative_to(ROOT)}: broken link: {target}")
+
+
+def validate_persona_review_allowlist(errors: list[str]) -> None:
+    skill_dir = SKILLS / "persona-review"
+    if not skill_dir.exists():
+        return
+    for path in skill_dir.rglob("*"):
+        if path.is_file():
+            relative = path.relative_to(skill_dir).as_posix()
+            if relative not in PERSONA_REVIEW_ALLOWLIST:
+                fail(
+                    errors,
+                    f"skills/persona-review: file not on the allowlist: {relative}",
+                )
 
 
 def validate_reachable_history(errors: list[str]) -> None:
@@ -177,6 +196,7 @@ def main() -> int:
         if not metadata.exists():
             fail(errors, f"skills/{skill}: missing agents/openai.yaml")
 
+    validate_persona_review_allowlist(errors)
     validate_reachable_history(errors)
 
     if errors:

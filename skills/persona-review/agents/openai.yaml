@@ -1,0 +1,4 @@
+interface:
+  display_name: "Persona Review"
+  short_description: "Review a document with a panel of persistent personas."
+  default_prompt: "Use $persona-review to convene a panel of reviewer personas on this document and synthesize a verdict."

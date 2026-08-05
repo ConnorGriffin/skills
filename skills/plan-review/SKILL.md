@@ -72,8 +72,16 @@ definitions below are the fallback.
      re-verify the deltas; then done. Plan review here only needs to catch
      what is *expensive* to catch later, not everything.
    - **Load-bearing or hard-to-reverse plan** (standards, machinery other
-     agents inherit, migrations — anywhere a miss propagates): the review
-     ends only when a **fresh cold pass returns no blocking objections**.
+     agents inherit, migrations — anywhere a miss propagates): convene the
+     persona panel via the `persona-review` skill when it is installed, and
+     feed its panel verdict into the objection list alongside the cold pass's
+     own (the panel's memory writes are proposed records surfaced at close,
+     user-approved — the review itself still edits nothing). Without that
+     skill installed, this step is a no-op and the review proceeds on the
+     fresh cold pass alone. The review still ends only when a **fresh cold
+     pass returns no blocking objections**; whichever termination path gets
+     there — a clean fresh pass or the three-panel cap — is what runs the
+     panel's deferred close approval pass.
      The objecting reviewer's own re-verification never terminates — a
      reviewer verifying fixes to their own objections is anchored on them.
      After each revision cycle converges, launch a new reviewer with no
