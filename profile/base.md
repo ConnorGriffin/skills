@@ -73,7 +73,8 @@ categories that don't apply.
   tradeoff if the native path is meaningfully worse.
 - **Ask before system-wide or hard-to-reverse changes** (global config, deleting
   files I didn't create, anything touching state outside the repo).
-- **Don't keep durable knowledge in agent memory.** Decisions go in `docs/adr/`,
+- **Don't keep durable knowledge in agent memory.** Decisions go in the repo's
+  decision record per the charter's ADR-home rule,
   work state goes on the tracker issue, environment facts go in the repo's
   `AGENTS.md`/`CLAUDE.md`. A private memory file I can't review or merge is the
   wrong home for anything that outlives the session.
