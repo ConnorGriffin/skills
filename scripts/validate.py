@@ -30,7 +30,7 @@ EXPECTED = {
     "persona-review",
     "ui-craft",
     "orchestrate",
-    "writing-great-skills",
+    "writing-for-agents",
 }
 FORBIDDEN = (
     re.compile("/" + "Users/"),

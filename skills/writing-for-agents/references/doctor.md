@@ -42,7 +42,7 @@ Read the full chain from step 1 and check for:
 * **Conditional sections that belong behind a pointer** — a paragraph that only matters
   for a rare case, sitting in-file instead of disclosed.
 * **Stacked negations** — prohibitions with no paired positive target (see
-  `references/writing-for-agents.md`'s Negation section).
+  `references/upstream-levers.md`'s Negation section).
 * **No-op sentences** — instructions the model already follows by default.
 * **Sediment** — stale material describing a world that's moved on (a tool no longer
   used, a workflow that's been replaced).
@@ -63,6 +63,6 @@ finding. No fixes — every finding is an operator judgment call, not an auto-ap
 
 Re-fetch the upstream source (`https://raw.githubusercontent.com/mattpocock/skills/main/skills/productivity/writing-for-agents/SKILL.md` and its `SKILL-MECHANICS.md` sibling). Diff
 the substance — new recommendations, retracted ones, reworded ones that change meaning —
-against `references/writing-for-agents.md`. Flag drift for a human to rewrite by hand;
+against `references/upstream-levers.md`. Flag drift for a human to rewrite by hand;
 never auto-update the adapted file. Once a human reconciles it, update the attribution
-line's fetch date at the top of `references/writing-for-agents.md`.
+line's fetch date at the top of `references/upstream-levers.md`.

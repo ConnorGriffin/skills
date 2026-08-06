@@ -1,12 +1,12 @@
 ---
-name: writing-great-skills
+name: writing-for-agents
 description: Reference for writing and editing skills well — the vocabulary and principles that make a skill predictable — plus a doctor verb that audits the loaded skill and CLAUDE.md/AGENTS.md estate.
 disable-model-invocation: true
 ---
 
 A skill exists to wrangle determinism out of a stochastic system. **Predictability** — the agent taking the same _process_ every run, not producing the same output — is the root virtue; every lever below serves it.
 
-**Bold terms** are defined in [`GLOSSARY.md`](GLOSSARY.md); look them up there for the full meaning. Two levers this skill's own glossary doesn't carry — negation and the cache/environment distinction — live in [`references/writing-for-agents.md`](references/writing-for-agents.md); this file points there rather than re-teaching them.
+**Bold terms** are defined in [`GLOSSARY.md`](GLOSSARY.md); look them up there for the full meaning. Two levers this skill's own glossary doesn't carry — negation and the cache/environment distinction — live in [`references/upstream-levers.md`](references/upstream-levers.md); this file points there rather than re-teaching them.
 
 ## Invocation
 
@@ -87,9 +87,9 @@ An estate audit, applying every lever above outward instead of inward: not "is t
 
 - **Measure context load.** Walk the always-loaded surface — the `CLAUDE.md`/`AGENTS.md` import chain, every installed skill's **description** — and size each piece: chars, estimated tokens (chars ÷ 4), and a total. That total is the **context load** tax paid before the user's first word.
 - **Sweep descriptions** against the invocation and description-writing sections above: synonym-stuffed trigger lists (**duplication** of a branch), mechanism the body already carries, a **user-invoked** skill whose description still reads like an autonomous trigger, and trigger overlap between two skills' descriptions.
-- **Sweep the always-loaded chain** for the same failure modes a single skill is graded on: **duplication** across files, **reference** that should be **disclosed** instead of sitting in-file, stacked negation (see `references/writing-for-agents.md`), **no-op** sentences, and **sediment**.
+- **Sweep the always-loaded chain** for the same failure modes a single skill is graded on: **duplication** across files, **reference** that should be **disclosed** instead of sitting in-file, stacked negation (see `references/upstream-levers.md`), **no-op** sentences, and **sediment**.
 - **Verify before reporting.** A finding without a quoted grep or read result gets dropped — no reporting from memory of a prior pass.
 - **Report ranked findings**, worst first. Accuracy risks (drift that could misfire, overlapping triggers) outrank pure **context load** cost; give each a recoverable-token estimate where it's a cost finding. No fixes — every finding is an operator judgment call.
-- **Refresh** by re-fetching the upstream source behind `references/writing-for-agents.md` and diffing its substance against the adapted file. Flag drift for a human to rewrite by hand; never auto-update the adapted file.
+- **Refresh** by re-fetching the upstream source behind `references/upstream-levers.md` and diffing its substance against the adapted file. Flag drift for a human to rewrite by hand; never auto-update the adapted file.
 
 Full step-by-step mechanics — exact locations to walk, the refresh diff procedure — are disclosed to [`references/doctor.md`](references/doctor.md).
