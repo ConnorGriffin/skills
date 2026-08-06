@@ -19,7 +19,9 @@ conflate them — a term is not a decision, and a decision is not a definition.
 
 ## File structure
 
-Most repos have a single context:
+Most repos have a single context (the `docs/adr/` trees below illustrate a repo
+with no existing decision record; resolve the ADR's home first, per
+[references/ADR-FORMAT.md](references/ADR-FORMAT.md)):
 
 ```
 /
@@ -49,8 +51,9 @@ map points to where each one lives:
 ```
 
 Create files lazily — only when you have something to write. If no
-`CONTEXT.md` exists, create one when the first term is resolved. If no
-`docs/adr/` exists, create it when the first ADR is needed.
+`CONTEXT.md` exists, create one when the first term is resolved. An ADR goes
+wherever the repo already records decisions ([references/ADR-FORMAT.md](references/ADR-FORMAT.md)),
+and a new `docs/adr/` is created only when that resolves to `docs/adr/`.
 
 ## During the session
 

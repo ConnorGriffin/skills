@@ -1,12 +1,17 @@
 # ADR Format
 
-ADRs live in `docs/adr/`. New records use
-`docs/adr/adr-<issue>-<slug>.md`, heading `# ADR <issue> — Title`, where
-`<issue>` is the id of the issue, ticket, or PR that originated the decision.
-Two records from one issue use distinct slugs — don't overwrite one decision's
-file with another's.
+Resolve the ADR's home before anything else: a decision goes wherever the repo
+already records decisions. A repo tracking design with OpenSpec records it in
+that change's `design.md` (no parallel `docs/adr/` tree, and the file-naming
+rule below does not apply there). A repo with an established `docs/adr/` tree
+keeps using it.
 
-Create the `docs/adr/` directory lazily — only when the first ADR is needed.
+Only a repo with no existing home gets one: `docs/adr/adr-<issue>-<slug>.md`,
+heading `# ADR <issue> — Title`, where `<issue>` is the id of the issue,
+ticket, or PR that originated the decision. Two records from one issue use
+distinct slugs, so one decision's file never overwrites another's.
+
+Create the `docs/adr/` directory lazily, only when the first ADR needs it.
 
 ## Template
 
@@ -37,7 +42,7 @@ etc., with no issue id in the name. That format is legacy: keep those files
 and their links exactly as they are — never renumber or relink them — but
 never extend that numbering for a new ADR. Every new record uses the
 `adr-<issue>-<slug>.md` scheme above, even in a repo whose older ADRs are
-still numbered.
+still numbered, once `docs/adr/` is the resolved home.
 
 ## When to offer an ADR
 
