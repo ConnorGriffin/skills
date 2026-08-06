@@ -20,17 +20,16 @@ total. This total is the tax every single turn pays before the user's first word
 
 ## 2. Sweep descriptions
 
-Check every `SKILL.md` description against `references/writing-for-agents.md`'s pointer
-rules:
+Check every `SKILL.md` description against the "Invocation" and "Writing the
+description" sections of this skill's own `SKILL.md` (terms defined in `GLOSSARY.md`):
 
 * **Synonym-stuffed trigger lists** — three phrasings of one branch instead of one
-  phrasing each of three branches.
+  phrasing each of three branches (**duplication** of a branch).
 * **Mechanism or output detail the body already owns** — a description restating *how*
   the skill works instead of *when* to reach for it.
-* **Hand-only skills missing the manual-invocation signal** — a skill whose body says
-  "user-invoked" or "invoke by name" but whose description still reads like an
-  autonomous trigger list (this repo's schema has no `disable-model-invocation` field;
-  the signal is in the wording).
+* **User-invoked skills missing the manual-invocation signal** — a skill with
+  `disable-model-invocation: true` whose description still reads like an autonomous
+  trigger list instead of a human-facing summary.
 * **Trigger overlap between skills** — two descriptions matching the same phrase or
   intent, risking the wrong skill firing.
 
@@ -42,7 +41,8 @@ Read the full chain from step 1 and check for:
   file. Quote both locations.
 * **Conditional sections that belong behind a pointer** — a paragraph that only matters
   for a rare case, sitting in-file instead of disclosed.
-* **Stacked negations** — prohibitions with no paired positive target.
+* **Stacked negations** — prohibitions with no paired positive target (see
+  `references/writing-for-agents.md`'s Negation section).
 * **No-op sentences** — instructions the model already follows by default.
 * **Sediment** — stale material describing a world that's moved on (a tool no longer
   used, a workflow that's been replaced).

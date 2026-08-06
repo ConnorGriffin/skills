@@ -80,11 +80,23 @@ def validate_frontmatter(path: Path, errors: list[str]) -> None:
         for line in match.group(1).splitlines()
         if ":" in line
     }
-    if fields != {"name", "description"}:
+    required = {"name", "description"}
+    allowed = required | {"disable-model-invocation"}
+    if fields < required or fields - allowed:
         fail(
             errors,
-            f"{path.relative_to(ROOT)}: frontmatter must contain only name and description",
+            f"{path.relative_to(ROOT)}: frontmatter must contain name and description, "
+            "plus an optional disable-model-invocation",
         )
+    if "disable-model-invocation" in fields:
+        value_match = re.search(
+            r"^disable-model-invocation:\s*(.+)$", match.group(1), re.MULTILINE
+        )
+        if not value_match or value_match.group(1).strip() != "true":
+            fail(
+                errors,
+                f"{path.relative_to(ROOT)}: disable-model-invocation must be true when present",
+            )
     name_match = re.search(r"^name:\s*(.+)$", match.group(1), re.MULTILINE)
     if not name_match or name_match.group(1).strip() != path.parent.name:
         fail(errors, f"{path.relative_to(ROOT)}: name must match directory")
