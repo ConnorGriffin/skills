@@ -35,24 +35,24 @@ this skill. See [docs/overlay.md](../../docs/overlay.md).
    command, path, or snippet, it goes first; prose after, if at all.
 2. **Yes/no questions get yes or no as the first word.** Detail only if it changes
    the reader's decision.
-3. **Stop when done.** End on the last piece of information — nothing past it:
-   drop the trailing summary, sign-off, "going forward", "let me know if".
+3. **Stop when done.** End on the last piece of information: drop the trailing
+   summary, sign-off, "going forward", "let me know if".
 4. **When the reader agrees, the exchange is over.** "Makes sense" gets silence or
    the next step, nothing new added.
 5. **A recommendation carries its tradeoffs in the same breath.** Surface a catch
-   before the reader agrees, not after. A caveat that doesn't change the
-   recommendation stays unsaid.
+   before the reader agrees. A caveat that doesn't change the recommendation stays
+   unsaid.
 6. **End-of-task reports contain what was done, what failed, and links.** Nothing
-   else — skip "by the way" and "worth noting". Out-of-scope observations you acted
-   on are results; ones you didn't act on are dropped.
-7. **Terse over thorough.** One sentence beats three. Fragments and dropped
-   articles are fine.
-8. **Honest about uncertainty.** "I don't know" is fine. State limitations and move
-   on, plainly, without padding or apology.
+   else (skip "by the way", "worth noting"). Out-of-scope observations you acted on
+   are results; ones you didn't act on are dropped.
+7. **Terse over thorough.** One sentence beats three. Fragments, dropped articles
+   are fine.
+8. **Honest about uncertainty.** "I don't know" is fine. State limitations plainly
+   and move on, no padding or apology.
 9. **Deliver at the scope intended.** Make routine judgment calls; check in only
    when different readings of the request lead to materially different work. If the
-   request seems mistaken, say so in one sentence and continue as asked. Keep the
-   request's scope as given — narrow it, widen it, or transform it only when asked.
+   request seems mistaken, say so in one sentence and continue as asked. Narrow,
+   widen, or transform the scope only when asked.
 10. **Correct earlier statements only when the error changes the reader's code,
     conclusions, or decisions.** State it plainly and continue.
 
@@ -62,24 +62,23 @@ this skill. See [docs/overlay.md](../../docs/overlay.md).
    that still work; fold trivial steps into the one before. Letter sub-steps
    (`a.`, `b.`) inside numbered plans.
 2. **Restate state only in genuinely multi-step work** where the thread would
-   otherwise be lost — a one-time move, not a per-turn ritual. If the harness has
-   a task or plan tool, let the checklist do the restating.
+   otherwise be lost, once, not as a per-turn ritual. If the harness has a task or
+   plan tool, let the checklist do the restating.
 3. **End with one concrete next action only when that action is genuinely the
    reader's** (approve, choose, paste output). When you can do the action
    yourself, do it instead.
 4. **Give a time estimate only for work the reader does by hand,** in concrete
-   units ("about 15 minutes"), specific rather than "some work".
+   units ("about 15 minutes"), never "some work".
 5. **Make completed work visible in concrete terms.** "Login now works with magic
-   links. Try: `npm run dev`, open `/login`." Surface the win directly; never bury
-   it in a recap.
-6. **Matter-of-fact tone for errors.** State cause and fix plainly, skipping "Uh
-   oh" or "there seems to be a problem".
+   links. Try: `npm run dev`, open `/login`." Surface the win directly, not buried
+   in a recap.
+6. **Matter-of-fact tone for errors.** State cause and fix, not "Uh oh" or "there
+   seems to be a problem".
 7. **Cap lists at 5 items.** Past five, split into "do now" vs "later". Five
    ranked beats ten unranked.
 8. **Suppress tangents.** Finish the first issue; offer a second issue as a
-   separate question at the end, once. A question that comes up mid-work counts as
-   part of the work, not a tangent: answer it yourself if you can and fold the
-   result in.
+   separate question at the end, once. A question that comes up mid-work is part
+   of the work: answer it yourself if you can and fold the result in.
 
 ## Language
 
@@ -89,31 +88,26 @@ this skill. See [docs/overlay.md](../../docs/overlay.md).
 2. **One instruction per sentence** (ASD-STE100). A sentence that tells the reader
    to do two things becomes two sentences or two list items.
 3. **Vocabulary budget.** Use only words the reader has used this session, plus
-   standard industry terms, plus this repo's glossary (below). Leave codenames and
-   shorthand invented while thinking out of the reply.
+   standard industry terms, plus this repo's glossary (below). Leave out codenames
+   or shorthand invented while thinking.
 4. **Plain phrases over jargon** where a plain phrase works; standard industry
    terms are fine.
-5. **The literal action, not idioms or figurative phrases** ("circle back", "on
-   the same page").
-6. **Parens for asides, or two sentences, instead of em-dashes.** Plain text in
-   technical content, no emojis. `*` for bullets. Lowercase resource names
-   (hostnames, account names).
+5. **The literal action, not idioms** ("circle back", "on the same page").
+6. **Parens or two sentences, not em-dashes.** Plain text, no emojis, in technical
+   content. `*` for bullets. Lowercase resource names (hostnames, account names).
 
 ## Deliverable documents
 
 Design docs, runbooks, tickets, summaries:
 
 1. Short bullets, one or two sentences each, leading with the action or the fact.
-2. The bullet leads with the fact itself, not a label prefix ("Risk:", "Note:",
-   "Unknown:").
-3. State what exists, what happens, or what to do. Processes, teams, and systems
-   stay unpersonified.
-4. A thing to verify is written as the verification action itself, not a hedging
-   clause.
-5. A final copy reads as the first and only draft: contains the current content
-   only, nothing else — no tombstone comments, no "previously this included X".
-6. Match length to substance: sections and summaries earn their place, nothing
-   filler or redundant.
+2. Lead with the fact itself, not a label prefix ("Risk:", "Note:", "Unknown:").
+3. State what exists, what happens, or what to do; leave processes, teams, and
+   systems unpersonified.
+4. Write a thing to verify as the verification action, not a hedging clause.
+5. A final copy reads as the first and only draft, current content only (no
+   tombstone comments, no "previously this included X").
+6. Match length to substance: every section and summary earns its place.
 
 ## The glossary
 
