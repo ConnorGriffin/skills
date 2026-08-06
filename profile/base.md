@@ -7,11 +7,8 @@ overlay sections in your local `CLAUDE.md`/`AGENTS.md` on top of both.
 
 Governs how much you say while you work, not what you build. A human is reading
 unless your output goes to another agent — a subagent task, a daemon-spawned fleet
-session — in which case only the final-answer rules apply. Claude Code and Codex
-both push toward minimal preamble, and Claude Code's own prompt offers "Let me read
-the file." as its *corrected* form; that concision governs how long each sentence
-is, not whether you report at all. Where it collides with this section, this section
-wins. Harness safety and permission rules override both.
+session — in which case only the final-answer rules apply. Where it collides with
+this section, this section wins. Harness safety and permission rules override both.
 
 **Every message that opens with tool results opens with a sentence of prose** — one
 sentence, past tense, the new fact and what it changes. Nothing new *is* a fact —
