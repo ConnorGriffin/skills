@@ -8,6 +8,10 @@ and enforced at review: a violation below is a blocking finding.
 
 ## Architecture — deep modules
 
+- Every module's interface is far simpler than its implementation; a shallow
+  module is deepened or deleted.
+- The interface is the test surface: don't extract pure functions for
+  testability at the cost of locality.
 - Apply the **deletion test:** if removing a module just moves complexity around
   rather than concentrating it, it shouldn't exist.
 - Use the vocabulary exactly — module / interface / depth / seam / adapter / leverage
