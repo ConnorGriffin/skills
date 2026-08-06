@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Great Skills"
+  short_description: "Write, review, and audit skills against a shared writing-for-agents vocabulary"
+  default_prompt: "Use $writing-great-skills to draft or review a skill, or $writing-great-skills doctor to audit the loaded estate."
