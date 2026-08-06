@@ -7,7 +7,10 @@ decisions that depend on it.
 
 Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are
 already settled — everything I can answer now without either of us guessing at an
-earlier answer. Ask the whole frontier in one numbered round, then wait for my answers
+earlier answer. An empty first frontier is a valid outcome: if mapping the tree finds
+no decision that is genuinely mine to make, say so in one line, list any defaults being
+assumed, and close — never pad the round with questions whose answers are already
+settled or obvious. Ask the whole frontier in one numbered round, then wait for my answers
 before continuing. Keep tightly coupled questions together so I can scroll through the
 round and dictate answers by number.
 

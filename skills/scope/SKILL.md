@@ -25,6 +25,11 @@ tractable — and route to exactly one of:
   `ui-craft`, lock phase.
 - **Mixed or unclear** → ask the user **one** framing question, then route. One
   question at a time, always — never a menu of questions.
+- **Nothing genuinely uncertain** — the plan is grounded, the decisions are already
+  settled, and any open point has an obvious default → say so in one line, name the
+  defaults being assumed, and return control without asking anything. No ledger. Do
+  not manufacture questions to justify the invocation; a caller may route here
+  unconditionally, and "nothing to scope" is a correct, complete answer.
 
 If the request already names a specialist by trigger phrase (a `grill`-style trigger
 names interview mode; `stress-test this plan` names `plan-review`; a wayfinder map
