@@ -58,8 +58,12 @@ and enforced at review: a violation below is a blocking finding.
   decisions as **ADRs** — and don't re-litigate settled ones.
 - **An ADR's home is wherever the repo already records decisions.** A repo
   tracking design with OpenSpec records the decision in its change's
-  `design.md`; do not add a parallel `docs/adr/` tree beside it. A repo with no
-  existing home gets `docs/adr/adr-<issue>-<slug>.md`, heading
+  `design.md` under a `## ADR <issue> — Title` heading (the change already names
+  the work, so the issue id is the record's identity); do not add a parallel
+  `docs/adr/` tree beside it. An established `docs/adr/` tree wins over
+  OpenSpec: keep adding records where the history already is, rather than
+  forking it. A repo with no existing home
+  gets `docs/adr/adr-<issue>-<slug>.md`, heading
   `# ADR <issue> — Title`, where `<issue>` is the id of the issue, ticket, or PR
   that originated the decision. Two records from one issue use distinct slugs.
   Existing sequentially numbered ADRs are legacy records: keep their names and
