@@ -1,0 +1,12 @@
+{
+  "1": {"answer": "no", "basis": "harmonic mean of 60 and 30 over equal work is 40 files per minute, not 45"},
+  "2": {"answer": "yes", "basis": "doubling hourly to 100 GB at midnight puts 21:00 at 100/8 = 12.5 GB"},
+  "3": {"answer": "no", "basis": "n=name binds per iteration; build_handlers(['a','b']) returns ['A','B']"},
+  "4": {"answer": "yes", "basis": "range(0, len//size) drops the remainder; chunks([1,2,3,4,5],2) returns [[1,2],[3,4]]"},
+  "5": {"answer": "yes", "basis": "removing during iteration skips elements; two adjacent disabled entries leave one behind"},
+  "6": {"answer": "no", "basis": "sort by start plus max() on end merges overlapping and nested windows correctly"},
+  "7": {"answer": "yes", "basis": ".gitignore does not apply to tracked files; the file stays tracked until git rm --cached"},
+  "8": {"answer": "yes", "basis": "return inside finally discards the in-flight exception; load() returns None"},
+  "9": {"answer": "no", "basis": "a command in an if condition is exempt from set -e"},
+  "10": {"answer": "no", "basis": "100 true positives against 495 false positives is a 17% posterior"}
+}

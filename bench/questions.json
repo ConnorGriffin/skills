@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "prompt": "A build stage processes a fixed batch of work. It gets through the first half of the batch at 60 files per minute, then the second half at 30 files per minute. Is its average throughput over the whole batch 45 files per minute?"
+  },
+  {
+    "id": 2,
+    "prompt": "A runaway log file is doubling in size every hour, and it will fill its 100 GB volume exactly at midnight. Was the file already over 10 GB at 21:00?"
+  },
+  {
+    "id": 3,
+    "prompt": "Does this function have a bug that affects its output?\n\n```python\ndef build_handlers(names):\n    handlers = []\n    for name in names:\n        handlers.append(lambda n=name: n.upper())\n    return [h() for h in handlers]\n```"
+  },
+  {
+    "id": 4,
+    "prompt": "Does this function have a bug that affects its output?\n\n```python\ndef chunks(items, size):\n    out = []\n    for i in range(0, len(items) // size):\n        out.append(items[i * size:(i + 1) * size])\n    return out\n```"
+  },
+  {
+    "id": 5,
+    "prompt": "Does this function have a bug that affects its output?\n\n```python\ndef drop_disabled(entries):\n    for entry in entries:\n        if not entry['enabled']:\n            entries.remove(entry)\n    return entries\n```"
+  },
+  {
+    "id": 6,
+    "prompt": "Does this function have a bug that affects its output?\n\n```python\ndef merge_windows(windows):\n    windows = sorted(windows, key=lambda w: w[0])\n    merged = []\n    for start, end in windows:\n        if merged and start <= merged[-1][1]:\n            merged[-1] = (merged[-1][0], max(merged[-1][1], end))\n        else:\n            merged.append((start, end))\n    return merged\n```"
+  },
+  {
+    "id": 7,
+    "prompt": "I added `build/` to .gitignore and committed it, but `git status` still lists `build/output.log` as modified. Someone had committed that file months ago. Is git behaving correctly here?"
+  },
+  {
+    "id": 8,
+    "prompt": "In this Python function, `parse()` raises an IOError. Does the caller of `load()` see the function return None rather than the exception propagating?\n\n```python\ndef load(path):\n    try:\n        return parse(path)\n    finally:\n        cleanup()\n        return None\n```"
+  },
+  {
+    "id": 9,
+    "prompt": "My deploy script starts with `set -e`. It defines\n\n```bash\ncheck() {\n  grep -q ready /var/run/status\n  echo checked\n}\n```\n\nand later calls it as `if check; then deploy; fi`. If the grep finds nothing and exits non-zero, does the script terminate at that grep?"
+  },
+  {
+    "id": 10,
+    "prompt": "We run a flake detector over our 10,000-test suite. It flags every genuinely flaky test, and it also flags 5% of the healthy ones. 1% of our tests are genuinely flaky. A test just came back flagged. Is it more likely than not that it is genuinely flaky?"
+  }
+]
