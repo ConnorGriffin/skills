@@ -71,16 +71,37 @@ Two kinds of persona:
   directly to add to the roster, proposed as a record under the same approval
   gate as any other write.
 - **Real-colleague.** Carries the person's real name, and every attribution of its
-  output — its own position, the synthesized verdict, and any hand-back to a
-  calling skill — is labeled as a simulation of that person with its mine date,
+  output (its own position, the synthesized verdict, and any hand-back to a
+  calling skill) is labeled as a simulation of that person with its mine date,
   never presented as their actual words. Its profile is built by `mine <person>`,
-  not invented.
+  not invented. That labeling governs chat and hand-back attribution only;
+  for anything committed to a project repository, containment below wins and the
+  name does not appear at all.
 
 **Invent-on-demand.** When no roster persona fits a document's concerns, invent one
 for this review (state its stance and evidence-gathering approach up front). It
 persists to the roster only if the user says to keep it after the review; otherwise
 discard it at review close, and its review-log entry from this review is dropped
 along with it rather than written to the data repo.
+
+## Containment: names never leave the session
+
+Persona names, the simulation label, mine dates, and any panel narrative exist in
+exactly two places: the chat conversation, and the private persona data repo.
+
+No file written to a project repository may carry any of it. That covers design
+docs, ADRs, plan documents, PR bodies, commit messages, review artifacts, ledgers,
+and anything else committed anywhere other than the persona data repo. No persona
+name (real or invented, curated or colleague), and no "reviewed by", "panel", or
+"simulated" framing.
+
+When panel findings belong in a committed artifact, they go in as plain content:
+conditions, decisions, open questions. Not anonymized attribution ("a security
+reviewer noted..."). No attribution at all.
+
+This binds calling skills too. A verdict handed back to another skill carries
+attribution because it is written for the chat; the caller strips every trace of
+it before anything reaches a repo.
 
 ## Mining a real colleague
 
@@ -165,7 +186,10 @@ Other skills may convene this panel by name instead of running their own review 
 (`plan-review` does, for load-bearing plans). When invoked this way, run `review <doc>`
 as above and hand back the synthesized verdict, with any real-colleague attribution
 in it still carrying the simulation label and mine date; the calling skill folds
-blocking conditions into its own objection list. Defer the close approval pass: a
+blocking conditions into its own objection list. That attribution is for the chat.
+The calling skill must not write any of it (names, labels, mine dates, panel
+framing) into a repo artifact; per containment above, findings land there as plain
+content only. Defer the close approval pass: a
 panel invocation inside a calling skill's own review cycle does not run its own
 close, it hands back the verdict and its proposed memory writes as output and holds
 them until the calling skill's review terminates, then runs one close approval pass
