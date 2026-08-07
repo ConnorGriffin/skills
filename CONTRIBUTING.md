@@ -6,8 +6,9 @@ directly to a pull request.
 Keep each skill self-contained, concise, and portable:
 
 - Put triggering context in `SKILL.md` frontmatter.
-- Keep machine-specific paths, personal data, credentials, and generated files
-  out of the repository.
+- Keep machine-specific paths, personal data, credentials, employer names,
+  internal hostnames, ticket ids, and generated files out of the repository.
+  `scripts/validate.py` enforces this on the working tree.
 - Third-party skills may be included only under a compatible license with
   attribution preserved in `LICENSE` and `NOTICE`, and must be edited to be
   self-contained (no dangling references to skills or files not in this pack).
@@ -15,6 +16,10 @@ Keep each skill self-contained, concise, and portable:
 - Document optional upstream dependencies in the README rather than copying
   them when a reference can simply stay optional.
 - Run `python3 scripts/validate.py` before opening a pull request.
+- Install the publish guard once per clone, so validation runs before a push
+  instead of after the tree is already public:
+  `ln -sfn ../../scripts/pre-push .git/hooks/pre-push`. It composes with a
+  global `core.hooksPath` dispatcher rather than replacing it.
 
 ## Developer Certificate of Origin
 

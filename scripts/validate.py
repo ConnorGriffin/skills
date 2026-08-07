@@ -43,6 +43,13 @@ FORBIDDEN = (
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\bsk-[A-Za-z0-9]{20,}\b"),
     re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
+    # Employer markers. Working tree only: history predating this guard keeps whatever
+    # it already published, and adding these to HISTORY_PATTERN would fail every run.
+    re.compile("tan" + "ium", re.IGNORECASE),
+    re.compile(r"\bgit" + r"\.corp\b", re.IGNORECASE),
+    re.compile(r"\b" + "DEV" + r"OPS-\d+\b"),
+    re.compile(r"\b(?:" + "CHG" + "|" + "INC" + r")\d{6,}\b"),
+    re.compile("service" + "-now", re.IGNORECASE),
 )
 PERSONA_REVIEW_ALLOWLIST = {
     "SKILL.md",

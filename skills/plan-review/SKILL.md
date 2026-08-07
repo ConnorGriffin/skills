@@ -71,7 +71,7 @@ definitions below are the fallback.
    whose claim fails reproduction is recorded as refuted and goes back to
    the reviewer, never forward to the author (a false reviewer claim that
    reaches a fix round gets baked into the plan and costs a full round to
-   retract — the DEVOPS-7216 review paid that exact price). An objection
+   retract — one measured review paid that exact price). An objection
    whose claim cannot be reproduced cheaply is forwarded marked unverified,
    and the author treats it as a question, not an instruction.
 4. **Wait for the revision or answers**, then have the same reviewer re-check
@@ -121,7 +121,7 @@ surface faster than review retires it. One round pinning a literal is normal.
 A second round correcting a pinned literal is the signal: object that the
 logic belongs in an executed artifact (a scratch file with a test, built and
 run in the plan's worktree) that the plan references, and stop reviewing the
-prose version of it. The DEVOPS-7216 review spent four of its seven rounds on
+prose version of it. One measured review spent four of its seven rounds on
 defects in prose-specified regex, shell, and workflow expressions that a
 compiler or one table test would have caught in seconds.
 

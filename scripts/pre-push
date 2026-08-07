@@ -1,0 +1,14 @@
+#!/bin/sh
+# Refuse to publish a tree that fails validation, including its disclosure checks.
+# CI runs the same script, but only after the push has already made the tree public.
+#
+# Install once per clone:
+#   ln -sfn ../../scripts/pre-push .git/hooks/pre-push
+#
+# A global core.hooksPath dispatcher runs .git/hooks/pre-push first, so this
+# composes with one rather than replacing it. Bypass with `git push --no-verify`.
+
+set -e
+
+repo="$(git rev-parse --show-toplevel)"
+python3 "$repo/scripts/validate.py"
