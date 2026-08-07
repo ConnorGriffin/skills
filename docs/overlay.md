@@ -56,34 +56,43 @@ Read ~/.claude/skills/say-less/SKILL.md and follow it for all output.
 
 Write it in any language. The contract is the part that matters.
 
-1. Read the sources. A source is a clone root plus an allowlist file: one skill name per
-   line, blank lines and `#` comments ignored. A name is a directory name, never a path.
-2. Resolve every name to a source path before touching the filesystem. Here that is
-   `<clone>/skills/<name>`; some packs keep skills at the clone root, so each source
-   declares its own subdirectory.
-3. Build the desired state as one map of link name to target path across all four
-   sources, then reconcile in a single pass. Never prune one source before linking the
-   next. If source A retires `foo` in the same run that source B adopts it, per-source
-   pruning deletes the link just created and leaves `foo` dangling.
-4. A name that resolves in two sources is an error. Link neither, leave any existing
-   link untouched, print both paths, and exit non-zero. Silent shadowing makes a
-   skill's provenance depend on source order. The fix is to drop the name from one
-   allowlist.
-5. A name that resolves nowhere is an error. Print the name and the path searched, skip
+1. Read the sources. A source is a clone root plus an allowlist file: one entry per line,
+   blank lines and `#` comments ignored. The link is always named after the skill's own
+   directory, so the entry never carries a target path.
+2. Update each clone before resolving anything: clone it if absent, otherwise fetch and
+   fast-forward only. Never merge or rebase. A clone that cannot fast-forward is a clone
+   someone edited, and the run should say so rather than change it.
+3. Resolve every name to a source path before touching the filesystem. A source declares
+   how its own layout resolves: this repo keeps skills at `<clone>/skills/<name>`, packs
+   that nest by category or plugin need either a qualifier in the entry
+   (`<group>/<name>`) or a glob (`<clone>/skills/*/<name>`) that must match exactly once.
+4. Build the desired state as one map of link name to target path across all sources,
+   then reconcile in a single pass. Never prune one source before linking the next. If
+   source A retires `foo` in the same run that source B adopts it, per-source pruning
+   deletes the link just created and leaves `foo` dangling.
+5. A name that resolves in two sources is an error. Link neither, leave any existing
+   link untouched, print both paths, and exit non-zero. Silent shadowing makes a skill's
+   provenance depend on source order. The fix is to drop the name from one allowlist.
+6. A name that resolves nowhere is an error. Print the name and the path searched, skip
    it, continue with the rest, and exit non-zero at the end. One typo must not stop the
    run.
-6. Create each link as a symlink to the source directory, never a copy. An edit in the
-   clone then applies at the next prompt, and one `git pull` updates every machine that
-   links it.
-7. Retarget rather than trust. If `~/.claude/skills/<name>` is on an allowlist but
-   points anywhere other than the resolved target (a moved clone, an older path, a
-   target that no longer exists), replace the link.
-8. Prune only what the installer owns. Remove a symlink when its target resolves inside
-   a managed clone root and its name is absent from the desired map. Leave any link
-   whose target lies outside every managed root, and report it. Never delete a real
-   directory: report the name as unmanaged and leave it alone.
-9. Exit non-zero if anything was reported. Make the run idempotent: a second run with no
-   allowlist change makes no filesystem change.
+7. Create each link as a symlink to the source directory, never a copy. An edit in the
+   clone then applies at the next prompt, and one fast-forward updates every machine
+   that links it.
+8. Retarget rather than trust. If `~/.claude/skills/<name>` is on an allowlist but points
+   anywhere other than the resolved target (a moved clone, an older path, a target that
+   no longer exists), replace the link.
+9. Prune only what the installer owns. Remove a symlink when its target resolves inside a
+   managed clone root and its name is absent from the desired map. Leave any link whose
+   target lies outside every managed root, and report it. Never delete a real directory:
+   report the name as unmanaged and leave it alone.
+10. Exit non-zero if anything was reported. Make the run idempotent: a second run with no
+    allowlist change makes no filesystem change.
+
+Steps 5 and 6 are the ones an implementation drifts away from, because printing a warning
+and exiting zero is easier and looks fine. It is not fine: a missing skill you believe you
+installed fails silently at the moment you need it, and the run that should have told you
+already scrolled past.
 
 ## The digest hook
 
