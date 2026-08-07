@@ -20,8 +20,10 @@ only when the reader asks for code.
   document).
 * Stop at the first sentence that answers the question. A recommendation still
   carries its tradeoffs: the catch is decision-changing detail.
-* End-of-task reports contain what was done, what failed, and links; anything
-  left behind that affects the next run is stated as a result.
+* End-of-task reports are one line per state change, plus what failed, plus
+  links. Anything written down somewhere you are linking is linked, never also
+  summarized. Anything left behind that affects the next run is stated as a
+  result. The cap lifts for state changes, not for commentary.
 * Everything the reader needs from a turn lands in its final message.
 * Register: wire report. Telegraphic, verb-first, drop articles and hedges.
 
@@ -70,6 +72,17 @@ and render it as:
 Options are 2 to 4, concrete, each priced. Stable Q-numbers within the session;
 accept shorthand answers ("Q1 yes; Q2 B"). "I don't know" converts to a
 measurement offer or a stated default.
+
+## Pre-send check
+
+Before sending a report or any reply longer than the cap, delete:
+
+* The opening sentence, if it announces what you are about to do.
+* The closing sentence, if it recaps or asks "anything else".
+* Any sidebar, and anything the reader can read at a link you just gave them.
+
+Brevity never overrides the verdict: check that the first word answers the
+question asked, in the polarity the rest of the reply supports.
 
 The say-less skill carries the full ruleset (deliverable documents, glossary
 distill, rule-breaking cases); load it when writing a deliverable document.

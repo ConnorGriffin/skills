@@ -64,3 +64,36 @@ double-barreled questions; the fix belongs inside the template slot ("yes or no
 answering the question's exact words, both clauses"), not as a separate rule; the
 only variant beating the adopted one on median did so by shedding polarity
 discipline. Don't compress past that.
+
+## Re-run on current models (2026-08-07)
+
+Same question set, opus 5 / sonnet 5 / fable 5, 20 runs per model per style, both arms
+isolated to a scratch project so user settings and CLAUDE.md are out of the comparison.
+
+| model | style | correct | median output tokens |
+|---|---|---|---|
+| claude-opus-5 | default | 20/20 | 348 |
+| claude-opus-5 | say-less | 20/20 | 151 |
+| claude-sonnet-5 | default | 20/20 | 436 |
+| claude-sonnet-5 | say-less | 18/20 | 75 |
+| claude-fable-5 | default | 20/20 | 456 |
+| claude-fable-5 | say-less | 20/20 | 152 |
+
+Current models mostly answer first without being told, so the style's remaining buy is
+length and shape: 58 to 83 percent fewer tokens at the median. Opus and fable take no
+correctness hit over 80 runs each.
+
+Sonnet does. Pooled over 120 runs per arm it scores 100/120 against 115/120 on default,
+and ten of the misses are one question that contrasts two outcomes ("does the caller see
+None rather than the exception propagating?"). Sonnet opens "No" and then describes the
+right mechanism in the same sentence. Two rule variants written to fix it changed
+nothing across 24 runs, so neither ships: on sonnet, read the clause after the verdict.
+
+## End-of-task reports
+
+The report clause carries its own budget — one line per state change, plus what failed,
+plus links, with anything already written at a link left as a link. Without it the
+exemption from the sentence cap reads as no cap at all, and reports drift back into
+commentary. The pre-send check is scoped to reports and over-cap replies for the same
+reason: applied to every reply it adds compression pressure where the polarity
+discipline needs slack.
