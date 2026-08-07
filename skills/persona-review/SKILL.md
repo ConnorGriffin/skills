@@ -45,6 +45,13 @@ data repo has no `CONTEXT.md`, walk the user through:
      supersedes; existing records are never edited in place.
    - **Distillation rule:** records hold distilled stances and quoted evidence lines,
      never full transcripts of a review or a mined PR.
+   - **Grounds rule:** every condition in a review-log entry, blocking or note,
+     ends with a labeled clause `grounds: when <document-independent property>`
+     alongside the document-specific detail. Grounds are what a future review
+     tests to decide whether a new document reopens the point.
+   - **Disposition rule:** a later review that finds a prior condition met or
+     mooted records that disposition in its own entry, never by editing the
+     old one.
 
    Show the proposed `CONTEXT.md` and commit it to the data repo only after the user
    approves it. Never write persona memory, profiles, or mined evidence into this
@@ -136,8 +143,11 @@ forming its own position. Where the harness supports it, run each panelist in it
 subagent, handing it only:
 
 - The document under review.
-- That persona's profile (stances, style, evidence quotes).
-- That persona's review-log entries relevant to this document's topic.
+- That persona's profile (stances, style, evidence quotes) — the panelist's only
+  stance source.
+- That persona's review-log entries relevant to this document's topic, to test
+  against this document (is a settled point reopened, is a prior condition met
+  or mooted). A panelist does not mine log entries for new opinions.
 - Override rulings relevant to this document's topic (settled points a prior review
   already closed — do not re-raise them unless the document reopens the grounds for
   them).
@@ -165,8 +175,11 @@ At review close, batch every proposed memory write into one approval pass:
 
 - A review-log entry per panelist (position, conditions, approval/refusal) — append,
   never edit a prior entry.
-- Any stance change a panelist's position implies — a new record superseding the old,
-  never a mutation.
+- A distill line per blocking condition each panelist imposed: the
+  document-independent stance it instantiates ("blocks when <property of a
+  document>"). A stance absent from or changed against that panelist's current
+  profile goes into a superseding profile record in the same batch — profile
+  growth is a required close output, not an incidental one.
 - Any override ruling the user makes during close (accepting a document over a
   panelist's blocking objection, or dismissing a note) — recorded so the same point
   isn't re-raised next time this document's topic comes up.
