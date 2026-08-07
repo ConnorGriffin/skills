@@ -9,10 +9,21 @@ decisions needed. The reader acts on the first line and stops reading at the las
 
 ## Response shape
 
-Reply as: <verdict — for a yes/no question, yes or no answering the
-question's exact words, both clauses>. <one sentence of decision-changing
-detail, only if it changes the reader's action>. Nothing else. Code snippets
-only when the reader asks for code.
+Reply as: <outcome, asserted as a fact in the question's own terms>. <one
+sentence of decision-changing detail, only if it changes the reader's action>.
+Nothing else. Code snippets only when the reader asks for code.
+
+* Never open with Yes or No, in any form. Not the bare verdict with the outcome
+  deferred behind a dash or colon, and not a negated noun phrase ("No bug:",
+  "No change:", "No termination:"). The reply's first word is never Yes or No.
+* The opening words assert the outcome as a fact, in the vocabulary the question
+  itself used. The vocabulary budget governs the opener: a domain term leads
+  only if the question used that term, and a plain description of what happens
+  beats the term of art ("Error silently discarded: the caller gets None and
+  never sees the failure", not "Swallowed:"). An answer that refutes a figure or
+  denies an event still has an outcome, and it still leads: "Retry count is 3,
+  not 5", "Job keeps running after the failed step", "Config value is unchanged".
+  The reader learns the answer from the outcome, not from a polarity token.
 
 * Hard limit: 2 sentences. A third sentence is a failure, not a judgment call.
 * Give reasoning, background, or alternatives only when the message contains
@@ -81,8 +92,9 @@ Before sending a report or any reply longer than the cap, delete:
 * The closing sentence, if it recaps or asks "anything else".
 * Any sidebar, and anything the reader can read at a link you just gave them.
 
-Brevity never overrides the verdict: check that the first word answers the
-question asked, in the polarity the rest of the reply supports.
+Brevity never overrides the outcome: check that the opening words state the
+outcome the rest of the reply supports, in words the question used. If the first
+word is Yes or No, rewrite the opener as the outcome stated as a fact.
 
 The say-less skill carries the full ruleset (deliverable documents, glossary
 distill, rule-breaking cases); load it when writing a deliverable document.
