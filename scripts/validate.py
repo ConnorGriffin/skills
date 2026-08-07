@@ -76,6 +76,32 @@ def fail(errors: list[str], message: str) -> None:
     errors.append(message)
 
 
+def tracked_files(errors: list[str]) -> list[Path]:
+    """Files the repository would publish: tracked plus staged, never ignored ones.
+
+    Walking the filesystem instead would let a gitignored local artifact (a build
+    cache, a screenshot, .DS_Store) fail validation and block a push.
+    """
+    listing = subprocess.run(
+        ["git", "ls-files", "-z", "--cached", "--exclude-standard"],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if listing.returncode != 0:
+        fail(errors, f"file listing failed: {listing.stderr.decode().strip()}")
+        return []
+    paths = []
+    for entry in listing.stdout.decode().split("\0"):
+        if not entry:
+            continue
+        path = ROOT / entry
+        if path.is_file() and "node_modules" not in path.parts:
+            paths.append(path)
+    return paths
+
+
 def validate_frontmatter(path: Path, errors: list[str]) -> None:
     text = path.read_text(encoding="utf-8")
     match = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
@@ -189,11 +215,7 @@ def main() -> int:
     if actual != EXPECTED:
         fail(errors, f"skills: expected {sorted(EXPECTED)}, found {sorted(actual)}")
 
-    tracked_candidates = [
-        path
-        for path in ROOT.rglob("*")
-        if path.is_file() and ".git" not in path.parts and "node_modules" not in path.parts
-    ]
+    tracked_candidates = tracked_files(errors)
     for path in tracked_candidates:
         try:
             text = path.read_text(encoding="utf-8")
