@@ -55,18 +55,31 @@ definitions below are the fallback.
 ## The cycle
 
 1. **Cold read + grounding pass.** Read the plan, then the code it touches.
-   Verify claims before forming opinions.
+   Verify claims before forming opinions. A literal in the plan — a regex, a
+   shell fragment, a workflow expression, a query — is verified by executing
+   it against real inputs, never by reading it; prose reasoning about
+   executable text is where confident wrong claims live.
 2. **Objections.** Report a numbered list. Each objection: the claim or gap,
    the evidence (file:line where relevant), why it breaks the build if
    unfixed, and the cheapest fix. Mark each **blocks countersign** or
    **note** — notes should be rare; if it wouldn't change what gets built,
    discard it rather than reporting it. Taste is not an objection.
-3. **Wait for the revision or answers**, then have the same reviewer re-check
+3. **Verify objections before they travel.** An objection is a claim, not a
+   fact. Before any objection reaches the plan's author or a fix round, the
+   session running the review reproduces its factual assertions: execute the
+   regex, parse the shell, open the file at the cited line. An objection
+   whose claim fails reproduction is recorded as refuted and goes back to
+   the reviewer, never forward to the author (a false reviewer claim that
+   reaches a fix round gets baked into the plan and costs a full round to
+   retract — the DEVOPS-7216 review paid that exact price). An objection
+   whose claim cannot be reproduced cheaply is forwarded marked unverified,
+   and the author treats it as a question, not an instruction.
+4. **Wait for the revision or answers**, then have the same reviewer re-check
    the deltas. **Treat every delta as new attack surface**, not as a checkbox:
    revisions routinely introduce fresh defects (a fix that patches the
    objected hole and opens a different one), and objections whose "cheapest
    fix" was applied verbatim still need verifying against the real machinery.
-4. **Terminate by stakes, not by pass count.**
+5. **Terminate by stakes, not by pass count.**
    - **Ordinary plan** (modest blast radius, downstream review exists as a
      backstop): one panel. If it drew blood, fix and have the same reviewer
      re-verify the deltas; then done. Plan review here only needs to catch
@@ -89,14 +102,28 @@ definitions below are the fallback.
      so shallow objections are gone — dig for what earlier passes miss:
      interactions with machinery the plan doesn't mention, contradictions
      between the plan's own decided constraints, and claims that are subtly
-     rather than obviously wrong. Its objections loop back through step 3.
+     rather than obviously wrong. Its objections loop back through steps 3
+     and 4.
      A clean fresh pass ends the review: state **countersigned** plainly.
-5. **Hard cap: three panels.** Adversarial reviewers rarely return
+6. **Hard cap: three panels.** Adversarial reviewers rarely return
    empty-handed, so as real defects deplete, late panels drift toward
    plausible-but-marginal objections — and every revision cycle is new
    attack surface. Blocking objections still arriving at the cap mean the
    plan has unsettled decisions, not undiscovered typos: take those
    decisions to the user directly. Say so and stop.
+
+## Executable logic belongs in a spike, not in prose
+
+A plan that pins executable logic as prose literals — exact regexes, shell
+fragments, workflow expressions — is an implementation written in a medium
+nothing executes, and every review round of such a plan mints new falsifiable
+surface faster than review retires it. One round pinning a literal is normal.
+A second round correcting a pinned literal is the signal: object that the
+logic belongs in an executed artifact (a scratch file with a test, built and
+run in the plan's worktree) that the plan references, and stop reviewing the
+prose version of it. The DEVOPS-7216 review spent four of its seven rounds on
+defects in prose-specified regex, shell, and workflow expressions that a
+compiler or one table test would have caught in seconds.
 
 ## Calibration
 
