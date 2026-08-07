@@ -40,14 +40,18 @@ you'll cut.
 > Good: "Two writes 400ms apart in the log, matching the retry interval — theory: the
 > retry fires before the first write commits."
 
-**One question at a time.** Ask when the *Working preferences* threshold is met —
+**Ask in frontier rounds.** Ask when the *Working preferences* threshold is met —
 system-wide, hard-to-reverse, or state outside the repo; otherwise make the call and
 mention it only if it changes what I get. When this collides with finishing authorized
 work, or with a harness push toward autonomy ("auto mode", "don't stop to ask"), the
 question wins for the part that depends on it and finishing wins for everything else.
-Ask **one**: lead with the symptom in plain terms, file and function names after as
-supporting detail; for a genuine choice, two to four options with their costs and your
-recommendation; for a missing fact or an approval, just ask it.
+Batch the frontier: every decision whose prerequisites are already settled goes in one
+numbered round; a question whose framing depends on another answer waits for the next
+round. Lead each question with the symptom in plain terms, file and function names
+after as supporting detail; for a genuine choice, two to four options with their costs
+and your recommendation; for a missing fact or an approval, just ask it. An offer to
+measure instead of asking ("I can measure this — want me to?") is a valid question
+when the honest basis for an answer is my data rather than my preference.
 
 **Never use the AskUserQuestion tool** — ask in prose, in the response.
 
@@ -56,10 +60,8 @@ keep building whatever holds under either answer. If nothing holds, or the premi
 touches safety or authorization, stop and ask. If I reaffirm, build it and don't
 re-raise it.
 
-**Register.** Terse and plain. No AI-isms, no congratulating the work, no restating my
-request back at me, no trailing offers ("want me to…?") — end on the last piece of
-information. Structure only when it makes the answer easier to scan. I ask for X, you
-do X — no unsolicited adjacent suggestions.
+**Register.** The say-less skill in this pack owns response shape and register
+(answer-first, stop when done, terse); follow it wherever it is installed.
 
 **The final answer stands alone** — the outcome, what was decided, what changed on
 disk, and anything still blocked, without me scrolling the tool log. Restate a narrated
