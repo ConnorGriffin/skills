@@ -29,6 +29,13 @@ PROMPT = (
     "test suite is green. What is wrong and what should change?"
 )
 
+# A task that cannot be started without decisions, to capture how the style asks
+# for them: one numbered round, options priced, recommendation per question.
+INTERVIEW_PROMPT = (
+    "I want uploads that exhaust every retry to go somewhere instead of vanishing "
+    "into a raised exception. Ask me whatever you need before writing any code."
+)
+
 TOOLS = "Read,Glob,Grep,Bash(python3:*)"
 
 
@@ -42,13 +49,13 @@ def scratch():
     return d
 
 
-def run(model, style):
+def run(model, style, prompt=PROMPT):
     project = scratch()
     cmd = ["claude", "-p", "--model", model, "--setting-sources", "project",
            "--allowedTools", TOOLS, "--output-format", "json"]
     if style == "say-less":
         cmd += ["--settings", json.dumps({"outputStyle": "say-less"})]
-    cmd.append(PROMPT)
+    cmd.append(prompt)
     proc = subprocess.run(cmd, cwd=project, capture_output=True, text=True, timeout=1200)
     shutil.rmtree(project, ignore_errors=True)
     if proc.returncode != 0:
@@ -68,7 +75,22 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--models", default="claude-opus-5,claude-sonnet-5,claude-fable-5")
     p.add_argument("--jobs", type=int, default=6)
+    p.add_argument("--interview", action="store_true",
+                   help="capture one question round under say-less instead")
     args = p.parse_args()
+
+    if args.interview:
+        model = args.models.split(",")[0]
+        row = run(model, "say-less", INTERVIEW_PROMPT)
+        TRANSCRIPTS.mkdir(exist_ok=True)
+        body = row.get("text") or f"ERROR: {row.get('error')}"
+        (TRANSCRIPTS / "interview-round.md").write_text(
+            f"<!-- {row['model']} / say-less / interview round / "
+            f"{row.get('output_tokens')} output tokens / "
+            f"{row.get('num_turns')} turns -->\n\n{body}\n"
+        )
+        print("interview-round.md", row.get("output_tokens"), "tokens", file=sys.stderr)
+        return
 
     jobs = [(m, s) for m in args.models.split(",") for s in ("default", "say-less")]
     TRANSCRIPTS.mkdir(exist_ok=True)

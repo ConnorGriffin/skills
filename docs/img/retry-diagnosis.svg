@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1008" height="878" viewBox="0 0 1008 878" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#c9d1d9">
+<rect width="1008" height="878" fill="none"/>
+<rect x="0" y="0" width="1008" height="82" rx="8" fill="#161b22" stroke="#30363d"/>
+<text x="14" y="20" fill="#8b949e" font-weight="600">asked</text>
+<text x="14" y="42" xml:space="preserve">Ops says a flaky artifact upload gives up after 3 tries, but the config sets retries to 3 and the README promises one</text>
+<text x="14" y="62" xml:space="preserve">initial attempt plus 3 retries. The test suite is green. What is wrong and what should change?</text>
+<rect x="0" y="100" width="495" height="778" rx="8" fill="#0d1117" stroke="#30363d"/>
+<text x="14" y="124" fill="#e6edf3" font-weight="600">default style</text>
+<text x="481" y="124" fill="#8b949e" text-anchor="end">235 words, 2189 output tokens</text>
+<line x1="0" y1="134" x2="495" y2="134" stroke="#30363d"/>
+<text x="14" y="146" xml:space="preserve">Ops is right; the code is off by one.</text>
+<text x="14" y="176" xml:space="preserve"><tspan fill="#e6edf3" font-weight="600">The bug</tspan> — <tspan fill="#79c0ff">uploader.py:18</tspan>:</text>
+<rect x="8" y="192" width="479" height="20" fill="#161b22"/>
+<text x="14" y="206" xml:space="preserve"><tspan fill="#a5d6ff">for attempt in range(config["retries"]):   # 3 iterations</tspan></text>
+<rect x="8" y="212" width="479" height="20" fill="#161b22"/>
+<text x="14" y="226" xml:space="preserve"><tspan fill="#a5d6ff">  = 3 total calls</tspan></text>
+<text x="14" y="256" xml:space="preserve"><tspan fill="#79c0ff">retries=3</tspan> yields 3 attempts total, not 1 + 3 = 4.</text>
+<text x="14" y="276" xml:space="preserve">Confirmed: a client that always fails gets exactly 3 <tspan fill="#79c0ff">put</tspan></text>
+<text x="14" y="296" xml:space="preserve">calls. The docstring at <tspan fill="#79c0ff">uploader.py:3-4</tspan> and README both</text>
+<text x="14" y="316" xml:space="preserve">promise 4, so the code — not the config or docs — is</text>
+<text x="14" y="336" xml:space="preserve">what's wrong.</text>
+<text x="14" y="366" xml:space="preserve"><tspan fill="#e6edf3" font-weight="600">Why the suite stayed green</tspan> — neither test can see the</text>
+<text x="14" y="386" xml:space="preserve">difference:</text>
+<text x="14" y="416" xml:space="preserve">- <tspan fill="#79c0ff">test_succeeds_after_transient_failures</tspan> uses</text>
+<text x="14" y="436" xml:space="preserve">  <tspan fill="#79c0ff">fail_times=2</tspan>, so it succeeds on call 3. Passes under</text>
+<text x="14" y="456" xml:space="preserve">  both 3-call and 4-call behavior.</text>
+<text x="14" y="476" xml:space="preserve">- <tspan fill="#79c0ff">test_gives_up_eventually</tspan> asserts <tspan fill="#79c0ff">client.calls &lt;=</tspan></text>
+<text x="14" y="496" xml:space="preserve"><tspan fill="#79c0ff">  CONFIG["retries"] + 1</tspan> — <tspan fill="#79c0ff">3 &lt;= 4</tspan> passes. The <tspan fill="#79c0ff">&lt;=</tspan> makes</text>
+<text x="14" y="516" xml:space="preserve">  the assertion satisfiable by any under-count, which is</text>
+<text x="14" y="536" xml:space="preserve">  exactly the failure mode in play.</text>
+<text x="14" y="566" xml:space="preserve"><tspan fill="#e6edf3" font-weight="600">What should change</tspan></text>
+<text x="14" y="596" xml:space="preserve">1. <tspan fill="#79c0ff">uploader.py:18</tspan> → <tspan fill="#79c0ff">for attempt in</tspan></text>
+<text x="14" y="616" xml:space="preserve"><tspan fill="#79c0ff">   range(config["retries"] + 1):</tspan></text>
+<text x="14" y="636" xml:space="preserve">2. <tspan fill="#79c0ff">test_uploader.py:28</tspan> → <tspan fill="#79c0ff">assertEqual(client.calls, 4)</tspan>.</text>
+<text x="14" y="656" xml:space="preserve">   An exact count is the whole point of this test; <tspan fill="#79c0ff">&lt;=</tspan></text>
+<text x="14" y="676" xml:space="preserve">   cannot fail in the direction that matters.</text>
+<text x="14" y="696" xml:space="preserve">3. Add a boundary test at <tspan fill="#79c0ff">fail_times=3</tspan> — succeeds on the</text>
+<text x="14" y="716" xml:space="preserve">   4th call under the fixed code, raises under the current</text>
+<text x="14" y="736" xml:space="preserve">   code. That's the case neither existing test covers.</text>
+<text x="14" y="766" xml:space="preserve">One thing to decide while you're in there: the</text>
+<text x="14" y="786" xml:space="preserve"><tspan fill="#79c0ff">time.sleep</tspan> at line 23 runs after the final failed</text>
+<text x="14" y="806" xml:space="preserve">attempt too, so a give-up burns a full 2s backoff before</text>
+<text x="14" y="826" xml:space="preserve">raising. Worth skipping the sleep on the last iteration.</text>
+<text x="14" y="856" xml:space="preserve">Want me to apply these?</text>
+<rect x="513" y="100" width="495" height="188" rx="8" fill="#0d1117" stroke="#30363d"/>
+<text x="527" y="124" fill="#e6edf3" font-weight="600">say-less</text>
+<text x="994" y="124" fill="#8b949e" text-anchor="end">56 words, 848 output tokens</text>
+<line x1="513" y1="134" x2="1008" y2="134" stroke="#30363d"/>
+<text x="527" y="146" xml:space="preserve">Wrong: <tspan fill="#79c0ff">uploader.py:18</tspan> loops <tspan fill="#79c0ff">range(retries)</tspan> = 3 total</text>
+<text x="527" y="166" xml:space="preserve">calls, so the README's 4 (1 initial + 3 retries) never</text>
+<text x="527" y="186" xml:space="preserve">happens; config and README are correct. Change the loop to</text>
+<text x="527" y="206" xml:space="preserve"><tspan fill="#79c0ff">range(config["retries"] + 1)</tspan>, skip the sleep after the</text>
+<text x="527" y="226" xml:space="preserve">last attempt, and tighten <tspan fill="#79c0ff">test_uploader.py:28</tspan> from</text>
+<text x="527" y="246" xml:space="preserve"><tspan fill="#79c0ff">assertLessEqual</tspan> to <tspan fill="#79c0ff">assertEqual(client.calls, 4)</tspan> — the</text>
+<text x="527" y="266" xml:space="preserve">loose bound is why the suite stayed green.</text>
+</svg>

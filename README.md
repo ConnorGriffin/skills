@@ -22,7 +22,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | [`tdd`](skills/tdd/SKILL.md) | Test-driven development through public interfaces, red-green-refactor | — |
 | [`review`](skills/review/SKILL.md) | Review changed code against the project's standards and the originating issue | — |
 | [`implement`](skills/implement/SKILL.md) | Implement a PRD or issue set via `tdd`, then `review`, then commit | `tdd` and `review` from this pack |
-| [`say-less`](skills/say-less/SKILL.md) | Answer-first output shaping with a per-repo glossary of approved terms; adapted from i-have-adhd, merged with this pack's reader-preference rules and an ASD-STE100 subset | Optional prompt hook for always-on digest; see [docs/overlay.md](docs/overlay.md) |
+| [`say-less`](skills/say-less/SKILL.md) | Answer-first output shaping with a per-repo glossary of approved terms; adapted from i-have-adhd, merged with this pack's reader-preference rules and an ASD-STE100 subset | Optional prompt hook for always-on digest; see [docs/overlay.md](docs/overlay.md) and the [measured comparison](docs/before-after.md) |
 | [`writing-for-agents`](skills/writing-for-agents/SKILL.md) | Write or review a skill against a shared pointer/load/pruning vocabulary; `doctor` verb audits the loaded skill and `CLAUDE.md`/`AGENTS.md` estate for token cost and trigger risk | Hand-only; invoke by name |
 
 ## Install
@@ -82,6 +82,42 @@ The `implement`, `tdd`, `review`, and `prototype` skills are adopted from — an
 repository](https://github.com/mattpocock/skills) (MIT, copyright (c) 2026 Matt
 Pocock), lightly edited here to be self-contained. See [LICENSE](LICENSE) and
 [NOTICE](NOTICE).
+
+## Output style
+
+[`output-styles/say-less.md`](output-styles/say-less.md) is a Claude Code output
+style: it replaces the built-in coding instructions so every reply leads with the
+outcome and stops there. The `say-less` skill is the full ruleset for documents;
+the style is the always-on subset.
+
+Same task, same model, style the only difference. Neither reply is truncated:
+
+![Two replies to one diagnosis task, side by side. The default style answers in
+235 words across four sections; say-less answers in 56 words. Both name the
+off-by-one loop, the loose assertion and the wasted backoff
+sleep.](docs/img/retry-diagnosis.svg)
+
+Both arms found the same three defects. Full text of every arm:
+[`examples/transcripts/`](examples/transcripts).
+
+Across 120 headless runs on a 10-question set with an executed answer key:
+
+| model | median output tokens, default | say-less | outcomes correct, default | say-less |
+| --- | --- | --- | --- | --- |
+| claude-opus-5 | 348 | 164 | 20/20 | 10/10 |
+| claude-sonnet-5 | 436 | 164 | 115/120 | 38/40 |
+| claude-fable-5 | 456 | 178 | 20/20 | 10/10 |
+
+Half to two thirds of the reading, no correctness cost on opus or fable. Sonnet
+keeps one residual failure worth knowing about before you install it, and
+compression drops caveats a longer reply would have kept: both are measured, with
+their method and the counterexamples, in
+[docs/before-after.md](docs/before-after.md).
+
+Activate it by setting `"outputStyle": "say-less"` in `~/.claude/settings.json`
+after linking the file into `~/.claude/output-styles/`, or run
+`/output-style say-less` in an interactive session. New sessions pick it up; the
+one you are in does not.
 
 ## Shared profile
 

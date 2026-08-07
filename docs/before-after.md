@@ -21,29 +21,14 @@ one asserts `calls <= retries + 1`. The prompt, identical in both arms:
 > green. What is wrong and what should change?
 
 Both arms found the off-by-one, the loose assertion, and the wasted backoff sleep. The
-difference is what the reader walks through to get there.
+difference is what the reader walks through to get there. Neither reply below is
+truncated, and both are drawn at the same width, in the same font, with the same
+colouring, from the captured text on disk:
 
-**claude-opus-5, default style — 2189 output tokens** (opening of a reply that runs to
-four sections and two code blocks):
-
-> Ops is right; the code is off by one.
->
-> **The bug** — `uploader.py:18`:
->
-> ```python
-> for attempt in range(config["retries"]):   # 3 iterations = 3 total calls
-> ```
->
-> `retries=3` yields 3 attempts total, not 1 + 3 = 4. Confirmed: a client that always
-> fails gets exactly 3 `put` calls. …
-
-**claude-opus-5, say-less — 848 output tokens, the whole reply:**
-
-> Wrong: `uploader.py:18` loops `range(retries)` = 3 total calls, so the README's 4
-> (1 initial + 3 retries) never happens; config and README are correct. Change the loop
-> to `range(config["retries"] + 1)`, skip the sleep after the last attempt, and tighten
-> `test_uploader.py:28` from `assertLessEqual` to `assertEqual(client.calls, 4)` — the
-> loose bound is why the suite stayed green.
+![The same diagnosis under both styles on claude-opus-5. The default reply runs 235
+words through four sections and a code block; the say-less reply is 56 words and names
+the same loop fix, the same assertion tightening and the same wasted
+sleep.](img/retry-diagnosis.svg)
 
 | model | default | say-less | change |
 |---|---|---|---|
@@ -61,6 +46,13 @@ counterintuitive shell, git and python semantics, and reasoning traps where the
 intuitive answer is wrong. Each question has a yes/no answer, so a reply is scored on
 the outcome it commits to, not on the word it opens with.
 
+One of the traps, both arms complete. The correct answer contradicts the intuition the
+question invites, and neither arm falls for it:
+
+![A base-rate question under both styles. The default reply works through the
+arithmetic in four paragraphs; the say-less reply gives the same 17 percent and the same
+reason in two sentences.](img/trap-question.svg)
+
 | model | style | outcome correct | median output tokens |
 |---|---|---|---|
 | claude-opus-5 | default | 20/20 | 348 |
@@ -70,7 +62,7 @@ the outcome it commits to, not on the word it opens with.
 | claude-fable-5 | default | 20/20 | 456 |
 | claude-fable-5 | say-less | 10/10 | 178 |
 
-Cost drops roughly 55 to 65 percent at the median. Opus and fable answer every question
+Cost drops 53 to 62 percent at the median. Opus and fable answer every question
 correctly under both styles. Sonnet carries a residual failure, described next.
 
 ## Verdict signing on sonnet
@@ -129,6 +121,20 @@ unreadable to anyone outside the domain. Readability is worth the two outcomes.
 * Sonnet's openers run about 40 tokens longer than a one-word verdict. That is the
   price of an opener a reader can act on.
 
+## Asking instead of assuming
+
+Compression cuts what the reader reads, not what the reader decides. Given a task that
+cannot start until someone chooses, the style spends its budget on the decisions: one
+numbered round, every question phrased as behavior, options priced, a recommendation
+per question. This round is a real capture from the same fixture, not a mock:
+
+![One captured question round. Three numbered questions about where a permanently
+failed upload should land, what the function then returns, and whether the attempt count
+follows the README, each with three priced options and a
+recommendation.](img/interview-round.svg)
+
+Capture it again with `python3 examples/run_example.py --interview`.
+
 ## What you give up
 
 The default replies teach more: they name the general principle, walk the sequence, and
@@ -155,5 +161,12 @@ correct reply does not open with yes or no. `--score first-word` compares the op
 word to the key and is kept for the default-style arm only.
 
 Narrow a run to one question with `--ids 8 --repeats 12`, and iterate on the style
-itself with `--styles say-less --style-file <candidate>`, which leaves both repo copies
-of the style untouched.
+itself with `--styles say-less --style-file <candidate>`, which leaves the shipped style
+untouched.
+
+The pictures in this document are generated from the captured replies on disk, never
+from prose typed into a renderer:
+
+```bash
+python3 docs/render_comparison.py
+```

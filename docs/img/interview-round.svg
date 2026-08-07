@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="798" viewBox="0 0 640 798" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#c9d1d9">
+<rect width="640" height="798" fill="none"/>
+<rect x="0" y="0" width="640" height="82" rx="8" fill="#161b22" stroke="#30363d"/>
+<text x="14" y="20" fill="#8b949e" font-weight="600">asked</text>
+<text x="14" y="42" xml:space="preserve">I want uploads that exhaust every retry to go somewhere instead of vanishing</text>
+<text x="14" y="62" xml:space="preserve">into a raised exception. Ask me whatever you need before writing any code.</text>
+<rect x="0" y="100" width="640" height="698" rx="8" fill="#0d1117" stroke="#30363d"/>
+<text x="14" y="124" fill="#e6edf3" font-weight="600">say-less</text>
+<text x="626" y="124" fill="#8b949e" text-anchor="end">245 words, 1549 output tokens</text>
+<line x1="0" y1="134" x2="640" y2="134" stroke="#30363d"/>
+<text x="14" y="146" xml:space="preserve">Found while reading: <tspan fill="#79c0ff">upload()</tspan> makes 3 total calls, not the 4 the README</text>
+<text x="14" y="166" xml:space="preserve">and docstring specify — <tspan fill="#79c0ff">range(config["retries"])</tspan> omits the initial</text>
+<text x="14" y="186" xml:space="preserve">attempt, and <tspan fill="#79c0ff">test_gives_up_eventually</tspan> asserts <tspan fill="#79c0ff">&lt;=</tspan> so it passes either</text>
+<text x="14" y="206" xml:space="preserve">way. "Exhausts every retry" currently means one retry fewer than documented.</text>
+<text x="14" y="236" xml:space="preserve"><tspan fill="#e6edf3" font-weight="600">Q1. Where does a permanently failed upload land?</tspan></text>
+<rect x="14" y="242" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="256" xml:space="preserve">A. json lines file on local disk (dead-letter log), appended per failure</text>
+<rect x="14" y="262" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="276" xml:space="preserve">B. caller-supplied handler passed into <tspan fill="#79c0ff">upload()</tspan> (dead_letter callback),</text>
+<rect x="14" y="282" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="296" xml:space="preserve">storage is the caller's problem</text>
+<rect x="14" y="302" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="316" xml:space="preserve">C. in-process list/queue object returned by the module, drained by whoever</text>
+<rect x="14" y="322" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="336" xml:space="preserve">runs the batch</text>
+<rect x="14" y="342" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="356" xml:space="preserve"></text>
+<rect x="14" y="362" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="376" xml:space="preserve">↳ <tspan font-style="italic" fill="#8b949e">rec A: survives process death, which is the failure mode that makes</tspan></text>
+<rect x="14" y="382" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="396" xml:space="preserve"><tspan font-style="italic" fill="#8b949e">uploads vanish; B leaves the same vanishing hole if the caller passes</tspan></text>
+<rect x="14" y="402" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="416" xml:space="preserve"><tspan font-style="italic" fill="#8b949e">nothing</tspan></text>
+<text x="14" y="446" xml:space="preserve"><tspan fill="#e6edf3" font-weight="600">Q2. After recording the failure, what does </tspan><tspan fill="#79c0ff">upload()</tspan><tspan fill="#e6edf3" font-weight="600"> do?</tspan></text>
+<rect x="14" y="452" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="466" xml:space="preserve">A. still raises <tspan fill="#79c0ff">UploadFailed</tspan> (recording is a side effect, callers</text>
+<rect x="14" y="472" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="486" xml:space="preserve">unchanged)</text>
+<rect x="14" y="492" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="506" xml:space="preserve">B. returns a sentinel result marking it dead-lettered, no exception</text>
+<rect x="14" y="512" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="526" xml:space="preserve">C. raises only if recording the failure also fails</text>
+<rect x="14" y="532" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="546" xml:space="preserve"></text>
+<rect x="14" y="552" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="566" xml:space="preserve">↳ <tspan font-style="italic" fill="#8b949e">rec A: existing callers and </tspan><tspan fill="#79c0ff">test_gives_up_eventually</tspan><tspan font-style="italic" fill="#8b949e"> keep working;</tspan></text>
+<rect x="14" y="572" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="586" xml:space="preserve"><tspan font-style="italic" fill="#8b949e">"goes somewhere instead of vanishing" is satisfied by the record, not by</tspan></text>
+<rect x="14" y="592" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="606" xml:space="preserve"><tspan font-style="italic" fill="#8b949e">silence</tspan></text>
+<text x="14" y="636" xml:space="preserve"><tspan fill="#e6edf3" font-weight="600">Q3. Does the fixed attempt count follow the README (4 calls) or today's</tspan></text>
+<text x="14" y="656" xml:space="preserve"><tspan fill="#e6edf3" font-weight="600">behavior (3 calls)?</tspan></text>
+<rect x="14" y="662" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="676" xml:space="preserve">A. fix loop to <tspan fill="#79c0ff">retries + 1</tspan>, matching README and docstring</text>
+<rect x="14" y="682" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="696" xml:space="preserve">B. leave 3 calls, update README and docstring to match code</text>
+<rect x="14" y="702" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="716" xml:space="preserve">C. leave the count alone, out of scope for this change</text>
+<rect x="14" y="722" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="736" xml:space="preserve"></text>
+<rect x="14" y="742" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="756" xml:space="preserve">↳ <tspan font-style="italic" fill="#8b949e">rec A: docstring states the contract explicitly, so code is the side</tspan></text>
+<rect x="14" y="762" width="2" height="20" fill="#3d444d"/>
+<text x="26" y="776" xml:space="preserve"><tspan font-style="italic" fill="#8b949e">that's wrong; one extra call per permanent failure</tspan></text>
+</svg>

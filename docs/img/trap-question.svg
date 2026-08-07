@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1008" height="418" viewBox="0 0 1008 418" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#c9d1d9">
+<rect width="1008" height="418" fill="none"/>
+<rect x="0" y="0" width="1008" height="102" rx="8" fill="#161b22" stroke="#30363d"/>
+<text x="14" y="20" fill="#8b949e" font-weight="600">asked</text>
+<text x="14" y="42" xml:space="preserve">We run a flake detector over our 10,000-test suite. It flags every genuinely flaky test, and it also flags 5% of the</text>
+<text x="14" y="62" xml:space="preserve">healthy ones. 1% of our tests are genuinely flaky. A test just came back flagged. Is it more likely than not that it is</text>
+<text x="14" y="82" xml:space="preserve">genuinely flaky?</text>
+<rect x="0" y="120" width="495" height="298" rx="8" fill="#0d1117" stroke="#30363d"/>
+<text x="14" y="144" fill="#e6edf3" font-weight="600">default style</text>
+<text x="481" y="144" fill="#8b949e" text-anchor="end">83 words, 292 output tokens</text>
+<line x1="0" y1="154" x2="495" y2="154" stroke="#30363d"/>
+<text x="14" y="166" xml:space="preserve">No — about <tspan fill="#e6edf3" font-weight="600">17%</tspan>.</text>
+<text x="14" y="196" xml:space="preserve">Out of 10,000 tests:</text>
+<text x="14" y="216" xml:space="preserve">- 100 genuinely flaky → all 100 flagged</text>
+<text x="14" y="236" xml:space="preserve">- 9,900 healthy → 5% = 495 flagged</text>
+<text x="14" y="266" xml:space="preserve">Flagged total = 595, of which 100 are real: <tspan fill="#e6edf3" font-weight="600">100/595 ≈</tspan></text>
+<text x="14" y="286" xml:space="preserve"><tspan fill="#e6edf3" font-weight="600">16.8%</tspan>.</text>
+<text x="14" y="316" xml:space="preserve">The false positives outnumber the true ones ~5:1 because</text>
+<text x="14" y="336" xml:space="preserve">healthy tests are 99× more common. A flag raises your</text>
+<text x="14" y="356" xml:space="preserve">suspicion from 1% to ~17% — meaningful, but a flagged test</text>
+<text x="14" y="376" xml:space="preserve">is still most likely fine. To flip it past 50%, you'd need</text>
+<text x="14" y="396" xml:space="preserve">the false-positive rate under ~1%.</text>
+<rect x="513" y="120" width="495" height="128" rx="8" fill="#0d1117" stroke="#30363d"/>
+<text x="527" y="144" fill="#e6edf3" font-weight="600">say-less</text>
+<text x="994" y="144" fill="#8b949e" text-anchor="end">38 words, 192 output tokens</text>
+<line x1="513" y1="154" x2="1008" y2="154" stroke="#30363d"/>
+<text x="527" y="166" xml:space="preserve">Flagged test is genuinely flaky ~17% of the time (100 true</text>
+<text x="527" y="186" xml:space="preserve">flags vs 495 false ones out of 595). Base rate of 1% is</text>
+<text x="527" y="206" xml:space="preserve">small enough that the 5% false-positive rate dominates, so</text>
+<text x="527" y="226" xml:space="preserve">most flags are healthy tests.</text>
+</svg>
