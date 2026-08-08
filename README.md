@@ -23,6 +23,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | [`review`](skills/review/SKILL.md) | Review changed code against the project's standards and the originating issue | — |
 | [`implement`](skills/implement/SKILL.md) | Implement a PRD or issue set via `tdd`, then `review`, then commit | `tdd` and `review` from this pack |
 | [`say-less`](skills/say-less/SKILL.md) | Answer-first output shaping with a per-repo glossary of approved terms; adapted from i-have-adhd, merged with this pack's reader-preference rules and an ASD-STE100 subset | Optional prompt hook for always-on digest; see [docs/overlay.md](docs/overlay.md) and the [measured comparison](docs/before-after.md) |
+| [`code-review`](skills/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | Parallel-agent support recommended; GitHub CLI to fetch an originating issue |
 | [`writing-for-agents`](skills/writing-for-agents/SKILL.md) | Write or review a skill against a shared pointer/load/pruning vocabulary; `doctor` verb audits the loaded skill and `CLAUDE.md`/`AGENTS.md` estate for token cost and trigger risk | Hand-only; invoke by name |
 
 ## Install
@@ -78,9 +79,9 @@ npx skills add mattpocock/skills --skill codebase-design --skill domain-modeling
 ## Attribution
 
 The `implement`, `tdd`, `review`, and `prototype` skills are adopted from — and
-`scope`'s interview mode is derived from — [Matt Pocock's skills
-repository](https://github.com/mattpocock/skills) (MIT, copyright (c) 2026 Matt
-Pocock), lightly edited here to be self-contained. See [LICENSE](LICENSE) and
+`scope`'s interview mode and `code-review` are derived from — [Matt Pocock's
+skills repository](https://github.com/mattpocock/skills) (MIT, copyright (c) 2026
+Matt Pocock), lightly edited here to be self-contained. See [LICENSE](LICENSE) and
 [NOTICE](NOTICE).
 
 ## Output style
