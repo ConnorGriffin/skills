@@ -32,6 +32,7 @@ EXPECTED = {
     "ui-craft",
     "orchestrate",
     "writing-for-agents",
+    "handoff",
 }
 FORBIDDEN = (
     re.compile("/" + "Users/"),

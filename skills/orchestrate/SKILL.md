@@ -6,33 +6,39 @@ description: Flip the session into coordinator mode — the parent agent plans, 
 # Orchestrate — coordinator mode
 
 Invoking this skill flips the **whole session** into coordinator mode until the
-operator says otherwise. **Claude Code is the only supported parent** — if you
-are not Claude Code (e.g. this was invoked from the Codex harness), stop and
-tell the operator this skill has no Codex-parent mode; the dispatch mechanics
-below are Claude Code machinery. Codex models are reached via `codex exec`
-(continue an existing Codex session with `codex exec resume`).
+operator says otherwise. Detect the parent before dispatching:
+
+- **Claude Code parent:** use the Claude and Codex mechanics below.
+- **Codex UI parent:** read `references/dispatch-codex.md` before routing. In
+  this v0, every delegation uses its CLI-worker adapter; do not use native
+  `spawn_agent` for implementation or review.
 
 ## Codex headroom gate — run at invocation
 
 Before any routing, check whether the Codex side has budget left:
 
-1. Probe fresh: run a trivial one-word `codex exec` (cheapest Codex model,
-   `--sandbox read-only`), then parse the `rate_limits` event from the newest
-   rollout under `~/.codex/sessions/**/*.jsonl`. Headroom =
-   `100 − primary.used_percent`. Never trust a snapshot from an old session —
-   it may be days stale.
-2. If headroom ≤ 5%, or the probe itself fails with a rate-limit error, the
-   session runs **Claude-only**: drop every Codex route (Sol, Terra, Luna,
-   Spark) from routing and never reference Codex models in delegations for the
-   rest of the session. Tell the operator once, with the measured headroom and
-   `resets_at`.
-3. Same rule mid-session: if any later Codex delegation fails with a rate-limit
-   error, flip to Claude-only from that point on.
+1. Probe fresh with a trivial one-word worker run (cheapest available Codex
+   model, `read-only`). The Codex adapter binds headroom to that worker's
+   captured session ID: it finds the rollout whose `session_meta.payload.session_id`
+   matches and reads its latest `event_msg` token-count rate limits. Headroom =
+   `100 − primary.used_percent`; absent rate limits mean **unknown**, not
+   sufficient. Never inspect merely the newest rollout — it may be unrelated.
+2. If headroom is ≤ 5%, **unknown**, or the probe itself fails with a rate-limit
+   error, branch by parent:
+   - **Claude parent:** run **Claude-only**: drop every Codex route (Sol,
+     Terra, Luna, Spark) from routing and never reference Codex models in
+     delegations for the rest of the session.
+   - **Codex UI parent:** it has a Codex-only constraint, so stop dispatching.
+     Report the measured headroom, `resets_at` when present, or the rate-limit
+     / unknown-headroom blocker. Do not switch to Claude workers.
+3. Apply the same parent branch mid-session if a later Codex delegation is
+   rate-limited. Tell the operator once when the branch changes.
 
-Claude-only routing uses each row's Claude rungs. Two rows have no Claude rung:
-plan/spec writing routes to **Opus with a mandatory coordinator fail-safe
-review** of the spec (the table's polarity-error warning is the reason the
-review is not optional); prototyping routes straight to **Opus**.
+For a Claude parent, Claude-only routing uses each row's Claude rungs. Two rows
+have no Claude rung: plan/spec writing routes to **Opus with a mandatory
+coordinator fail-safe review** of the spec (the table's polarity-error warning
+is the reason the review is not optional); prototyping routes straight to
+**Opus**.
 
 ## The coordinator ruling (behavioral core)
 
@@ -65,7 +71,8 @@ review is not optional); prototyping routes straight to **Opus**.
 2. Read `references/routing-table.md` and pick the **cheapest model that clears
    the bar** for that area. Honor the table's bans (e.g. Luna for UI mockups,
    Haiku for unverified exploration citations) and the headroom gate above —
-   in Claude-only mode, Codex rungs are skipped as if absent from the table.
+   Claude-only mode skips Codex rungs as if absent from the table; Codex UI
+   mode follows only its adapter's admitted routes.
 3. **Never delegate to Fable** — it is the coordinator tier only.
 4. Every delegation is labeled with its model tier so the operator can see the
    route: Agent-tool dispatches prefix the `description` with the model name
@@ -75,14 +82,13 @@ review is not optional); prototyping routes straight to **Opus**.
 5. Mechanics: Claude models via the Agent tool with a `model` override — a
    read-only agent type (e.g. Explore) for read-tasks, `isolation: "worktree"`
    for write-tasks, so the harness enforces what the prompt asks. Codex models
-   via `codex exec -m <model> -c model_reasoning_effort=medium --sandbox
-   read-only|workspace-write --skip-git-repo-check -C <dir>` — `read-only` for
-   read-tasks; `workspace-write` only into an isolated worktree, never the
-   coordinator's own checkout. Effort stays medium; escalation changes the
-   model tier, not the effort dial. Belt-and-braces: read-task prompts still
-   carry an explicit "context is read-only — never modify, patch, or stash"
-   line (a benchmark run was invalidated by an agent leaving a patch applied
-   to a shared worktree — treat this as load-bearing).
+   use the parent-specific dispatch adapter. `read-only` is for read-tasks;
+   `workspace-write` only targets an isolated worktree, never the coordinator's
+   checkout. Effort stays medium; escalation changes the model tier, not the
+   effort dial. Belt-and-braces: read-task prompts still carry an explicit
+   "context is read-only — never modify, patch, or stash" line (a benchmark run
+   was invalidated by an agent leaving a patch applied to a shared worktree —
+   treat this as load-bearing).
 
 ## Verification and escalation
 
@@ -93,13 +99,14 @@ verification:
 1. **Retry once** in the *same* sub-agent session, carrying your specific
    findings ("test missing for the flag path") — its loaded context makes the
    retry cheap.
-2. **Second failure → escalate one tier** (per the table's escalation column):
-   fresh agent, original spec, plus a note on what the cheaper model botched.
-3. If the failing route is already the top of its ladder (the table's
-   escalation column names no higher tier), stop: surface both failed attempts
-   to the operator instead of improvising a further escalation.
-4. Never unbounded retries; never tier-skip straight to the top; never silently
-   absorb a deviation — surface it to the operator.
+2. **Claude parent:** second failure escalates one tier (per the table's
+   escalation column) in a fresh agent with the original spec and a note on
+   what the cheaper model botched. At the top of the ladder, stop and surface
+   both failed attempts.
+3. **Codex UI parent v0:** every admitted route is one validated rung. After
+   the same-session retry fails, stop with **NO_VALIDATED_ROUTE** and surface
+   both attempts. Never escalate Terra, Luna, or Sol to Sonnet or Opus.
+4. Never unbounded retries, tier-skips, or silent deviations.
 
 Watch-items the benchmark confirmed per model family: Claude models may report
 success from reasoning rather than a green run (demand command output) and can

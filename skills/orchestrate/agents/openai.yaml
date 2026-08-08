@@ -1,4 +1,4 @@
 interface:
   display_name: "Orchestrate"
-  short_description: "Coordinator mode: route all real work to benchmarked sub-agents"
-  default_prompt: "Use $orchestrate to act as a coordinator and delegate this work to routed sub-agents."
+  short_description: "Coordinator mode: route real work to benchmarked workers"
+  default_prompt: "Use $orchestrate to act as a coordinator and delegate this work to routed workers."

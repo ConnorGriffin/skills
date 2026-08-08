@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import tempfile
@@ -11,6 +12,7 @@ from typing import Optional
 ROOT = Path(__file__).resolve().parents[1]
 CBM_SCRIPT = ROOT / "skills" / "cbm-onboard" / "scripts" / "cbm-onboard.sh"
 SPIN_SCRIPT = ROOT / "skills" / "spin-worktree" / "scripts" / "spin-worktree.py"
+CODEX_WORKER = ROOT / "skills" / "orchestrate" / "scripts" / "codex-worker.py"
 BEGIN_IGNORE = "# >>> cbm-onboard managed baseline — do not edit inside this block >>>"
 BEGIN_HOOK = "# >>> cbm-onboard managed reindex >>>"
 
@@ -205,6 +207,362 @@ class SpinWorktreeTests(unittest.TestCase):
         self.assertTrue(
             (self.scratch / "worktrees" / "repo" / "local-topic" / ".git").exists()
         )
+
+
+class CodexWorkerTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.scratch = Path(self.temporary.name)
+        self.control = self.scratch / "control"
+        self.worktree = self.scratch / "worktree"
+        self.control.mkdir()
+        self.worktree.mkdir()
+        self.state = self.scratch / "worker-state.json"
+        self.codex_home = self.scratch / "codex-home"
+        self.binary = self.scratch / "fake-codex"
+        self.arguments = self.scratch / "arguments.json"
+        self.child_cwd = self.scratch / "child-cwd"
+        self.binary.write_text(
+            "#!/usr/bin/env python3\n"
+            "import json, os, pathlib, sys\n"
+            "pathlib.Path(os.environ['FAKE_CODEX_ARGUMENTS']).write_text(json.dumps(sys.argv[1:]))\n"
+            "if os.environ.get('FAKE_CODEX_CWD'):\n"
+            "    pathlib.Path(os.environ['FAKE_CODEX_CWD']).write_text(os.getcwd())\n"
+            "sys.stdout.write(os.environ.get('FAKE_CODEX_OUTPUT', ''))\n"
+            "sys.exit(int(os.environ.get('FAKE_CODEX_EXIT', '0')))\n",
+            encoding="utf-8",
+        )
+        self.binary.chmod(0o755)
+        self.environment = os.environ.copy()
+        self.environment["CODEX_HOME"] = str(self.codex_home)
+        self.environment["FAKE_CODEX_ARGUMENTS"] = str(self.arguments)
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def worker(self, *arguments: str):
+        return run(
+            ["python3", str(CODEX_WORKER), *arguments],
+            cwd=ROOT,
+            env=self.environment,
+        )
+
+    def start(
+        self,
+        output: str,
+        *,
+        sandbox: str = "read-only",
+        final_message: Optional[str] = "worker answer",
+    ):
+        if final_message is not None:
+            output += json.dumps(
+                {
+                    "type": "item.completed",
+                    "item": {"type": "agent_message", "text": final_message},
+                }
+            ) + "\n"
+        self.environment["FAKE_CODEX_OUTPUT"] = output
+        arguments = [
+            "start",
+            "--codex",
+            str(self.binary),
+            "--state",
+            str(self.state),
+            "--model",
+            "Terra",
+            "--sandbox",
+            sandbox,
+            "--cwd",
+            str(self.worktree),
+        ]
+        if sandbox == "workspace-write":
+            arguments.extend(["--control-checkout", str(self.control)])
+        return self.worker(*arguments, "do the work")
+
+    def rollout(self, name: str, session_id: str, *events: dict):
+        path = self.codex_home / "sessions" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        entries = [
+            {"type": "session_meta", "payload": {"session_id": session_id}},
+            *events,
+        ]
+        path.write_text(
+            "".join(json.dumps(entry) + "\n" for entry in entries), encoding="utf-8"
+        )
+
+    def test_start_persists_worker_state_and_uses_canonical_cwd(self):
+        result = self.start('{"type":"thread.started","thread_id":"worker-1"}\n')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            json.loads(self.state.read_text(encoding="utf-8")),
+            {
+                "session_id": "worker-1",
+                "model": "Terra",
+                "sandbox": "read-only",
+                "cwd": str(self.worktree.resolve()),
+            },
+        )
+        arguments = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn("--sandbox", arguments)
+        self.assertIn(str(self.worktree.resolve()), arguments)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["final_message"], "worker answer")
+        self.assertEqual(payload["headroom_status"], "unknown")
+
+    def test_resume_reapplies_persisted_model_and_sandbox(self):
+        started = self.start(
+            '{"type":"thread.started","thread_id":"worker-1"}\n',
+            sandbox="workspace-write",
+        )
+        self.assertEqual(started.returncode, 0, started.stderr)
+        self.environment["FAKE_CODEX_OUTPUT"] = (
+            '{"type":"thread.started","thread_id":"worker-1"}\n'
+            '{"type":"item.completed","item":{"type":"agent_message",'
+            '"text":"resume answer"}}\n'
+        )
+
+        result = self.worker(
+            "resume",
+            "--codex",
+            str(self.binary),
+            "--state",
+            str(self.state),
+            "continue with the failing test",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            json.loads(self.arguments.read_text(encoding="utf-8")),
+            [
+                "exec",
+                "resume",
+                "worker-1",
+                "-m",
+                "Terra",
+                "-c",
+                'sandbox_mode="workspace-write"',
+                "--json",
+                "continue with the failing test",
+            ],
+        )
+        self.assertEqual(json.loads(result.stdout)["final_message"], "resume answer")
+
+    def test_resume_runs_the_codex_process_in_the_persisted_worktree(self):
+        started = self.start('{"type":"thread.started","thread_id":"worker-1"}\n')
+        self.assertEqual(started.returncode, 0, started.stderr)
+        self.environment["FAKE_CODEX_CWD"] = str(self.child_cwd)
+        self.environment["FAKE_CODEX_OUTPUT"] = (
+            '{"type":"thread.started","thread_id":"worker-1"}\n'
+            '{"type":"item.completed","item":{"type":"agent_message",'
+            '"text":"resume answer"}}\n'
+        )
+
+        result = self.worker(
+            "resume",
+            "--codex",
+            str(self.binary),
+            "--state",
+            str(self.state),
+            "continue with the failing test",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            self.child_cwd.read_text(encoding="utf-8"), str(self.worktree.resolve())
+        )
+
+    def test_error_item_fails_even_when_codex_exits_zero(self):
+        result = self.start(
+            '{"type":"thread.started","thread_id":"worker-1"}\n'
+            '{"type":"item.completed","item":{"type":"error"}}\n'
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("reported an error item", result.stderr)
+        self.assertFalse(self.state.exists())
+
+    def test_start_fails_without_a_completed_agent_message(self):
+        result = self.start(
+            '{"type":"thread.started","thread_id":"worker-1"}\n'
+            '{"type":"item.completed","item":{"type":"reasoning"}}\n',
+            final_message=None,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("missing completed agent message", result.stderr)
+        self.assertFalse(self.state.exists())
+
+    def test_preserves_a_nonzero_codex_exit_status(self):
+        self.environment["FAKE_CODEX_EXIT"] = "7"
+
+        result = self.start("worker failed\n", final_message=None)
+
+        self.assertEqual(result.returncode, 7)
+        self.assertEqual(result.stdout, "worker failed\n")
+        self.assertFalse(self.state.exists())
+
+    def test_headroom_uses_the_matching_session_rollout(self):
+        token_count = {
+            "type": "event_msg",
+            "payload": {
+                "type": "token_count",
+                "rate_limits": {"primary": {"used_percent": 40}},
+            },
+        }
+        self.rollout("matching.jsonl", "worker-1", token_count)
+        self.rollout(
+            "unrelated.jsonl",
+            "other-worker",
+            {
+                "type": "event_msg",
+                "payload": {
+                    "type": "token_count",
+                    "rate_limits": {"primary": {"used_percent": 99}},
+                },
+            },
+        )
+
+        result = self.start('{"type":"thread.started","thread_id":"worker-1"}\n')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["headroom"], 60)
+        self.assertEqual(payload["headroom_status"], "known")
+
+    def test_missing_rate_limits_reports_unknown(self):
+        self.rollout(
+            "matching.jsonl",
+            "worker-1",
+            {"type": "event_msg", "payload": {"type": "token_count"}},
+        )
+
+        result = self.start('{"type":"thread.started","thread_id":"worker-1"}\n')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertIsNone(payload["headroom"])
+        self.assertEqual(payload["headroom_status"], "unknown")
+
+    def test_malformed_missing_and_ambiguous_thread_ids_fail_closed(self):
+        cases = {
+            "malformed": "not json\n",
+            "missing": '{"type":"item.completed","item":{"type":"agent_message"}}\n',
+            "ambiguous": (
+                '{"type":"thread.started","thread_id":"one"}\n'
+                '{"type":"thread.started","thread_id":"two"}\n'
+            ),
+        }
+        for name, output in cases.items():
+            with self.subTest(name=name):
+                if self.state.exists():
+                    self.state.unlink()
+                result = self.start(output)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(self.state.exists())
+
+    def test_workspace_write_rejects_the_control_checkout(self):
+        self.environment["FAKE_CODEX_OUTPUT"] = (
+            '{"type":"thread.started","thread_id":"worker-1"}\n'
+        )
+        result = self.worker(
+            "start",
+            "--codex",
+            str(self.binary),
+            "--state",
+            str(self.state),
+            "--model",
+            "Terra",
+            "--sandbox",
+            "workspace-write",
+            "--cwd",
+            str(self.control),
+            "--control-checkout",
+            str(self.control),
+            "do the work",
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("refuses the control checkout", result.stderr)
+        self.assertFalse(self.arguments.exists())
+
+    def test_workspace_write_rejects_a_path_inside_the_control_checkout(self):
+        nested = self.control / "nested"
+        nested.mkdir()
+        self.environment["FAKE_CODEX_OUTPUT"] = (
+            '{"type":"thread.started","thread_id":"worker-1"}\n'
+        )
+
+        result = self.worker(
+            "start",
+            "--codex",
+            str(self.binary),
+            "--state",
+            str(self.state),
+            "--model",
+            "Terra",
+            "--sandbox",
+            "workspace-write",
+            "--cwd",
+            str(nested),
+            "--control-checkout",
+            str(self.control),
+            "do the work",
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("refuses the control checkout", result.stderr)
+        self.assertFalse(self.arguments.exists())
+
+    def test_resume_rejects_a_persisted_path_inside_the_control_checkout(self):
+        nested = self.control / "nested"
+        nested.mkdir()
+        self.state.write_text(
+            json.dumps(
+                {
+                    "session_id": "worker-1",
+                    "model": "Terra",
+                    "sandbox": "workspace-write",
+                    "cwd": str(nested),
+                    "control_checkout": str(self.control),
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = self.worker(
+            "resume",
+            "--codex",
+            str(self.binary),
+            "--state",
+            str(self.state),
+            "continue with the failing test",
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("refuses the control checkout", result.stderr)
+        self.assertFalse(self.arguments.exists())
+
+
+class OrchestrateCodexPolicyTests(unittest.TestCase):
+    def test_codex_headroom_and_single_rung_policy_are_explicit(self):
+        skill = (ROOT / "skills" / "orchestrate" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        dispatch = (
+            ROOT / "skills" / "orchestrate" / "references" / "dispatch-codex.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("If headroom is ≤ 5%, **unknown**", skill)
+        self.assertIn("Codex UI parent:** it has a Codex-only constraint", skill)
+        self.assertIn("Do not switch to Claude workers.", skill)
+        self.assertIn("stop with **NO_VALIDATED_ROUTE**", skill)
+        self.assertIn("Never escalate Terra, Luna, or Sol to Sonnet or Opus.", skill)
+        for model in ("gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"):
+            self.assertIn(model, dispatch)
+        self.assertIn("cannot switch to Claude workers", dispatch)
+        self.assertIn("headroom at or below 5%", dispatch)
+        self.assertIn("Each admitted v0 route is one", dispatch)
 
 
 if __name__ == "__main__":

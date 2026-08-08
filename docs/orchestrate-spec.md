@@ -73,3 +73,16 @@ empirically built model-capability table.
 - Routing table populated from benchmark results with a one-line rationale per
   cell and a "benchmarked on <date>, models <list>" provenance header.
 - Cold `/plan-review` run on the finished skill; blocking findings fixed.
+
+## Amendment — issue #24 (2026-08-08)
+
+Decision 1 remains the original locked Claude-parent decision. A Codex UI parent
+is now additionally supported through the `dispatch-codex.md` CLI-worker
+adapter: it dispatches and resumes only `codex exec` workers with persisted
+session identity, model, sandbox, and canonical working directory. Native Codex
+sub-agents are not used for delegated work. Its initial admissions are limited
+to bounded exploration (Luna), implementation and plan/spec writing (Terra),
+prototyping (Sol), default brainstorming (Terra), documentation and routine
+review (Luna); the unbenchmarked Codex-only areas are `NO_VALIDATED_ROUTE`.
+Codex-only routes do not fall back to Claude and remain single validated rungs:
+after one same-session retry, they stop with `NO_VALIDATED_ROUTE`.
