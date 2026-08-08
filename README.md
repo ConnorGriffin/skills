@@ -13,7 +13,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | [`cbm-onboard`](skills/cbm-onboard/SKILL.md) | Index a repository with codebase-memory-mcp and keep it current | `codebase-memory-mcp` on `PATH` |
 | [`spin-worktree`](skills/spin-worktree/SKILL.md) | Create isolated Git worktrees for issue and PR work | Git; GitHub CLI only for `--pr` discovery |
 | [`scope`](skills/scope/SKILL.md) | Triage front door for work that isn't ready to build: classify the dominant uncertainty and route to one specialist skill, including a bundled interview mode | — |
-| [`plan-review`](skills/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | Parallel-agent support recommended; `persona-review` optional for load-bearing plans |
+| [`plan-review`](skills/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | Parallel-agent support recommended; `persona-review` optional for load-bearing plans; the round-count evidence behind its rules is in [docs/review-round-mining.md](docs/review-round-mining.md) |
 | [`persona-review`](skills/persona-review/SKILL.md) | Convene a panel of persistent reviewer personas to review a document and synthesize a verdict | Private data repo for persona memory; GitHub CLI for mining real-colleague profiles; parallel-agent support recommended |
 | [`orchestrate`](skills/orchestrate/SKILL.md) | Flip the session into coordinator mode: delegate all real work to sub-agents routed by an empirically benchmarked model capability table | Codex CLI for GPT-tier sub-agents; table re-benchmarked per its bundled procedure |
 | [`wayfinder`](skills/wayfinder/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `scope`'s interview mode, `ui-craft` |
@@ -23,7 +23,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | [`review`](skills/review/SKILL.md) | Review changed code against the project's standards and the originating issue | — |
 | [`implement`](skills/implement/SKILL.md) | Implement a PRD or issue set via `tdd`, then `review`, then commit | `tdd` and `review` from this pack |
 | [`say-less`](skills/say-less/SKILL.md) | Answer-first output shaping with a per-repo glossary of approved terms; adapted from i-have-adhd, merged with this pack's reader-preference rules and an ASD-STE100 subset | Optional prompt hook for always-on digest; see [docs/overlay.md](docs/overlay.md) and the [measured comparison](docs/before-after.md) |
-| [`code-review`](skills/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | Parallel-agent support recommended; GitHub CLI to fetch an originating issue |
+| [`code-review`](skills/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | Parallel-agent support recommended; GitHub CLI to fetch an originating issue; see [docs/review-round-mining.md](docs/review-round-mining.md) for the mined evidence behind the fix protocol and the round cap |
 | [`writing-for-agents`](skills/writing-for-agents/SKILL.md) | Write or review a skill against a shared pointer/load/pruning vocabulary; `doctor` verb audits the loaded skill and `CLAUDE.md`/`AGENTS.md` estate for token cost and trigger risk | Hand-only; invoke by name |
 
 ## Install

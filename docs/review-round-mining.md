@@ -128,9 +128,10 @@ been executed before anyone reviewed prose about them.
   the spike objection before the first cold pass reviews the prose.
 * Inherited facts treated as unverified claims in the grounding axis.
 
-## Proposed benchmark
+## Proposed benchmark (not implemented)
 
-Designed, not yet run.
+Nothing below exists in `bench/` yet. It is a design, with no runnable arm and no
+results.
 
 * **Fixture.** A planted-defect change: one fact with 4 encodings, 2 of which disagree;
   one executable literal that is wrong in a way only execution reveals; one acceptance

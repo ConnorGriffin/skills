@@ -52,7 +52,9 @@ decision. A fourth fix round on the same enumeration buys new defects, not fewer
 
 ## Fixing findings
 
-For whoever addresses the findings. This is where rounds are manufactured.
+Rules for the change's author, not for the reviewing session — a review still
+only finds, and hands these to whoever holds the code. This is where rounds are
+manufactured.
 
 1. **Re-derive the fix from the code and its documents, never from the finding
    text alone.** The finding names the symptom; the code owns the truth. Open the
@@ -205,6 +207,9 @@ Close with the termination state, explicitly:
 - **Converged** — every enumerated item holds or is met, and any prior round's
   findings were re-reviewed and confirmed fixed.
 - **Not converged** — name what is outstanding.
+- **Capped** — round 3 returned new violated items on the same enumeration.
+  Name the structural problem behind them and hand it to the author as a design
+  decision. This state ends the review; it is not an invitation to round 4.
 
 A re-review that returns no new violated items on the same enumeration is the
 signal to stop, and the skill should say so rather than leaving the reader to

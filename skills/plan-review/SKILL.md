@@ -63,14 +63,15 @@ definitions below are the fallback.
    queries) and for assertions about specific tool or API behavior (exit
    codes, matching semantics, config interplay). If either is present, the
    first objection is to demand the spike — an executed artifact the plan
-   references — rather than reviewing the prose version. The mining says the
-   first round already pays this cost; waiting for a second round of literal
-   corrections just pays it twice.
+   references — rather than reviewing the prose version. One measured review
+   spent its first round correcting pinned literals and its second correcting
+   the corrections, so the cost lands whether or not the demand is made early.
 1. **Cold read + grounding pass.** Read the plan, then the code it touches.
    Verify claims before forming opinions. A literal in the plan — a regex, a
    shell fragment, a workflow expression, a query — is verified by executing
    it against real inputs, never by reading it; prose reasoning about
-   executable text is where confident wrong claims live.
+   executable text is where confident wrong claims live. If step 0 already demanded
+   a spike, this pass reviews the spike's artifact, not the literal.
 2. **Objections.** Report a numbered list. Each objection: the claim or gap,
    the evidence (file:line where relevant), why it breaks the build if
    unfixed, and the cheapest fix. Mark each **blocks countersign** or
@@ -129,11 +130,12 @@ definitions below are the fallback.
 A plan that pins executable logic as prose literals — exact regexes, shell
 fragments, workflow expressions — is an implementation written in a medium
 nothing executes, and every review round of such a plan mints new falsifiable
-surface faster than review retires it. One round pinning a literal is normal.
-A second round correcting a pinned literal is the signal: object that the
-logic belongs in an executed artifact (a scratch file with a test, built and
-run in the plan's worktree) that the plan references, and stop reviewing the
-prose version of it. One measured review spent four of its seven rounds on
+surface faster than review retires it. So the objection comes at triage, on
+sight of the first pinned literal, not after a round has been spent correcting
+one: the logic belongs in an executed artifact (a scratch file with a test,
+built and run in the plan's worktree) that the plan references, and the prose
+version of it is not reviewed at all. One measured review spent four of its
+seven rounds on
 defects in prose-specified regex, shell, and workflow expressions that a
 compiler or one table test would have caught in seconds.
 
