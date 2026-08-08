@@ -1,0 +1,4 @@
+interface:
+  display_name: "Handoff"
+  short_description: "Produce a decision-safe agent handoff"
+  default_prompt: "Use $handoff to prepare a bounded handoff for a fresh agent."
