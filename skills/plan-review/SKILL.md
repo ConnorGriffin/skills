@@ -34,7 +34,11 @@ definitions below are the fallback.
 1. **Grounding.** Every factual claim the plan makes about the current system
    must be verifiable in the code. Verify every load-bearing claim yourself —
    open the files. A plan built on a wrong "currently, X does Y" fails in the
-   worst way: confidently.
+   worst way: confidently. A fact inherited from a prior ticket, plan, or
+   session is an unverified claim, not a given: reground counts, statuses, and
+   behavior against the current system. One measured plan carried a secret
+   count of 6 from its predecessor when the real count was 8, and the same
+   session lost three rounds to an assumed decrypt failure mode nobody ran.
 2. **Acceptance.** Criteria must be observable through the public interface and
    complete enough that meeting them means *done*. Flag criteria that are
    untestable, vague ("works correctly"), or that smuggle in unstated work.
@@ -54,6 +58,14 @@ definitions below are the fallback.
 
 ## The cycle
 
+0. **Triage: demand the spike first.** Before the cold pass, skim for pinned
+   executable literals (regexes, shell fragments, workflow expressions,
+   queries) and for assertions about specific tool or API behavior (exit
+   codes, matching semantics, config interplay). If either is present, the
+   first objection is to demand the spike — an executed artifact the plan
+   references — rather than reviewing the prose version. The mining says the
+   first round already pays this cost; waiting for a second round of literal
+   corrections just pays it twice.
 1. **Cold read + grounding pass.** Read the plan, then the code it touches.
    Verify claims before forming opinions. A literal in the plan — a regex, a
    shell fragment, a workflow expression, a query — is verified by executing

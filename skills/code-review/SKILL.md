@@ -39,7 +39,36 @@ fixed finding: does the fix do what the finding asked, **and does it contradict
 anything the original code or its documents already said?** This mode is not
 optional politeness. A fix written from the finding text rather than from the
 code is the single most reliable source of new defects, because the author has
-the finding in front of them and not the system.
+the finding in front of them and not the system. Scope the divergent-copies check
+to the fix: enumerate the copies of every fact the fix touched, and return a
+verdict per pair. A fix that edits one copy of a fact with four encodings has
+minted three new pairs that can disagree, and the next round will find one.
+
+**Hard cap: three rounds.** If round 3 still returns new violated items on the
+same enumeration, the change has a structural problem, not undiscovered typos —
+almost always a fact with too many copies, or logic that exists only as prose.
+Stop reviewing. Name the structure problem and route it to the author as a design
+decision. A fourth fix round on the same enumeration buys new defects, not fewer.
+
+## Fixing findings
+
+For whoever addresses the findings. This is where rounds are manufactured.
+
+1. **Re-derive the fix from the code and its documents, never from the finding
+   text alone.** The finding names the symptom; the code owns the truth. Open the
+   file, read what is actually there, and decide the fix from that. Patching the
+   sentence or line a finding quotes, without re-reading what surrounds it, is how
+   a round's worst defect ends up authored by the previous round's fix.
+2. **A fix that touches a fact with copies updates every copy, or collapses them
+   to one authority — and says which it did.** Half a fact updated is worse than
+   none: it converts a redundancy into a contradiction.
+3. **When a finding cites a rule with a rationale, sweep the diff for every other
+   site that rationale covers before declaring it fixed.** One measured fix
+   applied a case-insensitivity correction to 1 of the 3 regexes that shared its
+   reason, and the other 2 cost a further round.
+4. **A fix that edits prose triggers a re-read of the surrounding section**, for
+   sentences the edit now contradicts. Prose has no compiler; the only check on a
+   documentation fix is the paragraphs it sits inside.
 
 ## Process
 
@@ -110,6 +139,11 @@ Find the originating spec, in order:
 The enumeration is that document's **acceptance criteria**, one line each,
 verbatim. If it has a tasks list, that is the enumeration.
 
+If the change wires into another component or skill, the **integration contract**
+joins the enumeration: who calls whom, and at which point. A change reviewed only
+in isolation passes clean and then spends the next round on nothing but seam
+defects.
+
 If no spec exists, skip the Spec sub-agent and say so in the report. Do not
 substitute the PR description written by the same author as the code.
 
@@ -124,8 +158,10 @@ command, the commit list, its enumeration, and its brief.
 > failure scenario: the concrete input or state, and the wrong output, crash, or
 > false statement that results. If you cannot construct one, put the item under
 > `unverified` instead of `findings`. Do not report anything the linter
-> enforces. Do not report style preferences the repo has not written down.
-> Under 400 words.
+> enforces. Do not report style preferences the repo has not written down. Any
+> executable literal in the diff or its documents — a regex, a shell fragment, a
+> workflow expression, a query — is verified by executing it against a real
+> input, never by reading it. Under 400 words.
 
 **Standards brief:**
 
