@@ -56,7 +56,7 @@ Use this shape; omit empty sections rather than adding filler.
 
 ## Evidence and artifacts
 
-- [artifact or issue](absolute-or-canonical-link) — <status and why it matters>
+- [artifact or issue](https://example.com/artifact-or-issue) — <status and why it matters>
 
 ## Do not redo or assume
 
