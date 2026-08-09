@@ -90,8 +90,9 @@ Apply exactly one ticket-type label:
   variants, iterate with the human, and finish with a locked visual spec linked from the
   ticket. That artifact also satisfies any later review gate that demands a locked design.
 - **`wayfinder:interview` (HITL):** Invoke `/scope`'s interview mode, plus a
-  domain-modelling skill when one is available; ask one question at a time. Never
-  answer the human's side of the exchange.
+  domain-modelling skill when one is available. Follow interview mode's design-tree
+  cadence: ask the whole currently answerable frontier in one numbered round, then
+  wait. Never answer the human's side of the exchange.
 - **`wayfinder:task` (HITL):** A prerequisite that genuinely needs the human in the loop.
   It earns a place only by unblocking a decision, not by delivering the destination — and
   it is never an execution errand: a prerequisite that must *change the world* before a
