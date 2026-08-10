@@ -68,6 +68,18 @@ Use this shape; omit empty sections rather than adding filler.
 - <relevant hazards, claims, dirty-worktree or authority limits>
 ```
 
+## Delivering it
+
+**The handoff is the artifact. Write it to a file and hand over the path — nothing else.**
+
+A handoff is written for the agent taking over, not for the person who asked for it. Asking to hand the work off means they are done reading. Summarizing the handoff back to them defeats the point: they read the same content twice, in the worse of the two formats, at the moment they were trying to stop.
+
+The delivering response is one line — the path, plus the single fact only they can act on if one exists (an unmerged PR, a pending authorization). No section recap, no highlights, no "the parts you'd want to know", no bulleted extract of the file. If something genuinely cannot wait for the next agent, it belongs *in* the first-action section, not in a parallel chat summary.
+
+This holds when the handoff is long and the urge to orient them is strongest. Length in the file is fine — it is written for a cold reader. Length in the response is not.
+
 ## Quality gate
 
 Before delivering, verify that the handoff names the first action, distinguishes fact from proposal, links every material artifact, records volatile state as checked, and tells the recipient what not to repeat. Remove chronological narration, speculative detail, and generic next steps.
+
+Then check the response itself: if it restates anything the file already says, cut it back to the path.
