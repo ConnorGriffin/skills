@@ -18,8 +18,14 @@ time; it may never *apply* one on its own judgment.
      verbatim strings if they moved;
    - sibling locked artifacts the term appears in (the other form factor's
      mock, a copy spec) so the locked set stays self-consistent;
+   - the surface's **behavior ledger** (`mockups/<surface>.behavior.md`) if any
+     story cites the term — rewrite the entry and record the reason under its
+     `★ FROZEN` header, since the freeze pins a contract that would otherwise go
+     silently stale. A mid-build resettle that leaves the frozen ledger untouched
+     is incomplete;
    - `mockups/INDEX.md` if the surface's status or files changed (columns
-     Surface / Concept / Status / Issue / File).
+     Surface / Concept / Status / Issue / File) — it registers the behavior
+     ledger and the sweep-evidence directory `mockups/sweep/<surface>/` too.
 3. If the term had a `LOCK:` assertion, update the assertion in the same
    change and prove the new one can fail.
 4. If a build is in flight, update its fidelity ledger row from
