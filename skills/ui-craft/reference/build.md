@@ -54,6 +54,16 @@ the result looks: the description was never the artifact.
   route **in the same commit**, and at least one verification pass runs against
   the real app server rather than a disk-serving harness, which is structurally
   blind to a missing route.
+- **The port needs guards the mock never needed.** A mock is fed static, always
+  well-formed fixtures; the build is fed a response across a process boundary.
+  Wherever the ported code indexes or dereferences the payload unconditionally,
+  that is a trust boundary in the app and not in the mock — guard it, route the
+  failure into the surface's own error path, and mark it as a deviation. Do not
+  invent empty-state UI the manifest does not describe; the plain failure message
+  is the whole fix. **Judge reachability from the caller's failure path, not its
+  success path**: "the endpoint never returns that shape" is not the same claim as
+  "no caller can produce it", and an error handler that mounts the surface before
+  reporting the error produces it every time.
 
 ## While building
 
@@ -72,6 +82,13 @@ the result looks: the description was never the artifact.
   rendered gate, list the assertions the old file made; every one either
   reappears in the new file or is named as dropped (with why) in the PR.
   Silently dropped assertions are how locked terms become untested.
+- **"Its selectors are dead" is not "its coverage is duplicated."** A gate whose
+  selectors no longer match the surface is asserting nothing and looks safe to
+  delete — but that says only that the coverage is *already* gone, not that it
+  lives somewhere else. Before dropping it, take the **union of lock-term tags**
+  the other suite actually carries and diff it against the tags the deleted file
+  claimed. Terms in the difference are asserted by nothing, and the PR says so by
+  number. "Nearly every term" is how six of them go missing.
 
 ## The fidelity ledger
 
@@ -111,6 +128,13 @@ mock opener exercises the mock and proves nothing about the port.
   committed labeled-synthetic fixture set and the real-data run stays local; the
   two subsets must **union to the full ledger**, and the ledger records which run
   covers each story.
+- **A build that adds a data feed must teach the real-data generator about it.**
+  The committed script that rebuilds the local real-data payload is part of the
+  contract, not a convenience: when the port introduces an endpoint, that script
+  calls it **exactly as the app's own route calls it**, same arguments and all.
+  Otherwise every real-data artifact — the local replay, the real-data pairs, the
+  bytes handed to the verifier — is generated against a payload the app would
+  never serve, and passes while proving nothing about the feed.
 
 ## Paired renders
 
@@ -118,6 +142,19 @@ For every `eye` term and every state the manifest names: render the **locked
 mock** and the **built surface** side by side and attach the pairs to the PR as
 the charter's proof-of-match.
 
+- **Render the matrix early, not as the last step before the PR.** The pairs are
+  the only check that sees what the surface actually *looks* like; a behavior gate
+  can pass every story while the build draws in the wrong ink, because assertions
+  read structure and text, not colour and geometry. A token that resolves to the
+  empty string, a fallback palette, a rule scoped to a subtree the code reads from
+  the document root — all of these are invisible to a green replay and obvious in
+  the first pair. Render one pair as soon as the surface boots.
+- **A PR is a publish: real-data pairs never attach to one.** Where the data is
+  sensitive, PR-attached pairs render the labeled synthetic set only. Real-data
+  pairs are still made — they are the fidelity check that matters — but they stay
+  on the machine that made them and reach the verifier out of band with the pinned
+  payload. The commit rule alone does not cover this: an attachment is published
+  without ever being committed.
 - **Same data, not merely the same kind of data.** Both sides render identical
   bytes. Comparing a synthetic build render against a real-capture mock render is
   not a pair; it is two pictures.
