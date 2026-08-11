@@ -16,10 +16,13 @@ Keep each skill self-contained, concise, and portable:
 - Document optional upstream dependencies in the README rather than copying
   them when a reference can simply stay optional.
 - Run `python3 scripts/validate.py` before opening a pull request.
-- Install the publish guard once per clone, so validation runs before a push
-  instead of after the tree is already public:
+- Install the publish guard once per clone, so validation **and the DCO check**
+  run before a push instead of after the tree is already public:
   `ln -sfn ../../scripts/pre-push .git/hooks/pre-push`. It composes with a
-  global `core.hooksPath` dispatcher rather than replacing it.
+  global `core.hooksPath` dispatcher rather than replacing it. Installing it is
+  worth the one command: a missing `Signed-off-by` caught before a push is one
+  `git rebase --signoff`, while the same miss caught by CI afterwards means
+  rewriting commits other people may already have pulled.
 
 ## Developer Certificate of Origin
 

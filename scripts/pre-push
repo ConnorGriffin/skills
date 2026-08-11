@@ -1,6 +1,8 @@
 #!/bin/sh
-# Refuse to publish a tree that fails validation, including its disclosure checks.
-# CI runs the same script, but only after the push has already made the tree public.
+# Refuse to publish a tree that fails validation, including its disclosure checks,
+# or commits that do not certify the DCO. CI runs both of the same scripts, but
+# only after the push has already made the commits public — and a missing
+# Signed-off-by cannot be fixed after that without rewriting published history.
 #
 # Install once per clone:
 #   ln -sfn ../../scripts/pre-push .git/hooks/pre-push
@@ -12,3 +14,28 @@ set -e
 
 repo="$(git rev-parse --show-toplevel)"
 python3 "$repo/scripts/validate.py"
+
+# Git feeds the hook one line per ref being pushed:
+#   <local ref> <local sha> <remote ref> <remote sha>
+# Check exactly the commits this push would publish, so the failure lands while
+# the trailer can still be added with `git rebase --signoff`.
+# An all-zero sha is git's "nothing here" marker. Matched by shape rather than
+# by a 40-character literal, so this keeps working in a sha256 repository.
+is_zero() { case "$1" in *[!0]*) return 1 ;; *) return 0 ;; esac }
+
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+    # A branch deletion pushes an all-zero local sha and publishes no commits.
+    is_zero "$local_sha" && continue
+    if is_zero "$remote_sha"; then
+        # New branch: the remote has no tip to diff against, so fall back to where
+        # this branch left the default one. If that is unknown (no origin/HEAD in
+        # this clone), skip rather than block a legitimate push — CI still checks.
+        default=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo '')
+        [ -n "$default" ] || continue
+        base=$(git merge-base "$default" "$local_sha" 2>/dev/null || echo '')
+    else
+        base="$remote_sha"
+    fi
+    [ -n "$base" ] || continue
+    python3 "$repo/scripts/check_dco.py" "$base" "$local_sha"
+done
