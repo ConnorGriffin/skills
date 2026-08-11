@@ -66,6 +66,17 @@ definitions below are the fallback.
    references — rather than reviewing the prose version. One measured review
    spent its first round correcting pinned literals and its second correcting
    the corrections, so the cost lands whether or not the demand is made early.
+
+   The same rule extends past executable literals to **facts**. A hand-typed
+   count, path, param name, version, or enumeration is an automatic first
+   objection: demand the generated-facts appendix — `command → output` pairs the
+   prose cites, which the `preflight` skill produces — rather than reviewing the
+   prose figures, because verifying a number by hand costs a round and re-costs
+   it every time the plan is edited. In one measured review of a load-bearing
+   process document, roughly half of sixty-two objections across ten rounds were
+   figures written from memory and wrong. A load-bearing plan that arrives with
+   no preflight at all is sent through it before the cold pass, not reviewed as
+   drafted.
 1. **Cold read + grounding pass.** Read the plan, then the code it touches.
    Verify claims before forming opinions. A literal in the plan — a regex, a
    shell fragment, a workflow expression, a query — is verified by executing

@@ -63,6 +63,7 @@ acting — it defines the flow.
 | Mode | Job | Reference |
 | --- | --- | --- |
 | `lock [surface]` | Explore grounded variants, converge, lock spec + manifest | [reference/lock.md](reference/lock.md) |
+| `behavior-sweep [surface]` | Sweep a locked mock's interactive behavior into a frozen behavior ledger + replay script (after `lock`, before `build`) | [reference/behavior-sweep.md](reference/behavior-sweep.md) |
 | `build [surface]` | Implement a locked spec; ship the fidelity ledger | [reference/build.md](reference/build.md) |
 | `critique [target]` | Heuristic scoring, slop verdict, persona walkthroughs | [reference/critique.md](reference/critique.md) |
 | `audit [target]` | Technical checks (a11y, contrast, responsive, detector) + lock-fidelity audit when a manifest exists | [reference/audit.md](reference/audit.md) |
@@ -72,8 +73,15 @@ acting — it defines the flow.
 | `init` / `document` | Project context setup / generate DESIGN.md | [reference/init.md](reference/init.md), [reference/document.md](reference/document.md) |
 
 No argument: recommend the 1–3 most useful modes from context (unlocked
-mockups → `lock`; open manifest without a ledger → `build`; never critiqued →
-`critique`), then list the table. Never auto-run a mode.
+mockups → `lock`; frozen manifest for a surface with interactive behavior and no
+behavior ledger → `behavior-sweep` **before** `build`; open manifest without a
+fidelity ledger → `build`; never critiqued → `critique`), then list the table.
+Never auto-run a mode.
+
+Three artifacts carry the word *ledger*; always qualify it. The **fidelity
+ledger** is one row per manifest term (`build`). The **behavior ledger** is
+`mockups/<surface>.behavior.md`, one entry per story (`behavior-sweep`). The
+**surface ledger** is `mockups/INDEX.md`, one row per surface.
 
 General design invocations with no mode match (e.g. "make this less bland",
 "fix the spacing") run under `critique`-then-fix using
@@ -100,12 +108,30 @@ equivalents, and follow the repo's sweep protocol when one exists. The
 `consensus` mode requires these repo personas and refuses to run on generic
 archetypes.
 
+**"The repo's sweep protocol" is not `behavior-sweep`.** That phrase means the
+repo's persona-driven QA pass — exploratory, judgment-led, run against a live
+app to find bugs. `behavior-sweep` is a mode of this skill: mechanical, run
+against a **locked mock** before any build, and its output is a contract. Neither
+substitutes for the other.
+
 ## Grounding rules (inherited from ui-mockups, apply everywhere)
 
 - Ground every artifact in the app's real tokens, shipping UI/chart library
   at its shipping version, and real data shape from a **safe, manufactured
   fixture** — never production, personal, health, credential, or customer
-  data.
+  data. **This is the shared default and it does not bend on convenience.**
+- **Real-data inversion — repo-scoped, opt-in.** Some repos invert the rule:
+  their build contracts must be grounded in the owner's *own real* data, because
+  a fixture cannot reveal what the surface does at real scale. That inversion
+  applies **only** where the repo's own `CLAUDE.md`/`AGENTS.md` declares an
+  operator-sanctioned real-data protocol (e.g. a read-only snapshot flow), and
+  only within that protocol's bounds. Absent that declaration, the manufactured
+  default above governs — no exceptions inferred from context or precedent.
+  Where the inversion does apply: renders of real personal/health data **never
+  commit and never attach to a PR** (a PR is a publish) without the operator's
+  exact authorizing sentence quoted in the record; committed and PR-attached
+  evidence uses labeled synthetic fixtures, and real-data renders stay local,
+  handed to the verifier with the pinned data.
 - Vary the concept, not the decoration; three variants that differ only in
   color are one design.
 - Inspect rendered output — source review alone never validates a visual

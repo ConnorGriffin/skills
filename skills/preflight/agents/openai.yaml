@@ -1,0 +1,4 @@
+interface:
+  display_name: "Preflight"
+  short_description: "Ground a draft's facts and rules before it enters review."
+  default_prompt: "Use $preflight to ground this draft's facts, spike its first hour, and single-source its rules before review."

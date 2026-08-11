@@ -33,6 +33,7 @@ EXPECTED = {
     "orchestrate",
     "writing-for-agents",
     "handoff",
+    "preflight",
 }
 FORBIDDEN = (
     re.compile("/" + "Users/"),
