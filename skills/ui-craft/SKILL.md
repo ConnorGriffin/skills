@@ -29,7 +29,11 @@ class, function signature, or module boundary, this is the wrong skill.
 For `lock`, `build`, and general design invocations only:
 
 3. Read the project's design system: tokens, theme, one representative
-   component or page. Use what's there when it works.
+   component or page. Use what's there when it works. **The shipped app wins
+   over any mock scaffold**: when a repo carries both an app stylesheet and a
+   `mockups/` theme, the app is chrome ground truth for every surface that
+   has shipped — `lock` mode's step-0 pre-flight (reference/lock.md) resolves
+   this and gates the round on a chrome fidelity check.
 4. Read the matching register reference: `reference/brand.md` when design IS
    the product (marketing, landing, portfolio), `reference/product.md` when
    design SERVES the product (app UI, dashboards, tools).
