@@ -62,6 +62,18 @@ is the reason the review is not optional); prototyping routes straight to
   sub-agent (or any task work), invoke the `spin-worktree` skill so worktrees
   land under its `~/worktrees/<repository>/<task>` convention, not ad-hoc
   paths next to the checkout.
+- **Branch-currency preflight, before the first dispatch of a session.** Run
+  `git fetch` and check `git rev-list --count HEAD..origin/main`. If it is
+  non-zero, either move the checkout or name the ref explicitly in every subagent
+  brief ("work against `origin/main`, not the current branch, via a throwaway
+  worktree or `git show` — never mutate the operator's checkout"). A subagent
+  cannot see what its parent's tree lacks, and it reports absence as fact with
+  honest file:line citations: on a checkout three commits behind, two independent
+  explorers concluded a shipped surface "does not exist in the app", and every
+  downstream conclusion built on that map was wrong. The same trap catches the
+  coordinator's own claims about tooling — a negative claim ("that label or flag
+  doesn't exist") needs a fetched checkout, a live `gh` query, and a grep
+  unnarrowed by file extension before it is asserted rather than hedged.
 
 ## Routing
 
