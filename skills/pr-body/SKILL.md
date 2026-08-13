@@ -184,6 +184,12 @@ a lint exit code) is what the hook checks. A body that passes the linter has
 been checked for countable defects only. Do not read a pass as a verdict that
 the body is good.
 
+A denial is not a setback. Measured over 256 runs, a body that fails the linter
+passes after one round of fixing, and an author given no guidance at all
+converges as fast as one given the whole of this file. Fix the findings and move
+on; do not rewrite from scratch. Measurements:
+[docs/pr-body-measurement.md](../../docs/pr-body-measurement.md).
+
 ## Rules the scorer implements
 
 `scripts/pr_body_lint.py` is the only rule engine. A rule named here and absent

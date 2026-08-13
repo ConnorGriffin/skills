@@ -60,7 +60,48 @@ the author of all 25.
 That last line is why the gate checks a receipt from a judge rather than a lint
 exit code.
 
-## 3. Does the skill's prose teach?
+## 3. What actually works: the loop
+
+256 runs, 4 arms, 8 real diffs, up to 3 deny-and-fix rounds each. The arms differ
+only in how much of `SKILL.md` the model gets.
+
+Every arm converges. Including the one given nothing.
+
+| arm | prompt size | first draft | after the loop | median rounds |
+| --- | --- | --- | --- | --- |
+| none | 0 chars | 59% | 100% | 1 |
+| example | 452 chars | 86% | 97% | 1 |
+| rules | 2,550 chars | 97% | 100% | 1 |
+| full | 9,482 chars | 94% | 100% | 0 |
+
+First-draft rates are like-for-like: every arm scored on the same rules,
+excluding the disclosure rule that two arms are never taught. Scoring each arm
+against only its own taught rules compares them to different rulebooks, and on
+the first run of this bench that alone reversed where `full` ranked.
+
+Three findings.
+
+**The loop is the mechanism.** A model handed no guidance writes a failing body
+59% of the time and a passing one after a single round of being told what is
+wrong. Guidance moves the first draft; the loop moves the outcome. This is the
+argument for enforcing at the tool call rather than shipping a document.
+
+**The rules lists carry all of the teaching.** 2,550 characters reach 97%. The
+full 9,482-character skill reaches 94%, and the difference is inside noise. About
+7,000 characters buy nothing measurable on this metric. The worked example alone,
+452 characters, reaches 86% by itself.
+
+The remaining bulk of `SKILL.md` is workflow documentation, the verbs, the gate,
+and the limits. This experiment does not measure those and cannot, so the finding
+is that the prose does not teach a first draft, not that it should be deleted.
+
+**The fix text is decoration.** Sending bare rule names converges as fast as
+sending the written fix instructions, 100% against 99%, inside noise. The model
+does not need to be told how to fix an em dash, only that there is one. The fix
+text stays because a human reading `audit` output benefits from it, not because
+it changes a model's behavior.
+
+## 4. Does the skill's prose teach on its own?
 
 128 runs, one model, 8 real diffs, 8 repeats per arm. `with-skill` gets
 `SKILL.md` in the prompt; `without-skill` gets only the diff. Every output scored
