@@ -43,6 +43,12 @@ computed-property mismatches caused by box-sizing differences when the rects
 match, and 0×0 rects for app elements that exist but aren't laid out in the
 probed tab (fall back to the app's source values for those).
 
+**The diff's blind spot is canvas.** Chart text (axis labels, ticks, legend,
+in-chart labels) is painted, not DOM — a computed-style diff cannot see it at
+all. Audit chart typography and furniture at the **option level**: diff the
+mock's chart config (family, sizes, tick visibility, positions) against the
+shipped chart source or a live `getOption()` dump, as its own audit step.
+
 ## Token bridges lie — verify resolution, not names
 
 A mock that bridges onto extracted app CSS via alias tokens
