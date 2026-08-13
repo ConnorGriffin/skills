@@ -29,7 +29,11 @@ class, function signature, or module boundary, this is the wrong skill.
 For `lock`, `build`, and general design invocations only:
 
 3. Read the project's design system: tokens, theme, one representative
-   component or page. Use what's there when it works.
+   component or page. Use what's there when it works. **The shipped app wins
+   over any mock scaffold**: when a repo carries both an app stylesheet and a
+   `mockups/` theme, the app is chrome ground truth for every surface that
+   has shipped — `lock` mode's step-0 pre-flight (reference/lock.md) resolves
+   this and gates the round on a chrome fidelity check.
 4. Read the matching register reference: `reference/brand.md` when design IS
    the product (marketing, landing, portfolio), `reference/product.md` when
    design SERVES the product (app UI, dashboards, tools).
@@ -137,6 +141,13 @@ substitutes for the other.
 - Inspect rendered output — source review alone never validates a visual
   artifact. Use `drive-local-webapp` for rendering; ask to install it if
   missing.
+- **Sibling exactness** ([reference/sibling-fidelity.md](reference/sibling-fidelity.md)):
+  any element with a sibling in a shipped surface uses the shipped values
+  exactly — geometry, type, alignment spines, chart furniture, and interaction
+  idioms alike — and fidelity is proven with a computed-style diff against the
+  running app, never by eyeball. Token bridges are verified by computed value
+  on the consuming element; mock-global base styles (body font/line-height)
+  are banned because they shift extracted chrome off its shipped pixels.
 - Keep `mockups/INDEX.md` as the surface ledger (one row per surface:
   Surface / Concept / Status / Issue / File). `locked` rows are binding
   precedent; `shipped` rows defer to the app itself. Every mode that touches

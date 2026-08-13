@@ -15,6 +15,39 @@ agent cannot silently drift from: a ★ LOCKED mockup plus a lock manifest.
 
 ## Workflow
 
+### 0. Pre-flight — chrome ground truth (MANDATORY, before any concept work)
+
+A lock round dies at review when its chrome doesn't match the app the reviewer
+uses every day. Run these checks before the ledger, and do not fan out a
+single variant until the fidelity gate passes:
+
+1. **Resolve the material ground truth for chrome.** If any locked surface has
+   shipped — check `mockups/INDEX.md` for `shipped` rows and the log for port
+   commits — the RUNNING APP's own stylesheet is the material truth for
+   tokens, chrome, and component styling. The mock scaffold that *authored*
+   the design is a stale ancestor the moment the port lands: same design,
+   superseded values. Never source chrome from mockup lineage when a shipped
+   embodiment exists. (Lesson: ciq-autotune #660 burned three rounds on a
+   shell forked from `_theme.css` after #655 had re-materialized the same
+   lock onto the app's `--wk-*` layer — wrong ground, wrong radii, wrong
+   fonts, wrong button chrome, every round.)
+2. **Extract, never transcribe.** Materialize the app's token layer into
+   `mockups/_theme-app.css` by script/verbatim copy from the app's stylesheet
+   (both themes, plus the app's exact `body` ground and type rules), with a
+   header naming the source file and how to refresh it. Post-ship mocks link
+   this sheet; the legacy scaffold `_theme.css` serves only surfaces that
+   predate the port. When two token layers coexist, SCAFFOLD.md must name
+   which is ground truth — silence here is the defect that lets the next
+   round anchor wrong.
+3. **Round-zero fidelity gate.** Render the empty shell/chrome (no concept
+   content) and put it beside a screenshot of the running app. Chrome —
+   ground color, fonts, control sizes, radii, bar heights — must be
+   indistinguishable BEFORE variants are briefed; save the pair as evidence.
+   A reviewer should never have to argue the background color mid-round.
+4. **Chart medium check.** If the surface charts, the mock renders with the
+   app's shipping chart library at its shipping version from step one — a
+   hand-rolled SVG facsimile invalidates every judgment made on it.
+
 ### 1. Ledger
 
 Read `mockups/INDEX.md` (create if absent; one row per surface, columns
