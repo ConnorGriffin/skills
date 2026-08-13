@@ -19,13 +19,27 @@ first. The manifest alone never encodes what the surface *does*.
    not just its layout. Diff the mock's component styling (buttons, chips,
    rows) against the app's shipped equivalents; where they differ, the
    manifest's precedence line decides. List the differences you will honor.
-2. If any two locked artifacts contradict each other, or a locked term
+2. **If an earlier surface was already ported into this shell, inventory what it
+   declared before writing a line.** The Nth port inherits nothing and collides
+   on everything: the mock is a whole page, so its rules sit at global scope,
+   and the first port's rules are already there. Grep the shipped surface for
+   what it owns **globally vs. host-scoped** — class names, element ids, and
+   custom properties — then scope yours under a host class the way it did.
+   Three collision classes, all seen in one port: duplicated class names
+   (`.pane`, `.panes`) where the later stylesheet silently restyles the earlier
+   surface; a duplicated element id (`#rd-time`) where a document-wide lookup
+   paints the *other* surface's readout; and **design tokens declared on the
+   first port's host element rather than `:root`**, which is the quiet one — a
+   `var()` that resolves to nothing invalidates the whole declaration, so
+   `padding: var(--ck-gap) 12px` computes to `0` and the grid loses its inset,
+   its panel ground and its radius at once, with no error anywhere.
+3. If any two locked artifacts contradict each other, or a locked term
    collides with the design system beyond what precedence settles: **stop and
    surface it.** Implementer arbitration is how locks die.
-3. Read the fixture obligations. Build or extend fixtures until every locked
+4. Read the fixture obligations. Build or extend fixtures until every locked
    visual feature actually renders under them. A tame fixture that leaves a
    ribbon invisible or a threshold untriggered cannot prove anything.
-4. **Pin the provenance.** Branch off a **freshly fetched** default branch and
+5. **Pin the provenance.** Branch off a **freshly fetched** default branch and
    record the base SHA in the ledger header, along with the paths + SHAs of
    every source artifact (mock HTML, its module files, manifest, behavior
    ledger, fixtures, comparator). A branch cut from a pre-squash tip produces a
@@ -48,6 +62,16 @@ the result looks: the description was never the artifact.
 - **Keep the mock's selectors.** The behavior replay script runs against mock and
   app alike; a rename that breaks a replay selector is a port defect, not a script
   defect.
+- **The one exception to porting the mock's code: where the mock re-derived a
+  fact the backend owns, port it as a backend read, not as the mock's line.** A
+  mock computes against a captured fixture, so it re-implements whatever the
+  payload did not yet carry — a support floor, a direction, a "what counts as a
+  meal" threshold. Transferring those faithfully re-introduces exactly the
+  duplicated-predicate bugs the backend already fixed, through the one route
+  nobody audits: the contract artifact itself. Each instance is listed in the
+  diff-to-mock with the backend field it now reads, because a reviewer meeting it
+  cold reads a deliberate correction as an infidelity. Expect the ported value to
+  differ from the frozen render on the same data; say by how much.
 - Suspected data bugs surfaced by the sweep are verified against the real payload
   and fixed in the adapter or backend — never papered over in the port.
 - If the app has no static asset mount, every new frontend file gets its serving
