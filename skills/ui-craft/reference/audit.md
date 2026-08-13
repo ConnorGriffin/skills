@@ -140,6 +140,23 @@ This is the check that catches drift no green gate notices.
 1. Render the ★ LOCKED mockup and the live surface **side by side** — same
    fixture (honoring the manifest's fixture obligations), same viewports and
    themes the manifest names.
+   **Every view/mode/tab is its own render, including the ones that hand off to
+   a sibling or shipped surface.** A named state (`dense`, `empty`, `selected`)
+   is not a view; a matrix of five states inside one view leaves the other views
+   unlooked-at. A real Diagnose audit rendered five states, all of them in the
+   comparison view, and so never once put the Glucose view on screen — where the
+   missing navigation would have been obvious at a glance. Landing on the
+   surface with no parameters counts as a view and gets its own render, since it
+   is what most readers actually see.
+   **Chrome the views share is compared numerically against one reference view,
+   never by eye.** Rendering each view catches what is *missing* from one of
+   them; it does not catch a uniform offset, because nobody looks at two views
+   at once and 6px looks like nothing on its own. Pick the shipped or
+   longest-standing view as the reference, read the shared geometry off it —
+   rail row and padding, pane grid, pane header heights, first content baseline
+   — and diff every other view against those numbers. The same Diagnose surface
+   that lost its navigation later sat 6px low in two of its three views, through
+   an audit that had by then rendered all of them.
 2. Walk the manifest term by term:
    - `gate` terms: confirm a `LOCK:<surface>:<n>`-tagged assertion exists in
      the rendered gate AND holds. A gate term with no assertion is a finding

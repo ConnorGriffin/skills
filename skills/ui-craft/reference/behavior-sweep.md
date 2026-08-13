@@ -48,6 +48,26 @@ Excluded from the inventory is **not** excluded from the page: the harness and
 every imported module are still **served**, because an unserved import throws
 before any listener registers.
 
+**Handlers are not the only source of stories.** The inventory finds everything
+the surface *does*; it cannot find what the surface must *keep true* while doing
+it. Those invariants own no handler, so a handler-complete ledger can still have
+none of them — and they fail silently, because each one is only visible by
+comparing two renders nobody compares. Add a story for each:
+
+- **Across views/modes**, chrome the reader keeps seeing does not move. Measure
+  every other view against one designated reference view, not against an
+  average, so the reference stays authoritative when they drift together.
+- **Across interaction**, nothing reflows that the interaction did not name.
+  A header that grows when its hover readout fills moves the content under the
+  pointer — reserve the space at rest and assert the resting and active
+  geometry are equal.
+- **Across data shape**, containers sized for live values do not resize per
+  value (counts, timestamps, currency).
+
+A real Diagnose surface shipped 6px low in two of its three views, and grew its
+chart header on first hover, with a handler-complete ledger where every story
+passed. Each story replayed one view, alone, where a uniform offset is invisible.
+
 Static reading produces the inventory. It never produces a story.
 
 ## 2. Exercise (live — this is the evidence)
@@ -73,7 +93,10 @@ Two further passes, folded in or run separately per proportionality:
 
 **Completeness check (mechanical, not judgment):** every inventoried handler maps
 to ≥1 story, and every story was observed live. A handler found in code but not
-reproducible in-browser becomes a QUESTION entry — never a silent skip.
+reproducible in-browser becomes a QUESTION entry — never a silent skip. Handler
+coverage is not ledger completeness: a surface with more than one view, or with
+any interaction that swaps content in place, also owes its invariant stories
+above. Record them with no handler named, since none exists.
 
 ## 3. The replay script (committed)
 
@@ -99,6 +122,15 @@ Spec:
 - **Selector parity is a port obligation, not a script concern.** Replay-against-both
   only holds if the ported markup keeps the mock's selectors; a rename that
   breaks a replay selector is a **port defect**.
+- **Drive every story through the affordance a reader would use.** A story about
+  reaching, leaving, or returning to a state is only evidence if the replay gets
+  there the way a person does — clicking the control, typing in the field. Browser
+  history (`goBack`), a direct URL, or calling the surface's own API bypasses the
+  affordance, so the story passes on a surface that offers *no route at all*. A
+  shipped Diagnose view once lost its entire view switcher while its "returning to
+  an event view restores it" story stayed green, because the replay returned with
+  `goBack()`. When a story's verb is navigational, assert the control exists and is
+  visible, then use it.
 - Replay functions inherit `build.md`'s prove-red-once rule — proven against the
   **built app** (knock the feature out) or a **scratch copy** of the mock, never
   the ★ LOCKED mock in place. A transient edit to the contract artifact risks an

@@ -187,3 +187,15 @@ Rules for writing terms:
   — an assertable term that goes unasserted is how drift ships.
 - Terms carried forward from a superseded lock are restated here, not
   referenced — the manifest must stand alone.
+- **A surface with more than one view/mode/tab owes two extra terms: which one
+  is the default, and what chrome persists across all of them.** Name the
+  switcher itself as persistent chrome. Both are the kind of thing a lock is
+  silent on because it felt obvious while the mock was open in front of you,
+  and silence is what a builder resolves in private.
+- **"Mounts <existing surface> unchanged" is not a term — it is a hole.** When
+  one view hands off to a sibling or shipped surface, say what the host keeps
+  on screen around it. Read literally, "unchanged" licenses dropping the
+  navigation that got the reader there, which is exactly how a real Diagnose
+  lock shipped a view you could enter and never leave. If a rail's contents
+  differ per view, spell out each view's contents rather than describing the
+  rail once from whichever view you happened to be designing.
