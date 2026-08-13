@@ -141,6 +141,13 @@ substitutes for the other.
 - Inspect rendered output — source review alone never validates a visual
   artifact. Use `drive-local-webapp` for rendering; ask to install it if
   missing.
+- **Sibling exactness** ([reference/sibling-fidelity.md](reference/sibling-fidelity.md)):
+  any element with a sibling in a shipped surface uses the shipped values
+  exactly — geometry, type, alignment spines, chart furniture, and interaction
+  idioms alike — and fidelity is proven with a computed-style diff against the
+  running app, never by eyeball. Token bridges are verified by computed value
+  on the consuming element; mock-global base styles (body font/line-height)
+  are banned because they shift extracted chrome off its shipped pixels.
 - Keep `mockups/INDEX.md` as the surface ledger (one row per surface:
   Surface / Concept / Status / Issue / File). `locked` rows are binding
   precedent; `shipped` rows defer to the app itself. Every mode that touches
