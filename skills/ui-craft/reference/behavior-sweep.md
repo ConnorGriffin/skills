@@ -48,6 +48,26 @@ Excluded from the inventory is **not** excluded from the page: the harness and
 every imported module are still **served**, because an unserved import throws
 before any listener registers.
 
+**Handlers are not the only source of stories.** The inventory finds everything
+the surface *does*; it cannot find what the surface must *keep true* while doing
+it. Those invariants own no handler, so a handler-complete ledger can still have
+none of them — and they fail silently, because each one is only visible by
+comparing two renders nobody compares. Add a story for each:
+
+- **Across views/modes**, chrome the reader keeps seeing does not move. Measure
+  every other view against one designated reference view, not against an
+  average, so the reference stays authoritative when they drift together.
+- **Across interaction**, nothing reflows that the interaction did not name.
+  A header that grows when its hover readout fills moves the content under the
+  pointer — reserve the space at rest and assert the resting and active
+  geometry are equal.
+- **Across data shape**, containers sized for live values do not resize per
+  value (counts, timestamps, currency).
+
+A real Diagnose surface shipped 6px low in two of its three views, and grew its
+chart header on first hover, with a handler-complete ledger where every story
+passed. Each story replayed one view, alone, where a uniform offset is invisible.
+
 Static reading produces the inventory. It never produces a story.
 
 ## 2. Exercise (live — this is the evidence)
@@ -73,7 +93,10 @@ Two further passes, folded in or run separately per proportionality:
 
 **Completeness check (mechanical, not judgment):** every inventoried handler maps
 to ≥1 story, and every story was observed live. A handler found in code but not
-reproducible in-browser becomes a QUESTION entry — never a silent skip.
+reproducible in-browser becomes a QUESTION entry — never a silent skip. Handler
+coverage is not ledger completeness: a surface with more than one view, or with
+any interaction that swaps content in place, also owes its invariant stories
+above. Record them with no handler named, since none exists.
 
 ## 3. The replay script (committed)
 
