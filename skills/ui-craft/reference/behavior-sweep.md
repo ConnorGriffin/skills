@@ -99,6 +99,15 @@ Spec:
 - **Selector parity is a port obligation, not a script concern.** Replay-against-both
   only holds if the ported markup keeps the mock's selectors; a rename that
   breaks a replay selector is a **port defect**.
+- **Drive every story through the affordance a reader would use.** A story about
+  reaching, leaving, or returning to a state is only evidence if the replay gets
+  there the way a person does — clicking the control, typing in the field. Browser
+  history (`goBack`), a direct URL, or calling the surface's own API bypasses the
+  affordance, so the story passes on a surface that offers *no route at all*. A
+  shipped Diagnose view once lost its entire view switcher while its "returning to
+  an event view restores it" story stayed green, because the replay returned with
+  `goBack()`. When a story's verb is navigational, assert the control exists and is
+  visible, then use it.
 - Replay functions inherit `build.md`'s prove-red-once rule — proven against the
   **built app** (knock the feature out) or a **scratch copy** of the mock, never
   the ★ LOCKED mock in place. A transient edit to the contract artifact risks an
