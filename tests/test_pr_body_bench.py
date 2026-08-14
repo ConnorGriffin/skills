@@ -23,7 +23,7 @@ def _load_bench():
 
 BENCH = _load_bench()
 
-DISCLOSURE = "This PR was written in part with the assistance of generative AI."
+DISCLOSURE = "> Written by an AI agent operating for <operator>. Verify before relying on it."
 BODY_PASS = f"Grows the appliance data volume from 2TB to 4TB.\n\n{DISCLOSURE}\n"
 BODY_FAIL_VACUOUS = "Fix bug.\n"
 
