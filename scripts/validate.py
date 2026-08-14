@@ -341,7 +341,9 @@ def validate_evidence_examples(errors: list[str]) -> None:
             failure = observation["failure"]
             if not isinstance(failure, dict) or set(failure) != failure_fact_fields:
                 fail(errors, f"{prefix}: failure fields are not closed")
-            elif (failure["failure_class"] not in failure_classes or
+            elif (not isinstance(failure["failure_class"], str) or
+                  failure["failure_class"] not in failure_classes or
+                  not isinstance(failure["validation_state"], str) or
                   failure["validation_state"] not in states or
                   failure["normalizer_version"] != "v2" or
                   not is_digest(failure["signature_digest"])):
@@ -372,13 +374,23 @@ def validate_evidence_examples(errors: list[str]) -> None:
         subject = observation["subject"]
         if not isinstance(producer, dict) or set(producer) != producer_fact_fields:
             fail(errors, f"{prefix}: producer fields are not closed")
-        elif (producer["producer_kind"] not in producer_kinds or
+        elif (not isinstance(producer["producer_kind"], str) or
+              producer["producer_kind"] not in producer_kinds or
+              not isinstance(producer["validation_state"], str) or
               producer["validation_state"] not in states or
-              (producer["review_action"] is not None and producer["review_action"] not in actions) or
+              (producer["review_action"] is not None and
+               (not isinstance(producer["review_action"], str) or
+                producer["review_action"] not in actions)) or
               producer["normalizer_version"] != "v2" or not is_digest(producer["fact_digest"])):
             fail(errors, f"{prefix}: invalid producer_kind, validation_state, review_action, or digest")
         else:
             seen_producer_kinds.add(producer["producer_kind"])
+        producer_kind = (
+            producer.get("producer_kind")
+            if isinstance(producer, dict)
+            and isinstance(producer.get("producer_kind"), str)
+            else None
+        )
         if not isinstance(source, dict) or set(source) != source_fields:
             fail(errors, f"{prefix}: source fields are not closed")
         elif (source["content_hash_algorithm"] != "sha256" or not is_digest(source["content_hash"]) or
@@ -393,14 +405,15 @@ def validate_evidence_examples(errors: list[str]) -> None:
         elif subject.get("subject_kind") == "working_tree_snapshot":
             snapshot_match = re.fullmatch(
                 r"base=[0-9a-f]{40};head=[0-9a-f]{40}", subject["subject"]
-            )
+            ) if isinstance(subject.get("subject"), str) else None
             if not is_digest(subject["revision"]) or not snapshot_match:
                 fail(errors, f"{prefix}: working tree snapshot identity is not normalized")
-            elif (not isinstance(source, dict) or
-                  source.get("revision") != snapshot_match.group(0).rsplit("head=", 1)[1]):
-                fail(errors, f"{prefix}: snapshot head must match source revision")
-            snapshots.setdefault(subject["subject"], set()).add(subject["revision"])
-            snapshot_counts[subject["subject"]] = snapshot_counts.get(subject["subject"], 0) + 1
+            else:
+                if (not isinstance(source, dict) or
+                        source.get("revision") != snapshot_match.group(0).rsplit("head=", 1)[1]):
+                    fail(errors, f"{prefix}: snapshot head must match source revision")
+                snapshots.setdefault(subject["subject"], set()).add(subject["revision"])
+                snapshot_counts[subject["subject"]] = snapshot_counts.get(subject["subject"], 0) + 1
         links = observation["links"]
         if not isinstance(links, list) or len(links) > contract["max_links"]:
             fail(errors, f"{prefix}: invalid links")
@@ -412,7 +425,11 @@ def validate_evidence_examples(errors: list[str]) -> None:
         used_relations: set[str] = set()
         used_lineage: set[tuple[str, str]] = set()
         for link in links:
-            if not isinstance(link, dict) or set(link) != set(contract["link_fields"]) or link["relation"] not in relations:
+            if (not isinstance(link, dict) or
+                    set(link) != set(contract["link_fields"]) or
+                    not isinstance(link.get("relation"), str) or
+                    link["relation"] not in relations or
+                    not is_digest(link.get("target_event_id"))):
                 fail(errors, f"{prefix}: link fields or relation are invalid")
                 continue
             used_relations.add(link["relation"])
@@ -429,19 +446,26 @@ def validate_evidence_examples(errors: list[str]) -> None:
                 target_observation = observations_by_id[target]
                 target_producer = target_observation.get("producer", {})
                 expected_target_kinds = lineage_target_kinds.get(
-                    (producer.get("producer_kind"), link["relation"])
+                    (producer_kind, link["relation"])
                 )
                 same_lifecycle = (
                     isinstance(target_observation.get("source"), dict)
                     and isinstance(source, dict)
+                    and target_observation["source"].get("repository") == source.get("repository")
                     and target_observation["source"].get("scope") == source.get("scope")
+                    and (
+                        target_observation["source"].get("authority_kind")
+                        != source.get("authority_kind")
+                        or target_observation["source"].get("locator")
+                        == source.get("locator")
+                    )
                 )
                 if (not isinstance(target_producer, dict) or
                         expected_target_kinds is None or
-                        target_producer.get("producer_kind") not in expected_target_kinds or
+                        not isinstance(target_producer.get("producer_kind"), str) or
+                        target_producer["producer_kind"] not in expected_target_kinds or
                         not same_lifecycle):
                     fail(errors, f"{prefix}: invalid lineage target kind or lifecycle")
-        producer_kind = producer.get("producer_kind") if isinstance(producer, dict) else None
         if producer_kind in permitted_relations and used_relations - permitted_relations[producer_kind]:
             fail(errors, f"{prefix}: lineage relation is not permitted for {producer_kind}")
         if producer_kind in required_relations and not required_relations[producer_kind] <= used_relations:
@@ -468,14 +492,18 @@ def validate_evidence_examples(errors: list[str]) -> None:
         fail(errors, "docs/evidence/examples/negative.json: invalid fixture shape")
         return
     for fixture in invalid:
-        if not isinstance(fixture, dict) or fixture.get("producer_kind") not in prohibited:
+        if (not isinstance(fixture, dict) or
+                not isinstance(fixture.get("producer_kind"), str) or
+                fixture["producer_kind"] not in prohibited):
             fail(errors, "docs/evidence/examples/negative.json: fixture does not reject a prohibited kind")
         elif fixture["producer_kind"] in producer_kinds:
             fail(errors, "docs/evidence/examples/negative.json: prohibited kind is admitted")
         if fixture.get("producer_kind") == "lesson" and fixture.get("validation_state") != "unvalidated":
             fail(errors, "docs/evidence/examples/negative.json: lesson fixture must prove unvalidated rejection")
     for fixture in invalid_failures:
-        if not isinstance(fixture, dict) or fixture.get("failure_class") not in prohibited_failures:
+        if (not isinstance(fixture, dict) or
+                not isinstance(fixture.get("failure_class"), str) or
+                fixture["failure_class"] not in prohibited_failures):
             fail(errors, "docs/evidence/examples/negative.json: fixture does not reject a prohibited failure class")
         elif fixture["failure_class"] in failure_classes:
             fail(errors, "docs/evidence/examples/negative.json: prohibited failure class is admitted")

@@ -1443,6 +1443,23 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("lineage target kind or lifecycle", result.stderr)
 
+    def test_validator_rejects_lineage_to_another_artifact_lifecycle(self):
+        def change_plan_identity(payload):
+            criterion = next(
+                item
+                for item in payload["observations"]
+                if item.get("producer", {}).get("producer_kind") == "criterion"
+                and item.get("source", {}).get("scope") == "plan_review"
+            )
+            criterion["source"]["locator"] = "https://example.com/plans/99"
+            criterion["subject"]["locator"] = "https://example.com/plans/99"
+            criterion["subject"]["subject"] = "example/repo plan 99"
+
+        result = self.mutated_validation(change_plan_identity)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("lineage target kind or lifecycle", result.stderr)
+
     def test_validator_rejects_a_duplicate_observation_id(self):
         def duplicate_id(payload):
             payload["observations"][1]["observation_id"] = payload["observations"][0][
@@ -1473,6 +1490,21 @@ class EvidenceEnvelopeTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("dense ordinals", result.stderr)
+
+    def test_validator_reports_unhashable_lineage_fields(self):
+        for field in ("relation", "target_event_id"):
+            with self.subTest(field=field):
+                def replace_field(payload, field=field):
+                    linked = next(
+                        item for item in payload["observations"] if item.get("links")
+                    )
+                    linked["links"][0][field] = {}
+
+                result = self.mutated_validation(replace_field)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("link fields or relation are invalid", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
 
     def test_validator_rejects_snapshot_confusion_at_one_head(self):
         def confuse_snapshots(payload):
