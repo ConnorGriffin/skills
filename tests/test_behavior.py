@@ -1269,6 +1269,37 @@ class WorkerLifecycleContractTests(unittest.TestCase):
 
 
 class EvidenceEnvelopeTests(unittest.TestCase):
+    def mutated_validation(self, mutate):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(
+                ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__")
+            )
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(
+                run(
+                    [
+                        "git",
+                        "-c",
+                        "user.name=Test",
+                        "-c",
+                        "user.email=test@example.invalid",
+                        "commit",
+                        "-m",
+                        "fixture",
+                    ],
+                    cwd=copy,
+                ).returncode,
+                0,
+            )
+            positive = copy / "docs" / "evidence" / "examples" / "positive.json"
+            payload = json.loads(positive.read_text(encoding="utf-8"))
+            mutate(payload)
+            positive.write_text(json.dumps(payload), encoding="utf-8")
+
+            return run(["python3", "scripts/validate.py"], cwd=copy)
+
     def test_v2_contract_and_provenance_are_vendored(self):
         evidence = ROOT / "docs" / "evidence"
 
@@ -1353,6 +1384,84 @@ class EvidenceEnvelopeTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("failure envelope", result.stderr)
+
+    def test_validator_rejects_a_missing_producer_kind(self):
+        def remove_kind(payload):
+            payload["observations"] = [
+                item
+                for item in payload["observations"]
+                if item.get("producer", {}).get("producer_kind") != "criterion"
+            ]
+
+        result = self.mutated_validation(remove_kind)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("producer kind matrix", result.stderr)
+
+    def test_validator_rejects_a_missing_failure_class(self):
+        def remove_class(payload):
+            payload["observations"] = [
+                item
+                for item in payload["observations"]
+                if item.get("failure", {}).get("failure_class") != "plan_gap"
+            ]
+
+        result = self.mutated_validation(remove_class)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("failure class matrix", result.stderr)
+
+    def test_validator_rejects_a_missing_required_relation(self):
+        def remove_relation(payload):
+            revision = next(
+                item
+                for item in payload["observations"]
+                if item.get("producer", {}).get("producer_kind") == "revision"
+            )
+            revision["links"] = [
+                link for link in revision["links"] if link["relation"] != "revises"
+            ]
+
+        result = self.mutated_validation(remove_relation)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required lineage", result.stderr)
+
+    def test_validator_rejects_a_duplicate_observation_id(self):
+        def duplicate_id(payload):
+            payload["observations"][1]["observation_id"] = payload["observations"][0][
+                "observation_id"
+            ]
+
+        result = self.mutated_validation(duplicate_id)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("duplicate observation_id", result.stderr)
+
+    def test_validator_rejects_a_sparse_link_ordinal(self):
+        def sparse_ordinal(payload):
+            linked = next(item for item in payload["observations"] if item.get("links"))
+            linked["links"][0]["ordinal"] = len(linked["links"]) + 1
+
+        result = self.mutated_validation(sparse_ordinal)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("dense ordinals", result.stderr)
+
+    def test_validator_rejects_snapshot_confusion_at_one_head(self):
+        def confuse_snapshots(payload):
+            snapshots = [
+                item["subject"]
+                for item in payload["observations"]
+                if item.get("subject", {}).get("subject_kind")
+                == "working_tree_snapshot"
+            ]
+            snapshots[1]["revision"] = snapshots[0]["revision"]
+
+        result = self.mutated_validation(confuse_snapshots)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("distinct dirty snapshots", result.stderr)
 
 
 if __name__ == "__main__":

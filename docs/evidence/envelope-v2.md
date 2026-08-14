@@ -64,6 +64,23 @@ Two dirty snapshots at one HEAD therefore have distinct revisions. Do not substi
 
 ## Examples
 
-The checked-in positive examples are normalized pointers and digests only. Negative
-fixtures prove rejected event kinds and that an `unvalidated` observation cannot be
-presented as a lesson. They are exercised by `python3 scripts/validate.py`.
+The checked-in positive examples are normalized pointers and digests only. Their
+lineage is deliberately dense and backward-bounded:
+
+- scope and Wayfinder each trace `claim` → `criterion` → `decision` →
+  `disposition`;
+- plan review traces `objection` → refuting `verification` → `revision` →
+  `verdict`;
+- code review traces exact-head `finding` → `review_action` → `fix` →
+  `verification` → `settlement`, plus two findings from distinct dirty snapshots at
+  one resolved base/head;
+- orchestration traces `delegation` → `slice` → `decline`, with a bounded
+  `verification` and `settlement`.
+
+Together the positive envelopes cover every contract producer kind and failure
+class. Negative fixtures keep candidates separate from observations: they reject
+candidate, proposal, promotion, and lesson producer kinds, reject prohibited failure
+classes, and prove that `unvalidated` does not turn a candidate into a lesson. The
+validator also rejects missing matrix entries, duplicate event IDs or lineage,
+non-dense ordinals, forward or unknown lineage, and confused snapshot identities.
+All fixtures are exercised by `python3 scripts/validate.py`.

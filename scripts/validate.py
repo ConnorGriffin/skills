@@ -245,9 +245,59 @@ def validate_evidence_examples(errors: list[str]) -> None:
     failure_fields = set(contract["failure_envelope_fields"])
     failure_fact_fields = set(contract["failure_fact_fields"])
     failure_classes = set(contract["failure_classes"])
+    permitted_relations = {
+        "claim": {"derives_from", "governs"},
+        "criterion": {"derives_from", "governs"},
+        "decision": {"settles", "governs"},
+        "disposition": {"settles", "addresses"},
+        "objection": {"derives_from", "refutes"},
+        "revision": {"revises", "addresses"},
+        "verdict": {"settles", "verifies"},
+        "finding": {"derives_from", "refutes"},
+        "review_action": {"addresses"},
+        "fix": {"implements", "addresses"},
+        "verification": {"verifies", "refutes"},
+        "delegation": {"delegates", "derives_from"},
+        "slice": {"derives_from", "governs"},
+        "decline": {"settles", "addresses"},
+        "settlement": {"settles", "verifies"},
+    }
+    required_relations = {
+        "criterion": {"derives_from"},
+        "decision": {"governs"},
+        "disposition": {"settles", "addresses"},
+        "objection": {"derives_from"},
+        "revision": {"revises", "addresses"},
+        "verdict": {"settles", "verifies"},
+        "finding": {"derives_from"},
+        "review_action": {"addresses"},
+        "fix": {"implements", "addresses"},
+        "delegation": {"derives_from"},
+        "slice": {"derives_from", "governs"},
+        "decline": {"settles", "addresses"},
+        "settlement": {"settles", "verifies"},
+    }
     snapshots: dict[str, set[str]] = {}
+    snapshot_counts: dict[str, int] = {}
+    observation_ids = [
+        observation.get("observation_id")
+        for observation in observations
+        if isinstance(observation, dict)
+    ]
+    if len(observation_ids) != len(set(observation_ids)):
+        fail(errors, "docs/evidence/examples/positive.json: duplicate observation_id")
+    all_observation_ids = set(observation_ids)
+    seen_observation_ids: set[str] = set()
+    seen_producer_kinds: set[str] = set()
+    seen_failure_classes: set[str] = set()
     for index, observation in enumerate(observations):
         prefix = f"docs/evidence/examples/positive.json: observation {index}"
+        if not isinstance(observation, dict):
+            fail(errors, f"{prefix}: observation must be an object")
+            continue
+        observation_id = observation.get("observation_id")
+        if not is_digest(observation_id) or not isinstance(observation.get("observed_at"), str):
+            fail(errors, f"{prefix}: observation identity is not normalized")
         if isinstance(observation, dict) and observation.get("envelope_kind") == "failure":
             if set(observation) != failure_fields:
                 fail(errors, f"{prefix}: failure envelope fields are not closed")
@@ -260,14 +310,24 @@ def validate_evidence_examples(errors: list[str]) -> None:
                   failure["normalizer_version"] != "v2" or
                   not is_digest(failure["signature_digest"])):
                 fail(errors, f"{prefix}: invalid failure class, validation state, or digest")
+            else:
+                seen_failure_classes.add(failure["failure_class"])
             source = observation["source"]
             subject = observation["subject"]
             if not isinstance(source, dict) or set(source) != source_fields:
                 fail(errors, f"{prefix}: source fields are not closed")
+            elif (source["content_hash_algorithm"] != "sha256" or
+                  not is_digest(source["content_hash"]) or
+                  not all(isinstance(source[field], str) and source[field]
+                          for field in ("authority_kind", "locator", "repository", "revision", "scope"))):
+                fail(errors, f"{prefix}: source must contain normalized authority facts")
             if not isinstance(subject, dict) or set(subject) not in (review_subject_fields, content_subject_fields):
                 fail(errors, f"{prefix}: subject fields are not a contract subject")
+            elif not isinstance(subject.get("revision"), str) or not subject["revision"]:
+                fail(errors, f"{prefix}: subject lacks an immutable revision")
+            seen_observation_ids.add(observation_id)
             continue
-        if not isinstance(observation, dict) or set(observation) != producer_fields:
+        if set(observation) != producer_fields:
             fail(errors, f"{prefix}: producer envelope fields are not closed")
             continue
         producer = observation["producer"]
@@ -280,6 +340,8 @@ def validate_evidence_examples(errors: list[str]) -> None:
               (producer["review_action"] is not None and producer["review_action"] not in actions) or
               producer["normalizer_version"] != "v2" or not is_digest(producer["fact_digest"])):
             fail(errors, f"{prefix}: invalid producer_kind, validation_state, review_action, or digest")
+        else:
+            seen_producer_kinds.add(producer["producer_kind"])
         if not isinstance(source, dict) or set(source) != source_fields:
             fail(errors, f"{prefix}: source fields are not closed")
         elif (source["content_hash_algorithm"] != "sha256" or not is_digest(source["content_hash"]) or
@@ -292,21 +354,58 @@ def validate_evidence_examples(errors: list[str]) -> None:
         elif "content_digest" in subject and not is_digest(subject["content_digest"]):
             fail(errors, f"{prefix}: content subject lacks a normalized digest")
         elif subject.get("subject_kind") == "working_tree_snapshot":
+            if not is_digest(subject["revision"]) or not re.fullmatch(
+                r"base=[0-9a-f]{40};head=[0-9a-f]{40}", subject["subject"]
+            ):
+                fail(errors, f"{prefix}: working tree snapshot identity is not normalized")
             snapshots.setdefault(subject["subject"], set()).add(subject["revision"])
-        if not is_digest(observation["observation_id"]) or not isinstance(observation["observed_at"], str):
-            fail(errors, f"{prefix}: observation identity is not normalized")
+            snapshot_counts[subject["subject"]] = snapshot_counts.get(subject["subject"], 0) + 1
         links = observation["links"]
         if not isinstance(links, list) or len(links) > contract["max_links"]:
             fail(errors, f"{prefix}: invalid links")
+            seen_observation_ids.add(observation_id)
+            continue
+        if [link.get("ordinal") for link in links if isinstance(link, dict)] != list(range(len(links))):
+            fail(errors, f"{prefix}: lineage links must have dense ordinals")
+        used_relations: set[str] = set()
+        used_lineage: set[tuple[str, str]] = set()
         for link in links:
             if not isinstance(link, dict) or set(link) != set(contract["link_fields"]) or link["relation"] not in relations:
                 fail(errors, f"{prefix}: link fields or relation are invalid")
+                continue
+            used_relations.add(link["relation"])
+            target = link["target_event_id"]
+            lineage = (link["relation"], target)
+            if lineage in used_lineage:
+                fail(errors, f"{prefix}: lineage links must be unique")
+            used_lineage.add(lineage)
+            if not is_digest(target) or target not in all_observation_ids:
+                fail(errors, f"{prefix}: lineage target is not a valid observation")
+            elif target not in seen_observation_ids:
+                fail(errors, f"{prefix}: lineage must target an earlier observation")
+        producer_kind = producer.get("producer_kind") if isinstance(producer, dict) else None
+        if producer_kind in permitted_relations and used_relations - permitted_relations[producer_kind]:
+            fail(errors, f"{prefix}: lineage relation is not permitted for {producer_kind}")
+        if producer_kind in required_relations and not required_relations[producer_kind] <= used_relations:
+            fail(errors, f"{prefix}: required lineage is missing for {producer_kind}")
+        if producer_kind == "verification" and not used_relations & {"verifies", "refutes"}:
+            fail(errors, f"{prefix}: required lineage is missing for verification")
+        seen_observation_ids.add(observation_id)
+    if seen_producer_kinds != producer_kinds:
+        fail(errors, "docs/evidence/examples/positive.json: producer kind matrix is incomplete")
+    if seen_failure_classes != failure_classes:
+        fail(errors, "docs/evidence/examples/positive.json: failure class matrix is incomplete")
+    if any(snapshot_counts[subject] != len(revisions) for subject, revisions in snapshots.items()):
+        fail(errors, "docs/evidence/examples/positive.json: needs distinct dirty snapshots at one HEAD")
     if not any(len(revisions) > 1 for revisions in snapshots.values()):
         fail(errors, "docs/evidence/examples/positive.json: needs distinct dirty snapshots at one HEAD")
 
     invalid = negative.get("invalid_observations")
+    invalid_failures = negative.get("invalid_failures")
     prohibited = {"candidate", "proposal", "promotion", "lesson"}
-    if set(negative) != {"invalid_observations"} or not isinstance(invalid, list):
+    prohibited_failures = {"candidate", "policy_state", "worker_failure"}
+    if (set(negative) != {"invalid_observations", "invalid_failures"} or
+            not isinstance(invalid, list) or not isinstance(invalid_failures, list)):
         fail(errors, "docs/evidence/examples/negative.json: invalid fixture shape")
         return
     for fixture in invalid:
@@ -316,6 +415,11 @@ def validate_evidence_examples(errors: list[str]) -> None:
             fail(errors, "docs/evidence/examples/negative.json: prohibited kind is admitted")
         if fixture.get("producer_kind") == "lesson" and fixture.get("validation_state") != "unvalidated":
             fail(errors, "docs/evidence/examples/negative.json: lesson fixture must prove unvalidated rejection")
+    for fixture in invalid_failures:
+        if not isinstance(fixture, dict) or fixture.get("failure_class") not in prohibited_failures:
+            fail(errors, "docs/evidence/examples/negative.json: fixture does not reject a prohibited failure class")
+        elif fixture["failure_class"] in failure_classes:
+            fail(errors, "docs/evidence/examples/negative.json: prohibited failure class is admitted")
 
 
 def validate_reachable_history(errors: list[str]) -> None:
