@@ -1269,6 +1269,22 @@ class WorkerLifecycleContractTests(unittest.TestCase):
 
 
 class EvidenceEnvelopeTests(unittest.TestCase):
+    def test_examples_use_upstream_wire_tags_and_integer_time(self):
+        positive = ROOT / "docs" / "evidence" / "examples" / "positive.json"
+        observations = json.loads(positive.read_text(encoding="utf-8"))["observations"]
+
+        self.assertEqual(
+            {item["envelope_kind"] for item in observations},
+            {"failure_observation", "producer_fact"},
+        )
+        self.assertTrue(
+            all(
+                isinstance(item["observed_at"], int)
+                and not isinstance(item["observed_at"], bool)
+                for item in observations
+            )
+        )
+
     def mutated_validation(self, mutate):
         with tempfile.TemporaryDirectory() as temporary:
             copy = Path(temporary) / "skills"
@@ -1359,7 +1375,10 @@ class EvidenceEnvelopeTests(unittest.TestCase):
             )
             positive = copy / "docs" / "evidence" / "examples" / "positive.json"
             payload = json.loads(positive.read_text(encoding="utf-8"))
-            payload["observations"][0]["producer"]["producer_kind"] = "candidate"
+            producer = next(
+                item for item in payload["observations"] if "producer" in item
+            )
+            producer["producer"]["producer_kind"] = "candidate"
             positive.write_text(json.dumps(payload), encoding="utf-8")
 
             result = run(["python3", "scripts/validate.py"], cwd=copy)
@@ -1394,14 +1413,18 @@ class EvidenceEnvelopeTests(unittest.TestCase):
             self.assertEqual(run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"], cwd=copy).returncode, 0)
             positive = copy / "docs" / "evidence" / "examples" / "positive.json"
             payload = json.loads(positive.read_text(encoding="utf-8"))
-            failure = next(item for item in payload["observations"] if item["envelope_kind"] == "failure")
+            failure = next(
+                item
+                for item in payload["observations"]
+                if item["envelope_kind"] == "failure_observation"
+            )
             failure["unexpected"] = "field"
             positive.write_text(json.dumps(payload), encoding="utf-8")
 
             result = run(["python3", "scripts/validate.py"], cwd=copy)
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("failure envelope", result.stderr)
+        self.assertIn("failure_observation envelope", result.stderr)
 
     def test_validator_rejects_a_missing_producer_kind(self):
         def remove_kind(payload):
@@ -1431,13 +1454,13 @@ class EvidenceEnvelopeTests(unittest.TestCase):
 
     def test_validator_rejects_a_missing_required_relation(self):
         def remove_relation(payload):
-            revision = next(
+            fix = next(
                 item
                 for item in payload["observations"]
-                if item.get("producer", {}).get("producer_kind") == "revision"
+                if item.get("producer", {}).get("producer_kind") == "fix"
             )
-            revision["links"] = [
-                link for link in revision["links"] if link["relation"] != "revises"
+            fix["links"] = [
+                link for link in fix["links"] if link["relation"] != "addresses"
             ]
 
         result = self.mutated_validation(remove_relation)
@@ -1445,38 +1468,19 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("required lineage", result.stderr)
 
-    def test_validator_rejects_cross_wired_lineage(self):
-        def cross_wire_revision(payload):
-            revision = next(
-                item
-                for item in payload["observations"]
-                if item.get("producer", {}).get("producer_kind") == "revision"
-            )
-            revision["links"][0]["target_event_id"] = payload["observations"][0][
-                "observation_id"
-            ]
-
-        result = self.mutated_validation(cross_wire_revision)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("lineage target kind or lifecycle", result.stderr)
-
-    def test_validator_rejects_lineage_to_another_artifact_lifecycle(self):
-        def change_plan_identity(payload):
+    def test_validator_rejects_illegal_lineage_direction(self):
+        def reverse_governing_direction(payload):
             criterion = next(
                 item
                 for item in payload["observations"]
                 if item.get("producer", {}).get("producer_kind") == "criterion"
-                and item.get("source", {}).get("scope") == "plan_review"
             )
-            criterion["source"]["locator"] = "https://example.com/plans/99"
-            criterion["subject"]["locator"] = "https://example.com/plans/99"
-            criterion["subject"]["subject"] = "example/repo plan 99"
+            criterion["links"][0]["relation"] = "governs"
 
-        result = self.mutated_validation(change_plan_identity)
+        result = self.mutated_validation(reverse_governing_direction)
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("lineage target kind or lifecycle", result.stderr)
+        self.assertIn("illegal lineage direction", result.stderr)
 
     def test_validator_rejects_a_duplicate_observation_id(self):
         def duplicate_id(payload):
@@ -1496,7 +1500,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         result = self.mutated_validation(replace_id)
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("observation identity is not normalized", result.stderr)
+        self.assertIn("observation_id must follow the upstream ID grammar", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
     def test_validator_rejects_a_sparse_link_ordinal(self):
@@ -1521,7 +1525,12 @@ class EvidenceEnvelopeTests(unittest.TestCase):
                 result = self.mutated_validation(replace_field)
 
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("link fields or relation are invalid", result.stderr)
+                expected = (
+                    "link fields or relation are invalid"
+                    if field == "relation"
+                    else "target_event_id must follow the upstream ID grammar"
+                )
+                self.assertIn(expected, result.stderr)
                 self.assertNotIn("Traceback", result.stderr)
 
     def test_validator_rejects_snapshot_confusion_at_one_head(self):
@@ -1529,8 +1538,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
             snapshots = [
                 item["subject"]
                 for item in payload["observations"]
-                if item.get("subject", {}).get("subject_kind")
-                == "working_tree_snapshot"
+                if item.get("subject", {}).get("subject", "").startswith("base:")
             ]
             snapshots[1]["revision"] = snapshots[0]["revision"]
 
@@ -1543,15 +1551,125 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         def confuse_head(payload):
             for item in payload["observations"]:
                 subject = item.get("subject", {})
-                if subject.get("subject_kind") == "working_tree_snapshot":
+                if subject.get("subject", "").startswith("base:"):
                     subject["subject"] = subject["subject"].replace(
-                        "head=" + "b" * 40, "head=" + "c" * 40
+                        "head:" + "b" * 40, "head:" + "c" * 40
                     )
 
         result = self.mutated_validation(confuse_head)
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("snapshot head must match source revision", result.stderr)
+
+    def test_validator_rejects_short_envelope_tags(self):
+        for original, short in (
+            ("failure_observation", "failure"),
+            ("producer_fact", "producer"),
+        ):
+            with self.subTest(short=short):
+                def shorten(payload, original=original, short=short):
+                    item = next(
+                        observation
+                        for observation in payload["observations"]
+                        if observation["envelope_kind"] == original
+                    )
+                    item["envelope_kind"] = short
+
+                result = self.mutated_validation(shorten)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("invalid envelope_kind", result.stderr)
+
+    def test_validator_rejects_string_and_bool_observed_at(self):
+        for invalid in ("1786662000", True):
+            with self.subTest(invalid=invalid):
+                def replace_time(payload, invalid=invalid):
+                    payload["observations"][0]["observed_at"] = invalid
+
+                result = self.mutated_validation(replace_time)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("observed_at must be a nonnegative integer", result.stderr)
+
+    def test_validator_rejects_sha256_prefixed_digest_fields(self):
+        def producer_digest(payload):
+            item = next(observation for observation in payload["observations"] if "producer" in observation)
+            item["producer"]["fact_digest"] = "sha256:" + item["producer"]["fact_digest"]
+
+        def failure_digest(payload):
+            item = next(observation for observation in payload["observations"] if "failure" in observation)
+            item["failure"]["signature_digest"] = "sha256:" + item["failure"]["signature_digest"]
+
+        def source_digest(payload):
+            item = payload["observations"][0]
+            item["source"]["content_hash"] = "sha256:" + item["source"]["content_hash"]
+
+        def subject_digest(payload):
+            item = next(observation for observation in payload["observations"] if "content_digest" in observation["subject"])
+            item["subject"]["content_digest"] = "sha256:" + item["subject"]["content_digest"]
+
+        for mutate in (producer_digest, failure_digest, source_digest, subject_digest):
+            with self.subTest(field=mutate.__name__):
+                result = self.mutated_validation(mutate)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("raw lowercase hex", result.stderr)
+
+    def test_validator_rejects_wrong_subject_and_source_kinds(self):
+        def wrong_subject(payload):
+            payload["observations"][0]["subject"]["subject_kind"] = "git_commit"
+
+        def wrong_source(payload):
+            payload["observations"][0]["source"]["authority_kind"] = "git"
+
+        for mutate, message in (
+            (wrong_subject, "invalid subject_kind"),
+            (wrong_source, "invalid source authority_kind"),
+        ):
+            with self.subTest(field=mutate.__name__):
+                result = self.mutated_validation(mutate)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+
+    def test_validator_rejects_nullable_or_extra_review_action(self):
+        def nullable(payload):
+            item = next(
+                observation
+                for observation in payload["observations"]
+                if observation.get("producer", {}).get("producer_kind") == "review_action"
+            )
+            item["producer"]["review_action"] = None
+
+        def extra(payload):
+            item = next(
+                observation
+                for observation in payload["observations"]
+                if observation.get("producer", {}).get("producer_kind") == "claim"
+            )
+            item["producer"]["review_action"] = None
+
+        for mutate in (nullable, extra):
+            with self.subTest(field=mutate.__name__):
+                result = self.mutated_validation(mutate)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("review_action", result.stderr)
+
+    def test_validator_rejects_extra_parent_and_fixer_fields(self):
+        def add_fixer_lineage(payload):
+            item = next(
+                observation
+                for observation in payload["observations"]
+                if observation.get("failure", {}).get("failure_class") == "original_defect"
+            )
+            item["failure"]["reviewed_parent_revision"] = "b" * 40
+            item["failure"]["fixer_revision"] = "c" * 40
+
+        result = self.mutated_validation(add_fixer_lineage)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("failure fields are not closed", result.stderr)
 
 
 if __name__ == "__main__":
