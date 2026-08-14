@@ -16,6 +16,15 @@ what to review — don't guess.
 **Read-only.** A plan review never edits code and never fixes the plan itself.
 It produces objections and a verdict; revising the plan is the author's job.
 
+## Evidence v2
+
+When the reviewed plan has a durable locator and immutable revision, follow [the shared
+envelope reference](../../docs/evidence/envelope-v2.md): an objection points to its
+affected revision-scoped criterion; a reproduction or refutation links to that
+objection; a revision points to the revised artifact revision; and the verdict links to
+the checked revision. Preserve the cold-review sequence and three-panel cap. An
+unrevised chat plan has no eligible authority, so emit nothing.
+
 ## Cold means cold
 
 The reviewer must have no stake in the plan. If this session authored or

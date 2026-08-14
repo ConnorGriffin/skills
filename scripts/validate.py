@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import subprocess
 import sys
@@ -36,6 +38,19 @@ EXPECTED = {
     "handoff",
     "preflight",
 }
+EVIDENCE = ROOT / "docs" / "evidence"
+CONTRACT = EVIDENCE / "contract-v2.json"
+PROVENANCE = EVIDENCE / "contract-v2.provenance.json"
+CONTRACT_SHA256 = "6c7a5a6d4d44a94466b87a2206f2fc5660bcaf096dde8c39eaf915d08781f3de"
+CONTRACT_PROVENANCE = {
+    "upstream_repository": "ConnorGriffin/agentflow",
+    "upstream_commit": "98d67d3b4a3f72d243e4765075d4a6728f6c46d1",
+    "source_path": "docs/evidence/contract-v2.json",
+    "source_git_blob": "1311a40215442b1142f1d1f165160c5f7eaf51ca",
+    "file_sha256": CONTRACT_SHA256,
+}
+POSITIVE_EXAMPLES = EVIDENCE / "examples" / "positive.json"
+NEGATIVE_EXAMPLES = EVIDENCE / "examples" / "negative.json"
 FORBIDDEN = (
     re.compile("/" + "Users/"),
     re.compile("~/" + "Code/" + "ConnorGriffin"),
@@ -168,6 +183,141 @@ def validate_persona_review_allowlist(errors: list[str]) -> None:
                 )
 
 
+def validate_evidence_contract(errors: list[str]) -> None:
+    if not CONTRACT.is_file():
+        fail(errors, "docs/evidence/contract-v2.json: missing vendored contract")
+    elif hashlib.sha256(CONTRACT.read_bytes()).hexdigest() != CONTRACT_SHA256:
+        fail(errors, "docs/evidence/contract-v2.json: bytes differ from pinned upstream blob")
+
+    if not PROVENANCE.is_file():
+        fail(errors, "docs/evidence/contract-v2.provenance.json: missing provenance")
+        return
+    try:
+        provenance = json.loads(PROVENANCE.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        fail(errors, f"docs/evidence/contract-v2.provenance.json: invalid JSON: {error.msg}")
+        return
+    if provenance != CONTRACT_PROVENANCE:
+        fail(errors, "docs/evidence/contract-v2.provenance.json: does not match pinned upstream facts")
+
+
+def evidence_json(path: Path, errors: list[str]) -> object | None:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        fail(errors, f"{path.relative_to(ROOT)}: missing")
+    except json.JSONDecodeError as error:
+        fail(errors, f"{path.relative_to(ROOT)}: invalid JSON: {error.msg}")
+    return None
+
+
+def is_digest(value: object) -> bool:
+    return isinstance(value, str) and bool(re.fullmatch(r"sha256:[0-9a-f]{64}", value))
+
+
+def validate_evidence_examples(errors: list[str]) -> None:
+    contract = evidence_json(CONTRACT, errors)
+    positive = evidence_json(POSITIVE_EXAMPLES, errors)
+    negative = evidence_json(NEGATIVE_EXAMPLES, errors)
+    if not isinstance(contract, dict) or not isinstance(positive, dict) or not isinstance(negative, dict):
+        return
+    required_contract_fields = {
+        "producer_envelope_fields", "producer_fact_fields", "source_fields",
+        "review_subject_fields", "content_subject_fields", "producer_kinds",
+        "validation_states", "review_actions", "lineage_relations", "link_fields",
+        "max_links", "failure_envelope_fields", "failure_fact_fields", "failure_classes",
+    }
+    if not required_contract_fields <= set(contract):
+        return
+    observations = positive.get("observations")
+    if set(positive) != {"observations"} or not isinstance(observations, list) or not observations:
+        fail(errors, "docs/evidence/examples/positive.json: contains observations only")
+        return
+    producer_fields = set(contract["producer_envelope_fields"])
+    producer_fact_fields = set(contract["producer_fact_fields"])
+    source_fields = set(contract["source_fields"])
+    review_subject_fields = set(contract["review_subject_fields"])
+    content_subject_fields = set(contract["content_subject_fields"])
+    producer_kinds = set(contract["producer_kinds"])
+    states = set(contract["validation_states"])
+    actions = set(contract["review_actions"])
+    relations = set(contract["lineage_relations"])
+    failure_fields = set(contract["failure_envelope_fields"])
+    failure_fact_fields = set(contract["failure_fact_fields"])
+    failure_classes = set(contract["failure_classes"])
+    snapshots: dict[str, set[str]] = {}
+    for index, observation in enumerate(observations):
+        prefix = f"docs/evidence/examples/positive.json: observation {index}"
+        if isinstance(observation, dict) and observation.get("envelope_kind") == "failure":
+            if set(observation) != failure_fields:
+                fail(errors, f"{prefix}: failure envelope fields are not closed")
+                continue
+            failure = observation["failure"]
+            if not isinstance(failure, dict) or set(failure) != failure_fact_fields:
+                fail(errors, f"{prefix}: failure fields are not closed")
+            elif (failure["failure_class"] not in failure_classes or
+                  failure["validation_state"] not in states or
+                  failure["normalizer_version"] != "v2" or
+                  not is_digest(failure["signature_digest"])):
+                fail(errors, f"{prefix}: invalid failure class, validation state, or digest")
+            source = observation["source"]
+            subject = observation["subject"]
+            if not isinstance(source, dict) or set(source) != source_fields:
+                fail(errors, f"{prefix}: source fields are not closed")
+            if not isinstance(subject, dict) or set(subject) not in (review_subject_fields, content_subject_fields):
+                fail(errors, f"{prefix}: subject fields are not a contract subject")
+            continue
+        if not isinstance(observation, dict) or set(observation) != producer_fields:
+            fail(errors, f"{prefix}: producer envelope fields are not closed")
+            continue
+        producer = observation["producer"]
+        source = observation["source"]
+        subject = observation["subject"]
+        if not isinstance(producer, dict) or set(producer) != producer_fact_fields:
+            fail(errors, f"{prefix}: producer fields are not closed")
+        elif (producer["producer_kind"] not in producer_kinds or
+              producer["validation_state"] not in states or
+              (producer["review_action"] is not None and producer["review_action"] not in actions) or
+              producer["normalizer_version"] != "v2" or not is_digest(producer["fact_digest"])):
+            fail(errors, f"{prefix}: invalid producer_kind, validation_state, review_action, or digest")
+        if not isinstance(source, dict) or set(source) != source_fields:
+            fail(errors, f"{prefix}: source fields are not closed")
+        elif (source["content_hash_algorithm"] != "sha256" or not is_digest(source["content_hash"]) or
+              not all(isinstance(source[field], str) and source[field] for field in ("authority_kind", "locator", "repository", "revision", "scope"))):
+            fail(errors, f"{prefix}: source must contain normalized authority facts")
+        if not isinstance(subject, dict) or set(subject) not in (review_subject_fields, content_subject_fields):
+            fail(errors, f"{prefix}: subject fields are not a contract subject")
+        elif not isinstance(subject.get("revision"), str) or not subject["revision"]:
+            fail(errors, f"{prefix}: subject lacks an immutable revision")
+        elif "content_digest" in subject and not is_digest(subject["content_digest"]):
+            fail(errors, f"{prefix}: content subject lacks a normalized digest")
+        elif subject.get("subject_kind") == "working_tree_snapshot":
+            snapshots.setdefault(subject["subject"], set()).add(subject["revision"])
+        if not is_digest(observation["observation_id"]) or not isinstance(observation["observed_at"], str):
+            fail(errors, f"{prefix}: observation identity is not normalized")
+        links = observation["links"]
+        if not isinstance(links, list) or len(links) > contract["max_links"]:
+            fail(errors, f"{prefix}: invalid links")
+        for link in links:
+            if not isinstance(link, dict) or set(link) != set(contract["link_fields"]) or link["relation"] not in relations:
+                fail(errors, f"{prefix}: link fields or relation are invalid")
+    if not any(len(revisions) > 1 for revisions in snapshots.values()):
+        fail(errors, "docs/evidence/examples/positive.json: needs distinct dirty snapshots at one HEAD")
+
+    invalid = negative.get("invalid_observations")
+    prohibited = {"candidate", "proposal", "promotion", "lesson"}
+    if set(negative) != {"invalid_observations"} or not isinstance(invalid, list):
+        fail(errors, "docs/evidence/examples/negative.json: invalid fixture shape")
+        return
+    for fixture in invalid:
+        if not isinstance(fixture, dict) or fixture.get("producer_kind") not in prohibited:
+            fail(errors, "docs/evidence/examples/negative.json: fixture does not reject a prohibited kind")
+        elif fixture["producer_kind"] in producer_kinds:
+            fail(errors, "docs/evidence/examples/negative.json: prohibited kind is admitted")
+        if fixture.get("producer_kind") == "lesson" and fixture.get("validation_state") != "unvalidated":
+            fail(errors, "docs/evidence/examples/negative.json: lesson fixture must prove unvalidated rejection")
+
+
 def validate_reachable_history(errors: list[str]) -> None:
     commits = subprocess.run(
         ["git", "rev-list", "--all"],
@@ -243,6 +393,8 @@ def main() -> int:
             fail(errors, f"skills/{skill}: missing agents/openai.yaml")
 
     validate_persona_review_allowlist(errors)
+    validate_evidence_contract(errors)
+    validate_evidence_examples(errors)
     validate_reachable_history(errors)
 
     if errors:

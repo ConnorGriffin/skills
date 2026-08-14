@@ -49,6 +49,15 @@ At the moment routing happens, open a ledger before invoking the specialist:
 - The ledger is the durable session state. A fresh agent resumes by reading it, not by
   re-deriving context from chat history.
 
+## Evidence v2
+
+Consult [the shared envelope reference](../../docs/evidence/envelope-v2.md) when a
+settled claim, criterion, decision, or disposition has a durable issue, ADR, Git, or
+document authority and immutable revision. Emit only its normalized pointer and digest
+with explicit lineage. A session-scratchpad entry has no such authority and is
+ineligible; keep it in the ledger until it is durably recorded. This adds no routing,
+promotion, or policy state.
+
 ## Exit protocol
 
 The session is not done until every disposition is discharged:

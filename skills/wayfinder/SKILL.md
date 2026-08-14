@@ -28,6 +28,15 @@ issues only when no open decision can invalidate their subtree.
   [references/github-tracker.md](references/github-tracker.md) before any tracker action.
   Do not replace child issues, blocking relationships, or label claims with body text.
 
+## Evidence v2
+
+Use [the shared envelope reference](../../docs/evidence/envelope-v2.md) for a grounded
+claim, criterion, decision, or disposition only after its GitHub issue/comment or ADR
+has a stable locator and normalized immutable content digest. The map and scratchpad
+are planning state, not evidence authority. Record the decision in its existing ticket
+protocol first; emit only normalized authority facts and lineage, never the research
+body, candidate list, proposal, or worker transcript.
+
 ## The map
 
 The map is a GitHub issue labelled `wayfinder:map`. Its decision tickets are native child

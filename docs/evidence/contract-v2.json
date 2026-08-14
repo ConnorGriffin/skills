@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "envelope": "tagged_failure_or_producer",
+  "failure_envelope_fields": ["envelope_kind", "failure", "observation_id", "observed_at", "source", "subject"],
+  "producer_envelope_fields": ["envelope_kind", "links", "observation_id", "observed_at", "producer", "source", "subject"],
+  "failure_fact_fields": ["failure_class", "fixer_revision", "normalizer_version", "reviewed_parent_revision", "signature_digest", "validation_state"],
+  "producer_fact_fields": ["fact_digest", "normalizer_version", "producer_kind", "review_action", "validation_state"],
+  "review_subject_fields": ["revision", "subject", "subject_kind"],
+  "content_subject_fields": ["content_digest", "locator", "revision", "subject", "subject_kind"],
+  "source_fields": ["authority_kind", "content_hash", "content_hash_algorithm", "locator", "repository", "revision", "scope"],
+  "link_fields": ["ordinal", "relation", "target_event_id"],
+  "failure_classes": ["fix_introduced_defect", "original_defect", "plan_gap", "reviewer_false_claim", "slice_scope_error", "speculative_preference"],
+  "validation_states": ["human_validated", "model_judged", "observed", "refuted", "reproduced", "unvalidated"],
+  "producer_kinds": ["claim", "criterion", "decision", "decline", "delegation", "disposition", "finding", "fix", "objection", "review_action", "revision", "settlement", "slice", "verification", "verdict"],
+  "review_actions": ["ask_maintainer", "discard_preference", "fix_before_completion", "necessary_follow_up"],
+  "lineage_relations": ["addresses", "delegates", "derives_from", "governs", "implements", "refutes", "revises", "settles", "verifies"],
+  "max_links": 32
+}

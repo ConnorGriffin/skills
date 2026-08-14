@@ -99,6 +99,16 @@ anything; a bad ref should fail here, not inside two sub-agents.
 Record once: the diff command (`git diff <base>...<head>`, three-dot) and the
 commit list (`git log <base>..<head> --oneline`).
 
+### Evidence v2 identity
+
+When emitting an eligible finding, action, fix, or convergence observation, use [the
+shared envelope reference](../../docs/evidence/envelope-v2.md). A committed review
+uses the exact reviewed SHA. A working-tree review records resolved base and head plus
+the deterministic reviewed-diff/tree digest from that reference; `HEAD` alone is not a
+snapshot identity. Link a fix to its parent and final revisions, and link any
+fix-introduced defect to that fix. This records normalized lineage only and leaves the
+Standards/Spec enumeration and three-round cap unchanged.
+
 ### 2. Build the Standards enumeration
 
 Collect what this repo documents about how code is written: `CONTRIBUTING.md`,

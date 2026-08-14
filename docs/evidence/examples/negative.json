@@ -1,0 +1,8 @@
+{
+  "invalid_observations": [
+    {"name":"candidate_is_not_a_producer_kind","producer_kind":"candidate"},
+    {"name":"proposal_is_not_a_producer_kind","producer_kind":"proposal"},
+    {"name":"promotion_is_not_a_producer_kind","producer_kind":"promotion"},
+    {"name":"unvalidated_is_not_a_lesson","producer_kind":"lesson","validation_state":"unvalidated"}
+  ]
+}

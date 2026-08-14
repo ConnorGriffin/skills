@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import importlib.util
 import io
 import json
 import os
-import importlib.util
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -1265,6 +1266,93 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         self.assertIsNotNone(identity)
         self.assertEqual(identity["cwd"], str(ROOT.resolve()))
         self.assertIn(os.getpid(), WORKER_MODULE.group_members(os.getpgrp()))
+
+
+class EvidenceEnvelopeTests(unittest.TestCase):
+    def test_v2_contract_and_provenance_are_vendored(self):
+        evidence = ROOT / "docs" / "evidence"
+
+        self.assertTrue((evidence / "contract-v2.json").is_file())
+        self.assertTrue((evidence / "contract-v2.provenance.json").is_file())
+
+    def test_validator_rejects_a_mutated_vendored_contract(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(
+                run(
+                    ["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"],
+                    cwd=copy,
+                ).returncode,
+                0,
+            )
+            contract = copy / "docs" / "evidence" / "contract-v2.json"
+            contract.write_text("{}\n", encoding="utf-8")
+
+            result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("contract-v2.json", result.stderr)
+
+    def test_validator_rejects_mutated_contract_provenance(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"], cwd=copy).returncode, 0)
+            provenance = copy / "docs" / "evidence" / "contract-v2.provenance.json"
+            payload = json.loads(provenance.read_text(encoding="utf-8"))
+            payload["source_git_blob"] = "0" * 40
+            provenance.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("provenance", result.stderr)
+
+    def test_validator_rejects_a_candidate_presented_as_an_observation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(
+                run(
+                    ["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"],
+                    cwd=copy,
+                ).returncode,
+                0,
+            )
+            positive = copy / "docs" / "evidence" / "examples" / "positive.json"
+            payload = json.loads(positive.read_text(encoding="utf-8"))
+            payload["observations"][0]["producer"]["producer_kind"] = "candidate"
+            positive.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("producer_kind", result.stderr)
+
+    def test_validator_rejects_extra_failure_fields(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"], cwd=copy).returncode, 0)
+            positive = copy / "docs" / "evidence" / "examples" / "positive.json"
+            payload = json.loads(positive.read_text(encoding="utf-8"))
+            failure = next(item for item in payload["observations"] if item["envelope_kind"] == "failure")
+            failure["unexpected"] = "field"
+            positive.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("failure envelope", result.stderr)
 
 
 if __name__ == "__main__":
