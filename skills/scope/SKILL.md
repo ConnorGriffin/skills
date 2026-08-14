@@ -49,6 +49,40 @@ At the moment routing happens, open a ledger before invoking the specialist:
 - The ledger is the durable session state. A fresh agent resumes by reading it, not by
   re-deriving context from chat history.
 
+## Risk contract
+
+For interview-mode work, and for any other bounded plan being declared ready to
+build, settle a risk contract before admission. A Wayfinder map whose work is not yet
+bounded does not need one.
+
+Keep one `### Risk contract` block under the ledger's `Decisions` section:
+
+- **Must prevent:** harmful outcomes the work may never produce.
+- **Must recover:** concrete failures that require automatic recovery.
+- **Accepted failure:** a concrete failure and the exact consequence the user accepts,
+  such as a clear stop with manual recovery, skipped best-effort work, or degraded
+  non-authoritative output.
+- **Unsupported:** inputs or operating conditions the work does not promise to handle.
+- **Evidence owed:** public-interface behaviors and named invariants that require tests
+  or another explicit check.
+
+Give the block one-line `Why:` and `Disposition:` fields rather than tagging every
+line separately. Default `Must prevent` to secret exposure, irreversible loss of
+authoritative data, and silent incorrect success; changing one of those defaults
+requires an explicit user decision. Default rare, recoverable failures to an
+`Accepted failure` with a clear stop and manual recovery, not automatic recovery.
+
+Price the contract from concrete consequences, exposure, and recoverability. Audience
+size is evidence, not an assurance tier: one person's financial tool can be
+high-stakes, while a public toy can be disposable. Do not use a target test count.
+Evidence is owed only by supported behavior, a must-prevent outcome, an enforced
+invariant, or an observed regression.
+
+At admission, copy the risk contract unchanged into the authoritative issue, plan, or
+brief that the implementation and reviews will use. The ledger remains the session
+record; the admitted artifact becomes the downstream authority. Do not declare bounded
+work ready while the contract is missing or still only in the ledger.
+
 ## Evidence v2
 
 Consult [the shared envelope reference](../../docs/evidence/envelope-v2.md) when a

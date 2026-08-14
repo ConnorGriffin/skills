@@ -59,10 +59,20 @@ definitions below are the fallback.
    seam before the second caller exists. A plan that never says what the
    interface looks like is itself an objection — that decision made implicitly
    at build time is how shallow modules happen.
-4. **Scope and complexity budget.** Out-of-scope must be explicit. An edge
-   case earns handling only if it is reachable from inputs the acceptance
-   criteria describe — speculative hardening is a defect in a plan, not a
-   virtue. The right change is the smallest one that meets acceptance.
+4. **Scope, risk contract, and complexity budget.** Out-of-scope must be explicit.
+   For bounded work, load the admitted
+   [risk contract](../scope/SKILL.md#risk-contract). Missing risk decisions block
+   countersign only when the build would otherwise have to invent failure handling,
+   recovery, or evidence obligations. An edge case earns handling only if it is
+   reachable from inputs the acceptance criteria describe **and** its contracted
+   outcome requires handling. A scenario covered by `Accepted failure` or
+   `Unsupported` is not an objection unless the plan claims stronger behavior. If
+   evidence changes the assumed likelihood, consequence, or recoverability, object
+   that the risk decision must reopen; do not silently prescribe hardening. Require
+   evidence only for acceptance criteria, must-prevent outcomes, enforced invariants,
+   and observed regressions — never for a target test count or an exhaustive failure
+   matrix. The right change is the smallest one that meets acceptance and the risk
+   contract.
 5. **Cost.** Is the effort implied by the plan sane for the ask? Flag a plan
    whose blast radius (files touched, migrations, new machinery) is out of
    proportion to its outcome.

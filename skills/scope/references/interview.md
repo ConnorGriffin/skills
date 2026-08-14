@@ -104,6 +104,19 @@ standards document (a charter, architecture guide, or design doc the repo or
 your global instructions provide), it is part of the frontier, not an
 implementation detail:
 
+- **Set the risk contract once the work is bounded.** Follow
+  [scope's risk-contract schema](../SKILL.md#risk-contract). Ask one concrete
+  behavior question after the audience, consequence, and recoverability are known;
+  reopen it only for a failure with materially different stakes. Never ask an abstract
+  "how robust should this be?" question. For example:
+
+  **Q1. If this one-person tool hits a rare malformed-state case, what must happen?**
+  > A. Fail clearly; I repair it manually
+  > B. Preserve work and recover automatically
+  > C. Support every reachable case without intervention
+  >
+  > ↳ *rec A: the state is rare, recoverable, and has one operator*
+
 - **Interface shape is a decision, not a byproduct.** If the plan adds or
   reshapes a module, put its front door on the frontier explicitly — what the
   caller sees, judged by the deep-module test (an interface far simpler than
@@ -112,10 +125,11 @@ implementation detail:
   shallow modules happen. `design-it-twice` (`skills/codebase-design/`) may be
   offered right there as a grounding step for this frontier question, the same
   way `ground it` grounds any other one.
-- **Edge cases are priced, not assumed.** An edge case earns handling only if
-  it is reachable from real inputs (`ground it` measures this). Default the
-  answer to "don't handle it"; make me overrule the default rather than making
-  me strip speculative hardening out later.
+- **Edge cases are priced against the risk contract, not assumed.** An edge case
+  earns handling only if it is reachable from real inputs (`ground it` measures
+  this). Reachability does not automatically earn recovery: default a rare,
+  recoverable case to visible failure and manual recovery. Make me overrule that
+  default rather than making me strip speculative hardening out later.
 
 ## Docs as you go
 
@@ -133,4 +147,6 @@ The session is done when the frontier is empty: every branch has been visited an
 nothing remains silently assumed. End with a compact summary of every decision made
 (the shared understanding), flag anything deferred or defaulted, and confirm every
 ledger disposition — `→ ADR`, `→ issue` — has been discharged per scope's exit
-protocol. Do not enact the plan until I confirm we have reached a shared understanding.
+protocol. For bounded work, confirm the risk contract has been copied into the
+admitted issue, plan, or brief. Do not enact the plan until I confirm we have reached
+a shared understanding.

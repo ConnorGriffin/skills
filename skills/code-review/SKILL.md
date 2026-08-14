@@ -159,13 +159,29 @@ joins the enumeration: who calls whom, and at which point. A change reviewed onl
 in isolation passes clean and then spends the next round on nothing but seam
 defects.
 
-If no spec exists, skip the Spec sub-agent and say so in the report. Do not
-substitute the PR description written by the same author as the code.
+Before declaring the Spec axis unavailable, extract the admitted
+[risk contract](../scope/SKILL.md#risk-contract) from the spec, then look in the
+matching scope ledger if necessary. Do not substitute the PR description written by
+the same author as the code.
+
+If neither a spec nor a risk contract exists, skip the Spec sub-agent and say so. A
+ledger-only contract still bounds the review: run the Spec sub-agent against it and
+include an unmet item stating that admission never promoted it into an authoritative
+artifact. If a bounded spec exists but failure handling, recovery, or evidence scope
+is material and its contract is missing, add that omission as an unmet Spec item;
+otherwise do not manufacture one.
+
+Append `Must prevent`, `Must recover`, and `Evidence owed` entries to the Spec
+enumeration. Carry `Accepted failure` and `Unsupported` entries as explicit bounds for
+both sub-agents. A reviewer may challenge a bound only with evidence that changes its
+assumed likelihood, consequence, or recoverability; label that result `reopen scope`,
+not a code finding.
 
 ### 4. Run both axes in parallel
 
 Two sub-agents, one message, `general-purpose` for both. Each gets: the diff
-command, the commit list, its enumeration, and its brief.
+command, the commit list, its enumeration, the risk contract when one exists, and its
+brief.
 
 **Shared brief** — give this to both:
 
@@ -176,7 +192,10 @@ command, the commit list, its enumeration, and its brief.
 > enforces. Do not report style preferences the repo has not written down. Any
 > executable literal in the diff or its documents — a regex, a shell fragment, a
 > workflow expression, a query — is verified by executing it against a real
-> input, never by reading it. Under 400 words.
+> input, never by reading it. Behavior matching an `Accepted failure` or `Unsupported`
+> entry is accepted risk, not a finding. A missing test is a finding only
+> when the enumeration or risk contract says evidence is owed; test count and an
+> uncovered branch alone prove nothing. Under 400 words.
 
 **Standards brief:**
 
@@ -194,8 +213,11 @@ command, the commit list, its enumeration, and its brief.
 > criterion and naming the code or test that settles it. Then report behaviour
 > in the diff that no criterion asked for (scope creep). Do not re-litigate
 > decisions the plan already settled, and do not report unticked checkboxes as
-> findings — an unchecked box for work the plan defers is not a defect. State
-> how many criteria you checked.
+> findings — an unchecked box for work the plan defers is not a defect. Return
+> met / partial / unmet / not verifiable for every must-prevent, must-recover, and
+> evidence-owed entry. Report accepted-risk bounds only when the implementation
+> contradicts them or added unasked-for machinery to handle them. State how many
+> criteria and risk entries you checked.
 
 ### 5. Aggregate and report
 
@@ -209,6 +231,11 @@ the number that makes a clean round mean something.
 List `unverified` items separately and briefly, if any. They are not findings.
 They are the honest residue, and naming them stops a later round from
 re-deriving the same suspicion as if it were new.
+
+List any `reopen scope` items separately from findings. They return a risk decision to
+the user because new evidence invalidated its premise; they are not instructions to
+harden the implementation. Do not list accepted risks merely to make the report look
+complete.
 
 End with one line: findings per axis, and the worst issue *within each axis*.
 Never pick a single winner across axes.
