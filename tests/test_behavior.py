@@ -11,7 +11,7 @@ import sys
 import tempfile
 import time
 import unittest
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Optional
 from unittest import mock
@@ -241,6 +241,9 @@ class CodexWorkerTests(unittest.TestCase):
             "pathlib.Path(os.environ['FAKE_CODEX_ARGUMENTS']).write_text(json.dumps(sys.argv[1:]))\n"
             "if os.environ.get('FAKE_CODEX_CWD'):\n"
             "    pathlib.Path(os.environ['FAKE_CODEX_CWD']).write_text(os.getcwd())\n"
+            "if os.environ.get('FAKE_CODEX_WAIT_FOR'):\n"
+            "    pathlib.Path(os.environ['FAKE_CODEX_STARTED']).touch()\n"
+            "    while not pathlib.Path(os.environ['FAKE_CODEX_WAIT_FOR']).exists(): time.sleep(0.01)\n"
             "if os.environ.get('FAKE_CODEX_HOLD'):\n"
             "    child = subprocess.Popen([sys.executable, '-c', \"import signal,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(30)\"])\n"
             "    pathlib.Path(os.environ['FAKE_CODEX_CHILD']).write_text(str(child.pid))\n"
@@ -359,10 +362,16 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertEqual(state["lifecycle"], "exited")
         self.assertEqual(state["session_id"], "worker-1")
         self.assertEqual(state["cwd"], str(self.worktree.resolve()))
-        self.assertEqual(state["pid"], state["pgid"])
-        self.assertEqual(state["pid"], state["sid"])
-        self.assertIn("seconds", state["birth"])
-        self.assertIn("microseconds", state["birth"])
+        if sys.platform == "darwin":
+            self.assertEqual(state["pid"], state["pgid"])
+            self.assertEqual(state["pid"], state["sid"])
+            self.assertIn("seconds", state["birth"])
+            self.assertIn("microseconds", state["birth"])
+            self.assertNotIn("family_semantics", state)
+        else:
+            self.assertEqual(state["family_semantics"], "unsupported")
+            self.assertEqual(state["generation"], 1)
+            self.assertFalse({"pid", "pgid", "sid", "birth"} & set(state))
         arguments = json.loads(self.arguments.read_text(encoding="utf-8"))
         self.assertIn("--sandbox", arguments)
         self.assertIn(str(self.worktree.resolve()), arguments)
@@ -546,6 +555,7 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertIn("refuses the control checkout", result.stderr)
         self.assertFalse(self.arguments.exists())
 
+    @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
     def test_stop_kills_only_the_recorded_group_after_its_leader_exits(self):
         child = self.scratch / "child-pid"
         self.environment["FAKE_CODEX_HOLD"] = "1"
@@ -570,6 +580,7 @@ class CodexWorkerTests(unittest.TestCase):
                 self.worker("stop", "--state", str(self.state), "--cwd", str(self.worktree))
             launcher.wait(timeout=5)
 
+    @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
     def test_stopping_one_distinct_worktree_group_leaves_the_other_group_alive(self):
         other_worktree = self.scratch / "other-worktree"
         other_worktree.mkdir()
@@ -596,6 +607,7 @@ class CodexWorkerTests(unittest.TestCase):
             first.wait(timeout=5)
             second.wait(timeout=5)
 
+    @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
     def test_identity_and_cwd_mismatches_refuse_without_signaling_the_fixture(self):
         child = self.scratch / "child-pid"
         launcher = self.launch_holding_worker(self.state, self.worktree, child)
@@ -624,6 +636,7 @@ class CodexWorkerTests(unittest.TestCase):
             self.stop_fixture(self.state, self.worktree)
             launcher.wait(timeout=5)
 
+    @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
     def test_concurrent_resume_cannot_win_against_a_durable_launch_claim(self):
         started = self.start('{"type":"thread.started","thread_id":"worker-1"}\n')
         self.assertEqual(started.returncode, 0, started.stderr)
@@ -646,6 +659,51 @@ class CodexWorkerTests(unittest.TestCase):
         repeated = self.worker("resume", "--codex", str(self.binary), "--state", str(self.state), "again")
         self.assertEqual(repeated.returncode, 0, repeated.stderr)
 
+    @unittest.skipIf(sys.platform == "darwin", "requires unsupported process-family semantics")
+    def test_portable_concurrent_resume_refuses_the_stale_contender(self):
+        started = self.start('{"type":"thread.started","thread_id":"worker-1"}\n')
+        self.assertEqual(started.returncode, 0, started.stderr)
+        first_started = self.scratch / "first-resume-started"
+        release = self.scratch / "release-first-resume"
+        environment = self.environment.copy()
+        environment.update(
+            {
+                "FAKE_CODEX_WAIT_FOR": str(release),
+                "FAKE_CODEX_STARTED": str(first_started),
+                "FAKE_CODEX_OUTPUT": (
+                    '{"type":"thread.started","thread_id":"worker-1"}\n'
+                    '{"type":"item.completed","item":{"type":"agent_message","text":"resumed"}}\n'
+                ),
+            }
+        )
+        command = [
+            "python3", str(CODEX_WORKER), "resume", "--codex", str(self.binary),
+            "--state", str(self.state), "continue",
+        ]
+        first = subprocess.Popen(
+            command, cwd=ROOT, env=environment,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        deadline = time.monotonic() + 3
+        while not first_started.exists() and time.monotonic() < deadline:
+            time.sleep(0.02)
+        self.assertTrue(first_started.exists(), "portable resume did not start")
+        second = subprocess.Popen(
+            command, cwd=ROOT, env=environment,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        time.sleep(0.1)
+        release.touch()
+        first_output, first_error = first.communicate(timeout=5)
+        second_output, second_error = second.communicate(timeout=5)
+
+        self.assertEqual(first.returncode, 0, first_error)
+        self.assertEqual(json.loads(first_output)["final_message"], "resumed")
+        self.assertNotEqual(second.returncode, 0, second_output)
+        self.assertIn("unchanged terminal worker state", second_error)
+        self.assertEqual(json.loads(self.state.read_text(encoding="utf-8"))["generation"], 2)
+
+    @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
     def test_lock_contended_stop_and_resume_cannot_both_win(self):
         child = self.scratch / "contended-child"
         launcher = self.launch_holding_worker(self.state, self.worktree, child)
@@ -781,6 +839,18 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             **self.identity,
         }
 
+    def portable_state(self, generation=1):
+        return {
+            "version": WORKER_MODULE.STATE_VERSION,
+            "lifecycle": "exited",
+            "session_id": "worker-1",
+            "model": "Terra",
+            "sandbox": "read-only",
+            "cwd": str(self.cwd),
+            "family_semantics": WORKER_MODULE.FAMILY_SEMANTICS_UNSUPPORTED,
+            "generation": generation,
+        }
+
     def arguments(self):
         return argparse.Namespace(state=self.state, cwd=self.cwd, grace_seconds=0.01)
 
@@ -908,6 +978,46 @@ class WorkerLifecycleContractTests(unittest.TestCase):
                     members.assert_not_called()
                     killpg.assert_not_called()
 
+    def test_malformed_portable_mutations_are_rejected_before_any_process_probe_or_signal(self):
+        base = self.portable_state()
+        mutations = (
+            ("missing family semantics", {key: value for key, value in base.items() if key != "family_semantics"}),
+            ("family semantics type", {**base, "family_semantics": []}),
+            ("family semantics value", {**base, "family_semantics": "recoverable"}),
+            ("missing generation", {key: value for key, value in base.items() if key != "generation"}),
+            ("generation type", {**base, "generation": "1"}),
+            ("generation bool", {**base, "generation": True}),
+            ("generation zero", {**base, "generation": 0}),
+            ("generation overflow", {**base, "generation": 2**64}),
+            ("nonterminal lifecycle", {**base, "lifecycle": "running"}),
+            ("fabricated identity", {**base, "pid": 41}),
+        )
+        for name, state in mutations:
+            operations = (
+                ("stop", WORKER_MODULE.stop, self.arguments()),
+                ("verify", WORKER_MODULE.verify, self.arguments()),
+                ("resume", WORKER_MODULE.resume, self.resume_arguments()),
+            )
+            for operation_name, operation, arguments in operations:
+                with self.subTest(name=name, operation=operation_name):
+                    WORKER_MODULE.atomic_write(self.state, state)
+                    error = io.StringIO()
+                    with (
+                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()) as libproc,
+                        mock.patch.object(WORKER_MODULE, "gated_process") as gated,
+                        mock.patch.object(WORKER_MODULE, "live_identity") as identity,
+                        mock.patch.object(WORKER_MODULE, "group_members") as members,
+                        mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
+                        redirect_stderr(error),
+                    ):
+                        self.assertEqual(operation(arguments), 1)
+                    self.assertTrue(error.getvalue().startswith("codex-worker: state"))
+                    libproc.assert_not_called()
+                    gated.assert_not_called()
+                    identity.assert_not_called()
+                    members.assert_not_called()
+                    killpg.assert_not_called()
+
     def test_unsupported_platform_returns_the_exact_code_without_signaling(self):
         WORKER_MODULE.atomic_write(self.state, self.family_state())
         for operation in (WORKER_MODULE.stop, WORKER_MODULE.verify):
@@ -925,6 +1035,79 @@ class WorkerLifecycleContractTests(unittest.TestCase):
                 )
                 killpg.assert_not_called()
 
+    def test_forced_unsupported_start_resume_and_cleanup_contract(self):
+        output = (
+            '{"type":"thread.started","thread_id":"worker-1"}\n'
+            '{"type":"item.completed","item":{"type":"agent_message","text":"answer"}}\n'
+        )
+        arguments = argparse.Namespace(
+            state=self.state,
+            codex="codex",
+            prompt="do the work",
+            model="Terra",
+            sandbox="read-only",
+            cwd=self.cwd,
+            control_checkout=None,
+        )
+        completed = subprocess.CompletedProcess([], 0, stdout=output, stderr="")
+        with (
+            mock.patch.object(WORKER_MODULE, "_libproc", return_value=None),
+            mock.patch.object(WORKER_MODULE.subprocess, "run", return_value=completed) as run_worker,
+            mock.patch.object(WORKER_MODULE, "gated_process") as gated,
+            mock.patch.object(WORKER_MODULE, "latest_rate_limits", return_value=None),
+            redirect_stdout(io.StringIO()),
+            redirect_stderr(io.StringIO()),
+        ):
+            self.assertEqual(WORKER_MODULE.start(arguments), 0)
+
+        state = WORKER_MODULE.read_state(self.state)
+        self.assertEqual(state["version"], WORKER_MODULE.STATE_VERSION)
+        self.assertEqual(state["lifecycle"], "exited")
+        self.assertEqual(state["session_id"], "worker-1")
+        self.assertEqual(state["family_semantics"], "unsupported")
+        self.assertEqual(state["generation"], 1)
+        self.assertFalse({"pid", "pgid", "sid", "birth"} & set(state))
+        run_worker.assert_called_once()
+        gated.assert_not_called()
+
+        refusal = io.StringIO()
+        with (
+            mock.patch.object(WORKER_MODULE, "_libproc", return_value=None),
+            mock.patch.object(WORKER_MODULE.subprocess, "run", return_value=completed) as resume_worker,
+            mock.patch.object(WORKER_MODULE, "gated_process") as resume_gate,
+            mock.patch.object(WORKER_MODULE, "latest_rate_limits", return_value=None),
+            mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
+            redirect_stdout(io.StringIO()),
+            redirect_stderr(refusal),
+        ):
+            self.assertEqual(WORKER_MODULE.resume(self.resume_arguments()), 0)
+            self.assertEqual(WORKER_MODULE.stop(self.arguments()), 1)
+            self.assertEqual(WORKER_MODULE.verify(self.arguments()), 1)
+
+        resumed = WORKER_MODULE.read_state(self.state)
+        self.assertTrue(WORKER_MODULE.valid_portable_schema(resumed))
+        self.assertEqual(resumed["generation"], 2)
+        self.assertIn("resume", resume_worker.call_args.args[0])
+        resume_gate.assert_not_called()
+        self.assertEqual(
+            refusal.getvalue(),
+            f"codex-worker: {WORKER_MODULE.UNSUPPORTED}\n" * 2,
+        )
+        killpg.assert_not_called()
+
+        with (
+            mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
+            mock.patch.object(WORKER_MODULE, "live_identity") as identity,
+            mock.patch.object(WORKER_MODULE, "group_members") as members,
+            mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
+            redirect_stderr(io.StringIO()),
+        ):
+            self.assertEqual(WORKER_MODULE.stop(self.arguments()), 1)
+            self.assertEqual(WORKER_MODULE.verify(self.arguments()), 1)
+        identity.assert_not_called()
+        members.assert_not_called()
+        killpg.assert_not_called()
+
     def test_already_exited_leader_with_empty_group_stops_without_a_signal(self):
         WORKER_MODULE.atomic_write(self.state, self.family_state())
         with mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()), mock.patch.object(WORKER_MODULE, "live_identity", return_value=None), mock.patch.object(WORKER_MODULE, "group_members", return_value=[]), mock.patch.object(WORKER_MODULE.os, "killpg") as killpg:
@@ -932,6 +1115,7 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             self.assertEqual(WORKER_MODULE.read_state(self.state)["lifecycle"], "stopped")
             killpg.assert_not_called()
 
+    @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
     def test_launch_gate_eof_exits_before_exec_with_a_dedicated_session_identity(self):
         marker = self.root / "executed"
         process, release = WORKER_MODULE.gated_process(
@@ -1063,21 +1247,24 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             self.assertEqual(WORKER_MODULE.resume(argparse.Namespace(state=self.state, codex="codex", prompt="continue")), 0)
             self.assertEqual(launch.call_args.args[2]["lifecycle"], "launching")
 
-    def test_darwin_probe_contract_and_no_global_cleanup_authority(self):
+    def test_process_family_constants_and_no_global_cleanup_authority(self):
         self.assertEqual(WORKER_MODULE.BSD_SIZE, 136)
         self.assertEqual(WORKER_MODULE.VNODE_SIZE, 2352)
         self.assertEqual(WORKER_MODULE.PROC_PIDTBSDINFO, 3)
         self.assertEqual(WORKER_MODULE.PROC_PIDVNODEPATHINFO, 9)
-        identity = WORKER_MODULE.live_identity(os.getpid())
-        self.assertIsNotNone(identity)
-        self.assertEqual(identity["cwd"], str(ROOT.resolve()))
-        self.assertIn(os.getpid(), WORKER_MODULE.group_members(os.getpgrp()))
         source = CODEX_WORKER.read_text(encoding="utf-8")
         instructions = (ROOT / "skills" / "orchestrate" / "SKILL.md").read_text(encoding="utf-8")
         self.assertNotIn("pkill", source)
         self.assertNotIn("proc_listchildpids", source)
         self.assertNotIn("proc_name", source)
         self.assertIn("Successors never discover or clean", instructions)
+
+    @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
+    def test_darwin_probe_contract(self):
+        identity = WORKER_MODULE.live_identity(os.getpid())
+        self.assertIsNotNone(identity)
+        self.assertEqual(identity["cwd"], str(ROOT.resolve()))
+        self.assertIn(os.getpid(), WORKER_MODULE.group_members(os.getpgrp()))
 
 
 if __name__ == "__main__":
