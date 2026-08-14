@@ -277,6 +277,31 @@ def validate_evidence_examples(errors: list[str]) -> None:
         "decline": {"settles", "addresses"},
         "settlement": {"settles", "verifies"},
     }
+    lineage_target_kinds = {
+        ("criterion", "derives_from"): {"claim"},
+        ("decision", "governs"): {"criterion"},
+        ("disposition", "addresses"): {"criterion"},
+        ("disposition", "settles"): {"decision"},
+        ("objection", "derives_from"): {"criterion"},
+        ("revision", "revises"): {"criterion"},
+        ("revision", "addresses"): {"objection"},
+        ("verdict", "settles"): {"objection"},
+        ("verdict", "verifies"): {"revision"},
+        ("finding", "derives_from"): {"criterion"},
+        ("finding", "refutes"): {"finding"},
+        ("review_action", "addresses"): {"finding"},
+        ("fix", "implements"): {"review_action"},
+        ("fix", "addresses"): {"finding"},
+        ("verification", "refutes"): {"objection", "finding"},
+        ("verification", "verifies"): {"fix", "revision", "slice"},
+        ("delegation", "derives_from"): {"criterion"},
+        ("slice", "derives_from"): {"delegation"},
+        ("slice", "governs"): {"criterion"},
+        ("decline", "addresses"): {"slice"},
+        ("decline", "settles"): {"delegation"},
+        ("settlement", "settles"): {"finding", "delegation"},
+        ("settlement", "verifies"): {"verification"},
+    }
     snapshots: dict[str, set[str]] = {}
     snapshot_counts: dict[str, int] = {}
     observation_ids = [
@@ -284,9 +309,20 @@ def validate_evidence_examples(errors: list[str]) -> None:
         for observation in observations
         if isinstance(observation, dict)
     ]
-    if len(observation_ids) != len(set(observation_ids)):
+    normalized_observation_ids = [
+        observation_id
+        for observation_id in observation_ids
+        if isinstance(observation_id, str)
+    ]
+    if len(normalized_observation_ids) != len(set(normalized_observation_ids)):
         fail(errors, "docs/evidence/examples/positive.json: duplicate observation_id")
-    all_observation_ids = set(observation_ids)
+    all_observation_ids = set(normalized_observation_ids)
+    observations_by_id = {
+        observation["observation_id"]: observation
+        for observation in observations
+        if isinstance(observation, dict)
+        and isinstance(observation.get("observation_id"), str)
+    }
     seen_observation_ids: set[str] = set()
     seen_producer_kinds: set[str] = set()
     seen_failure_classes: set[str] = set()
@@ -325,7 +361,8 @@ def validate_evidence_examples(errors: list[str]) -> None:
                 fail(errors, f"{prefix}: subject fields are not a contract subject")
             elif not isinstance(subject.get("revision"), str) or not subject["revision"]:
                 fail(errors, f"{prefix}: subject lacks an immutable revision")
-            seen_observation_ids.add(observation_id)
+            if is_digest(observation_id):
+                seen_observation_ids.add(observation_id)
             continue
         if set(observation) != producer_fields:
             fail(errors, f"{prefix}: producer envelope fields are not closed")
@@ -354,16 +391,21 @@ def validate_evidence_examples(errors: list[str]) -> None:
         elif "content_digest" in subject and not is_digest(subject["content_digest"]):
             fail(errors, f"{prefix}: content subject lacks a normalized digest")
         elif subject.get("subject_kind") == "working_tree_snapshot":
-            if not is_digest(subject["revision"]) or not re.fullmatch(
+            snapshot_match = re.fullmatch(
                 r"base=[0-9a-f]{40};head=[0-9a-f]{40}", subject["subject"]
-            ):
+            )
+            if not is_digest(subject["revision"]) or not snapshot_match:
                 fail(errors, f"{prefix}: working tree snapshot identity is not normalized")
+            elif (not isinstance(source, dict) or
+                  source.get("revision") != snapshot_match.group(0).rsplit("head=", 1)[1]):
+                fail(errors, f"{prefix}: snapshot head must match source revision")
             snapshots.setdefault(subject["subject"], set()).add(subject["revision"])
             snapshot_counts[subject["subject"]] = snapshot_counts.get(subject["subject"], 0) + 1
         links = observation["links"]
         if not isinstance(links, list) or len(links) > contract["max_links"]:
             fail(errors, f"{prefix}: invalid links")
-            seen_observation_ids.add(observation_id)
+            if is_digest(observation_id):
+                seen_observation_ids.add(observation_id)
             continue
         if [link.get("ordinal") for link in links if isinstance(link, dict)] != list(range(len(links))):
             fail(errors, f"{prefix}: lineage links must have dense ordinals")
@@ -383,6 +425,22 @@ def validate_evidence_examples(errors: list[str]) -> None:
                 fail(errors, f"{prefix}: lineage target is not a valid observation")
             elif target not in seen_observation_ids:
                 fail(errors, f"{prefix}: lineage must target an earlier observation")
+            else:
+                target_observation = observations_by_id[target]
+                target_producer = target_observation.get("producer", {})
+                expected_target_kinds = lineage_target_kinds.get(
+                    (producer.get("producer_kind"), link["relation"])
+                )
+                same_lifecycle = (
+                    isinstance(target_observation.get("source"), dict)
+                    and isinstance(source, dict)
+                    and target_observation["source"].get("scope") == source.get("scope")
+                )
+                if (not isinstance(target_producer, dict) or
+                        expected_target_kinds is None or
+                        target_producer.get("producer_kind") not in expected_target_kinds or
+                        not same_lifecycle):
+                    fail(errors, f"{prefix}: invalid lineage target kind or lifecycle")
         producer_kind = producer.get("producer_kind") if isinstance(producer, dict) else None
         if producer_kind in permitted_relations and used_relations - permitted_relations[producer_kind]:
             fail(errors, f"{prefix}: lineage relation is not permitted for {producer_kind}")
@@ -390,7 +448,8 @@ def validate_evidence_examples(errors: list[str]) -> None:
             fail(errors, f"{prefix}: required lineage is missing for {producer_kind}")
         if producer_kind == "verification" and not used_relations & {"verifies", "refutes"}:
             fail(errors, f"{prefix}: required lineage is missing for verification")
-        seen_observation_ids.add(observation_id)
+        if is_digest(observation_id):
+            seen_observation_ids.add(observation_id)
     if seen_producer_kinds != producer_kinds:
         fail(errors, "docs/evidence/examples/positive.json: producer kind matrix is incomplete")
     if seen_failure_classes != failure_classes:

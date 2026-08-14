@@ -1427,6 +1427,22 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("required lineage", result.stderr)
 
+    def test_validator_rejects_cross_wired_lineage(self):
+        def cross_wire_revision(payload):
+            revision = next(
+                item
+                for item in payload["observations"]
+                if item.get("producer", {}).get("producer_kind") == "revision"
+            )
+            revision["links"][0]["target_event_id"] = payload["observations"][0][
+                "observation_id"
+            ]
+
+        result = self.mutated_validation(cross_wire_revision)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("lineage target kind or lifecycle", result.stderr)
+
     def test_validator_rejects_a_duplicate_observation_id(self):
         def duplicate_id(payload):
             payload["observations"][1]["observation_id"] = payload["observations"][0][
@@ -1437,6 +1453,16 @@ class EvidenceEnvelopeTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("duplicate observation_id", result.stderr)
+
+    def test_validator_reports_an_unhashable_observation_id(self):
+        def replace_id(payload):
+            payload["observations"][0]["observation_id"] = {}
+
+        result = self.mutated_validation(replace_id)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("observation identity is not normalized", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_validator_rejects_a_sparse_link_ordinal(self):
         def sparse_ordinal(payload):
@@ -1462,6 +1488,20 @@ class EvidenceEnvelopeTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("distinct dirty snapshots", result.stderr)
+
+    def test_validator_rejects_snapshot_head_source_confusion(self):
+        def confuse_head(payload):
+            for item in payload["observations"]:
+                subject = item.get("subject", {})
+                if subject.get("subject_kind") == "working_tree_snapshot":
+                    subject["subject"] = subject["subject"].replace(
+                        "head=" + "b" * 40, "head=" + "c" * 40
+                    )
+
+        result = self.mutated_validation(confuse_head)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("snapshot head must match source revision", result.stderr)
 
 
 if __name__ == "__main__":
