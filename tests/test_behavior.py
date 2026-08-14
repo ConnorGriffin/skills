@@ -1367,6 +1367,24 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("producer_kind", result.stderr)
 
+    def test_validator_reports_a_non_object_negative_fixture(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"], cwd=copy).returncode, 0)
+            negative = copy / "docs" / "evidence" / "examples" / "negative.json"
+            payload = json.loads(negative.read_text(encoding="utf-8"))
+            payload["invalid_observations"][0] = []
+            negative.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("fixture does not reject a prohibited kind", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_validator_rejects_extra_failure_fields(self):
         with tempfile.TemporaryDirectory() as temporary:
             copy = Path(temporary) / "skills"

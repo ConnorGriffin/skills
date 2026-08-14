@@ -496,6 +496,7 @@ def validate_evidence_examples(errors: list[str]) -> None:
                 not isinstance(fixture.get("producer_kind"), str) or
                 fixture["producer_kind"] not in prohibited):
             fail(errors, "docs/evidence/examples/negative.json: fixture does not reject a prohibited kind")
+            continue
         elif fixture["producer_kind"] in producer_kinds:
             fail(errors, "docs/evidence/examples/negative.json: prohibited kind is admitted")
         if fixture.get("producer_kind") == "lesson" and fixture.get("validation_state") != "unvalidated":
