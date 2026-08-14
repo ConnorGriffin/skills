@@ -17,6 +17,12 @@ operator says otherwise. Detect the parent before dispatching:
 
 Before any routing, check whether the Codex side has budget left:
 
+0. **Claude parent, presence check first:** run `command -v codex` before
+   spending anything on a probe. If the Codex CLI is absent from PATH, skip
+   step 1 entirely and go straight to the same **Claude-only** branch as
+   headroom ≤ 5% / unknown below; tell the operator once. A Codex UI parent
+   cannot land on this branch — the CLI exists there by construction — so the
+   check only applies to a Claude parent.
 1. Probe fresh with a trivial one-word worker run (cheapest available Codex
    model, `read-only`). The Codex adapter binds headroom to that worker's
    captured session ID: it finds the rollout whose `session_meta.payload.session_id`
