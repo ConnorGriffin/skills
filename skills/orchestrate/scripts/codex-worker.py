@@ -1,20 +1,43 @@
 #!/usr/bin/env python3
-"""Start and resume isolated Codex CLI workers for /orchestrate."""
+"""Launch, resume, stop, and verify one durable Codex worker process family."""
 
 from __future__ import annotations
 
 import argparse
+import ctypes
+import fcntl
 import json
 import os
+import signal
+import struct
 import subprocess
 import sys
+import tempfile
+import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
+STATE_VERSION = 2
+UNSUPPORTED = "UNSUPPORTED_PROCESS_FAMILY_SEMANTICS"
+TERMINAL = {"stopped", "exited"}
+TRANSITIONS = {
+    "launching": {"running", "stopping", "exited"},
+    "running": {"stopping", "exited"},
+    "stopping": {"stopped", "exited"},
+    "stopped": set(),
+    "exited": set(),
+}
+PROC_PIDTBSDINFO = 3
+PROC_PIDVNODEPATHINFO = 9
+BSD_SIZE = 136
+VNODE_SIZE = 2352
+VNODE_CWD_OFFSET = 152
 
-def fail(message: str) -> int:
+
+def fail(message: str, code: int = 1) -> int:
     print(f"codex-worker: {message}", file=sys.stderr)
-    return 1
+    return code
 
 
 def resolved_directory(value: str) -> Path:
@@ -25,8 +48,117 @@ def resolved_directory(value: str) -> Path:
 
 
 def is_within(path: Path, directory: Path) -> bool:
-    """Return whether a resolved path is the directory or one of its descendants."""
     return path == directory or directory in path.parents
+
+
+@contextmanager
+def state_lock(path: Path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock = path.with_name(path.name + ".lock")
+    with lock.open("a+") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        yield
+
+
+def atomic_write(path: Path, state: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=path.name + ".", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as file:
+            json.dump(state, file, indent=2, sort_keys=True)
+            file.write("\n")
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temporary, path)
+        parent = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(parent)
+        finally:
+            os.close(parent)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def read_state(path: Path, *, family_required: bool = False) -> dict[str, Any] | None:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(value, dict):
+        return None
+    if family_required and value.get("version") != STATE_VERSION:
+        return None
+    return value
+
+
+def transition(path: Path, state: dict[str, Any], lifecycle: str) -> dict[str, Any]:
+    previous = state.get("lifecycle")
+    if previous not in TRANSITIONS or lifecycle not in TRANSITIONS[previous]:
+        raise ValueError(f"illegal lifecycle transition {previous!r} to {lifecycle!r}")
+    updated = dict(state)
+    updated["lifecycle"] = lifecycle
+    atomic_write(path, updated)
+    return updated
+
+
+def _libproc() -> ctypes.CDLL | None:
+    if sys.platform != "darwin":
+        return None
+    try:
+        library = ctypes.CDLL("/usr/lib/libproc.dylib", use_errno=True)
+        library.proc_pidinfo.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_uint64, ctypes.c_void_p, ctypes.c_int]
+        library.proc_pidinfo.restype = ctypes.c_int
+        library.proc_listpgrppids.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
+        library.proc_listpgrppids.restype = ctypes.c_int
+        return library
+    except OSError:
+        return None
+
+
+def live_identity(pid: int) -> dict[str, Any] | None:
+    library = _libproc()
+    if library is None:
+        return None
+    bsd = ctypes.create_string_buffer(BSD_SIZE)
+    ctypes.set_errno(0)
+    if library.proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, bsd, BSD_SIZE) != BSD_SIZE:
+        return None
+    cwd = ctypes.create_string_buffer(VNODE_SIZE)
+    ctypes.set_errno(0)
+    if library.proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, cwd, VNODE_SIZE) != VNODE_SIZE:
+        return None
+    try:
+        returned_pid = struct.unpack_from("<I", bsd.raw, 12)[0]
+        pgid = struct.unpack_from("<I", bsd.raw, 100)[0]
+        seconds, microseconds = struct.unpack_from("<QQ", bsd.raw, 120)
+        sid = os.getsid(pid)
+        directory = cwd.raw[VNODE_CWD_OFFSET:].split(b"\0", 1)[0].decode("utf-8")
+        canonical_cwd = str(Path(directory).resolve(strict=True))
+    except (OSError, UnicodeDecodeError, struct.error):
+        return None
+    if returned_pid != pid or not directory:
+        return None
+    return {"pid": pid, "pgid": pgid, "sid": sid, "cwd": canonical_cwd,
+            "birth": {"seconds": seconds, "microseconds": microseconds}}
+
+
+def group_members(pgid: int) -> list[int] | None:
+    library = _libproc()
+    if library is None:
+        return None
+    capacity = 64
+    while capacity <= 65536:
+        values = (ctypes.c_int * capacity)()
+        ctypes.set_errno(0)
+        count = library.proc_listpgrppids(pgid, values, ctypes.sizeof(values))
+        if count < 0 or (count == 0 and ctypes.get_errno()):
+            return None
+        members = list(values[:count])
+        if count < capacity:
+            return members
+        capacity *= 2
+    return None
 
 
 def parse_jsonl(output: str) -> tuple[list[dict[str, Any]], str | None]:
@@ -45,261 +177,245 @@ def parse_jsonl(output: str) -> tuple[list[dict[str, Any]], str | None]:
 
 
 def captured_thread_id(items: list[dict[str, Any]]) -> tuple[str | None, str | None]:
-    if any(
-        item.get("type") == "item.completed"
-        and isinstance(item.get("item"), dict)
-        and item["item"].get("type") == "error"
-        for item in items
-    ):
+    if any(item.get("type") == "item.completed" and isinstance(item.get("item"), dict) and item["item"].get("type") == "error" for item in items):
         return None, "Codex reported an error item"
-    ids = {
-        item["thread_id"]
-        for item in items
-        if item.get("type") == "thread.started"
-        and isinstance(item.get("thread_id"), str)
-        and item["thread_id"]
-    }
-    if len(ids) != 1:
-        return None, "missing or ambiguous thread ID in Codex JSONL"
-    return ids.pop(), None
+    ids = {item["thread_id"] for item in items if item.get("type") == "thread.started" and isinstance(item.get("thread_id"), str) and item["thread_id"]}
+    return (ids.pop(), None) if len(ids) == 1 else (None, "missing or ambiguous thread ID in Codex JSONL")
 
 
 def final_agent_message(items: list[dict[str, Any]]) -> tuple[str | None, str | None]:
-    message = None
-    for entry in items:
-        item = entry.get("item")
-        if (
-            entry.get("type") == "item.completed"
-            and isinstance(item, dict)
-            and item.get("type") == "agent_message"
-            and isinstance(item.get("text"), str)
-        ):
-            message = item["text"]
-    if message is None:
-        return None, "missing completed agent message in Codex JSONL"
-    return message, None
+    messages = [item["item"]["text"] for item in items if item.get("type") == "item.completed" and isinstance(item.get("item"), dict) and item["item"].get("type") == "agent_message" and isinstance(item["item"].get("text"), str)]
+    return (messages[-1], None) if messages else (None, "missing completed agent message in Codex JSONL")
 
 
 def latest_rate_limits(session_id: str) -> dict[str, Any] | None:
     root = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "sessions"
-    matches: list[Path] = []
+    matches = []
     for rollout in root.rglob("*.jsonl") if root.exists() else ():
-        try:
-            entries, error = parse_jsonl(rollout.read_text(encoding="utf-8"))
-        except OSError:
-            continue
-        if error is None and any(
-            entry.get("type") == "session_meta"
-            and isinstance(entry.get("payload"), dict)
-            and entry["payload"].get("session_id") == session_id
-            for entry in entries
-        ):
-            matches.append(rollout)
-    if not matches:
-        return None
-    rollout = max(matches, key=lambda path: path.stat().st_mtime_ns)
-    entries, error = parse_jsonl(rollout.read_text(encoding="utf-8"))
-    if error:
-        return None
-    rate_limits = None
+        try: entries, error = parse_jsonl(rollout.read_text(encoding="utf-8"))
+        except OSError: continue
+        if error is None and any(entry.get("type") == "session_meta" and isinstance(entry.get("payload"), dict) and entry["payload"].get("session_id") == session_id for entry in entries): matches.append(rollout)
+    if not matches: return None
+    entries, error = parse_jsonl(max(matches, key=lambda item: item.stat().st_mtime_ns).read_text(encoding="utf-8"))
+    if error: return None
+    limits = None
     for entry in entries:
         payload = entry.get("payload")
-        if (
-            entry.get("type") == "event_msg"
-            and isinstance(payload, dict)
-            and payload.get("type") == "token_count"
-        ):
-            candidate = payload.get("rate_limits")
-            rate_limits = candidate if isinstance(candidate, dict) else None
-    return rate_limits
+        if entry.get("type") == "event_msg" and isinstance(payload, dict) and payload.get("type") == "token_count": limits = payload.get("rate_limits") if isinstance(payload.get("rate_limits"), dict) else None
+    return limits
 
 
-def headroom(rate_limits: dict[str, Any] | None) -> int | float | None:
-    if not rate_limits:
-        return None
-    primary = rate_limits.get("primary")
-    if not isinstance(primary, dict):
-        return None
-    used_percent = primary.get("used_percent")
-    if not isinstance(used_percent, (int, float)):
-        return None
-    return 100 - used_percent
+def emit(state: dict[str, Any], final_message: str) -> None:
+    limits = latest_rate_limits(state["session_id"])
+    primary = limits.get("primary") if isinstance(limits, dict) else None
+    remaining = 100 - primary["used_percent"] if isinstance(primary, dict) and isinstance(primary.get("used_percent"), (int, float)) else None
+    print(json.dumps({"session_id": state["session_id"], "model": state["model"], "sandbox": state["sandbox"], "cwd": state["cwd"], "final_message": final_message, "headroom": remaining, "headroom_status": "known" if remaining is not None else "unknown"}))
 
 
-def write_state(
-    path: Path,
-    session_id: str,
-    model: str,
-    sandbox: str,
-    cwd: Path,
-    control_checkout: Path | None,
-) -> None:
-    state: dict[str, str] = {
-        "session_id": session_id,
-        "model": model,
-        "sandbox": sandbox,
-        "cwd": str(cwd),
-    }
-    if control_checkout is not None:
-        state["control_checkout"] = str(control_checkout)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(state, indent=2) + "\n",
-        encoding="utf-8",
+def gate_wait(fd: int) -> None:
+    if os.read(fd, 1) != b"R":
+        os._exit(125)
+
+
+def gated_process(command: list[str], cwd: Path) -> tuple[subprocess.Popen[str], int]:
+    """Exec a session-leading gate wrapper; Popen can return before the real exec."""
+    gate_read, gate_write = os.pipe()
+    wrapper = (
+        "import json,os,sys; "
+        "os.setsid(); os.chdir(sys.argv[2]); "
+        "os.read(int(sys.argv[1]), 1) == b'R' or os._exit(125); "
+        "os.execvp(json.loads(sys.argv[3])[0], json.loads(sys.argv[3]))"
     )
-
-
-def run_worker(
-    command: list[str],
-    cwd: Path,
-) -> tuple[subprocess.CompletedProcess[str], list[dict[str, Any]] | None, str | None]:
-    result = subprocess.run(
-        command,
-        cwd=cwd,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
+    process = subprocess.Popen(
+        [sys.executable, "-c", wrapper, str(gate_read), str(cwd), json.dumps(command)],
+        text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, pass_fds=(gate_read,),
     )
-    if result.returncode:
-        sys.stdout.write(result.stdout)
-        sys.stderr.write(result.stderr)
-        return result, None, None
-    items, error = parse_jsonl(result.stdout)
-    return result, items, error
+    os.close(gate_read)
+    return process, gate_write
 
 
-def emit(
-    session_id: str,
-    model: str,
-    sandbox: str,
-    cwd: Path,
-    final_message: str,
-) -> None:
-    limits = latest_rate_limits(session_id)
-    remaining = headroom(limits)
-    print(
-        json.dumps(
-            {
-                "session_id": session_id,
-                "model": model,
-                "sandbox": sandbox,
-                "cwd": str(cwd),
-                "final_message": final_message,
-                "headroom": remaining,
-                "headroom_status": "known" if remaining is not None else "unknown",
-            }
-        )
-    )
+def run_lifecycle(args: argparse.Namespace, command: list[str], state: dict[str, Any]) -> int:
+    if _libproc() is None:
+        return fail(UNSUPPORTED)
+    process, write_fd = gated_process(command, Path(state["cwd"]))
+    pid = process.pid
+    try:
+        identity = None
+        deadline = time.monotonic() + 1
+        while time.monotonic() < deadline:
+            identity = live_identity(pid)
+            if identity and identity["pgid"] == pid and identity["sid"] == pid and identity["cwd"] == state["cwd"]:
+                break
+            time.sleep(0.01)
+        if identity is None or identity["pgid"] != pid or identity["sid"] != pid or identity["cwd"] != state["cwd"]:
+            os.kill(pid, signal.SIGKILL); process.communicate()
+            return fail(f"could not establish dedicated worker process family: observed={identity!r} expected_cwd={state['cwd']!r}")
+        state.update(identity)
+        with state_lock(args.state):
+            atomic_write(args.state, state)
+        os.write(write_fd, b"R")
+        with state_lock(args.state):
+            current = read_state(args.state, family_required=True)
+            if current and current.get("lifecycle") == "launching":
+                state = transition(args.state, current, "running")
+    finally:
+        os.close(write_fd)
+    stdout, stderr = process.communicate()
+    returncode = process.returncode
+    with state_lock(args.state):
+        current = read_state(args.state, family_required=True)
+        if current and current.get("lifecycle") in {"launching", "running"}:
+            state = transition(args.state, current, "running") if current["lifecycle"] == "launching" else current
+            state = transition(args.state, state, "exited")
+    if returncode:
+        sys.stdout.write(stdout); sys.stderr.write(stderr); return returncode
+    items, error = parse_jsonl(stdout)
+    if error: return fail(error)
+    session_id, error = captured_thread_id(items)
+    if error: return fail(error)
+    message, error = final_agent_message(items)
+    if error: return fail(error)
+    with state_lock(args.state):
+        current = read_state(args.state, family_required=True)
+        if current is None: return fail("state file was lost during worker execution")
+        current["session_id"] = session_id
+        atomic_write(args.state, current)
+    emit(current, message)
+    return 0
 
 
 def start(args: argparse.Namespace) -> int:
-    cwd = args.cwd
     if args.sandbox == "workspace-write":
-        if args.control_checkout is None:
-            return fail("workspace-write requires --control-checkout")
-        if is_within(cwd, args.control_checkout):
-            return fail("workspace-write refuses the control checkout")
-    command = [
-        args.codex,
-        "exec",
-        "-m",
-        args.model,
-        "-c",
-        "model_reasoning_effort=medium",
-        "--sandbox",
-        args.sandbox,
-        "--skip-git-repo-check",
-        "-C",
-        str(cwd),
-        "--json",
-        args.prompt,
-    ]
-    result, items, error = run_worker(command, cwd)
-    if result.returncode:
-        return result.returncode
-    if error:
-        return fail(error)
-    session_id, error = captured_thread_id(items or [])
-    if error:
-        return fail(error)
-    message, error = final_agent_message(items or [])
-    if error:
-        return fail(error)
-    write_state(
-        args.state,
-        session_id or "",
-        args.model,
-        args.sandbox,
-        cwd,
-        args.control_checkout,
-    )
-    emit(session_id or "", args.model, args.sandbox, cwd, message or "")
-    return 0
+        if args.control_checkout is None: return fail("workspace-write requires --control-checkout")
+        if is_within(args.cwd, args.control_checkout): return fail("workspace-write refuses the control checkout")
+    state: dict[str, Any] = {"version": STATE_VERSION, "lifecycle": "launching", "model": args.model, "sandbox": args.sandbox, "cwd": str(args.cwd), "session_id": ""}
+    if args.control_checkout: state["control_checkout"] = str(args.control_checkout)
+    command = [args.codex, "exec", "-m", args.model, "-c", "model_reasoning_effort=medium", "--sandbox", args.sandbox, "--skip-git-repo-check", "-C", str(args.cwd), "--json", args.prompt]
+    return run_lifecycle(args, command, state)
 
 
 def resume(args: argparse.Namespace) -> int:
-    try:
-        state = json.loads(args.state.read_text(encoding="utf-8"))
-        session_id, model, sandbox, cwd = (
-            state[key] for key in ("session_id", "model", "sandbox", "cwd")
-        )
-    except (OSError, json.JSONDecodeError, KeyError, ValueError):
-        return fail("state file is malformed or incomplete")
-    if not all(isinstance(value, str) and value for value in (session_id, model, sandbox, cwd)):
-        return fail("state file is malformed or incomplete")
-    if sandbox not in {"read-only", "workspace-write"}:
-        return fail("state file has an invalid sandbox")
-    try:
-        canonical_cwd = resolved_directory(cwd)
-    except (OSError, argparse.ArgumentTypeError):
-        return fail("state file has an invalid cwd")
-    control_checkout = None
-    if sandbox == "workspace-write":
-        control = state.get("control_checkout")
-        if not isinstance(control, str) or not control:
-            return fail("state file is missing the control checkout")
-        try:
-            control_checkout = resolved_directory(control)
-        except (OSError, argparse.ArgumentTypeError):
-            return fail("state file has an invalid control checkout")
-        if is_within(canonical_cwd, control_checkout):
-            return fail("workspace-write refuses the control checkout")
-    command = [
-        args.codex,
-        "exec",
-        "resume",
-        session_id,
-        "-m",
-        model,
-        "-c",
-        f'sandbox_mode="{sandbox}"',
-        "--json",
-        args.prompt,
-    ]
-    result, items, error = run_worker(command, canonical_cwd)
-    if result.returncode:
-        return result.returncode
-    if error:
-        return fail(error)
-    returned_id, error = captured_thread_id(items or [])
-    if error:
-        return fail(error)
-    if returned_id != session_id:
-        return fail("resume returned a different thread ID")
-    message, error = final_agent_message(items or [])
-    if error:
-        return fail(error)
-    write_state(
-        args.state,
-        session_id,
-        model,
-        sandbox,
-        canonical_cwd,
-        control_checkout,
-    )
-    emit(session_id, model, sandbox, canonical_cwd, message or "")
+    with state_lock(args.state):
+        state = read_state(args.state)
+        if state is None: return fail("state file is malformed or incomplete")
+        if state.get("version") != STATE_VERSION:
+            # Legacy completed states are compatible only for ordinary resume.
+            if not all(isinstance(state.get(key), str) and state[key] for key in ("session_id", "model", "sandbox", "cwd")): return fail("state file is malformed or incomplete")
+        elif state.get("lifecycle") not in TERMINAL or not state.get("session_id"):
+            return fail("resume requires a terminal worker state with a session ID")
+        try: cwd = resolved_directory(state["cwd"])
+        except (OSError, argparse.ArgumentTypeError): return fail("state file has an invalid cwd")
+        sandbox = state.get("sandbox")
+        if sandbox not in {"read-only", "workspace-write"}: return fail("state file has an invalid sandbox")
+        if sandbox == "workspace-write":
+            try: control = resolved_directory(state["control_checkout"])
+            except (KeyError, OSError, argparse.ArgumentTypeError): return fail("state file is missing the control checkout")
+            if is_within(cwd, control): return fail("workspace-write refuses the control checkout")
+        fresh = {"version": STATE_VERSION, "lifecycle": "launching", "session_id": state["session_id"], "model": state["model"], "sandbox": sandbox, "cwd": str(cwd)}
+        if sandbox == "workspace-write": fresh["control_checkout"] = str(control)
+        # This is a durable claim while the release-gated leader is being made.
+        # A concurrent resume sees nonterminal state and cannot launch another group.
+        atomic_write(args.state, fresh)
+    command = [args.codex, "exec", "resume", fresh["session_id"], "-m", fresh["model"], "-c", f'sandbox_mode="{fresh["sandbox"]}"', "--json", args.prompt]
+    return run_lifecycle(args, command, fresh)
+
+
+def family_state(path: Path, expected: Path) -> tuple[dict[str, Any] | None, str | None]:
+    state = read_state(path, family_required=True)
+    if state is None: return None, "state is missing, corrupt, or legacy"
+    required = ("pid", "pgid", "sid", "cwd", "birth", "lifecycle")
+    if any(key not in state for key in required): return None, "state is malformed"
+    if state["cwd"] != str(expected): return None, f"cwd mismatch: recorded={state['cwd']!r} expected={str(expected)!r}"
+    return state, None
+
+
+def matching_leader(state: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
+    observed = live_identity(state["pid"])
+    if observed is None: return None, "leader identity probe failed"
+    recorded = {key: state[key] for key in ("pid", "pgid", "sid", "cwd", "birth")}
+    if observed != recorded: return None, f"identity mismatch: recorded={recorded!r} observed={observed!r}"
+    return observed, None
+
+
+def verify(args: argparse.Namespace) -> int:
+    if _libproc() is None: return fail(UNSUPPORTED)
+    with state_lock(args.state):
+        state, error = family_state(args.state, args.cwd)
+        if error: return fail(error)
+        members = group_members(state["pgid"])
+        if members is None: return fail("process-group probe failed")
+        if members: return fail(f"worker process group still has members: {members}")
+        if state["lifecycle"] not in TERMINAL:
+            if state["lifecycle"] != "stopping":
+                state = transition(args.state, state, "stopping")
+            state = transition(args.state, state, "stopped")
     return 0
+
+
+def stop(args: argparse.Namespace) -> int:
+    if _libproc() is None: return fail(UNSUPPORTED)
+    with state_lock(args.state):
+        state, error = family_state(args.state, args.cwd)
+        if error: return fail(error)
+        leader, error = matching_leader(state)
+        if error and state["lifecycle"] not in TERMINAL:
+            if "identity mismatch:" in error:
+                return fail(error)
+            # A gone leader is safe only after the recorded PGID is observed empty
+            # or is itself the exact group proved eligible for KILL below.
+            members = group_members(state["pgid"])
+            if members is None: return fail("process-group probe failed")
+            if not members:
+                if state["lifecycle"] != "stopping": state = transition(args.state, state, "stopping")
+                transition(args.state, state, "stopped")
+                return 0
+            state = transition(args.state, state, "stopping") if state["lifecycle"] != "stopping" else state
+            try: os.killpg(state["pgid"], signal.SIGKILL)
+            except OSError as exc: return fail(f"KILL refused: {exc}")
+            return 0
+        members = group_members(state["pgid"])
+        if members is None: return fail("process-group probe failed")
+        if not members:
+            if state["lifecycle"] not in TERMINAL:
+                if state["lifecycle"] != "stopping": state = transition(args.state, state, "stopping")
+                transition(args.state, state, "stopped")
+            return 0
+        if state["lifecycle"] in TERMINAL:
+            try: os.killpg(state["pgid"], signal.SIGKILL)
+            except OSError as exc: return fail(f"KILL refused: {exc}")
+            deadline = time.monotonic() + args.grace_seconds
+            while time.monotonic() < deadline:
+                members = group_members(state["pgid"])
+                if members is None: return fail("process-group probe failed")
+                if not members: return verify(args)
+                time.sleep(0.05)
+            return fail(f"worker process group still has members: {members}")
+        if state["lifecycle"] != "stopping": state = transition(args.state, state, "stopping")
+        try: os.killpg(state["pgid"], signal.SIGTERM)
+        except OSError as exc: return fail(f"TERM refused: {exc}")
+    deadline = time.monotonic() + args.grace_seconds
+    while time.monotonic() < deadline:
+        members = group_members(state["pgid"])
+        if members is None: return fail("process-group probe failed")
+        if not members:
+            with state_lock(args.state):
+                current = read_state(args.state, family_required=True)
+                if current and current["lifecycle"] == "stopping": transition(args.state, current, "stopped")
+            return 0
+        time.sleep(0.05)
+    members = group_members(state["pgid"])
+    if members is None: return fail("process-group probe failed")
+    if not members: return 0
+    # The leader may have exited; KILL is authorized solely by a successful exact-group enumeration.
+    try: os.killpg(state["pgid"], signal.SIGKILL)
+    except OSError as exc: return fail(f"KILL refused: {exc}")
+    deadline = time.monotonic() + args.grace_seconds
+    while time.monotonic() < deadline:
+        members = group_members(state["pgid"])
+        if members is None: return fail("process-group probe failed")
+        if not members: break
+        time.sleep(0.05)
+    return verify(args)
 
 
 def parser() -> argparse.ArgumentParser:
@@ -308,20 +424,16 @@ def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--codex", default="codex")
     common.add_argument("--state", type=Path, required=True)
-    common.add_argument("prompt")
-    start_parser = commands.add_parser("start", parents=[common])
-    start_parser.add_argument("--model", required=True)
-    start_parser.add_argument(
-        "--sandbox", choices=("read-only", "workspace-write"), required=True
-    )
-    start_parser.add_argument("--cwd", type=resolved_directory, required=True)
-    start_parser.add_argument("--control-checkout", type=resolved_directory)
-    start_parser.set_defaults(handler=start)
-    resume_parser = commands.add_parser("resume", parents=[common])
-    resume_parser.set_defaults(handler=resume)
+    common.add_argument("prompt", nargs="?")
+    start_parser = commands.add_parser("start", parents=[common]); start_parser.add_argument("--model", required=True); start_parser.add_argument("--sandbox", choices=("read-only", "workspace-write"), required=True); start_parser.add_argument("--cwd", type=resolved_directory, required=True); start_parser.add_argument("--control-checkout", type=resolved_directory); start_parser.set_defaults(handler=start)
+    resume_parser = commands.add_parser("resume", parents=[common]); resume_parser.set_defaults(handler=resume)
+    for name, handler in (("stop", stop), ("verify", verify)):
+        command = commands.add_parser(name, parents=[common]); command.add_argument("--cwd", type=resolved_directory, required=True); command.add_argument("--grace-seconds", type=float, default=1.0); command.set_defaults(handler=handler)
     return result
 
 
 if __name__ == "__main__":
     arguments = parser().parse_args()
+    if arguments.command in {"start", "resume"} and not arguments.prompt:
+        raise SystemExit(fail("prompt is required"))
     raise SystemExit(arguments.handler(arguments))

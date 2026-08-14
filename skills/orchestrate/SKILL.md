@@ -58,6 +58,11 @@ is the reason the review is not optional); prototyping routes straight to
 - The coordinator keeps for itself: small mechanical glue (git/gh plumbing,
   toggles, log checks, daemon restarts), verification probes, and all
   communication/decisions with the operator.
+- The coordinator that launched an interrupted worker owns its exact recovery:
+  run the adapter's scoped `stop --state ... --cwd ...`, then scoped `verify`
+  before a successor receives the worktree. Successors never discover or clean
+  unknown processes; names, descendants, sessions, and global test/provider
+  searches are not ownership.
 - Worktree creation is not raw git plumbing: when preparing a worktree for a
   sub-agent (or any task work), invoke the `spin-worktree` skill so worktrees
   land under its `~/worktrees/<repository>/<task>` convention, not ad-hoc
