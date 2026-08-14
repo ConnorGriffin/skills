@@ -1,0 +1,35 @@
+{
+  "invalid_observations": [
+    {
+      "name": "candidate_is_not_a_producer_kind",
+      "producer_kind": "candidate"
+    },
+    {
+      "name": "proposal_is_not_a_producer_kind",
+      "producer_kind": "proposal"
+    },
+    {
+      "name": "promotion_is_not_a_producer_kind",
+      "producer_kind": "promotion"
+    },
+    {
+      "name": "unvalidated_is_not_a_lesson",
+      "producer_kind": "lesson",
+      "validation_state": "unvalidated"
+    }
+  ],
+  "invalid_failures": [
+    {
+      "name": "candidate_is_not_a_failure_class",
+      "failure_class": "candidate"
+    },
+    {
+      "name": "policy_state_is_not_a_failure_class",
+      "failure_class": "policy_state"
+    },
+    {
+      "name": "worker_failure_is_not_a_failure_class",
+      "failure_class": "worker_failure"
+    }
+  ]
+}

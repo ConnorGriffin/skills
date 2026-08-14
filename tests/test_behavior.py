@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import importlib.util
 import io
 import json
 import os
-import importlib.util
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -1265,6 +1266,410 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         self.assertIsNotNone(identity)
         self.assertEqual(identity["cwd"], str(ROOT.resolve()))
         self.assertIn(os.getpid(), WORKER_MODULE.group_members(os.getpgrp()))
+
+
+class EvidenceEnvelopeTests(unittest.TestCase):
+    def test_examples_use_upstream_wire_tags_and_integer_time(self):
+        positive = ROOT / "docs" / "evidence" / "examples" / "positive.json"
+        observations = json.loads(positive.read_text(encoding="utf-8"))["observations"]
+
+        self.assertEqual(
+            {item["envelope_kind"] for item in observations},
+            {"failure_observation", "producer_fact"},
+        )
+        self.assertTrue(
+            all(
+                isinstance(item["observed_at"], int)
+                and not isinstance(item["observed_at"], bool)
+                for item in observations
+            )
+        )
+
+    def mutated_validation(self, mutate):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(
+                ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__")
+            )
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(
+                run(
+                    [
+                        "git",
+                        "-c",
+                        "user.name=Test",
+                        "-c",
+                        "user.email=test@example.invalid",
+                        "commit",
+                        "-m",
+                        "fixture",
+                    ],
+                    cwd=copy,
+                ).returncode,
+                0,
+            )
+            positive = copy / "docs" / "evidence" / "examples" / "positive.json"
+            payload = json.loads(positive.read_text(encoding="utf-8"))
+            mutate(payload)
+            positive.write_text(json.dumps(payload), encoding="utf-8")
+
+            return run(["python3", "scripts/validate.py"], cwd=copy)
+
+    def test_v2_contract_and_provenance_are_vendored(self):
+        evidence = ROOT / "docs" / "evidence"
+
+        self.assertTrue((evidence / "contract-v2.json").is_file())
+        self.assertTrue((evidence / "contract-v2.provenance.json").is_file())
+
+    def test_validator_rejects_a_mutated_vendored_contract(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(
+                run(
+                    ["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"],
+                    cwd=copy,
+                ).returncode,
+                0,
+            )
+            contract = copy / "docs" / "evidence" / "contract-v2.json"
+            contract.write_text("{}\n", encoding="utf-8")
+
+            result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("contract-v2.json", result.stderr)
+
+    def test_validator_rejects_mutated_contract_provenance(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"], cwd=copy).returncode, 0)
+            provenance = copy / "docs" / "evidence" / "contract-v2.provenance.json"
+            payload = json.loads(provenance.read_text(encoding="utf-8"))
+            payload["source_git_blob"] = "0" * 40
+            provenance.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("provenance", result.stderr)
+
+    def test_validator_rejects_a_candidate_presented_as_an_observation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(
+                run(
+                    ["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"],
+                    cwd=copy,
+                ).returncode,
+                0,
+            )
+            positive = copy / "docs" / "evidence" / "examples" / "positive.json"
+            payload = json.loads(positive.read_text(encoding="utf-8"))
+            producer = next(
+                item for item in payload["observations"] if "producer" in item
+            )
+            producer["producer"]["producer_kind"] = "candidate"
+            positive.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("producer_kind", result.stderr)
+
+    def test_validator_reports_a_non_object_negative_fixture(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"], cwd=copy).returncode, 0)
+            negative = copy / "docs" / "evidence" / "examples" / "negative.json"
+            payload = json.loads(negative.read_text(encoding="utf-8"))
+            payload["invalid_observations"][0] = []
+            negative.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("fixture does not reject a prohibited kind", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_validator_rejects_extra_failure_fields(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"], cwd=copy).returncode, 0)
+            positive = copy / "docs" / "evidence" / "examples" / "positive.json"
+            payload = json.loads(positive.read_text(encoding="utf-8"))
+            failure = next(
+                item
+                for item in payload["observations"]
+                if item["envelope_kind"] == "failure_observation"
+            )
+            failure["unexpected"] = "field"
+            positive.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("failure_observation envelope", result.stderr)
+
+    def test_validator_rejects_a_missing_producer_kind(self):
+        def remove_kind(payload):
+            payload["observations"] = [
+                item
+                for item in payload["observations"]
+                if item.get("producer", {}).get("producer_kind") != "criterion"
+            ]
+
+        result = self.mutated_validation(remove_kind)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("producer kind matrix", result.stderr)
+
+    def test_validator_rejects_a_missing_failure_class(self):
+        def remove_class(payload):
+            payload["observations"] = [
+                item
+                for item in payload["observations"]
+                if item.get("failure", {}).get("failure_class") != "plan_gap"
+            ]
+
+        result = self.mutated_validation(remove_class)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("failure class matrix", result.stderr)
+
+    def test_validator_rejects_a_missing_required_relation(self):
+        def remove_relation(payload):
+            fix = next(
+                item
+                for item in payload["observations"]
+                if item.get("producer", {}).get("producer_kind") == "fix"
+            )
+            fix["links"] = [
+                link for link in fix["links"] if link["relation"] != "addresses"
+            ]
+
+        result = self.mutated_validation(remove_relation)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required lineage", result.stderr)
+
+    def test_validator_rejects_illegal_lineage_direction(self):
+        def reverse_governing_direction(payload):
+            criterion = next(
+                item
+                for item in payload["observations"]
+                if item.get("producer", {}).get("producer_kind") == "criterion"
+            )
+            criterion["links"][0]["relation"] = "governs"
+
+        result = self.mutated_validation(reverse_governing_direction)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("illegal lineage direction", result.stderr)
+
+    def test_validator_rejects_a_duplicate_observation_id(self):
+        def duplicate_id(payload):
+            payload["observations"][1]["observation_id"] = payload["observations"][0][
+                "observation_id"
+            ]
+
+        result = self.mutated_validation(duplicate_id)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("duplicate observation_id", result.stderr)
+
+    def test_validator_reports_an_unhashable_observation_id(self):
+        def replace_id(payload):
+            payload["observations"][0]["observation_id"] = {}
+
+        result = self.mutated_validation(replace_id)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("observation_id must follow the upstream ID grammar", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_validator_rejects_a_sparse_link_ordinal(self):
+        def sparse_ordinal(payload):
+            linked = next(item for item in payload["observations"] if item.get("links"))
+            linked["links"][0]["ordinal"] = len(linked["links"]) + 1
+
+        result = self.mutated_validation(sparse_ordinal)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("dense ordinals", result.stderr)
+
+    def test_validator_reports_unhashable_lineage_fields(self):
+        for field in ("relation", "target_event_id"):
+            with self.subTest(field=field):
+                def replace_field(payload, field=field):
+                    linked = next(
+                        item for item in payload["observations"] if item.get("links")
+                    )
+                    linked["links"][0][field] = {}
+
+                result = self.mutated_validation(replace_field)
+
+                self.assertNotEqual(result.returncode, 0)
+                expected = (
+                    "link fields or relation are invalid"
+                    if field == "relation"
+                    else "target_event_id must follow the upstream ID grammar"
+                )
+                self.assertIn(expected, result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+
+    def test_validator_rejects_snapshot_confusion_at_one_head(self):
+        def confuse_snapshots(payload):
+            snapshots = [
+                item["subject"]
+                for item in payload["observations"]
+                if item.get("subject", {}).get("subject", "").startswith("base:")
+            ]
+            snapshots[1]["revision"] = snapshots[0]["revision"]
+
+        result = self.mutated_validation(confuse_snapshots)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("distinct dirty snapshots", result.stderr)
+
+    def test_validator_rejects_snapshot_head_source_confusion(self):
+        def confuse_head(payload):
+            for item in payload["observations"]:
+                subject = item.get("subject", {})
+                if subject.get("subject", "").startswith("base:"):
+                    subject["subject"] = subject["subject"].replace(
+                        "head:" + "b" * 40, "head:" + "c" * 40
+                    )
+
+        result = self.mutated_validation(confuse_head)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("snapshot head must match source revision", result.stderr)
+
+    def test_validator_rejects_short_envelope_tags(self):
+        for original, short in (
+            ("failure_observation", "failure"),
+            ("producer_fact", "producer"),
+        ):
+            with self.subTest(short=short):
+                def shorten(payload, original=original, short=short):
+                    item = next(
+                        observation
+                        for observation in payload["observations"]
+                        if observation["envelope_kind"] == original
+                    )
+                    item["envelope_kind"] = short
+
+                result = self.mutated_validation(shorten)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("invalid envelope_kind", result.stderr)
+
+    def test_validator_rejects_string_and_bool_observed_at(self):
+        for invalid in ("1786662000", True):
+            with self.subTest(invalid=invalid):
+                def replace_time(payload, invalid=invalid):
+                    payload["observations"][0]["observed_at"] = invalid
+
+                result = self.mutated_validation(replace_time)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("observed_at must be a nonnegative integer", result.stderr)
+
+    def test_validator_rejects_sha256_prefixed_digest_fields(self):
+        def producer_digest(payload):
+            item = next(observation for observation in payload["observations"] if "producer" in observation)
+            item["producer"]["fact_digest"] = "sha256:" + item["producer"]["fact_digest"]
+
+        def failure_digest(payload):
+            item = next(observation for observation in payload["observations"] if "failure" in observation)
+            item["failure"]["signature_digest"] = "sha256:" + item["failure"]["signature_digest"]
+
+        def source_digest(payload):
+            item = payload["observations"][0]
+            item["source"]["content_hash"] = "sha256:" + item["source"]["content_hash"]
+
+        def subject_digest(payload):
+            item = next(observation for observation in payload["observations"] if "content_digest" in observation["subject"])
+            item["subject"]["content_digest"] = "sha256:" + item["subject"]["content_digest"]
+
+        for mutate in (producer_digest, failure_digest, source_digest, subject_digest):
+            with self.subTest(field=mutate.__name__):
+                result = self.mutated_validation(mutate)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("raw lowercase hex", result.stderr)
+
+    def test_validator_rejects_wrong_subject_and_source_kinds(self):
+        def wrong_subject(payload):
+            payload["observations"][0]["subject"]["subject_kind"] = "git_commit"
+
+        def wrong_source(payload):
+            payload["observations"][0]["source"]["authority_kind"] = "git"
+
+        for mutate, message in (
+            (wrong_subject, "invalid subject_kind"),
+            (wrong_source, "invalid source authority_kind"),
+        ):
+            with self.subTest(field=mutate.__name__):
+                result = self.mutated_validation(mutate)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+
+    def test_validator_rejects_nullable_or_extra_review_action(self):
+        def nullable(payload):
+            item = next(
+                observation
+                for observation in payload["observations"]
+                if observation.get("producer", {}).get("producer_kind") == "review_action"
+            )
+            item["producer"]["review_action"] = None
+
+        def extra(payload):
+            item = next(
+                observation
+                for observation in payload["observations"]
+                if observation.get("producer", {}).get("producer_kind") == "claim"
+            )
+            item["producer"]["review_action"] = None
+
+        for mutate in (nullable, extra):
+            with self.subTest(field=mutate.__name__):
+                result = self.mutated_validation(mutate)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("review_action", result.stderr)
+
+    def test_validator_rejects_extra_parent_and_fixer_fields(self):
+        def add_fixer_lineage(payload):
+            item = next(
+                observation
+                for observation in payload["observations"]
+                if observation.get("failure", {}).get("failure_class") == "original_defect"
+            )
+            item["failure"]["reviewed_parent_revision"] = "b" * 40
+            item["failure"]["fixer_revision"] = "c" * 40
+
+        result = self.mutated_validation(add_fixer_lineage)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("failure fields are not closed", result.stderr)
 
 
 if __name__ == "__main__":
