@@ -17,6 +17,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | [`persona-review`](skills/persona-review/SKILL.md) | Convene a panel of persistent reviewer personas to review a document and synthesize a verdict | Private data repo for persona memory; GitHub CLI for mining real-colleague profiles; parallel-agent support recommended |
 | [`orchestrate`](skills/orchestrate/SKILL.md) | Flip the session into coordinator mode: delegate all real work to sub-agents routed by an empirically benchmarked model capability table | Codex CLI for GPT-tier sub-agents; table re-benchmarked per its bundled procedure |
 | [`wayfinder`](skills/wayfinder/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `scope`'s interview mode, `ui-craft` |
+| [`pr-body`](skills/pr-body/SKILL.md) | Write a PR body and score it before the PR opens, or audit an existing one, against a deterministic linter and a voice judge | A PreToolUse hook that hard-denies `gh pr create` until the body is scored, installed separately from `hooks/` |
 | [`research`](skills/research/SKILL.md) | Investigate a question against primary sources and capture findings as Markdown in the repo | — |
 | [`prototype`](skills/prototype/SKILL.md) | Build a throwaway prototype — a terminal app for logic questions or switchable UI variants in the real app | — |
 | [`tdd`](skills/tdd/SKILL.md) | Test-driven development through public interfaces, red-green-refactor | — |

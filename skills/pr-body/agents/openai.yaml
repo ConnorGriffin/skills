@@ -1,0 +1,4 @@
+interface:
+  display_name: "PR Body"
+  short_description: "Write a PR body and score it before the PR opens, or audit an existing one"
+  default_prompt: "Use $pr-body to write this pull-request body, score it, and write the receipt before opening the PR."
