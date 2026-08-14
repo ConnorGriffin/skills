@@ -33,6 +33,8 @@ PROC_PIDVNODEPATHINFO = 9
 BSD_SIZE = 136
 VNODE_SIZE = 2352
 VNODE_CWD_OFFSET = 152
+PID_MAX = 2**31 - 1
+UINT64_MAX = 2**64 - 1
 
 
 def fail(message: str, code: int = 1) -> int:
@@ -100,6 +102,60 @@ def transition(path: Path, state: dict[str, Any], lifecycle: str) -> dict[str, A
     updated["lifecycle"] = lifecycle
     atomic_write(path, updated)
     return updated
+
+
+def _bounded_integer(value: Any, minimum: int, maximum: int) -> bool:
+    return type(value) is int and minimum <= value <= maximum
+
+
+def _canonical_path(value: Any) -> bool:
+    if not isinstance(value, str) or not value or not Path(value).is_absolute():
+        return False
+    try:
+        return str(Path(value).resolve()) == value
+    except (OSError, RuntimeError, ValueError):
+        return False
+
+
+def valid_family_schema(state: dict[str, Any]) -> bool:
+    required = {
+        "version", "lifecycle", "session_id", "model", "sandbox", "cwd",
+        "pid", "pgid", "sid", "birth",
+    }
+    allowed = required | {"control_checkout"}
+    if not required.issubset(state):
+        return False
+    if not set(state).issubset(allowed):
+        return False
+    if type(state["version"]) is not int or state["version"] != STATE_VERSION:
+        return False
+    if not isinstance(state["lifecycle"], str) or state["lifecycle"] not in TRANSITIONS:
+        return False
+    if not isinstance(state["session_id"], str):
+        return False
+    if not isinstance(state["model"], str) or not state["model"]:
+        return False
+    if not isinstance(state["sandbox"], str) or state["sandbox"] not in {"read-only", "workspace-write"}:
+        return False
+    if not _canonical_path(state["cwd"]):
+        return False
+    for field in ("pid", "pgid", "sid"):
+        if not _bounded_integer(state[field], 1, PID_MAX):
+            return False
+    birth = state["birth"]
+    if not isinstance(birth, dict) or set(birth) != {"seconds", "microseconds"}:
+        return False
+    if not _bounded_integer(birth["seconds"], 1, UINT64_MAX):
+        return False
+    if not _bounded_integer(birth["microseconds"], 0, 999_999):
+        return False
+    control = state.get("control_checkout")
+    if control is not None and not _canonical_path(control):
+        return False
+    if state["sandbox"] == "workspace-write":
+        if control is None or is_within(Path(state["cwd"]), Path(control)):
+            return False
+    return True
 
 
 def _libproc() -> ctypes.CDLL | None:
@@ -234,9 +290,14 @@ def gated_process(command: list[str], cwd: Path) -> tuple[subprocess.Popen[str],
     return process, gate_write
 
 
-def run_lifecycle(args: argparse.Namespace, command: list[str], state: dict[str, Any]) -> int:
+def establish_family(
+    args: argparse.Namespace,
+    command: list[str],
+    state: dict[str, Any],
+) -> tuple[subprocess.Popen[str] | None, int | None]:
+    """Persist and release one gated family while the caller holds the state lock."""
     if _libproc() is None:
-        return fail(UNSUPPORTED)
+        return None, fail(UNSUPPORTED)
     process, write_fd = gated_process(command, Path(state["cwd"]))
     pid = process.pid
     try:
@@ -249,17 +310,17 @@ def run_lifecycle(args: argparse.Namespace, command: list[str], state: dict[str,
             time.sleep(0.01)
         if identity is None or identity["pgid"] != pid or identity["sid"] != pid or identity["cwd"] != state["cwd"]:
             os.kill(pid, signal.SIGKILL); process.communicate()
-            return fail(f"could not establish dedicated worker process family: observed={identity!r} expected_cwd={state['cwd']!r}")
-        state.update(identity)
-        with state_lock(args.state):
-            atomic_write(args.state, state)
+            return None, fail(f"could not establish dedicated worker process family: observed={identity!r} expected_cwd={state['cwd']!r}")
+        state = {**state, **identity}
+        atomic_write(args.state, state)
         os.write(write_fd, b"R")
-        with state_lock(args.state):
-            current = read_state(args.state, family_required=True)
-            if current and current.get("lifecycle") == "launching":
-                state = transition(args.state, current, "running")
+        state = transition(args.state, state, "running")
     finally:
         os.close(write_fd)
+    return process, None
+
+
+def finish_lifecycle(args: argparse.Namespace, process: subprocess.Popen[str]) -> int:
     stdout, stderr = process.communicate()
     returncode = process.returncode
     with state_lock(args.state):
@@ -284,6 +345,23 @@ def run_lifecycle(args: argparse.Namespace, command: list[str], state: dict[str,
     return 0
 
 
+def run_lifecycle(
+    args: argparse.Namespace,
+    command: list[str],
+    state: dict[str, Any],
+    *,
+    expected: dict[str, Any] | None = None,
+) -> int:
+    with state_lock(args.state):
+        if expected is not None and read_state(args.state) != expected:
+            return fail("resume requires an unchanged terminal worker state")
+        process, error = establish_family(args, command, state)
+        if error is not None:
+            return error
+    assert process is not None
+    return finish_lifecycle(args, process)
+
+
 def start(args: argparse.Namespace) -> int:
     if args.sandbox == "workspace-write":
         if args.control_checkout is None: return fail("workspace-write requires --control-checkout")
@@ -298,10 +376,14 @@ def resume(args: argparse.Namespace) -> int:
     with state_lock(args.state):
         state = read_state(args.state)
         if state is None: return fail("state file is malformed or incomplete")
-        if state.get("version") != STATE_VERSION:
+        if "version" not in state:
             # Legacy completed states are compatible only for ordinary resume.
-            if not all(isinstance(state.get(key), str) and state[key] for key in ("session_id", "model", "sandbox", "cwd")): return fail("state file is malformed or incomplete")
-        elif state.get("lifecycle") not in TERMINAL or not state.get("session_id"):
+            legacy = {"session_id", "model", "sandbox", "cwd"}
+            if not legacy.issubset(state) or not set(state).issubset(legacy | {"control_checkout"}): return fail("state file is malformed or incomplete")
+            if not all(isinstance(state[key], str) and state[key] for key in legacy): return fail("state file is malformed or incomplete")
+        elif not valid_family_schema(state):
+            return fail("state file is malformed or incomplete")
+        elif state["lifecycle"] not in TERMINAL or not state["session_id"]:
             return fail("resume requires a terminal worker state with a session ID")
         try: cwd = resolved_directory(state["cwd"])
         except (OSError, argparse.ArgumentTypeError): return fail("state file has an invalid cwd")
@@ -313,18 +395,17 @@ def resume(args: argparse.Namespace) -> int:
             if is_within(cwd, control): return fail("workspace-write refuses the control checkout")
         fresh = {"version": STATE_VERSION, "lifecycle": "launching", "session_id": state["session_id"], "model": state["model"], "sandbox": sandbox, "cwd": str(cwd)}
         if sandbox == "workspace-write": fresh["control_checkout"] = str(control)
-        # This is a durable claim while the release-gated leader is being made.
-        # A concurrent resume sees nonterminal state and cannot launch another group.
-        atomic_write(args.state, fresh)
     command = [args.codex, "exec", "resume", fresh["session_id"], "-m", fresh["model"], "-c", f'sandbox_mode="{fresh["sandbox"]}"', "--json", args.prompt]
-    return run_lifecycle(args, command, fresh)
+    return run_lifecycle(args, command, fresh, expected=state)
 
 
 def family_state(path: Path, expected: Path) -> tuple[dict[str, Any] | None, str | None]:
-    state = read_state(path, family_required=True)
+    state = read_state(path)
     if state is None: return None, "state is missing, corrupt, or legacy"
-    required = ("pid", "pgid", "sid", "cwd", "birth", "lifecycle")
-    if any(key not in state for key in required): return None, "state is malformed"
+    version = state.get("version")
+    if "version" not in state or (type(version) is int and version != STATE_VERSION):
+        return None, "state is missing, corrupt, or legacy"
+    if not valid_family_schema(state): return None, "state is malformed"
     if state["cwd"] != str(expected): return None, f"cwd mismatch: recorded={state['cwd']!r} expected={str(expected)!r}"
     return state, None
 
@@ -338,10 +419,10 @@ def matching_leader(state: dict[str, Any]) -> tuple[dict[str, Any] | None, str |
 
 
 def verify(args: argparse.Namespace) -> int:
-    if _libproc() is None: return fail(UNSUPPORTED)
     with state_lock(args.state):
         state, error = family_state(args.state, args.cwd)
         if error: return fail(error)
+        if _libproc() is None: return fail(UNSUPPORTED)
         members = group_members(state["pgid"])
         if members is None: return fail("process-group probe failed")
         if members: return fail(f"worker process group still has members: {members}")
@@ -353,10 +434,10 @@ def verify(args: argparse.Namespace) -> int:
 
 
 def stop(args: argparse.Namespace) -> int:
-    if _libproc() is None: return fail(UNSUPPORTED)
     with state_lock(args.state):
         state, error = family_state(args.state, args.cwd)
         if error: return fail(error)
+        if _libproc() is None: return fail(UNSUPPORTED)
         leader, error = matching_leader(state)
         if error and state["lifecycle"] not in TERMINAL:
             if "identity mismatch:" in error:

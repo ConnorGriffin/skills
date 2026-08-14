@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import io
 import json
 import os
 import importlib.util
@@ -10,6 +11,7 @@ import sys
 import tempfile
 import time
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 from typing import Optional
 from unittest import mock
@@ -782,6 +784,9 @@ class WorkerLifecycleContractTests(unittest.TestCase):
     def arguments(self):
         return argparse.Namespace(state=self.state, cwd=self.cwd, grace_seconds=0.01)
 
+    def resume_arguments(self):
+        return argparse.Namespace(state=self.state, codex="codex", prompt="continue")
+
     def test_transition_table_and_atomic_replace_fsync_the_state_and_parent(self):
         self.assertEqual(WORKER_MODULE.TRANSITIONS["launching"], {"running", "stopping", "exited"})
         self.assertEqual(WORKER_MODULE.TRANSITIONS["running"], {"stopping", "exited"})
@@ -824,11 +829,101 @@ class WorkerLifecycleContractTests(unittest.TestCase):
                 self.assertNotEqual(WORKER_MODULE.verify(self.arguments()), 0)
                 killpg.assert_not_called()
 
+    def test_malformed_v2_mutations_are_rejected_before_any_process_probe_or_signal(self):
+        base = self.family_state()
+        mutations = (
+            *((f"missing {field}", {key: value for key, value in base.items() if key != field}) for field in base),
+            ("version type", {**base, "version": "2"}),
+            ("version null", {**base, "version": None}),
+            ("version bool", {**base, "version": True}),
+            ("version value", {**base, "version": 3}),
+            ("lifecycle type", {**base, "lifecycle": []}),
+            ("lifecycle value", {**base, "lifecycle": "unknown"}),
+            ("pid type", {**base, "pid": "41"}),
+            ("pid bool", {**base, "pid": True}),
+            ("pid negative", {**base, "pid": -1}),
+            ("pid zero", {**base, "pid": 0}),
+            ("pid overflow", {**base, "pid": 2**31}),
+            ("pgid type", {**base, "pgid": "41"}),
+            ("pgid bool", {**base, "pgid": True}),
+            ("pgid negative", {**base, "pgid": -1}),
+            ("pgid zero", {**base, "pgid": 0}),
+            ("pgid overflow", {**base, "pgid": 2**31}),
+            ("sid type", {**base, "sid": "41"}),
+            ("sid bool", {**base, "sid": True}),
+            ("sid negative", {**base, "sid": -1}),
+            ("sid zero", {**base, "sid": 0}),
+            ("sid overflow", {**base, "sid": 2**31}),
+            ("cwd type", {**base, "cwd": [str(self.cwd)]}),
+            ("cwd empty", {**base, "cwd": ""}),
+            ("cwd relative", {**base, "cwd": "worktree"}),
+            ("cwd noncanonical", {**base, "cwd": str(self.cwd) + "/."}),
+            ("birth type", {**base, "birth": [1, 2]}),
+            ("birth missing seconds", {**base, "birth": {"microseconds": 2}}),
+            ("birth missing microseconds", {**base, "birth": {"seconds": 1}}),
+            ("birth seconds type", {**base, "birth": {"seconds": "1", "microseconds": 2}}),
+            ("birth seconds bool", {**base, "birth": {"seconds": True, "microseconds": 2}}),
+            ("birth seconds negative", {**base, "birth": {"seconds": -1, "microseconds": 2}}),
+            ("birth seconds zero", {**base, "birth": {"seconds": 0, "microseconds": 2}}),
+            ("birth seconds overflow", {**base, "birth": {"seconds": 2**64, "microseconds": 2}}),
+            ("birth microseconds type", {**base, "birth": {"seconds": 1, "microseconds": "2"}}),
+            ("birth microseconds bool", {**base, "birth": {"seconds": 1, "microseconds": True}}),
+            ("birth microseconds negative", {**base, "birth": {"seconds": 1, "microseconds": -1}}),
+            ("birth microseconds overflow", {**base, "birth": {"seconds": 1, "microseconds": 1_000_000}}),
+            ("birth extra field", {**base, "birth": {"seconds": 1, "microseconds": 2, "ticks": 3}}),
+            ("model type", {**base, "model": []}),
+            ("model empty", {**base, "model": ""}),
+            ("sandbox type", {**base, "sandbox": []}),
+            ("sandbox value", {**base, "sandbox": "danger-full-access"}),
+            ("session type", {**base, "session_id": 1}),
+            ("workspace control missing", {**base, "sandbox": "workspace-write"}),
+            ("control checkout type", {**base, "control_checkout": 1}),
+            ("control checkout empty", {**base, "control_checkout": ""}),
+            ("control checkout relative", {**base, "control_checkout": "control"}),
+            ("unknown field", {**base, "leader_name": "codex"}),
+        )
+        for name, state in mutations:
+            operations = (
+                ("stop", WORKER_MODULE.stop, self.arguments()),
+                ("verify", WORKER_MODULE.verify, self.arguments()),
+                ("resume", WORKER_MODULE.resume, self.resume_arguments()),
+            )
+            for operation_name, operation, arguments in operations:
+                with self.subTest(name=name, operation=operation_name):
+                    WORKER_MODULE.atomic_write(self.state, state)
+                    error = io.StringIO()
+                    with (
+                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()) as libproc,
+                        mock.patch.object(WORKER_MODULE, "gated_process") as gated,
+                        mock.patch.object(WORKER_MODULE, "live_identity") as identity,
+                        mock.patch.object(WORKER_MODULE, "group_members") as members,
+                        mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
+                        redirect_stderr(error),
+                    ):
+                        self.assertEqual(operation(arguments), 1)
+                    self.assertTrue(error.getvalue().startswith("codex-worker: state"))
+                    libproc.assert_not_called()
+                    gated.assert_not_called()
+                    identity.assert_not_called()
+                    members.assert_not_called()
+                    killpg.assert_not_called()
+
     def test_unsupported_platform_returns_the_exact_code_without_signaling(self):
-        with mock.patch.object(WORKER_MODULE, "_libproc", return_value=None), mock.patch.object(WORKER_MODULE.os, "killpg") as killpg:
-            self.assertEqual(WORKER_MODULE.stop(self.arguments()), 1)
-            self.assertEqual(WORKER_MODULE.verify(self.arguments()), 1)
-            killpg.assert_not_called()
+        WORKER_MODULE.atomic_write(self.state, self.family_state())
+        for operation in (WORKER_MODULE.stop, WORKER_MODULE.verify):
+            with self.subTest(operation=operation.__name__):
+                error = io.StringIO()
+                with (
+                    mock.patch.object(WORKER_MODULE, "_libproc", return_value=None),
+                    mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
+                    redirect_stderr(error),
+                ):
+                    self.assertEqual(operation(self.arguments()), 1)
+                self.assertEqual(
+                    error.getvalue(),
+                    f"codex-worker: {WORKER_MODULE.UNSUPPORTED}\n",
+                )
+                killpg.assert_not_called()
 
     def test_already_exited_leader_with_empty_group_stops_without_a_signal(self):
         WORKER_MODULE.atomic_write(self.state, self.family_state())
@@ -859,6 +954,103 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         process.communicate(timeout=3)
         self.assertEqual(process.returncode, 125)
         self.assertFalse(marker.exists())
+
+    def test_resume_cutpoints_before_family_persistence_preserve_the_terminal_state(self):
+        terminal = self.family_state("exited")
+        for name, cutpoint in (
+            ("before gate", "before gate"),
+            ("before family persistence", "before family persistence"),
+        ):
+            with self.subTest(name=name):
+                WORKER_MODULE.atomic_write(self.state, terminal)
+                if cutpoint == "before gate":
+                    patches = (
+                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
+                        mock.patch.object(WORKER_MODULE, "gated_process", side_effect=RuntimeError("cutpoint")),
+                    )
+                    read_fd = None
+                else:
+                    read_fd, write_fd = os.pipe()
+                    process = mock.Mock(pid=41)
+                    patches = (
+                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
+                        mock.patch.object(WORKER_MODULE, "gated_process", return_value=(process, write_fd)),
+                        mock.patch.object(WORKER_MODULE, "live_identity", side_effect=RuntimeError("cutpoint")),
+                    )
+                try:
+                    with patches[0], patches[1]:
+                        if len(patches) == 3:
+                            with patches[2]:
+                                with self.assertRaisesRegex(RuntimeError, "cutpoint"):
+                                    WORKER_MODULE.resume(self.resume_arguments())
+                        else:
+                            with self.assertRaisesRegex(RuntimeError, "cutpoint"):
+                                WORKER_MODULE.resume(self.resume_arguments())
+                finally:
+                    if read_fd is not None:
+                        os.close(read_fd)
+                self.assertEqual(WORKER_MODULE.read_state(self.state), terminal)
+
+    def test_resume_cutpoint_after_family_persistence_is_settled_without_signaling(self):
+        WORKER_MODULE.atomic_write(self.state, self.family_state("exited"))
+        read_fd, write_fd = os.pipe()
+        process = mock.Mock(pid=41)
+        try:
+            with (
+                mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
+                mock.patch.object(WORKER_MODULE, "gated_process", return_value=(process, write_fd)),
+                mock.patch.object(WORKER_MODULE, "live_identity", return_value=self.identity),
+                mock.patch.object(WORKER_MODULE.os, "write", side_effect=RuntimeError("cutpoint")),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "cutpoint"):
+                    WORKER_MODULE.resume(self.resume_arguments())
+        finally:
+            os.close(read_fd)
+
+        persisted = WORKER_MODULE.read_state(self.state)
+        self.assertEqual(persisted["lifecycle"], "launching")
+        self.assertEqual(
+            {key: persisted[key] for key in self.identity},
+            self.identity,
+        )
+        with (
+            mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
+            mock.patch.object(WORKER_MODULE, "live_identity", return_value=None),
+            mock.patch.object(WORKER_MODULE, "group_members", return_value=[]),
+            mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
+        ):
+            self.assertEqual(WORKER_MODULE.stop(self.arguments()), 0)
+            self.assertEqual(WORKER_MODULE.verify(self.arguments()), 0)
+            killpg.assert_not_called()
+
+    def test_resume_cutpoint_after_release_before_running_is_settled_without_signaling(self):
+        WORKER_MODULE.atomic_write(self.state, self.family_state("exited"))
+        read_fd, write_fd = os.pipe()
+        process = mock.Mock(pid=41)
+        try:
+            with (
+                mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
+                mock.patch.object(WORKER_MODULE, "gated_process", return_value=(process, write_fd)),
+                mock.patch.object(WORKER_MODULE, "live_identity", return_value=self.identity),
+                mock.patch.object(WORKER_MODULE, "transition", side_effect=RuntimeError("cutpoint")),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "cutpoint"):
+                    WORKER_MODULE.resume(self.resume_arguments())
+            self.assertEqual(os.read(read_fd, 1), b"R")
+        finally:
+            os.close(read_fd)
+
+        persisted = WORKER_MODULE.read_state(self.state)
+        self.assertEqual(persisted["lifecycle"], "launching")
+        with (
+            mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
+            mock.patch.object(WORKER_MODULE, "live_identity", return_value=None),
+            mock.patch.object(WORKER_MODULE, "group_members", return_value=[]),
+            mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
+        ):
+            self.assertEqual(WORKER_MODULE.stop(self.arguments()), 0)
+            self.assertEqual(WORKER_MODULE.verify(self.arguments()), 0)
+            killpg.assert_not_called()
 
     def test_nonterminal_resume_is_rejected_and_legacy_completed_resume_is_accepted_to_launch(self):
         WORKER_MODULE.atomic_write(self.state, self.family_state("running"))
