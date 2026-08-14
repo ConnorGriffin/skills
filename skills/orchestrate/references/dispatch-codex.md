@@ -17,6 +17,17 @@ On success the helper emits one public JSON object. Read its `final_message`
 field as the current worker's answer; do not infer an answer from its session or
 headroom metadata.
 
+## Interrupted workers
+
+The coordinator that launched a worker owns its recovery. Before handing a
+preserved worktree to a successor, run `codex-worker.py stop --state STATE --cwd
+WORKTREE`, then run `codex-worker.py verify --state STATE --cwd WORKTREE` and
+require success. State is retained for interrupted, failed, and completed runs.
+Only the helper's recorded dedicated process group is in scope; a successor must
+never search for or clean unknown processes, tests, providers, sessions, or
+descendants. `stop` and `verify` reject legacy state. Ordinary `resume` can read
+a completed legacy state, but only from a terminal state with a session ID.
+
 The adapter reports session-bound headroom only when the matching persisted
 rollout contains rate limits. `unknown`, headroom at or below 5%, and rate-limit
 failures block a Codex UI parent: stop dispatching and report the blocker. It
