@@ -17,7 +17,8 @@ SCRIPT = ROOT / "skills" / "pr-body" / "scripts" / "pr_body_lint.py"
 SKILL_MD = ROOT / "skills" / "pr-body" / "SKILL.md"
 RUBRIC_MD = ROOT / "skills" / "pr-body" / "references" / "rubric.md"
 
-DISCLOSURE = "This PR was written in part with the assistance of generative AI."
+DISCLOSURE = "> Written by an AI agent operating for <operator>. Verify before relying on it."
+LEGACY_DISCLOSURE = "This PR was written in part with the assistance of generative AI."
 
 
 def lint(body: str, *, repo: Optional[Path] = None) -> dict:
@@ -84,6 +85,14 @@ class AiDisclosureMissingTests(unittest.TestCase):
         result = lint(body)
         self.assertNotIn("ai-disclosure-missing", rules_fired(result))
 
+    def test_does_not_trip_on_the_legacy_sentence_form(self):
+        # The old plain-sentence disclosure still satisfies the rule: it
+        # matches the same loose pattern, and retro-failing bodies written
+        # before the blockquote convention would be pure audit noise.
+        body = f"Grows the appliance data volume from 2TB to 4TB.\n\n{LEGACY_DISCLOSURE}\n"
+        result = lint(body)
+        self.assertNotIn("ai-disclosure-missing", rules_fired(result))
+
     def test_does_not_trip_on_a_differently_worded_disclosure(self):
         body = (
             "Grows the appliance data volume from 2TB to 4TB.\n\n"
@@ -92,10 +101,25 @@ class AiDisclosureMissingTests(unittest.TestCase):
         result = lint(body)
         self.assertNotIn("ai-disclosure-missing", rules_fired(result))
 
-    def test_fix_text_supplies_a_usable_sentence(self):
+    def test_fix_text_supplies_the_blockquote_form(self):
         result = lint("Grows the appliance data volume from 2TB to 4TB.\n")
         finding = finding_for(result, "ai-disclosure-missing")
-        self.assertIn("generative ai", finding["fix"].lower())
+        self.assertIn("written by an ai agent operating for", finding["fix"].lower())
+
+    def test_disclosure_blockquote_is_exempt_from_prose_density_rules(self):
+        # The scaffolding mask keys on an AI term plus an assist verb
+        # anywhere in the line, not on the leading "> ", so a blockquote
+        # disclosure carrying density-rule bait (an em dash, a rated
+        # verdict) must still be masked out rather than flagged.
+        body = (
+            "Grows the appliance data volume from 2TB to 4TB.\n\n"
+            "> Written by an AI agent operating for <operator> — this is a "
+            "low-risk change. Verify before relying on it.\n"
+        )
+        result = lint(body)
+        self.assertNotIn("em-dash", rules_fired(result))
+        self.assertNotIn("verdict-clause", rules_fired(result))
+        self.assertNotIn("ai-disclosure-missing", rules_fired(result))
 
 
 class EmptyTemplateSectionTests(unittest.TestCase):

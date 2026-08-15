@@ -29,17 +29,22 @@ description as grounds to send the PR back before judging the code at all
 assistance verb. The match is deliberately loose so any phrasing of the
 disclosure counts, not one fixed sentence.
 
-**Fix** Add a disclosure line: 'This PR was written in part with the assistance
-of generative AI.'
+**Fix** Add a disclosure line: '> Written by an AI agent operating for
+<operator>. Verify before relying on it.'
 
 **Grounds** The Kubernetes contributor guide is the only verified institutional
-policy requiring disclosure in the description, and supplies that exact sentence
-(https://www.kubernetes.dev/docs/guide/pull-requests/). Scoping is free here:
-the hook fires on an agent's Bash tool, so every body it scores is
-agent-mediated by construction. The rule needs no heuristic for whether a body
-was AI-written, because the trigger already answers that. Kubernetes' companion
-ban on AI co-author commit trailers is left alone; this pack's commit convention
-already keeps attribution out of trailers.
+policy requiring disclosure in the description
+(https://www.kubernetes.dev/docs/guide/pull-requests/). This pack's canonical
+wording is the blockquote form already used elsewhere for agent-authored
+content, so the disclosure reads the same way across surfaces. The older plain
+sentence still satisfies the check: it matches the same loose pattern, and
+retro-failing bodies written before this change would be pure audit noise with
+no behavior fixed. Scoping is free here: the hook fires on an agent's Bash
+tool, so every body it scores is agent-mediated by construction. The rule
+needs no heuristic for whether a body was AI-written, because the trigger
+already answers that. Kubernetes' companion ban on AI co-author commit
+trailers is left alone; this pack's commit convention already keeps
+attribution out of trailers.
 
 ### `empty-template-section` (block)
 

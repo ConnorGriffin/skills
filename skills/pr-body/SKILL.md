@@ -19,7 +19,7 @@ running near capacity.
 
 EBS expands online. The filesystem grows on the next boot.
 
-This PR was written in part with the assistance of generative AI.
+> Written by an AI agent operating for <operator>. Verify before relying on it.
 ```
 
 No headings. No reason the author does not actually know. No advice for the
@@ -214,7 +214,8 @@ there is decorative. Grounds and fix text for each:
 
 Two behaviors of the scorer are worth knowing before arguing with a finding.
 Lines matching the repo's `.github/pull_request_template.md`, and the AI
-disclosure line, are treated as scaffolding and exempt from the prose rules.
+disclosure blockquote, are treated as scaffolding and exempt from the prose
+rules.
 Below 40 characters of prose the density rules (em dash, emoji, paths,
 narration, verdicts, reviewer asks, bullet-per-file, symbols) do not run at all;
 the structural rules run at every length.

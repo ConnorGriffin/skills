@@ -113,8 +113,8 @@ ASSIST_VERB_RE = re.compile(
 FIXES = {
     "empty-body": "State what changed and why; an empty body tells the reviewer nothing.",
     "ai-disclosure-missing": (
-        "Add a disclosure line: 'This PR was written in part with the "
-        "assistance of generative AI.'"
+        "Add a disclosure line: '> Written by an AI agent operating for "
+        "<operator>. Verify before relying on it.'"
     ),
     "empty-template-section": "Fill in the {heading!r} section, or delete it if it does not apply.",
     "vacuous-opener": "Open with the behavior that changed, not a generic label like this line.",
