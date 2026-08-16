@@ -21,7 +21,12 @@ jobs:
       - name: Validate skill pack and reachable history
         run: python3 scripts/validate.py
       - name: Run public-interface behavior tests
-        run: python3 -m unittest -v tests.test_behavior
+        run: >-
+          python3 -m unittest -v
+          tests.test_behavior
+          tests.test_pr_body
+          tests.test_pr_body_gate
+          tests.test_pr_body_bench
       - name: Check DCO
         if: github.event_name == 'pull_request'
         run: >-

@@ -5,3 +5,7 @@ node_modules/
 __pycache__/
 bench/fixtures/pr-body/
 bench/results/pr-body/
+.agentflow/
+.agents/
+.claude/
+skills-lock.json
