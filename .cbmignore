@@ -1,0 +1,29 @@
+# >>> cbm-onboard managed baseline — do not edit inside this block >>>
+# codebase-memory-mcp ignore (gitignore syntax).
+# Keeps non-source noise out of the knowledge graph and query results.
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+node_modules/
+dist/
+build/
+*.egg-info/
+# generated agent workspaces
+.agentflow/
+.claude/worktrees/
+.impeccable/
+# data & secrets
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+*.parquet
+.env
+*.log
+# <<< cbm-onboard managed baseline <<<
