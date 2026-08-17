@@ -142,6 +142,19 @@ Spec:
 - Wire the script into CI **explicitly**. Test globs discover `*.test.js`, not a
   `.replay.mjs`; a browser job that hand-lists its files gets a hand-added step in
   the same change.
+- **The mock's CI leg is temporary: it runs from lock until the surface ships, and
+  then it is deleted.** While the port is being built the mock is the contract
+  artifact and the `TARGET=mock` leg is what guards it; once the app-opener leg is
+  green the app is the contract artifact and the mock leg guards nothing the app
+  leg does not. **Retirement is atomic with the port**: the same PR that turns the
+  app leg green deletes that surface's mock leg, flips its row in `mockups/INDEX.md`
+  to `shipped`, and archives the mockup (`lock.md`'s archive-after-ship rule). A
+  follow-up issue for any of the three is forbidden — that is exactly how surfaces
+  end up merged-but-still-`locked`. The anti-drift guarantee is not lost with the
+  leg, because it never lived there: it lives in the ledger's stories replayed
+  against the built app, which run forever. A permanent mock leg instead means the
+  surface's logic exists twice and is hand-synced, and that drifts — one port branch
+  carried three divergent wordings of a single copy-pasted note builder.
 
 ## 4. The behavior ledger
 
