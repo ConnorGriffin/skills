@@ -1820,7 +1820,10 @@ class WayfinderResearchDispatchHandshakeTests(unittest.TestCase):
         )
 
     def test_wayfinder_releases_a_failed_workers_claim(self):
-        self.require(self.WAYFINDER, r"(release|remove).*(claim|assign)")
+        self.require(
+            self.WAYFINDER,
+            r"if a worker fails or is interrupted,\s+release its `wayfinder:resolving` claim",
+        )
 
     def test_tracker_excludes_awaiting_disposition_from_the_frontier(self):
         self.require(
