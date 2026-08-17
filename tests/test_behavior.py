@@ -6,6 +6,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -1670,6 +1671,227 @@ class EvidenceEnvelopeTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("failure fields are not closed", result.stderr)
+
+
+class DriveLocalWebappSandboxRecoveryTests(unittest.TestCase):
+    DRIVER = ROOT / "skills" / "drive-local-webapp" / "scripts" / "driver.mjs"
+    DARWIN_ERROR = "MachPortRendezvousServer failed: bootstrap_check_in: Permission denied (1100)"
+    DARWIN_ERROR_ALT = "Permission denied (1100) while starting MachPortRendezvousServer"
+    TIMEOUT_ERROR = "MachPortRendezvousServer timed out"
+
+    FORCE_DARWIN = (
+        "import process from 'node:process';\n"
+        "Object.defineProperty(process, 'platform', { value: 'darwin' });\n"
+    )
+
+    PLAYWRIGHT_PACKAGE_JSON = json.dumps(
+        {"name": "playwright", "type": "module", "exports": "./index.js"}
+    )
+
+    # PLAYWRIGHT_STUB is controlled by two env vars read at import time:
+    #   DRIVER_TEST_LAUNCH_ERROR   the message the first launch() throws
+    #   DRIVER_TEST_RETRY_OK       "1" if the --no-sandbox/--single-process
+    #                              retry should succeed instead of failing
+    PLAYWRIGHT_STUB = """
+const launchError = process.env.DRIVER_TEST_LAUNCH_ERROR || "";
+const retryOk = process.env.DRIVER_TEST_RETRY_OK === "1";
+
+const page = {
+  on() {},
+  async goto() {},
+  async close() {},
+};
+
+const browser = {
+  async newPage() {
+    return page;
+  },
+  async close() {},
+};
+
+export const chromium = {
+  async launch(opts) {
+    const args = (opts && opts.args) || [];
+    const isSandboxSafeRetry =
+      args.includes("--no-sandbox") && args.includes("--single-process");
+    if (isSandboxSafeRetry) {
+      if (retryOk) return browser;
+      throw new Error(launchError);
+    }
+    throw new Error(launchError);
+  },
+};
+"""
+
+    @classmethod
+    def setUpClass(cls):
+        if shutil.which("node") is None:
+            raise RuntimeError(
+                "node is required for DriveLocalWebappSandboxRecoveryTests"
+            )
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.scratch = Path(self.temporary.name)
+
+        shutil.copy(self.DRIVER, self.scratch / "driver.mjs")
+
+        playwright_dir = self.scratch / "node_modules" / "playwright"
+        playwright_dir.mkdir(parents=True)
+        (playwright_dir / "package.json").write_text(
+            self.PLAYWRIGHT_PACKAGE_JSON, encoding="utf-8"
+        )
+        (playwright_dir / "index.js").write_text(
+            self.PLAYWRIGHT_STUB, encoding="utf-8"
+        )
+
+        self.force_darwin = self.scratch / "force-darwin.mjs"
+        self.force_darwin.write_text(self.FORCE_DARWIN, encoding="utf-8")
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def run_driver(self, *, launch_error, retry_ok):
+        environment = os.environ.copy()
+        environment["DRIVER_TEST_LAUNCH_ERROR"] = launch_error
+        environment["DRIVER_TEST_RETRY_OK"] = "1" if retry_ok else "0"
+        return subprocess.run(
+            ["node", "--import", "./force-darwin.mjs", "driver.mjs"],
+            cwd=self.scratch,
+            env=environment,
+            text=True,
+            input="",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=15,
+            check=False,
+        )
+
+    def test_mach_port_denial_with_failed_retry_is_blocked(self):
+        result = self.run_driver(launch_error=self.DARWIN_ERROR, retry_ok=False)
+
+        self.assertEqual(result.returncode, 77, result.stdout + result.stderr)
+        self.assertIn("HEADLESS-SANDBOX-BLOCKED", result.stdout + result.stderr)
+
+    def test_mach_port_denial_alt_phrasing_with_failed_retry_is_blocked(self):
+        result = self.run_driver(launch_error=self.DARWIN_ERROR_ALT, retry_ok=False)
+
+        self.assertEqual(result.returncode, 77, result.stdout + result.stderr)
+        self.assertIn("HEADLESS-SANDBOX-BLOCKED", result.stdout + result.stderr)
+
+    def test_mach_port_denial_with_successful_retry_proceeds(self):
+        result = self.run_driver(launch_error=self.DARWIN_ERROR, retry_ok=True)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("HEADLESS-SANDBOX-BLOCKED", result.stdout + result.stderr)
+
+    def test_unrelated_mach_port_error_is_not_treated_as_sandbox_block(self):
+        result = self.run_driver(launch_error=self.TIMEOUT_ERROR, retry_ok=False)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotEqual(result.returncode, 77)
+        self.assertNotIn("HEADLESS-SANDBOX-BLOCKED", result.stdout + result.stderr)
+
+
+class WayfinderResearchDispatchHandshakeTests(unittest.TestCase):
+    RESEARCH = (ROOT / "skills" / "research" / "SKILL.md").read_text(encoding="utf-8")
+    WAYFINDER = (ROOT / "skills" / "wayfinder" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    TRACKER = (
+        ROOT / "skills" / "wayfinder" / "references" / "github-tracker.md"
+    ).read_text(encoding="utf-8")
+
+    def require(self, text, pattern):
+        self.assertRegex(text, re.compile(pattern, re.IGNORECASE))
+
+    def test_research_recognizes_it_is_already_running_in_a_worker(self):
+        self.require(self.RESEARCH, r"already (a )?(spawned|background|subagent)")
+
+    def test_research_forbids_recursive_delegation(self):
+        self.require(
+            self.RESEARCH,
+            r"(never|do not) spawn (a |another )?(nested|background )?(agent|worker)",
+        )
+
+    def test_wayfinder_supervises_launched_workers_to_a_terminal_outcome(self):
+        self.require(
+            self.WAYFINDER, r"(supervise|wait for).*(terminal|completion|complete)"
+        )
+
+    def test_wayfinder_releases_a_failed_workers_claim(self):
+        self.require(
+            self.WAYFINDER,
+            r"if a worker fails or is interrupted,\s+release its `wayfinder:resolving` claim",
+        )
+
+    def test_tracker_excludes_awaiting_disposition_from_the_frontier(self):
+        self.require(
+            self.TRACKER,
+            r"wayfinder:awaiting-disposition.*excluded from the frontier",
+        )
+
+    def test_wayfinder_reconciles_every_awaiting_disposition_child(self):
+        self.require(
+            self.WAYFINDER,
+            r"reconcile every one carrying `wayfinder:awaiting-disposition`",
+        )
+
+    def test_tracker_map_index_is_not_the_authoritative_pending_queue(self):
+        self.require(
+            self.TRACKER,
+            r"durable queue; `Awaiting disposition` is its map index",
+        )
+
+    def test_wayfinder_defines_structured_candidate_envelope(self):
+        self.require(self.WAYFINDER, r"wayfinder_findings:")
+
+    def test_wayfinder_candidate_identity_is_stable_replay_identity(self):
+        self.require(
+            self.WAYFINDER, r"not titles or list position, are the replay identity"
+        )
+
+    def test_wayfinder_map_only_link_does_not_count_as_durable_handoff(self):
+        self.require(
+            self.WAYFINDER,
+            r"map (link|Handoffs entry) alone.*(never|does not).*count",
+        )
+
+    def test_wayfinder_must_not_close_with_undisposed_candidates(self):
+        self.require(
+            self.WAYFINDER,
+            r"close.*only after every.*candidate.*(disposed|disposition)",
+        )
+
+    def test_wayfinder_build_issue_carries_candidate_identity_marker(self):
+        self.require(self.WAYFINDER, r"Wayfinder candidate:")
+
+    def test_tracker_candidate_identity_is_copied_into_handoff_or_disposition(self):
+        self.require(
+            self.TRACKER,
+            r"exact candidate identity copied into each Build Issue or disposition",
+        )
+
+    def test_tracker_validates_a_disposition_before_treating_it_complete(self):
+        self.require(
+            self.TRACKER,
+            r"disposition comment as complete only when.*candidate",
+        )
+
+    def test_tracker_complete_disposition_retains_its_trigger(self):
+        self.require(self.TRACKER, r"required observable trigger")
+
+    def test_tracker_complete_disposition_retains_its_verification_condition(self):
+        self.require(self.TRACKER, r"verification condition")
+
+    def test_tracker_documents_in_place_repair_edit(self):
+        self.require(self.TRACKER, r"issues/comments/COMMENT_ID")
+
+    def test_wayfinder_workers_must_not_unconditionally_close_tickets(self):
+        self.assertNotRegex(
+            self.WAYFINDER,
+            re.compile(r"claims, researches, comments, closes", re.IGNORECASE),
+        )
 
 
 if __name__ == "__main__":
