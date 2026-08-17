@@ -42,6 +42,11 @@ and enforced at review: a violation below is a blocking finding.
 ## Maintainability
 
 - **Match the surrounding code** — idiom, naming, comment density.
+- **Reuse the module that already covers the behavior.** In production code, a second
+  implementation of behavior already reachable through a module's public interface at
+  the call site is duplication, whether or not it is well written: one fact with two
+  implementations diverges. Where that module would not survive the deletion test
+  counting this call site, this rule does not apply.
 - **No dead code, no speculative abstraction.** Build the seam when the second caller
   is real, not before.
 - **Earn every guard.** An edge case is real only when its state is reachable under the
