@@ -144,8 +144,15 @@ Locking is complete only when ALL of these exist:
    links and other surfaces share; `mockups/INDEX.md` set to `locked`,
    pointing at mock + manifest; the implementation issue references both.
 
-After implementation ships, set the ledger row to `shipped` and archive the
-mockup; the app becomes the source of truth.
+After implementation ships, set the surface-ledger row to `shipped`, archive the
+mockup, and delete that surface's `TARGET=mock` CI leg; the app becomes the
+source of truth. **All three land in the port PR itself** — the PR that turns the
+app-opener replay leg green — never in a follow-up issue, which is how a surface
+stays `locked` long after it merged. The mock, its screenshots, the manifest and
+the behavior ledger stay as the design record, and the ledger's stories keep
+running against the built app forever; post-ship hotfixes owe no mock pass and no
+mock sync, and a later `resettle` starts from the shipping app rather than a
+runnable mock.
 
 ## Lock manifest format
 
