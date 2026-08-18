@@ -23,8 +23,10 @@ Before any routing, check whether the Codex side has budget left:
    headroom ≤ 5% / unknown below; tell the operator once. A Codex UI parent
    cannot land on this branch — the CLI exists there by construction — so the
    check only applies to a Claude parent.
-1. Probe fresh with a trivial one-word worker run (cheapest available Codex
-   model, `read-only`). The Codex adapter binds headroom to that worker's
+1. Probe fresh with a trivial one-word worker run (Luna, `gpt-5.6-luna`,
+   `read-only`) — Luna is the probe model because it is the cheapest route the
+   table already uses, so it is always available; do not pick a cheaper-looking
+   mini model, which is not enabled on the operator's plan and fails the probe. The Codex adapter binds headroom to that worker's
    captured session ID: it finds the rollout whose `session_meta.payload.session_id`
    matches and reads its latest `event_msg` token-count rate limits. Headroom =
    `100 − primary.used_percent`; absent rate limits mean **unknown**, not
