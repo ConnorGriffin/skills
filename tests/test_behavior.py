@@ -23,6 +23,11 @@ ROOT = Path(__file__).resolve().parents[1]
 CBM_SCRIPT = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-onboard.sh"
 SPIN_SCRIPT = ROOT / "skills" / "tools" / "spin-worktree" / "scripts" / "spin-worktree.py"
 CODEX_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "codex-worker.py"
+UI_CRAFT_AUDIT = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "audit.md"
+UI_CRAFT_CRITIQUE = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "critique.md"
+UI_CRAFT_SWEEP = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "behavior-sweep.md"
+UI_CRAFT_ROUTE = ROOT / "skills" / "drivers" / "ui-craft" / "scripts" / "route.mjs"
+README = ROOT / "README.md"
 BEGIN_IGNORE = "# >>> cbm-onboard managed baseline — do not edit inside this block >>>"
 BEGIN_HOOK = "# >>> cbm-onboard managed reindex >>>"
 
@@ -104,7 +109,6 @@ class CbmOnboardTests(unittest.TestCase):
             "#!/bin/sh\nexit 0\n",
         )
         self.assertFalse((self.repo / ".git" / "hooks" / "post-commit").exists())
-
     def test_preserves_unmatched_markers_foreign_hook_and_is_idempotent(self):
         run(
             ["git", "config", "core.hooksPath", ".custom-hooks"],
@@ -156,6 +160,49 @@ class CbmOnboardTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("SKIP hook installation", result.stderr)
         self.assertEqual(hook.read_text(encoding="utf-8"), original)
+
+
+class UiCraftContractTests(unittest.TestCase):
+    def test_shipped_surface_routing_contract_is_closed(self):
+        audit = UI_CRAFT_AUDIT.read_text(encoding="utf-8")
+        critique = UI_CRAFT_CRITIQUE.read_text(encoding="utf-8")
+        sweep = UI_CRAFT_SWEEP.read_text(encoding="utf-8")
+        readme = README.read_text(encoding="utf-8")
+
+        cases = (
+            (("greenfield", "unavailable", "absent", "unknown"), 0, "lock"),
+            (("shipped", "runnable", "complete", "synthetic"), 0, "revise"),
+            (("shipped", "runnable", "complete", "manufactured"), 0, "revise"),
+            (("shipped", "runnable", "absent", "unknown"), 0, "lock-fallback"),
+            (("shipped", "runnable", "incomplete", "unknown"), 2, "refuse"),
+            (("shipped", "runnable", "ambiguous", "unknown"), 2, "refuse"),
+            (("shipped", "runnable", "complete", "real"), 2, "refuse"),
+            (("shipped", "unavailable", "complete", "synthetic"), 2, "refuse"),
+        )
+        for arguments, exit_code, mode in cases:
+            with self.subTest(arguments=arguments):
+                result = run(
+                    [
+                        "node",
+                        str(UI_CRAFT_ROUTE),
+                        "--embodiment",
+                        arguments[0],
+                        "--runnability",
+                        arguments[1],
+                        "--declaration",
+                        arguments[2],
+                        "--data-source",
+                        arguments[3],
+                    ],
+                    cwd=ROOT,
+                )
+                self.assertEqual(result.returncode, exit_code, result.stderr)
+                self.assertEqual(json.loads(result.stdout)["mode"], mode)
+
+        self.assertIn("`revise` for shipped-surface changes", audit)
+        self.assertIn("Route every shipped-surface change through `revise`", critique)
+        self.assertRegex(sweep, r"Under `revise`, the\s+ledger amendment")
+        self.assertIn("--skill spin-worktree", readme)
 
 
 class SpinWorktreeTests(unittest.TestCase):

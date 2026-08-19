@@ -1,8 +1,10 @@
 # Mode: lock
 
-Explore a surface as several genuinely different, repository-grounded HTML
-mockups, converge with the reviewer, and end with a **lock** that a build
-agent cannot silently drift from: a ★ LOCKED mockup plus a lock manifest.
+Explore a greenfield surface as several genuinely different,
+repository-grounded HTML mockups, converge with the reviewer, and end with a
+**lock** that a build agent cannot silently drift from: a ★ LOCKED mockup plus a
+lock manifest. A surface the app already ships uses `revise`, except for the
+explicit safe-start fallback below.
 
 ## Review mode
 
@@ -17,9 +19,28 @@ agent cannot silently drift from: a ★ LOCKED mockup plus a lock manifest.
 
 ### 0. Pre-flight — chrome ground truth (MANDATORY, before any concept work)
 
-A lock round dies at review when its chrome doesn't match the app the reviewer
-uses every day. Run these checks before the ledger, and do not fan out a
-single variant until the fidelity gate passes:
+A from-scratch mock of a shipped surface is banned. Before any concept work,
+check `mockups/INDEX.md`, the app routes and the shipping render modules. If the
+app already embodies this surface or the shell containing it, **refuse `lock`
+and name `revise`**. This is a blocking verdict, the same class as a `missed`
+predecessor behavior.
+
+There is one exception: `revise` pre-flight may have recorded that the repo has
+no dev-server declaration and routed the change here as the accepted fallback.
+That record must name the absent declaration and state that mockup plus
+predecessor inventory is weaker than app-branch iteration. A declared entrypoint
+that omits its data source is unsupported, not fallback. Without the fallback
+record, `lock` never proceeds on a shipped embodiment.
+
+The fallback does not authorize starting the app. Any live predecessor or chrome
+evidence must come through a separately declared safe harness; otherwise record
+the missing evidence and let the predecessor QUESTION gate block rather than
+guessing.
+
+On a greenfield surface, or on that recorded fallback, a lock round dies at
+review when its chrome doesn't match the app the reviewer uses every day. Run
+these checks before the ledger, and do not fan out a single variant until the
+fidelity gate passes:
 
 1. **Resolve the material ground truth for chrome.** If any locked surface has
    shipped — check `mockups/INDEX.md` for `shipped` rows and the log for port
@@ -40,7 +61,8 @@ single variant until the fidelity gate passes:
    which is ground truth — silence here is the defect that lets the next
    round anchor wrong.
 3. **Round-zero fidelity gate.** Render the empty shell/chrome (no concept
-   content) and put it beside a screenshot of the running app. Chrome —
+   content) and put it beside a screenshot of the safely running app, or an
+   operator-provided base capture on fallback. Chrome —
    ground color, fonts, control sizes, radii, bar heights — must be
    indistinguishable BEFORE variants are briefed; save the pair as evidence.
    A reviewer should never have to argue the background color mid-round.
@@ -53,9 +75,10 @@ single variant until the fidelity gate passes:
 Read `mockups/INDEX.md` (create if absent; one row per surface, columns
 Surface / Concept / Status / Issue / File). `locked` entries are binding
 precedent for adjacent surfaces; for `shipped` entries the app is ground
-truth, not old mockup markup. A `shipped` row covering this surface or the one
-it replaces is also what **triggers the predecessor pass** (§9.3) — note it here,
-where it is cheap, rather than discovering it at lock time.
+truth, not old mockup markup. On the recorded fallback path, a `shipped` row
+covering this surface or the one it replaces also **triggers the predecessor
+pass** (§9.3) — note it here, where it is cheap, rather than discovering it at
+lock time. Outside that fallback, the row triggers the refusal above.
 
 ### 2. Grounding kit
 
@@ -129,8 +152,8 @@ SKILL.md); name the first concrete element that stalls each walkthrough and
 fix it. Then run the `audit` technical checks (contrast, keyboard focus,
 overflow, target sizes) on the finalist.
 
-**Where the surface has a predecessor, run the predecessor inventory on the
-finalist here** ([behavior-sweep.md](behavior-sweep.md) §2) and take its
+**On the recorded fallback path, run the predecessor inventory on the finalist
+here** ([behavior-sweep.md](behavior-sweep.md) §2) and take its
 QUESTION round to the operator with the rest of this gate's findings. This is
 the last point at which a dropped interaction is still a design conversation
 rather than an amendment to a merged contract. The personas walk the mock and the
@@ -148,7 +171,7 @@ Locking is complete only when ALL of these exist:
    prior locks being superseded. Any contradiction is resolved *now*, by the
    user (interactive) or explicitly in the header (headless) — never left
    for the implementer to arbitrate.
-3. **The predecessor diff, wherever the surface has a predecessor.** If a
+3. **The predecessor diff on the recorded fallback or a legacy lock.** If a
    `shipped` row in `mockups/INDEX.md` covers this surface or the one it
    replaces, or a prior lock is being superseded, or the running app already
    does this job, then `behavior-sweep`'s **predecessor inventory**
@@ -186,8 +209,9 @@ app-opener replay leg green — never in a follow-up issue, which is how a surfa
 stays `locked` long after it merged. The mock, its screenshots, the manifest and
 the behavior ledger stay as the design record, and the ledger's stories keep
 running against the built app forever; post-ship hotfixes owe no mock pass and no
-mock sync, and a later `resettle` starts from the shipping app rather than a
-runnable mock.
+mock sync, and later design work starts with `revise` from the shipping app
+rather than a runnable mock. `resettle` remains only for terms in the archived
+lock.
 
 ## Lock manifest format
 

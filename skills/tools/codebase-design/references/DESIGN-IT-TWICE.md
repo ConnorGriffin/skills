@@ -8,7 +8,7 @@ Uses the vocabulary in [../SKILL.md](../SKILL.md) — **module**, **interface**,
 **seam**, **adapter**, **leverage**.
 
 Offerable in two places: standalone, or mid-interview as a grounding step —
-when `scope`'s interview mode (`skills/scope/references/interview.md`) hits an
+when `scope`'s interview mode (`skills/workflows/scope/references/interview.md`) hits an
 interface-shape frontier question, this can run right there, the same way
 that file's `ground it` escape hatch grounds a question before re-asking it.
 

@@ -5,7 +5,7 @@ All delegated exploration, implementation, review, and follow-up work runs
 through the executable helper; do not use native `spawn_agent`. CLI workers are
 the validated path and let the coordinator enforce both `cwd` and sandbox.
 
-Run `skills/orchestrate/scripts/codex-worker.py start` for a new worker. Give
+Run `skills/drivers/orchestrate/scripts/codex-worker.py start` for a new worker. Give
 read work a resolved repository or worktree path and `--sandbox read-only`.
 Give write work a resolved isolated worktree path, `--sandbox workspace-write`,
 and the coordinator checkout in `--control-checkout`; the helper rejects the
