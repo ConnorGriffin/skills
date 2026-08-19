@@ -53,7 +53,9 @@ single variant until the fidelity gate passes:
 Read `mockups/INDEX.md` (create if absent; one row per surface, columns
 Surface / Concept / Status / Issue / File). `locked` entries are binding
 precedent for adjacent surfaces; for `shipped` entries the app is ground
-truth, not old mockup markup.
+truth, not old mockup markup. A `shipped` row covering this surface or the one
+it replaces is also what **triggers the predecessor pass** (§9.3) — note it here,
+where it is cheap, rather than discovering it at lock time.
 
 ### 2. Grounding kit
 
@@ -127,6 +129,14 @@ SKILL.md); name the first concrete element that stalls each walkthrough and
 fix it. Then run the `audit` technical checks (contrast, keyboard focus,
 overflow, target sizes) on the finalist.
 
+**Where the surface has a predecessor, run the predecessor inventory on the
+finalist here** ([behavior-sweep.md](behavior-sweep.md) §2) and take its
+QUESTION round to the operator with the rest of this gate's findings. This is
+the last point at which a dropped interaction is still a design conversation
+rather than an amendment to a merged contract. The personas walk the mock and the
+audit measures the mock; neither can catch what the mock does not contain,
+because neither is looking at anything else.
+
 ### 9. Lock
 
 Locking is complete only when ALL of these exist:
@@ -138,8 +148,30 @@ Locking is complete only when ALL of these exist:
    prior locks being superseded. Any contradiction is resolved *now*, by the
    user (interactive) or explicitly in the header (headless) — never left
    for the implementer to arbitrate.
-3. **The lock manifest** — `mockups/<surface>.lock.md` (format below).
-4. Losing variants and their screenshots deleted — but never the scaffold
+3. **The predecessor diff, wherever the surface has a predecessor.** If a
+   `shipped` row in `mockups/INDEX.md` covers this surface or the one it
+   replaces, or a prior lock is being superseded, or the running app already
+   does this job, then `behavior-sweep`'s **predecessor inventory**
+   ([behavior-sweep.md](behavior-sweep.md) §2) has run and every predecessor
+   behavior carries a verdict: `kept`, or `retired` with its sanction line. **A
+   `missed` row blocks the lock**, and an unsanctioned `retired` row is a
+   `missed` row. A greenfield surface records the one-line skip and moves on.
+
+   **This one pass precedes the lock; the rest of the sweep follows it — and the
+   ordering is the whole point.** The rest needs a frozen mock, so it cannot run
+   earlier; this pass needs the finalist only as a diff target, so it can. Lock
+   first and the record inverts: **the lock is what turns a retirement into
+   contract**, so a pass that runs afterwards is not deciding anything, it is
+   transcribing a decision the project already made by omission — and every
+   later mode reads the lock, so the omission is now the spec. A real Diagnose
+   lock froze the retirement of a shipped drag-to-draw selection window its mock
+   had simply never implemented. Ten exploration rounds, a persona panel and a
+   52-run audit all read the mock, and a mock-side reading cannot see an absence;
+   the operator caught it by eye on a screenshot after the lock merged. Nothing
+   in that sequence was skipped. The sequence had no step that looked backwards,
+   and this is that step.
+4. **The lock manifest** — `mockups/<surface>.lock.md` (format below).
+5. Losing variants and their screenshots deleted — but never the scaffold
    files (`_theme.css`, `_shell.js`, `SCAFFOLD.md`), which the locked mock
    links and other surfaces share; `mockups/INDEX.md` set to `locked`,
    pointing at mock + manifest; the implementation issue references both.
@@ -161,7 +193,7 @@ header stays the narrative; the manifest is the contract.
 
 ```markdown
 # Lock manifest — <surface>
-Locked: <date> by <who>   Mocks: <files, incl. the scaffold files the mock links (_theme.css, _shell.js)>   Supersedes: <prior lock or —>
+Locked: <date> by <who>   Mocks: <files, incl. the scaffold files the mock links (_theme.css, _shell.js)>   Supersedes: <prior lock, the shipped surface it replaces + its source path, or —>
 
 ## Precedence
 <One sentence: which artifact wins for component-level styling when the mock
@@ -184,6 +216,13 @@ low-tail fill fires". A fixture that cannot show a term cannot prove it.>
 <Legend chips, labels, button text — copied exactly from the mock, so text
 drift is a diff, not a judgment call.>
 ```
+
+**`Supersedes:` is how the predecessor stays findable.** The surface ledger
+identifies it by its `shipped` row — and that row flips to `locked` in this same
+change, so from then on this line is the only record of what this surface
+replaced. Name the shipped surface and where its behavior is registered, not just
+a prior lock; a bare `—` on a replacement surface reads as greenfield to the next
+round, and a greenfield surface skips the predecessor pass.
 
 Rules for writing terms:
 
