@@ -85,7 +85,7 @@ work ready while the contract is missing or still only in the ledger.
 
 ## Evidence v2
 
-Consult [the shared envelope reference](../../docs/evidence/envelope-v2.md) when a
+Consult [the shared envelope reference](../../../docs/evidence/envelope-v2.md) when a
 settled claim, criterion, decision, or disposition has a durable issue, ADR, Git, or
 document authority and immutable revision. Emit only its normalized pointer and digest
 with explicit lineage. A session-scratchpad entry has no such authority and is

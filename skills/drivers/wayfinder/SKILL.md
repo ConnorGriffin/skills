@@ -30,7 +30,7 @@ issues only when no open decision can invalidate their subtree.
 
 ## Evidence v2
 
-Use [the shared envelope reference](../../docs/evidence/envelope-v2.md) for a grounded
+Use [the shared envelope reference](../../../docs/evidence/envelope-v2.md) for a grounded
 claim, criterion, decision, or disposition only after its GitHub issue/comment or ADR
 has a stable locator and normalized immutable content digest. The map and scratchpad
 are planning state, not evidence authority. Record the decision in its existing ticket

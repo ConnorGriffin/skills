@@ -35,11 +35,11 @@ jobs:
           "${{ github.event.pull_request.head.sha }}"
       - name: Check Python, JavaScript, and shell syntax
         run: |
-          python3 -m py_compile skills/spin-worktree/scripts/spin-worktree.py
-          node --check skills/drive-local-webapp/scripts/driver.mjs
-          node --check skills/drive-local-webapp/scripts/self-check.mjs
-          sh -n skills/cbm-onboard/scripts/cbm-onboard.sh
-          sh -n skills/cbm-onboard/scripts/cbm-reindex.sh
+          python3 -m py_compile skills/tools/spin-worktree/scripts/spin-worktree.py
+          node --check skills/tools/drive-local-webapp/scripts/driver.mjs
+          node --check skills/tools/drive-local-webapp/scripts/self-check.mjs
+          sh -n skills/tools/cbm-onboard/scripts/cbm-onboard.sh
+          sh -n skills/tools/cbm-onboard/scripts/cbm-reindex.sh
       - name: Fresh-install through the standard skills CLI
         run: >-
           npx --yes skills@1.5.20 add . --skill '*'
@@ -52,10 +52,10 @@ jobs:
             test -f ".agents/skills/$skill/SKILL.md"
           done
       - name: Install pinned browser driver dependencies
-        working-directory: skills/drive-local-webapp
+        working-directory: skills/tools/drive-local-webapp
         run: |
           npm ci
           npx playwright install chromium
       - name: Run browser driver self-check
-        working-directory: skills/drive-local-webapp
+        working-directory: skills/tools/drive-local-webapp
         run: npm run self-check

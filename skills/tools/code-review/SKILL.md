@@ -102,7 +102,7 @@ commit list (`git log <base>..<head> --oneline`).
 ### Evidence v2 identity
 
 When emitting an eligible finding, action, fix, or convergence observation, use [the
-shared envelope reference](../../docs/evidence/envelope-v2.md). A committed review
+shared envelope reference](../../../docs/evidence/envelope-v2.md). A committed review
 uses the exact reviewed SHA. A working-tree review records resolved base and head plus
 the raw deterministic reviewed-diff/tree digest from that reference; `HEAD` alone is
 not a snapshot identity. A finding or review action may `addresses` a finding; a fix
@@ -160,7 +160,7 @@ in isolation passes clean and then spends the next round on nothing but seam
 defects.
 
 Before declaring the Spec axis unavailable, extract the admitted
-[risk contract](../scope/SKILL.md#risk-contract) from the spec, then look in the
+[risk contract](../../workflows/scope/SKILL.md#risk-contract) from the spec, then look in the
 matching scope ledger if necessary. Do not substitute the PR description written by
 the same author as the code.
 

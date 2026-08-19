@@ -19,7 +19,7 @@ It produces objections and a verdict; revising the plan is the author's job.
 ## Evidence v2
 
 When the reviewed plan has a durable locator and immutable revision, follow [the shared
-envelope reference](../../docs/evidence/envelope-v2.md): an objection may `revises`
+envelope reference](../../../docs/evidence/envelope-v2.md): an objection may `revises`
 its affected revision-scoped criterion; the revision may `revises` that objection; a
 reproduction or refutation uses a verification link only to an admissible claim,
 criterion, decision, finding, fix, or verification; and the verdict may
@@ -61,7 +61,7 @@ definitions below are the fallback.
    at build time is how shallow modules happen.
 4. **Scope, risk contract, and complexity budget.** Out-of-scope must be explicit.
    For bounded work, load the admitted
-   [risk contract](../scope/SKILL.md#risk-contract). Missing risk decisions block
+   [risk contract](../../workflows/scope/SKILL.md#risk-contract). Missing risk decisions block
    countersign only when the build would otherwise have to invent failure handling,
    recovery, or evidence obligations. An edge case earns handling only if it is
    reachable from inputs the acceptance criteria describe **and** its contracted

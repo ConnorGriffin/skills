@@ -20,9 +20,9 @@ from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CBM_SCRIPT = ROOT / "skills" / "cbm-onboard" / "scripts" / "cbm-onboard.sh"
-SPIN_SCRIPT = ROOT / "skills" / "spin-worktree" / "scripts" / "spin-worktree.py"
-CODEX_WORKER = ROOT / "skills" / "orchestrate" / "scripts" / "codex-worker.py"
+CBM_SCRIPT = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-onboard.sh"
+SPIN_SCRIPT = ROOT / "skills" / "tools" / "spin-worktree" / "scripts" / "spin-worktree.py"
+CODEX_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "codex-worker.py"
 BEGIN_IGNORE = "# >>> cbm-onboard managed baseline — do not edit inside this block >>>"
 BEGIN_HOOK = "# >>> cbm-onboard managed reindex >>>"
 
@@ -793,11 +793,11 @@ class CodexWorkerTests(unittest.TestCase):
 
 class OrchestrateCodexPolicyTests(unittest.TestCase):
     def test_codex_headroom_and_single_rung_policy_are_explicit(self):
-        skill = (ROOT / "skills" / "orchestrate" / "SKILL.md").read_text(
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(
             encoding="utf-8"
         )
         dispatch = (
-            ROOT / "skills" / "orchestrate" / "references" / "dispatch-codex.md"
+            ROOT / "skills" / "drivers" / "orchestrate" / "references" / "dispatch-codex.md"
         ).read_text(encoding="utf-8")
 
         self.assertIn("If headroom is ≤ 5%, **unknown**", skill)
@@ -1255,7 +1255,7 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         self.assertEqual(WORKER_MODULE.PROC_PIDTBSDINFO, 3)
         self.assertEqual(WORKER_MODULE.PROC_PIDVNODEPATHINFO, 9)
         source = CODEX_WORKER.read_text(encoding="utf-8")
-        instructions = (ROOT / "skills" / "orchestrate" / "SKILL.md").read_text(encoding="utf-8")
+        instructions = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(encoding="utf-8")
         self.assertNotIn("pkill", source)
         self.assertNotIn("proc_listchildpids", source)
         self.assertNotIn("proc_name", source)
@@ -1674,7 +1674,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
 
 
 class DriveLocalWebappSandboxRecoveryTests(unittest.TestCase):
-    DRIVER = ROOT / "skills" / "drive-local-webapp" / "scripts" / "driver.mjs"
+    DRIVER = ROOT / "skills" / "tools" / "drive-local-webapp" / "scripts" / "driver.mjs"
     DARWIN_ERROR = "MachPortRendezvousServer failed: bootstrap_check_in: Permission denied (1100)"
     DARWIN_ERROR_ALT = "Permission denied (1100) while starting MachPortRendezvousServer"
     TIMEOUT_ERROR = "MachPortRendezvousServer timed out"
@@ -1794,12 +1794,12 @@ export const chromium = {
 
 
 class WayfinderResearchDispatchHandshakeTests(unittest.TestCase):
-    RESEARCH = (ROOT / "skills" / "research" / "SKILL.md").read_text(encoding="utf-8")
-    WAYFINDER = (ROOT / "skills" / "wayfinder" / "SKILL.md").read_text(
+    RESEARCH = (ROOT / "skills" / "tools" / "research" / "SKILL.md").read_text(encoding="utf-8")
+    WAYFINDER = (ROOT / "skills" / "drivers" / "wayfinder" / "SKILL.md").read_text(
         encoding="utf-8"
     )
     TRACKER = (
-        ROOT / "skills" / "wayfinder" / "references" / "github-tracker.md"
+        ROOT / "skills" / "drivers" / "wayfinder" / "references" / "github-tracker.md"
     ).read_text(encoding="utf-8")
 
     def require(self, text, pattern):

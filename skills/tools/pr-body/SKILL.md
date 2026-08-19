@@ -188,7 +188,7 @@ A denial is not a setback. Measured over 256 runs, a body that fails the linter
 passes after one round of fixing, and an author given no guidance at all
 converges as fast as one given the whole of this file. Fix the findings and move
 on; do not rewrite from scratch. Measurements:
-[docs/pr-body-measurement.md](../../docs/pr-body-measurement.md).
+[docs/pr-body-measurement.md](../../../docs/pr-body-measurement.md).
 
 ## Rules the scorer implements
 

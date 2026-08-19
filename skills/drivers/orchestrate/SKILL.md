@@ -142,7 +142,7 @@ exploration pressure.
 ## Evidence v2
 
 For a durable, revisioned task authority, use [the shared envelope
-reference](../../docs/evidence/envelope-v2.md) to emit a delegation that `delegates`
+reference](../../../docs/evidence/envelope-v2.md) to emit a delegation that `delegates`
 an admissible claim, criterion, decision, or delegation; a bounded slice that
 `derives_from` that delegation; and a settlement that `settles` an admissible
 verification. A decline or collapse may separately `derives_from` the slice. The

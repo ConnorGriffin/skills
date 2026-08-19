@@ -13,30 +13,31 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
+CATEGORIES = {"workflows", "drivers", "tools"}
 EXPECTED = {
-    "drive-local-webapp",
-    "code-review",
-    "pr-body",
-    "say-less",
-    "cbm-onboard",
-    "ci-design",
-    "codebase-design",
-    "domain-modeling",
-    "spin-worktree",
-    "research",
-    "implement",
-    "tdd",
-    "review",
-    "prototype",
-    "scope",
-    "wayfinder",
-    "plan-review",
-    "persona-review",
-    "ui-craft",
-    "orchestrate",
-    "writing-for-agents",
-    "handoff",
-    "preflight",
+    "workflows/scope",
+    "workflows/review",
+    "drivers/wayfinder",
+    "drivers/implement",
+    "drivers/ui-craft",
+    "drivers/orchestrate",
+    "tools/cbm-onboard",
+    "tools/ci-design",
+    "tools/code-review",
+    "tools/codebase-design",
+    "tools/domain-modeling",
+    "tools/drive-local-webapp",
+    "tools/handoff",
+    "tools/persona-review",
+    "tools/plan-review",
+    "tools/pr-body",
+    "tools/preflight",
+    "tools/prototype",
+    "tools/research",
+    "tools/say-less",
+    "tools/spin-worktree",
+    "tools/tdd",
+    "tools/writing-for-agents",
 }
 EVIDENCE = ROOT / "docs" / "evidence"
 CONTRACT = EVIDENCE / "contract-v2.json"
@@ -170,7 +171,7 @@ def validate_links(path: Path, errors: list[str]) -> None:
 
 
 def validate_persona_review_allowlist(errors: list[str]) -> None:
-    skill_dir = SKILLS / "persona-review"
+    skill_dir = SKILLS / "tools" / "persona-review"
     if not skill_dir.exists():
         return
     for path in skill_dir.rglob("*"):
@@ -179,7 +180,7 @@ def validate_persona_review_allowlist(errors: list[str]) -> None:
             if relative not in PERSONA_REVIEW_ALLOWLIST:
                 fail(
                     errors,
-                    f"skills/persona-review: file not on the allowlist: {relative}",
+                    f"skills/tools/persona-review: file not on the allowlist: {relative}",
                 )
 
 
@@ -800,9 +801,24 @@ def validate_reachable_history(errors: list[str]) -> None:
                 fail(errors, f"reachable history contains a forbidden path")
 
 
+def discover_skills(errors: list[str]) -> set[str]:
+    actual: set[str] = set()
+    for entry in SKILLS.iterdir():
+        if entry.is_file():
+            fail(errors, f"skills/{entry.name}: file directly under skills/, not a category")
+            continue
+        if entry.name not in CATEGORIES:
+            fail(errors, f"skills/{entry.name}: directory is not a recognized category")
+            continue
+        for skill_dir in entry.iterdir():
+            if skill_dir.is_dir():
+                actual.add(f"{entry.name}/{skill_dir.name}")
+    return actual
+
+
 def main() -> int:
     errors: list[str] = []
-    actual = {path.name for path in SKILLS.iterdir() if path.is_dir()}
+    actual = discover_skills(errors)
     if actual != EXPECTED:
         fail(errors, f"skills: expected {sorted(EXPECTED)}, found {sorted(actual)}")
 

@@ -26,7 +26,7 @@ to make it; it drops the process narration.
 
 A machine can also wire the digest ([reminder.md](reminder.md)) into a
 user-prompt-submit hook so the core rules re-inject on every prompt without invoking
-this skill. See [docs/overlay.md](../../docs/overlay.md).
+this skill. See [docs/overlay.md](../../../docs/overlay.md).
 
 ## Response shape
 
