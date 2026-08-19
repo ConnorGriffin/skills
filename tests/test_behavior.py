@@ -1674,6 +1674,56 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("failure fields are not closed", result.stderr)
 
+    def test_validator_rejects_seeded_private_term_patterns(self):
+        # Built by concatenation, the same defensive way validate.py itself
+        # splits these patterns, so this file never carries the literal either.
+        cases = (
+            ("docs/seed-jira-corp.txt", "j" + "ira.corp" + ".example.net token\n"),
+            (
+                "docs/seed-jira-ticket-config.txt",
+                "~/.config/" + "j" + "ira-ticket/" + "token\n",
+            ),
+        )
+        for relative_path, seeded in cases:
+            with self.subTest(relative_path=relative_path):
+                with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
+                    copy = Path(temporary) / "skills"
+                    shutil.copytree(
+                        ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__")
+                    )
+                    self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+                    self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+                    self.assertEqual(
+                        run(
+                            [
+                                "git",
+                                "-c",
+                                "user.name=Test",
+                                "-c",
+                                "user.email=test@example.invalid",
+                                "commit",
+                                "-m",
+                                "fixture",
+                            ],
+                            cwd=copy,
+                        ).returncode,
+                        0,
+                    )
+
+                    clean = run(["python3", "scripts/validate.py"], cwd=copy)
+                    self.assertEqual(clean.returncode, 0, clean.stderr)
+
+                    seed = copy / relative_path
+                    seed.write_text(seeded, encoding="utf-8")
+                    self.assertEqual(
+                        run(["git", "add", relative_path], cwd=copy).returncode, 0
+                    )
+
+                    result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(relative_path, result.stderr)
+
 
 class DriveLocalWebappSandboxRecoveryTests(unittest.TestCase):
     DRIVER = ROOT / "skills" / "tools" / "drive-local-webapp" / "scripts" / "driver.mjs"
