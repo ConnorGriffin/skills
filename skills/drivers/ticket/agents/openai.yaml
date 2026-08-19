@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ticket"
+  short_description: "Drive one tracked ticket through triage, start, revise, and finalize, one verb at a time"
+  default_prompt: "Use $ticket to drive this ticket from triage to its merged pull request."

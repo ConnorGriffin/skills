@@ -66,8 +66,8 @@ REPO_ROOT = ROOT.parent
 # (v1, v2, shipped) would otherwise collide with these.
 RESULTS = ROOT / "results" / "pr-body"
 FIXTURES = ROOT / "fixtures" / "pr-body"
-SKILL_MD = REPO_ROOT / "skills" / "pr-body" / "SKILL.md"
-LINT_SCRIPT = REPO_ROOT / "skills" / "pr-body" / "scripts" / "pr_body_lint.py"
+SKILL_MD = REPO_ROOT / "skills" / "tools" / "pr-body" / "SKILL.md"
+LINT_SCRIPT = REPO_ROOT / "skills" / "tools" / "pr-body" / "scripts" / "pr_body_lint.py"
 
 ARMS = ("none", "example", "rules", "full")
 RETRY_MODES = ("fix-text", "rule-names")

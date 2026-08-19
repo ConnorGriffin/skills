@@ -13,9 +13,9 @@ from typing import Optional
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "skills" / "pr-body" / "scripts" / "pr_body_lint.py"
-SKILL_MD = ROOT / "skills" / "pr-body" / "SKILL.md"
-RUBRIC_MD = ROOT / "skills" / "pr-body" / "references" / "rubric.md"
+SCRIPT = ROOT / "skills" / "tools" / "pr-body" / "scripts" / "pr_body_lint.py"
+SKILL_MD = ROOT / "skills" / "tools" / "pr-body" / "SKILL.md"
+RUBRIC_MD = ROOT / "skills" / "tools" / "pr-body" / "references" / "rubric.md"
 
 DISCLOSURE = "> Written by an AI agent operating for <operator>. Verify before relying on it."
 LEGACY_DISCLOSURE = "This PR was written in part with the assistance of generative AI."

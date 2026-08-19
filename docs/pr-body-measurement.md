@@ -1,6 +1,6 @@
 # What the pr-body gate is worth
 
-Three measurements behind `skills/pr-body`. Two of them refuted rules that were
+Three measurements behind `skills/tools/pr-body`. Two of them refuted rules that were
 already written and about to ship.
 
 The inputs are one engineer's 242 merged pull requests across a private

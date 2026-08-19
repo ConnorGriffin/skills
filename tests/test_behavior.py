@@ -20,13 +20,13 @@ from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CBM_SCRIPT = ROOT / "skills" / "cbm-onboard" / "scripts" / "cbm-onboard.sh"
-SPIN_SCRIPT = ROOT / "skills" / "spin-worktree" / "scripts" / "spin-worktree.py"
-CODEX_WORKER = ROOT / "skills" / "orchestrate" / "scripts" / "codex-worker.py"
-UI_CRAFT_AUDIT = ROOT / "skills" / "ui-craft" / "reference" / "audit.md"
-UI_CRAFT_CRITIQUE = ROOT / "skills" / "ui-craft" / "reference" / "critique.md"
-UI_CRAFT_SWEEP = ROOT / "skills" / "ui-craft" / "reference" / "behavior-sweep.md"
-UI_CRAFT_ROUTE = ROOT / "skills" / "ui-craft" / "scripts" / "route.mjs"
+CBM_SCRIPT = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-onboard.sh"
+SPIN_SCRIPT = ROOT / "skills" / "tools" / "spin-worktree" / "scripts" / "spin-worktree.py"
+CODEX_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "codex-worker.py"
+UI_CRAFT_AUDIT = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "audit.md"
+UI_CRAFT_CRITIQUE = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "critique.md"
+UI_CRAFT_SWEEP = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "behavior-sweep.md"
+UI_CRAFT_ROUTE = ROOT / "skills" / "drivers" / "ui-craft" / "scripts" / "route.mjs"
 README = ROOT / "README.md"
 BEGIN_IGNORE = "# >>> cbm-onboard managed baseline — do not edit inside this block >>>"
 BEGIN_HOOK = "# >>> cbm-onboard managed reindex >>>"
@@ -840,11 +840,11 @@ class CodexWorkerTests(unittest.TestCase):
 
 class OrchestrateCodexPolicyTests(unittest.TestCase):
     def test_codex_headroom_and_single_rung_policy_are_explicit(self):
-        skill = (ROOT / "skills" / "orchestrate" / "SKILL.md").read_text(
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(
             encoding="utf-8"
         )
         dispatch = (
-            ROOT / "skills" / "orchestrate" / "references" / "dispatch-codex.md"
+            ROOT / "skills" / "drivers" / "orchestrate" / "references" / "dispatch-codex.md"
         ).read_text(encoding="utf-8")
 
         self.assertIn("If headroom is ≤ 5%, **unknown**", skill)
@@ -1302,7 +1302,7 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         self.assertEqual(WORKER_MODULE.PROC_PIDTBSDINFO, 3)
         self.assertEqual(WORKER_MODULE.PROC_PIDVNODEPATHINFO, 9)
         source = CODEX_WORKER.read_text(encoding="utf-8")
-        instructions = (ROOT / "skills" / "orchestrate" / "SKILL.md").read_text(encoding="utf-8")
+        instructions = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(encoding="utf-8")
         self.assertNotIn("pkill", source)
         self.assertNotIn("proc_listchildpids", source)
         self.assertNotIn("proc_name", source)
@@ -1334,7 +1334,9 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         )
 
     def mutated_validation(self, mutate):
-        with tempfile.TemporaryDirectory() as temporary:
+        # The fixture commit can leave a hook or an auto-gc still writing under
+        # .git when the block exits, so cleanup races the fixture's own repo.
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(
                 ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__")
@@ -1371,7 +1373,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertTrue((evidence / "contract-v2.provenance.json").is_file())
 
     def test_validator_rejects_a_mutated_vendored_contract(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
@@ -1392,7 +1394,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertIn("contract-v2.json", result.stderr)
 
     def test_validator_rejects_mutated_contract_provenance(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
@@ -1409,7 +1411,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertIn("provenance", result.stderr)
 
     def test_validator_rejects_a_candidate_presented_as_an_observation(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
@@ -1435,7 +1437,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertIn("producer_kind", result.stderr)
 
     def test_validator_reports_a_non_object_negative_fixture(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
@@ -1453,7 +1455,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertNotIn("Traceback", result.stderr)
 
     def test_validator_rejects_extra_failure_fields(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
@@ -1719,9 +1721,110 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("failure fields are not closed", result.stderr)
 
+    def test_validator_rejects_seeded_private_term_patterns(self):
+        # Built by concatenation, the same defensive way validate.py itself
+        # splits these patterns, so this file never carries the literal either.
+        cases = (
+            ("docs/seed-jira-corp.txt", "j" + "ira.corp" + ".example.net token\n"),
+            (
+                "docs/seed-jira-ticket-config.txt",
+                "~/.config/" + "j" + "ira-ticket/" + "token\n",
+            ),
+        )
+        for relative_path, seeded in cases:
+            with self.subTest(relative_path=relative_path):
+                with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
+                    copy = Path(temporary) / "skills"
+                    shutil.copytree(
+                        ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__")
+                    )
+                    self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+                    self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+                    self.assertEqual(
+                        run(
+                            [
+                                "git",
+                                "-c",
+                                "user.name=Test",
+                                "-c",
+                                "user.email=test@example.invalid",
+                                "commit",
+                                "-m",
+                                "fixture",
+                            ],
+                            cwd=copy,
+                        ).returncode,
+                        0,
+                    )
+
+                    clean = run(["python3", "scripts/validate.py"], cwd=copy)
+                    self.assertEqual(clean.returncode, 0, clean.stderr)
+
+                    seed = copy / relative_path
+                    seed.write_text(seeded, encoding="utf-8")
+                    self.assertEqual(
+                        run(["git", "add", relative_path], cwd=copy).returncode, 0
+                    )
+
+                    result = run(["python3", "scripts/validate.py"], cwd=copy)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(relative_path, result.stderr)
+
+    def test_validator_rejects_an_unquoted_frontmatter_colon(self):
+        self.assertEqual(run(["python3", "scripts/validate.py"], cwd=ROOT).returncode, 0)
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(
+                ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__")
+            )
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(
+                run(
+                    [
+                        "git",
+                        "-c",
+                        "user.name=Test",
+                        "-c",
+                        "user.email=test@example.invalid",
+                        "commit",
+                        "-m",
+                        "fixture",
+                    ],
+                    cwd=copy,
+                ).returncode,
+                0,
+            )
+
+            skill_path = Path("skills") / "drivers" / "openspec-adopt" / "SKILL.md"
+            skill = copy / skill_path
+            original = skill.read_text(encoding="utf-8")
+
+            # Reproduce the defect this test guards: a description value that
+            # carries ": " but lost its wrapping quotes.
+            unquoted = re.sub(
+                r'^description:\s*"(.*)"$',
+                lambda match: f"description: {match.group(1)}",
+                original,
+                count=1,
+                flags=re.MULTILINE,
+            )
+            self.assertNotEqual(unquoted, original)
+            skill.write_text(unquoted, encoding="utf-8")
+
+            failing = run(["python3", "scripts/validate.py"], cwd=copy)
+            self.assertNotEqual(failing.returncode, 0)
+            self.assertIn(str(skill_path), failing.stderr)
+
+            skill.write_text(original, encoding="utf-8")
+            passing = run(["python3", "scripts/validate.py"], cwd=copy)
+            self.assertEqual(passing.returncode, 0, passing.stderr)
+
 
 class DriveLocalWebappSandboxRecoveryTests(unittest.TestCase):
-    DRIVER = ROOT / "skills" / "drive-local-webapp" / "scripts" / "driver.mjs"
+    DRIVER = ROOT / "skills" / "tools" / "drive-local-webapp" / "scripts" / "driver.mjs"
     DARWIN_ERROR = "MachPortRendezvousServer failed: bootstrap_check_in: Permission denied (1100)"
     DARWIN_ERROR_ALT = "Permission denied (1100) while starting MachPortRendezvousServer"
     TIMEOUT_ERROR = "MachPortRendezvousServer timed out"
@@ -1841,12 +1944,12 @@ export const chromium = {
 
 
 class WayfinderResearchDispatchHandshakeTests(unittest.TestCase):
-    RESEARCH = (ROOT / "skills" / "research" / "SKILL.md").read_text(encoding="utf-8")
-    WAYFINDER = (ROOT / "skills" / "wayfinder" / "SKILL.md").read_text(
+    RESEARCH = (ROOT / "skills" / "tools" / "research" / "SKILL.md").read_text(encoding="utf-8")
+    WAYFINDER = (ROOT / "skills" / "drivers" / "wayfinder" / "SKILL.md").read_text(
         encoding="utf-8"
     )
     TRACKER = (
-        ROOT / "skills" / "wayfinder" / "references" / "github-tracker.md"
+        ROOT / "skills" / "drivers" / "wayfinder" / "references" / "github-tracker.md"
     ).read_text(encoding="utf-8")
 
     def require(self, text, pattern):
@@ -1939,6 +2042,187 @@ class WayfinderResearchDispatchHandshakeTests(unittest.TestCase):
             self.WAYFINDER,
             re.compile(r"claims, researches, comments, closes", re.IGNORECASE),
         )
+
+
+class ReviewRouteResolverTests(unittest.TestCase):
+    RESOLVER = ROOT / "skills" / "workflows" / "review" / "scripts" / "resolve_route.py"
+    ROUTES_JSON = ROOT / "skills" / "workflows" / "review" / "routes.json"
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.scratch = Path(self.temporary.name)
+        self.environment = os.environ.copy()
+        # A nonexistent operator config is the "no operator rows" case, not an
+        # error, so tests that don't care about operator rows can leave this
+        # pointed at nothing rather than the real developer home directory.
+        self.environment["REVIEW_ROUTES_CONFIG"] = str(self.scratch / "unset-routes.json")
+        self.environment["REVIEW_SKILL_ROOTS"] = str(self.scratch / "empty-root")
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def resolve(self, *arguments: str, env: Optional[dict[str, str]] = None):
+        return run(
+            ["python3", str(self.RESOLVER), *arguments],
+            cwd=ROOT,
+            env=env if env is not None else self.environment,
+        )
+
+    def test_installed_route_resolves_to_the_skill_path(self):
+        root = self.scratch / "skills-root"
+        skill_file = root / "code-review" / "SKILL.md"
+        skill_file.parent.mkdir(parents=True)
+        skill_file.write_text("---\nname: code-review\n---\n", encoding="utf-8")
+        environment = dict(self.environment, REVIEW_SKILL_ROOTS=str(root))
+
+        result = self.resolve("code", env=environment)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("code-review", result.stdout)
+        self.assertIn(str(skill_file), result.stdout)
+
+    def test_registered_route_with_missing_skill_names_the_install_command_only(self):
+        result = self.resolve("code")
+
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertIn("code-review", result.stdout)
+        self.assertIn(
+            "npx skills add ConnorGriffin/skills --skill code-review", result.stdout
+        )
+        for other_route in ("plan", "personas", "security"):
+            self.assertNotIn(other_route, result.stdout)
+        for other_skill in ("plan-review", "persona-review", "security-review"):
+            self.assertNotIn(other_skill, result.stdout)
+
+    def test_registered_route_missing_and_not_pack_shipped_names_the_source_file(self):
+        operator_config = self.scratch / "routes.json"
+        operator_config.write_text(
+            json.dumps(
+                [
+                    {
+                        "route": "infra",
+                        "skill": "infra-plan-review",
+                        "kind": "skill",
+                        "for": "a pulumi or terraform plan before it's applied",
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+        environment = dict(self.environment, REVIEW_ROUTES_CONFIG=str(operator_config))
+
+        result = self.resolve("infra", env=environment)
+
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertIn("infra-plan-review", result.stdout)
+        self.assertIn(str(operator_config), result.stdout)
+        self.assertNotIn("npx skills add", result.stdout)
+
+    def test_unregistered_name_is_not_a_route_and_lists_registered_names(self):
+        result = self.resolve("nonsense")
+
+        self.assertEqual(result.returncode, 4, result.stderr)
+        self.assertIn("not a registered review type", result.stdout)
+        for route in ("code", "plan", "personas", "security"):
+            self.assertIn(route, result.stdout)
+
+    def test_agent_builtin_route_reports_unverified_presence_without_a_path(self):
+        result = self.resolve("security")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("ships with the agent", result.stdout)
+        self.assertIn("not verified", result.stdout)
+        self.assertNotIn("SKILL.md", result.stdout)
+
+    def test_operator_config_replaces_a_route_and_adds_a_new_one(self):
+        operator_config = self.scratch / "routes.json"
+        operator_config.write_text(
+            json.dumps(
+                [
+                    {
+                        "route": "code",
+                        "skill": "internal-code-review",
+                        "kind": "skill",
+                        "for": "changed code, using our internal standards checker",
+                    },
+                    {
+                        "route": "infra",
+                        "skill": "infra-plan-review",
+                        "kind": "skill",
+                        "for": "a pulumi or terraform plan before it's applied",
+                    },
+                ]
+            ),
+            encoding="utf-8",
+        )
+        environment = dict(self.environment, REVIEW_ROUTES_CONFIG=str(operator_config))
+
+        result = self.resolve("--list", env=environment)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("code\tinternal-code-review\tskill\t", result.stdout)
+        self.assertNotIn("code\tcode-review\tskill\t", result.stdout)
+        self.assertIn("infra\tinfra-plan-review\tskill\t", result.stdout)
+        self.assertIn("plan\tplan-review\tskill\t", result.stdout)
+
+    def test_malformed_operator_config_invalid_json_exits_2_naming_the_file(self):
+        operator_config = self.scratch / "routes.json"
+        operator_config.write_text("not json", encoding="utf-8")
+        environment = dict(self.environment, REVIEW_ROUTES_CONFIG=str(operator_config))
+
+        result = self.resolve("code", env=environment)
+
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn(str(operator_config), result.stderr)
+
+    def test_malformed_operator_config_unknown_kind_exits_2(self):
+        operator_config = self.scratch / "routes.json"
+        operator_config.write_text(
+            json.dumps(
+                [
+                    {
+                        "route": "infra",
+                        "skill": "infra-plan-review",
+                        "kind": "not-a-real-kind",
+                        "for": "a pulumi or terraform plan before it's applied",
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+        environment = dict(self.environment, REVIEW_ROUTES_CONFIG=str(operator_config))
+
+        result = self.resolve("--list", env=environment)
+
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn(str(operator_config), result.stderr)
+
+    def test_symlinked_skill_directory_resolves(self):
+        real_root = self.scratch / "real-skills"
+        real_skill_file = real_root / "code-review" / "SKILL.md"
+        real_skill_file.parent.mkdir(parents=True)
+        real_skill_file.write_text("---\nname: code-review\n---\n", encoding="utf-8")
+        linked_root = self.scratch / "linked-skills"
+        linked_root.mkdir()
+        (linked_root / "code-review").symlink_to(
+            real_root / "code-review", target_is_directory=True
+        )
+        environment = dict(self.environment, REVIEW_SKILL_ROOTS=str(linked_root))
+
+        result = self.resolve("code", env=environment)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(str(linked_root / "code-review" / "SKILL.md"), result.stdout)
+
+    def test_shipped_routes_are_exactly_four_and_each_names_a_for_sentence(self):
+        rows = json.loads(self.ROUTES_JSON.read_text(encoding="utf-8"))
+        routes = {row["route"] for row in rows}
+
+        self.assertEqual(routes, {"code", "plan", "personas", "security"})
+        for row in rows:
+            self.assertEqual(set(row), {"route", "skill", "kind", "for"})
+            self.assertIsInstance(row["for"], str)
+            self.assertTrue(row["for"].strip())
 
 
 if __name__ == "__main__":

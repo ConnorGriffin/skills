@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 ROOT = Path(__file__).resolve().parents[1]
-RECEIPT_SCRIPT = ROOT / "skills" / "pr-body" / "scripts" / "pr_body_receipt.py"
+RECEIPT_SCRIPT = ROOT / "skills" / "tools" / "pr-body" / "scripts" / "pr_body_receipt.py"
 # The gate is a hook, so it lives with the machine's other hooks rather than in
 # this pack. Point PR_BODY_GATE_HOOK at a working copy to test it before install;
 # otherwise these tests run against the installed hook, or skip.

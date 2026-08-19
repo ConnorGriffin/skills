@@ -10,14 +10,15 @@ ui-surfaces: none
 ## Repo facts
 
 - Install: none for the pack itself; Python 3 standard library only. The browser
-  driver installs its own deps under `skills/drive-local-webapp` (`npm ci` plus
-  `npx playwright install chromium`).
+  driver installs its own deps under `skills/tools/drive-local-webapp` (`npm ci`
+  plus `npx playwright install chromium`).
 - Test: `python3 scripts/validate.py && python3 -m unittest tests.test_behavior
   tests.test_pr_body tests.test_pr_body_gate tests.test_pr_body_bench`
 - Dev: no app to run. To exercise a skill, install the pack into a scratch
   directory with `npx skills add . --skill '<name>' --copy --yes`.
-- Source: `skills/<name>/` (SKILL.md plus its own `references/`, `reference/`, and
-  `scripts/`), with `profile/`, `output-styles/`, `hooks/`, and `docs/` alongside.
+- Source: `skills/<category>/<name>/` (SKILL.md plus its own `references/`,
+  `reference/`, and `scripts/`), with `profile/`, `output-styles/`, `hooks/`, and
+  `docs/` alongside.
 - Tests: `tests/`. `scripts/validate.py` is the structural validator and is part
   of the gate, not a lint.
 
@@ -40,6 +41,6 @@ ui-surfaces: none
   from a stock Python 3 and Node 20 with no package manager step, which is what
   makes it portable across agents.
 - Never run the pack's own scripts against a real project checkout while testing
-  them. `skills/cbm-onboard/scripts/cbm-onboard.sh` writes `.cbmignore` and
-  installs git hooks, and `skills/spin-worktree/scripts/spin-worktree.py` creates
-  worktrees and branches; both mutate whatever repo they are aimed at.
+  them. `skills/tools/cbm-onboard/scripts/cbm-onboard.sh` writes `.cbmignore` and
+  installs git hooks, and `skills/tools/spin-worktree/scripts/spin-worktree.py`
+  creates worktrees and branches; both mutate whatever repo they are aimed at.

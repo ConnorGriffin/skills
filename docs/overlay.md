@@ -63,9 +63,10 @@ Write it in any language. The contract is the part that matters.
    fast-forward only. Never merge or rebase. A clone that cannot fast-forward is a clone
    someone edited, and the run should say so rather than change it.
 3. Resolve every name to a source path before touching the filesystem. A source declares
-   how its own layout resolves: this repo keeps skills at `<clone>/skills/<name>`, packs
-   that nest by category or plugin need either a qualifier in the entry
-   (`<group>/<name>`) or a glob (`<clone>/skills/*/<name>`) that must match exactly once.
+   how its own layout resolves: a flat source keeps skills at `<clone>/skills/<name>`, and
+   a source that nests by category or plugin, including this repo, needs either a
+   qualifier in the entry (`<group>/<name>`) or a glob (`<clone>/skills/*/<name>`) that
+   must match exactly once.
 4. Build the desired state as one map of link name to target path across all sources,
    then reconcile in a single pass. Never prune one source before linking the next. If
    source A retires `foo` in the same run that source B adopts it, per-source pruning
