@@ -103,8 +103,9 @@ per sanctioned retirement (`behavior-sweep`). The **surface ledger** is
 `mockups/INDEX.md`, one row per surface.
 
 General design invocations with no mode match (e.g. "make this less bland",
-"fix the spacing") run under `critique`-then-fix using
-[reference/design-rules.md](reference/design-rules.md).
+"fix the spacing") route by embodiment: shipped surface → `revise`-then-fix;
+greenfield surface → `critique`-then-fix. Use
+[reference/design-rules.md](reference/design-rules.md) for the craft pass.
 
 ## Design rules (all modes)
 

@@ -336,9 +336,10 @@ Spec:
   reads exactly like a feature nobody ever had; the point of running it at all is
   that a reader of the output sees a shipped behavior was deliberately dropped
   and by whom. The script **fails closed on a retired function whose sanction tag
-  is missing**, exactly as it does on a missing driver. Reinstating the behavior
-  deletes the absence assertion **in the `resettle` change set that moves the
-  ledger entry back to STORY**, never on its own.
+  is missing**, exactly as it does on a missing driver. Under `revise`, the
+  ledger amendment that moves the entry back to STORY also deletes the absence
+  assertion. On fallback, the `resettle` change set makes both changes. The
+  assertion is never deleted on its own.
 - **The script fails closed.** Missing browser dependencies (driver module,
   vendored assets, executable) exit nonzero — never `skip`. A skipped run exits 0,
   and a green step that executed zero stories is precisely the silent skip this

@@ -23,6 +23,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CBM_SCRIPT = ROOT / "skills" / "cbm-onboard" / "scripts" / "cbm-onboard.sh"
 SPIN_SCRIPT = ROOT / "skills" / "spin-worktree" / "scripts" / "spin-worktree.py"
 CODEX_WORKER = ROOT / "skills" / "orchestrate" / "scripts" / "codex-worker.py"
+UI_CRAFT_SKILL = ROOT / "skills" / "ui-craft" / "SKILL.md"
+UI_CRAFT_AUDIT = ROOT / "skills" / "ui-craft" / "reference" / "audit.md"
+UI_CRAFT_SWEEP = ROOT / "skills" / "ui-craft" / "reference" / "behavior-sweep.md"
+README = ROOT / "README.md"
 BEGIN_IGNORE = "# >>> cbm-onboard managed baseline — do not edit inside this block >>>"
 BEGIN_HOOK = "# >>> cbm-onboard managed reindex >>>"
 
@@ -104,7 +108,6 @@ class CbmOnboardTests(unittest.TestCase):
             "#!/bin/sh\nexit 0\n",
         )
         self.assertFalse((self.repo / ".git" / "hooks" / "post-commit").exists())
-
     def test_preserves_unmatched_markers_foreign_hook_and_is_idempotent(self):
         run(
             ["git", "config", "core.hooksPath", ".custom-hooks"],
@@ -156,6 +159,20 @@ class CbmOnboardTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("SKIP hook installation", result.stderr)
         self.assertEqual(hook.read_text(encoding="utf-8"), original)
+
+
+class UiCraftContractTests(unittest.TestCase):
+    def test_shipped_surface_routing_contract_is_closed(self):
+        skill = UI_CRAFT_SKILL.read_text(encoding="utf-8")
+        audit = UI_CRAFT_AUDIT.read_text(encoding="utf-8")
+        sweep = UI_CRAFT_SWEEP.read_text(encoding="utf-8")
+        readme = README.read_text(encoding="utf-8")
+
+        self.assertIn("surface → `revise`", skill)
+        self.assertIn("shipped surface → `revise`-then-fix", skill)
+        self.assertIn("`revise` for shipped-surface changes", audit)
+        self.assertRegex(sweep, r"Under `revise`, the\s+ledger amendment")
+        self.assertIn("--skill spin-worktree", readme)
 
 
 class SpinWorktreeTests(unittest.TestCase):

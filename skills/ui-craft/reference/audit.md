@@ -95,7 +95,7 @@ For each issue, document:
 - **Impact**: How it affects users
 - **WCAG/Standard**: Which standard it violates (if applicable)
 - **Recommendation**: How to fix it
-- **Suggested command**: Which ui-craft mode addresses it (`critique` for design-level issues, `polish` for fix passes, `resettle` for locked-term changes, `document` for missing DESIGN.md)
+- **Suggested command**: Which ui-craft mode addresses it (`revise` for shipped-surface changes, `critique` for greenfield design issues, `polish` for fix passes, `resettle` for locked-term changes, `document` for missing DESIGN.md)
 
 ### Patterns & Systemic Issues
 
@@ -114,7 +114,7 @@ List recommended commands in priority order (P0 first, then P1, then P2):
 1. **[P?] `/command-name`**: Brief description (specific context from audit findings)
 2. **[P?] `/command-name`**: Brief description (specific context)
 
-**Rules**: Only recommend ui-craft modes (`critique`, `polish`, `resettle`, `document`, or a targeted fix under the general invocation). Map findings to the most appropriate mode. End with `/ui-craft polish` as the final step if any fixes were recommended.
+**Rules**: Only recommend ui-craft modes (`revise`, `critique`, `polish`, `resettle`, `document`, or a targeted fix under the general invocation). A shipped-surface change routes to `revise`; map the remaining findings to the most appropriate mode. End with `/ui-craft polish` as the final step if any fixes were recommended.
 
 After presenting the summary, tell the user:
 
@@ -174,4 +174,3 @@ This is the check that catches drift no green gate notices.
 Run this audit after any refactor that touches a locked surface's render
 path, not only at ship time — late refactors are how already-correct visuals
 regress.
-
