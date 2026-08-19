@@ -1287,7 +1287,9 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         )
 
     def mutated_validation(self, mutate):
-        with tempfile.TemporaryDirectory() as temporary:
+        # The fixture commit can leave a hook or an auto-gc still writing under
+        # .git when the block exits, so cleanup races the fixture's own repo.
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(
                 ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__")
@@ -1324,7 +1326,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertTrue((evidence / "contract-v2.provenance.json").is_file())
 
     def test_validator_rejects_a_mutated_vendored_contract(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
@@ -1345,7 +1347,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertIn("contract-v2.json", result.stderr)
 
     def test_validator_rejects_mutated_contract_provenance(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
@@ -1362,7 +1364,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertIn("provenance", result.stderr)
 
     def test_validator_rejects_a_candidate_presented_as_an_observation(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
@@ -1388,7 +1390,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertIn("producer_kind", result.stderr)
 
     def test_validator_reports_a_non_object_negative_fixture(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
@@ -1406,7 +1408,7 @@ class EvidenceEnvelopeTests(unittest.TestCase):
         self.assertNotIn("Traceback", result.stderr)
 
     def test_validator_rejects_extra_failure_fields(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
             copy = Path(temporary) / "skills"
             shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
