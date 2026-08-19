@@ -30,14 +30,15 @@ class, function signature, or module boundary, this is the wrong skill.
 Before routing any design change:
 
 3. Resolve whether the app already embodies the surface (`shipped` or
-   `greenfield`). For a shipped surface, inspect its `CLAUDE.md` / `AGENTS.md`
-   dev-server declaration and classify it as `absent`, `complete`, `incomplete`
-   or `ambiguous`; classify its named data source as `manufactured`, `synthetic`
-   or `unknown`.
+   `greenfield`). For a shipped surface, classify local runnability as `runnable`
+   or `unavailable`; inspect its `CLAUDE.md` / `AGENTS.md` dev-server declaration
+   and classify it as `absent`, `complete`, `incomplete` or `ambiguous`; classify
+   its named data source as `manufactured`, `synthetic` or `unknown`.
 4. Run `node $UI_CRAFT_SKILL_DIR/scripts/route.mjs --embodiment <state>
-   --declaration <state> --data-source <kind>` and obey its mode. A `refuse`
-   result is blocking. `lock-fallback` is the recorded predecessor fallback in
-   `reference/revise.md`, not ordinary `lock` permission.
+   --runnability <state> --declaration <state> --data-source <kind>` and obey its
+   mode. A `refuse` result is blocking. `lock-fallback` is the recorded
+   predecessor fallback in `reference/revise.md`, not ordinary `lock`
+   permission.
 
 For `revise`, `lock`, `build`, and general design invocations only:
 

@@ -170,13 +170,14 @@ class UiCraftContractTests(unittest.TestCase):
         readme = README.read_text(encoding="utf-8")
 
         cases = (
-            (("greenfield", "absent", "unknown"), 0, "lock"),
-            (("shipped", "complete", "synthetic"), 0, "revise"),
-            (("shipped", "complete", "manufactured"), 0, "revise"),
-            (("shipped", "absent", "unknown"), 0, "lock-fallback"),
-            (("shipped", "incomplete", "unknown"), 2, "refuse"),
-            (("shipped", "ambiguous", "unknown"), 2, "refuse"),
-            (("shipped", "complete", "real"), 2, "refuse"),
+            (("greenfield", "unavailable", "absent", "unknown"), 0, "lock"),
+            (("shipped", "runnable", "complete", "synthetic"), 0, "revise"),
+            (("shipped", "runnable", "complete", "manufactured"), 0, "revise"),
+            (("shipped", "runnable", "absent", "unknown"), 0, "lock-fallback"),
+            (("shipped", "runnable", "incomplete", "unknown"), 2, "refuse"),
+            (("shipped", "runnable", "ambiguous", "unknown"), 2, "refuse"),
+            (("shipped", "runnable", "complete", "real"), 2, "refuse"),
+            (("shipped", "unavailable", "complete", "synthetic"), 2, "refuse"),
         )
         for arguments, exit_code, mode in cases:
             with self.subTest(arguments=arguments):
@@ -186,10 +187,12 @@ class UiCraftContractTests(unittest.TestCase):
                         str(UI_CRAFT_ROUTE),
                         "--embodiment",
                         arguments[0],
-                        "--declaration",
+                        "--runnability",
                         arguments[1],
-                        "--data-source",
+                        "--declaration",
                         arguments[2],
+                        "--data-source",
+                        arguments[3],
                     ],
                     cwd=ROOT,
                 )
