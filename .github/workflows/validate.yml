@@ -27,6 +27,7 @@ jobs:
           tests.test_pr_body
           tests.test_pr_body_gate
           tests.test_pr_body_bench
+          tests.test_ticket
       - name: Check DCO
         if: github.event_name == 'pull_request'
         run: >-
@@ -37,6 +38,7 @@ jobs:
         run: |
           python3 -m py_compile skills/tools/spin-worktree/scripts/spin-worktree.py
           python3 -m py_compile skills/workflows/review/scripts/resolve_route.py
+          python3 -m py_compile skills/drivers/ticket/scripts/ticket.py
           node --check skills/tools/drive-local-webapp/scripts/driver.mjs
           node --check skills/tools/drive-local-webapp/scripts/self-check.mjs
           sh -n skills/tools/cbm-onboard/scripts/cbm-onboard.sh
