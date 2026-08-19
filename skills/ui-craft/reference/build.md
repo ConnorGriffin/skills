@@ -145,6 +145,12 @@ mock opener exercises the mock and proves nothing about the port.
 
 - Each story's ledger `status` moves to `ported` → `replayed-pass` /
   `replayed-fail` / `re-settle requested`. **`replayed-fail` blocks.**
+- **RETIRED entries replay too, and their sanction prints.** Their absence
+  assertions run against the built app like any story, each printing the who and
+  the date that sanctioned the drop, so a retirement never becomes a silent green
+  line. A RETIRED entry whose behavior is *present* in the build is a
+  `replayed-fail`: the port restored something a human ruled gone, which is a
+  deviation in the same way dropping a locked term is.
 - The script's fail-closed rule holds here: a green step that executed zero
   stories is a failure, so confirm the run **reported its applicable story
   count**, not merely that the step ran.

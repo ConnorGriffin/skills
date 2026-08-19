@@ -67,7 +67,7 @@ acting — it defines the flow.
 | Mode | Job | Reference |
 | --- | --- | --- |
 | `lock [surface]` | Explore grounded variants, converge, lock spec + manifest | [reference/lock.md](reference/lock.md) |
-| `behavior-sweep [surface]` | Sweep a locked mock's interactive behavior into a frozen behavior ledger + replay script (after `lock`, before `build`) | [reference/behavior-sweep.md](reference/behavior-sweep.md) |
+| `behavior-sweep [surface]` | Sweep the mock's interactive behavior **and the shipped predecessor's** into a frozen behavior ledger + replay script; an unsanctioned drop fails. Predecessor pass runs **before** `lock`; the rest after `lock`, before `build` | [reference/behavior-sweep.md](reference/behavior-sweep.md) |
 | `build [surface]` | Implement a locked spec; ship the fidelity ledger | [reference/build.md](reference/build.md) |
 | `critique [target]` | Heuristic scoring, slop verdict, persona walkthroughs | [reference/critique.md](reference/critique.md) |
 | `audit [target]` | Technical checks (a11y, contrast, responsive, detector) + lock-fidelity audit when a manifest exists | [reference/audit.md](reference/audit.md) |
@@ -77,15 +77,18 @@ acting — it defines the flow.
 | `init` / `document` | Project context setup / generate DESIGN.md | [reference/init.md](reference/init.md), [reference/document.md](reference/document.md) |
 
 No argument: recommend the 1–3 most useful modes from context (unlocked
-mockups → `lock`; frozen manifest for a surface with interactive behavior and no
+mockups → `lock`; an unlocked mockup for a surface with a `shipped` predecessor
+and no predecessor verdicts → `behavior-sweep`'s predecessor pass **before**
+`lock`; frozen manifest for a surface with interactive behavior and no
 behavior ledger → `behavior-sweep` **before** `build`; open manifest without a
 fidelity ledger → `build`; never critiqued → `critique`), then list the table.
 Never auto-run a mode.
 
 Three artifacts carry the word *ledger*; always qualify it. The **fidelity
 ledger** is one row per manifest term (`build`). The **behavior ledger** is
-`mockups/<surface>.behavior.md`, one entry per story (`behavior-sweep`). The
-**surface ledger** is `mockups/INDEX.md`, one row per surface.
+`mockups/<surface>.behavior.md`, one entry per story plus one permanent entry
+per sanctioned retirement (`behavior-sweep`). The **surface ledger** is
+`mockups/INDEX.md`, one row per surface.
 
 General design invocations with no mode match (e.g. "make this less bland",
 "fix the spacing") run under `critique`-then-fix using
@@ -115,8 +118,8 @@ archetypes.
 **"The repo's sweep protocol" is not `behavior-sweep`.** That phrase means the
 repo's persona-driven QA pass — exploratory, judgment-led, run against a live
 app to find bugs. `behavior-sweep` is a mode of this skill: mechanical, run
-against a **locked mock** before any build, and its output is a contract. Neither
-substitutes for the other.
+against a **locked mock** — and against the surface's shipped predecessor — before
+any build, and its output is a contract. Neither substitutes for the other.
 
 ## Grounding rules (inherited from ui-mockups, apply everywhere)
 
@@ -150,5 +153,6 @@ substitutes for the other.
   are banned because they shift extracted chrome off its shipped pixels.
 - Keep `mockups/INDEX.md` as the surface ledger (one row per surface:
   Surface / Concept / Status / Issue / File). `locked` rows are binding
-  precedent; `shipped` rows defer to the app itself. Every mode that touches
+  precedent; `shipped` rows defer to the app itself, and are also how the next
+  lock finds its predecessor (`behavior-sweep` §2). Every mode that touches
   a lock updates the ledger in the same change — a stale ledger is a defect.
