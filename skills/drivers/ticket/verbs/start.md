@@ -72,10 +72,11 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    diff against the order, the other against the repo's documented conventions. Run
    it at the order's stamped `Review depth:`, reading
    [references/review-depth.md](../references/review-depth.md) for what each depth
-   checks and what counts as blocking. Fix confirmed findings, re-run the
-   verification loop if code changed, then review once more. Two rounds maximum;
-   findings still open after round two go into the pull request body as known
-   issues, never silently dropped.
+   checks and what counts as blocking. Classify every grounded finding with
+   [references/review-actions.md](../references/review-actions.md). Fix confirmed
+   findings, re-run the verification loop if code changed, then review once more.
+   Two rounds maximum; findings still open after round two go into the pull request
+   body as known issues, never silently dropped.
 
 10. **Fold the change record into the baseline in the order's last pull request.**
     When the pull request being opened is the order's final one (single-pull-request

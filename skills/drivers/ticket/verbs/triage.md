@@ -121,7 +121,8 @@ scope and spec documents committed in that worktree.
    its sensitivity floor first; the floor overrides any judgment about how small
    the change looks.
 
-10. **Draft the work order.** Fill
+10. **Draft the work order.** Apply
+    [references/brief-quality.md](../references/brief-quality.md), then fill
     [templates/work-order.md](../templates/work-order.md), the flat shape or the
     chunked shape per step 8, and run that page's two authoring checks before the
     draft leaves this step. Each fenced block must be self-sufficient for a fresh
