@@ -22,6 +22,7 @@ EXPECTED = {
     "drivers/openspec-adopt",
     "drivers/ui-craft",
     "drivers/orchestrate",
+    "drivers/ticket",
     "tools/cbm-onboard",
     "tools/ci-design",
     "tools/code-review",
@@ -71,6 +72,8 @@ FORBIDDEN = (
     re.compile(r"\b" + "DEV" + r"OPS-\d+\b"),
     re.compile(r"\b(?:" + "CHG" + "|" + "INC" + r")\d{6,}\b"),
     re.compile("service" + "-now", re.IGNORECASE),
+    re.compile("j" + r"ira\.corp", re.IGNORECASE),
+    re.compile(r"~/\.config/" + "j" + "ira-ticket/"),
 )
 PERSONA_REVIEW_ALLOWLIST = {
     "SKILL.md",

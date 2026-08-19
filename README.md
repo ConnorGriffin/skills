@@ -25,6 +25,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | [`openspec-adopt`](skills/drivers/openspec-adopt/SKILL.md) | Scaffold OpenSpec layout and baseline specs describing the system today, delivered as a documentation-only PR | GitHub CLI; `npx openspec init` optional |
 | [`ui-craft`](skills/drivers/ui-craft/SKILL.md) | Full surface lifecycle: lock a visual spec, build to it, critique with personas, audit against the lock, polish, re-settle | `drive-local-webapp` for rendered review; parallel-agent support is recommended |
 | [`orchestrate`](skills/drivers/orchestrate/SKILL.md) | Flip the session into coordinator mode: delegate all real work to sub-agents routed by an empirically benchmarked model capability table | Codex CLI for GPT-tier sub-agents; table re-benchmarked per its bundled procedure |
+| [`ticket`](skills/drivers/ticket/SKILL.md) | Drive one tracked ticket through four verbs: triage locks a brief on the ticket, start implements it to an open pull request, revise actions one review round, finalize closes it and records what it cost | GitHub CLI for the bundled issues binding, one binding page per other tracker; composes with `scope`, `plan-review`, `review`, `spin-worktree`, `orchestrate` |
 
 ### Tools
 
