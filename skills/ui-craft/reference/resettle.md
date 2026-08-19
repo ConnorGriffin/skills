@@ -3,6 +3,12 @@
 Amend a locked term. This is the only legitimate path for changing anything a
 lock manifest lists — including genuine improvements discovered mid-build.
 
+`revise` has no lock manifest, so behavior changes on a shipped app branch do
+not come here unless they also amend a still-binding legacy lock term. `revise`
+records added, changed and retired behavior directly in the frozen behavior
+ledger, with the same dated sanction rules. Never invent a term merely to route
+an app revision through `resettle`.
+
 A re-settle is sanctioned by the user (interactive) or, in headless runs, by
 an explicit instruction in the work order. An agent may *propose* one at any
 time; it may never *apply* one on its own judgment.
