@@ -1,17 +1,24 @@
 # Mode: behavior-sweep
 
-Sweep a locked surface's **interactive behavior** into a contract before anyone
-builds it. Runs after `lock`, before `build`, for any surface that has
-behavior — handlers, gestures, hover states, keyboard paths, resize response.
-Its one backward-looking pass, the **predecessor inventory** (§2), runs *before*
-the lock closes instead; `lock.md` §9 gates on it and argues the ordering.
+Sweep a surface's **interactive behavior** into a contract before design changes
+it. It has two routes:
 
-The lock manifest describes what the surface *looks like*. It reliably fails to
-describe what the surface *does*: a drag that only works from an edge, a
-readout that latches on chart hover, an inspector that re-scopes with selection.
-Those behaviors are in the mock's code and nowhere in the manifest, so a build
-invents them. The behavior ledger closes that gap; the replay script keeps it
-closed.
+- **`revise` (default for a shipped surface):** inventory and exercise the base
+  app before the design conversation. The ledger plus its app-only replay script
+  is the frozen contract; no lock manifest exists.
+- **`lock` fallback or legacy lock:** sweep the locked mock after `lock`, before
+  `build`. Its one backward-looking pass, the **predecessor inventory** (§2),
+  runs before the lock closes; `lock.md` §9 gates on it.
+
+Both routes cover handlers, gestures, hover states, keyboard paths and resize
+response. Unless a section says otherwise, “target” below means the base app for
+`revise` and the locked mock for the fallback route.
+
+A lock manifest describes what a mock *looks like*, but reliably fails to
+describe what it *does*. A shipping app has the opposite advantage: preserving
+it is the default, and a deletion appears in the branch diff. In both routes the
+behavior ledger makes the executable contract explicit; the replay script keeps
+it closed.
 
 Two root failures this mode exists to make impossible, one per direction:
 
@@ -21,11 +28,12 @@ Two root failures this mode exists to make impossible, one per direction:
 > Something dropped the predecessor's behavior, and no checker was looking in
 > that direction.
 
-Input: the ★ LOCKED mockup(s), `mockups/<surface>.lock.md`, every module the
-mock imports, and — where the surface replaces something — the **predecessor's
-own source and running build** (§2). `<surface>` is always the **basename of the
-lock manifest** — every artifact below inherits that one name. No agent picks a
-nickname.
+Input for `revise`: the base app's source and running build at the recorded SHA,
+plus any existing ledger and replay script. Input for fallback: the ★ LOCKED
+mockup(s), `mockups/<surface>.lock.md`, every imported module, and the
+predecessor's own source and running build (§2). On fallback, `<surface>` is the
+basename of the lock manifest. Under `revise`, it is the stable surface name
+already used by `mockups/INDEX.md` or the app route. No agent picks a nickname.
 
 **Proportionality.** Sweep depth scales with the handler inventory: a surface
 whose inventory fits on one screen may fold the passes below into a single
@@ -35,7 +43,7 @@ any size.
 
 ## 1. Inventory (static — this is not evidence)
 
-Enumerate every behavior the mock registers:
+Enumerate every behavior the target registers:
 
 - `addEventListener` calls (click, mousedown/move/up, keydown, resize, …);
 - chart/graphics-library instance handlers (e.g. an ECharts `on()` /
@@ -44,17 +52,17 @@ Enumerate every behavior the mock registers:
 - inline `on*=` attributes;
 - CSS that *encodes behavior* — `:hover`, `:focus`, `:active`, transitions.
 
-**Including handlers registered inside imported modules**, which the host HTML
+**Including handlers registered inside imported modules**, which the host module
 never shows. A chart module that installs four instance handlers when given an
 `onHover` callback is four inventory rows; missing them is how a latched readout
 gets reinvented.
 
-**Excluded by name:** mock-harness chrome — the theme toggle, the mock bar, the
-variant switcher — is not the surface's behavior and never enters the inventory
-or the contract. Name the excluded file(s) explicitly in the ledger header.
-Excluded from the inventory is **not** excluded from the page: the harness and
-every imported module are still **served**, because an unserved import throws
-before any listener registers.
+On the fallback route, **exclude mock-harness chrome by name** — the theme
+toggle, mock bar and variant switcher are not surface behavior. Name the excluded
+files in the ledger header. Excluded from the inventory is not excluded from the
+page: the harness and every imported module are still served, because an
+unserved import throws before any listener registers. `revise` has no mock
+harness exclusion; chrome the app ships is behavior like anything else.
 
 **The exclusion is by purpose, not by position.** Chrome that exists to serve
 the mockup is out; chrome that ships to the reader is in, however the mock came
@@ -89,7 +97,14 @@ passed. Each story replayed one view, alone, where a uniform offset is invisible
 
 Static reading produces the inventory. It never produces a story.
 
-## 2. Predecessor inventory (static + live — the diff run backwards)
+## 2. Predecessor inventory (fallback and legacy locks only)
+
+`revise` does not run this mock-to-predecessor diff: its target is the base app
+itself, so §1 and §3 inventory the shipped behavior directly. This section is
+the retained fallback when `revise` cannot safely start the app, and the repair
+path for locks that predate `revise`. Fallback never authorizes an app start. If
+no separately declared safe harness can supply the live predecessor, keep every
+unexercised row as QUESTION; do not convert static reading into evidence.
 
 §1 inventories the mock, and **a mock-side inventory cannot see an absence**. A
 behavior the mock never implemented registers no handler, so it produces no row;
@@ -244,29 +259,29 @@ build decision and not a bug fix — see `resettle.md`.
 
 ## 3. Exercise (live — this is the evidence)
 
-Drive the mock in a **real browser engine at the lock's viewport** — viewport set
-explicitly, never a driver default. Perform each behavior for real: hover every
-hoverable, drag from inside an element *and* from its edges, click every control,
-run every keyboard path (Esc, arrows, Tab), resize. Verify in a second engine
-when the behavior is rendering-sensitive.
+Drive the target in a **real browser engine at an explicitly recorded viewport**
+— the lock's viewport on fallback, never a driver default. Perform each behavior
+for real: hover every hoverable, drag from inside an element *and* from its
+edges, click every control, run every keyboard path (Esc, arrows, Tab), resize.
+Verify in a second engine when the behavior is rendering-sensitive.
 
 Two further passes, folded in or run separately per proportionality:
 
-- **Data pass.** Load the mock on *each* authorized fixture, including the
+- **Data pass.** Load the target on *each* authorized fixture, including the
   largest realistic shape the surface will actually see. Record what every
   data-dependent visual *encodes* — clustering, scoping on selection, level
   content, count shapes. A visual whose meaning disappears at real scale
   (uniform glyphs, empty scoping) is a QUESTION, not a build call: a design rule
-  is missing and that is a lock conversation.
+  is missing and must be settled in the design conversation.
 - **Content pass.** For every information surface (detail panels, headers, meta
-  rows, tags) capture the mock's **actual rendered markup and text structure**.
+  rows, tags) capture the target's **actual rendered markup and text structure**.
   The story links to markup, never to the lock term's prose — this is what makes
   "built from the description" detectable at review time.
 
 **Completeness check (mechanical, not judgment):** every inventoried handler maps
-to ≥1 story, **every §2 predecessor row carries a verdict**, and every story was
-observed live. A handler found in code but not reproducible in-browser becomes a
-QUESTION entry — never a silent skip. Handler coverage is not ledger
+to ≥1 story, every applicable §2 predecessor row carries a verdict, and every
+story was observed live. A handler found in code but not reproducible in-browser
+becomes a QUESTION entry — never a silent skip. Handler coverage is not ledger
 completeness: a surface with more than one view, or with any interaction that
 swaps content in place, also owes its invariant stories above. Record them with
 no handler named, since none exists.
@@ -276,25 +291,30 @@ no handler named, since none exists.
 Alongside the ledger, commit a replay script — `frontend/<surface>-behavior.replay.mjs`
 or the repo's equivalent path — that re-runs the sweep mechanically. Hand-driving
 is fine for discovery; a story enters the ledger only once its replay function
-passes against the mock.
+passes against the target.
 
 Spec:
 
 - **One exported async function per story**, `export const S12 = async (page) => { … }`.
-- Each function carries a `// LOCK:<surface>:<n>` tag for every lock term it
-  exercises, so manifest coverage stays greppable.
-- **Two openers, both in the script**: a *mock opener* (serves the mock root, its
-  theme CSS, vendored libraries, and a fixture stub) and an *app opener* (route
-  stubs, auth, navigation). Runnable against mock and app alike is the whole
-  point — the same function is what makes it evidence on both sides.
-- Both openers are **loud on unstubbed or missing requests**. A catch-all
+- On fallback, each function carries a `// LOCK:<surface>:<n>` tag for every lock
+  term it exercises, so manifest coverage stays greppable. Under `revise`, each
+  carries `// STORY:<surface>:<id>` for its behavior-ledger entry; there is no
+  lock term to cite.
+- **Openers follow the route.** `revise` has one app opener parameterized by the
+  server's base URL, so the same stories run against base and revision worktrees.
+  Fallback has two openers in the script: a mock opener (mock root, theme CSS,
+  vendored libraries, fixture stub) and an app opener (route stubs, auth,
+  navigation). The story functions are shared between them.
+- Every opener is **loud on unstubbed or missing requests**. A catch-all
   `200 {}` renders a build that is missing an asset and still passes.
-- Both openers **assert the rendered state equals the requested one**, so state
+- Every opener **asserts the rendered state equals the requested one**, so state
   addressability drift (a `?state=` param the mock silently ignores) is loud
   rather than a quietly identical render.
-- **Selector parity is a port obligation, not a script concern.** Replay-against-both
-  only holds if the ported markup keeps the mock's selectors; a rename that
-  breaks a replay selector is a **port defect**.
+- **On fallback, selector parity is a port obligation, not a script concern.**
+  Replay-against-both only holds if the ported markup keeps the mock's selectors;
+  a rename that breaks a replay selector is a port defect. Under `revise`, update
+  a selector only with the behavior change it represents and prove the old replay
+  failed first.
 - **Drive every story through the affordance a reader would use.** A story about
   reaching, leaving, or returning to a state is only evidence if the replay gets
   there the way a person does — clicking the control, typing in the field. Browser
@@ -304,10 +324,10 @@ Spec:
   an event view restores it" story stayed green, because the replay returned with
   `goBack()`. When a story's verb is navigational, assert the control exists and is
   visible, then use it.
-- Replay functions inherit `build.md`'s prove-red-once rule — proven against the
-  **built app** (knock the feature out) or a **scratch copy** of the mock, never
-  the ★ LOCKED mock in place. A transient edit to the contract artifact risks an
-  unrestored diff, which is the quiet deviation `resettle` exists to forbid.
+- **Prove every replay can fail once.** Under `revise`, knock the feature out on
+  the revision branch, observe the right failure, then restore it. On fallback,
+  use the built app or a scratch copy of the mock, never the ★ LOCKED mock in
+  place. A transient edit to a contract artifact risks an unrestored diff.
 - **A retired behavior gets a replay function too, and it is never silent.** The
   function asserts the absence — no grab handle in the DOM, the gesture does
   nothing — and **prints its sanction line on every run**, from a
@@ -326,7 +346,7 @@ Spec:
 - Wire the script into CI **explicitly**. Test globs discover `*.test.js`, not a
   `.replay.mjs`; a browser job that hand-lists its files gets a hand-added step in
   the same change.
-- **The mock's CI leg is temporary: it runs from lock until the surface ships, and
+- **On fallback, the mock's CI leg is temporary: it runs from lock until the surface ships, and
   then it is deleted.** While the port is being built the mock is the contract
   artifact and the `TARGET=mock` leg is what guards it; once the app-opener leg is
   green the app is the contract artifact and the mock leg guards nothing the app
@@ -345,6 +365,14 @@ Spec:
 One entry per story — and one per sanctioned retirement — in
 `mockups/<surface>.behavior.md`:
 
+Under `revise`, `source:` points to the shipping module and `evidence:` points to
+the app-only replay. Its first frozen version is a full inventory of the base
+app. Before each later revision, replay and re-inventory the base: new observed
+behavior becomes a STORY; a prior story missing from the base becomes a QUESTION
+until a named person supplies a dated, quoted sanction. Re-freeze that diff
+before design begins. This is the next-revision stale-ledger check, not automatic
+recovery.
+
 ```
 S12 · Dragging a window's edge resizes it; edges are full-height ±5px grab
       zones; Esc clears the window.
@@ -353,7 +381,7 @@ S12 · Dragging a window's edge resizes it; edges are full-height ±5px grab
   lock:     terms 6, 7, 21
   data:     any
   evidence: replay fn S12 + screenshot ref
-  status:   (build phase fills: ported | replayed-pass | replayed-fail |
+  status:   (revision/build phase fills: ported | replayed-pass | replayed-fail |
              re-settle requested)
 ```
 
@@ -371,9 +399,11 @@ R3 · Dragging in the plot body drew a custom selection window; two handles
   status:   retired (permanent)
 ```
 
-A `deferred` row is not a third block. It is a STORY like any other, naming the
-term it defers to on its `lock:` line and `app opener only` on its `evidence:`
-line, so the build's fidelity ledger can see that mock evidence was never owed.
+On fallback, a `deferred` row is not a third block. It is a STORY like any other,
+naming the term it defers to on its `lock:` line and `app opener only` on its
+`evidence:` line, so the build's fidelity ledger can see that mock evidence was
+never owed. `revise` has no `deferred` verdict because there is no manifest to
+defer to.
 
 Sweep screenshots and clips live in `mockups/sweep/<surface>/`. Register both the
 ledger and that directory in `mockups/INDEX.md`, per resettle's
@@ -389,7 +419,7 @@ the operator rules it.
 **Retired entries are permanent.** The ledger stops being a record of only what
 the surface does and becomes a record of what it does **and what it deliberately
 stopped doing**; the retired entries with their sanctions are the audit trail,
-and they stay through every later sweep, port and lock of that surface. Deleting
+and they stay through every later sweep, revision, port and lock of that surface. Deleting
 one leaves either an unrecorded reinstatement or a second undocumented
 retirement, and no way to tell which — the same illegible state the pass exists
 to prevent, arrived at from the other side.
@@ -418,7 +448,7 @@ and any fixture-set authorization the gate will need (shapes and in-band labelin
 authorized together; see the data defaults in SKILL.md's grounding rules).
 Answers are recorded inline under their QUESTION entries.
 
-**§2's verdicts get their own round, and it happens before the lock**, since
+**On fallback, §2's verdicts get their own round, and it happens before the lock**, since
 that pass does. Every row still at `missed` or at an unsanctioned `retired` goes
 in it, each stating what the predecessor did, where it was registered, and what
 the mock offers instead — a retirement is ruled there or it is not ruled at all.
@@ -435,7 +465,7 @@ down as given.
 Operator approval stamps a header line on the ledger:
 
 ```
-★ FROZEN <date> · base <sha> · generator <sha> · window <start>..<end>
+★ FROZEN <date> · base <sha> · generator <sha or n/a> · window <start>..<end or n/a>
   · fixtures <name: sha256-prefix, …>   (tripwire, not contract)
   · predecessor <ref, or "none — greenfield">   · retired <n>
 ```
@@ -450,8 +480,12 @@ Operator approval stamps a header line on the ledger:
   regeneration. A hash over data that grows daily is unreproducible tomorrow by
   construction.
 
+A `revise` header names the base app SHA and the exact safe data source even when
+no generator or time window applies. A fallback header names the predecessor ref
+as before.
+
 A `behavior.md` without the `★ FROZEN` header is a sweep in progress, not a
-contract; building against it is a blocking finding. Regenerating any pinned
+contract; revising or building against it is a blocking finding. Regenerating any pinned
 fixture after freeze requires a recorded reason under the header. **A ledger
 carrying a `missed` row cannot be frozen** — the freeze is what makes a verdict
 table binding, and freezing an undecided drop is how the retirement becomes
@@ -459,9 +493,8 @@ contract without anyone choosing it. A row annotated `ruled-elsewhere` is a
 `missed` row for that purpose: the annotation routes it, it does not decide it.
 A `deferred` row freezes like any story.
 
-**Ledger + lock manifest together are the build contract.** The manifest alone is
-insufficient, in three ways: behaviors and meanings its terms never encoded,
-terms no assertion ever exercised, and behaviors the predecessor had that neither
-artifact mentions because neither was looking backwards. The ledger's stories
-close the first; behavior replay in `build` closes the second; §2's verdicts and
-their RETIRED entries close the third.
+On fallback, **ledger + lock manifest together are the build contract**. The
+manifest alone is insufficient: the ledger's stories cover behavior and meaning,
+behavior replay in `build` exercises it, and §2's verdicts preserve predecessor
+behavior. Under `revise`, **the ledger plus its replay script is the contract**;
+the built branch is the visual artifact and no lock manifest is created.

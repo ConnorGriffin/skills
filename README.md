@@ -8,7 +8,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
-| [`ui-craft`](skills/ui-craft/SKILL.md) | Full surface lifecycle: lock a visual spec, build to it, critique with personas, audit against the lock, polish, re-settle | `drive-local-webapp` for rendered review; parallel-agent support is recommended |
+| [`ui-craft`](skills/ui-craft/SKILL.md) | Full surface lifecycle: revise shipped UI in the running app, lock greenfield specs, build, critique, audit, polish, re-settle | `drive-local-webapp` for rendered review; parallel-agent support is recommended |
 | [`drive-local-webapp`](skills/drive-local-webapp/SKILL.md) | Drive and screenshot a local web app with headless Chromium | Node.js 20+; installs Playwright locally |
 | [`cbm-onboard`](skills/cbm-onboard/SKILL.md) | Index a repository with codebase-memory-mcp and keep it current | `codebase-memory-mcp` on `PATH` |
 | [`spin-worktree`](skills/spin-worktree/SKILL.md) | Create isolated Git worktrees for issue and PR work | Git; GitHub CLI only for `--pr` discovery |

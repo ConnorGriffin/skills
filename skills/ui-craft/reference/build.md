@@ -4,6 +4,12 @@ Implement a locked visual spec. The finish line is **every manifest term has
 evidence** — not "the gates are green". A build that passes every test while
 diverging from the lock is a failed build.
 
+This mode ports a greenfield lock or the explicitly recorded safe-start
+fallback. It does **not** revise a surface the app already ships. That work stays
+in `revise`, where the running branch is the visual artifact and the frozen
+behavior ledger plus app-only replay script is the contract. Do not manufacture a
+lock manifest or fidelity ledger for an app template in order to enter `build`.
+
 Input: the ★ LOCKED mockup(s) and `mockups/<surface>.lock.md`. If the
 manifest is missing, stop and create it first (run the manifest-extraction
 part of `lock` mode against the existing header — do not build from prose).

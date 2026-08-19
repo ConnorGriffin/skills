@@ -1,12 +1,13 @@
 ---
 name: ui-craft
-description: Lifecycle for user-facing surfaces — lock a visual spec from grounded HTML mockups, build to a lock with fidelity evidence, critique/audit/polish a UI, or re-settle a locked term. Use for any request to design, review, or verify rendered UI (screens, dashboards, flows, components). Not for backend-only work or module/API design ("interface" in the code sense — use codebase-design for that).
+description: Lifecycle for user-facing surfaces — revise a shipped surface in the running app, lock a greenfield visual spec, build to a lock, critique/audit/polish a UI, or re-settle a locked term. Use for any request to design, review, or verify rendered UI (screens, dashboards, flows, components). Not for backend-only work or module/API design ("interface" in the code sense — use codebase-design for that).
 ---
 
 # UI craft
 
-One skill for the whole life of a user-facing surface: **lock** a visual spec,
-**build** to it, **critique** it, **audit** it, **polish** it, **re-settle** it.
+One skill for the whole life of a user-facing surface: **revise** a shipped
+surface in place, **lock** a greenfield visual spec, **build** to it,
+**critique** it, **audit** it, **polish** it, **re-settle** it.
 Parts absorbed from `impeccable` (Apache-2.0, by Paul Bakaus — see the repo
 NOTICE).
 
@@ -26,38 +27,46 @@ class, function signature, or module boundary, this is the wrong skill.
    PRODUCT.md / DESIGN.md directly, and continue — the scripts are
    accelerators, not gates.
 
-For `lock`, `build`, and general design invocations only:
+For `revise`, `lock`, `build`, and general design invocations only:
 
 3. Read the project's design system: tokens, theme, one representative
    component or page. Use what's there when it works. **The shipped app wins
    over any mock scaffold**: when a repo carries both an app stylesheet and a
    `mockups/` theme, the app is chrome ground truth for every surface that
-   has shipped — `lock` mode's step-0 pre-flight (reference/lock.md) resolves
-   this and gates the round on a chrome fidelity check.
+   has shipped. `revise` operates on that app directly; `lock` mode's step-0
+   pre-flight (reference/lock.md) refuses to replace it with a fresh mock.
 4. Read the matching register reference: `reference/brand.md` when design IS
    the product (marketing, landing, portfolio), `reference/product.md` when
    design SERVES the product (app UI, dashboards, tools).
 5. New project with no committed tokens: run
    `node $UI_CRAFT_SKILL_DIR/scripts/palette.mjs` for a brand seed.
 
-## The lock is the contract
+## The contract follows the surface
 
-A surface that has been through `lock` has, next to its mockup:
+For a greenfield surface that has been through `lock`, the contract is:
 
 - a `★ LOCKED` header in the mockup HTML, and
 - a **lock manifest** — `mockups/<surface>.lock.md` — the checkable inventory
-  every other mode reads. Format in `reference/lock.md`.
+  `build` reads. Format in `reference/lock.md`.
+
+For a surface the app already ships, `revise` bans a from-scratch mock. Its
+contract is the frozen **behavior ledger** plus its replay script, exercised
+against the built app. The app branch is the visual artifact; screenshots record
+the review, but no lock manifest is pinned to an app template.
 
 Rules that bind every mode:
 
-- **No arbitration in private.** If two locked artifacts disagree, or a locked
-  term collides with the app's shipped design system beyond what the
-  manifest's precedence line settles, stop and ask. Implementer judgment never
-  silently overrides a lock.
-- **Deviation = re-settle.** Any build or refactor that changes a locked term
-  goes through `re-settle` (dated, sanctioned, recorded) — never a quiet diff.
-- **Evidence over green gates.** A surface is done when every manifest term
-  has evidence, not when the test suite passes.
+- **No arbitration in private.** If two locked artifacts disagree, a locked
+  term collides with the app's shipped design system beyond what the manifest's
+  precedence line settles, or a revision drops shipped behavior, stop and ask.
+  Implementer judgment never silently overrides a contract.
+- **Deviation is recorded.** Any build or refactor that changes a locked term
+  goes through `re-settle`; any revision that changes shipped behavior amends
+  the frozen behavior ledger. Both paths are dated and sanctioned, never quiet.
+- **Evidence over green gates.** A locked surface is done when every manifest
+  term has evidence; a revision is done when every behavior story replayed and
+  every affected state has before/after evidence. A green suite alone is never
+  the finish line.
 
 ## Modes
 
@@ -66,8 +75,9 @@ acting — it defines the flow.
 
 | Mode | Job | Reference |
 | --- | --- | --- |
-| `lock [surface]` | Explore grounded variants, converge, lock spec + manifest | [reference/lock.md](reference/lock.md) |
-| `behavior-sweep [surface]` | Sweep the mock's interactive behavior **and the shipped predecessor's** into a frozen behavior ledger + replay script; an unsanctioned drop fails. Predecessor pass runs **before** `lock`; the rest after `lock`, before `build` | [reference/behavior-sweep.md](reference/behavior-sweep.md) |
+| `revise [surface]` | Inventory shipped behavior, then iterate the running app on a branch; never mock the shipped surface from scratch | [reference/revise.md](reference/revise.md) |
+| `lock [surface]` | Explore grounded variants for a greenfield surface, converge, lock spec + manifest | [reference/lock.md](reference/lock.md) |
+| `behavior-sweep [surface]` | Freeze interactive behavior into a ledger + replay script. `revise` runs it against the built app before design; the lock fallback also diffs a shipped predecessor before locking | [reference/behavior-sweep.md](reference/behavior-sweep.md) |
 | `build [surface]` | Implement a locked spec; ship the fidelity ledger | [reference/build.md](reference/build.md) |
 | `critique [target]` | Heuristic scoring, slop verdict, persona walkthroughs | [reference/critique.md](reference/critique.md) |
 | `audit [target]` | Technical checks (a11y, contrast, responsive, detector) + lock-fidelity audit when a manifest exists | [reference/audit.md](reference/audit.md) |
@@ -76,16 +86,18 @@ acting — it defines the flow.
 | `consensus [question]` | Settle a contested design decision via a 3-persona vote-and-negotiate panel (advisory; requires repo personas) | [reference/consensus.md](reference/consensus.md) |
 | `init` / `document` | Project context setup / generate DESIGN.md | [reference/init.md](reference/init.md), [reference/document.md](reference/document.md) |
 
-No argument: recommend the 1–3 most useful modes from context (unlocked
-mockups → `lock`; an unlocked mockup for a surface with a `shipped` predecessor
-and no predecessor verdicts → `behavior-sweep`'s predecessor pass **before**
-`lock`; frozen manifest for a surface with interactive behavior and no
-behavior ledger → `behavior-sweep` **before** `build`; open manifest without a
-fidelity ledger → `build`; never critiqued → `critique`), then list the table.
-Never auto-run a mode.
+No argument: recommend the 1–3 most useful modes from context (a shipped
+surface → `revise`; a greenfield surface or explicitly recorded safe-start
+fallback → `lock`; an unlocked fallback mock with no predecessor verdicts →
+`behavior-sweep`'s predecessor pass **before** `lock`; frozen manifest for a
+greenfield surface with interactive behavior and no behavior ledger →
+`behavior-sweep` **before** `build`; open manifest without a fidelity ledger →
+`build`; never critiqued → `critique`), then list the table. Never auto-run a
+mode.
 
 Three artifacts carry the word *ledger*; always qualify it. The **fidelity
-ledger** is one row per manifest term (`build`). The **behavior ledger** is
+ledger** is one row per manifest term (`build`; `revise` has none). The
+**behavior ledger** is
 `mockups/<surface>.behavior.md`, one entry per story plus one permanent entry
 per sanctioned retirement (`behavior-sweep`). The **surface ledger** is
 `mockups/INDEX.md`, one row per surface.
@@ -118,8 +130,9 @@ archetypes.
 **"The repo's sweep protocol" is not `behavior-sweep`.** That phrase means the
 repo's persona-driven QA pass — exploratory, judgment-led, run against a live
 app to find bugs. `behavior-sweep` is a mode of this skill: mechanical, run
-against a **locked mock** — and against the surface's shipped predecessor — before
-any build, and its output is a contract. Neither substitutes for the other.
+against the **built app** before a revision, or against a locked mock plus its
+shipped predecessor on the explicit fallback path. Its output is a contract.
+Neither substitutes for the other.
 
 ## Grounding rules (inherited from ui-mockups, apply everywhere)
 
