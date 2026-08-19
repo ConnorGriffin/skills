@@ -153,9 +153,12 @@ Locking is complete only when ALL of these exist:
    replaces, or a prior lock is being superseded, or the running app already
    does this job, then `behavior-sweep`'s **predecessor inventory**
    ([behavior-sweep.md](behavior-sweep.md) §2) has run and every predecessor
-   behavior carries a verdict: `kept`, or `retired` with its sanction line. **A
-   `missed` row blocks the lock**, and an unsanctioned `retired` row is a
-   `missed` row. A greenfield surface records the one-line skip and moves on.
+   behavior carries a verdict: `kept`, `deferred` to a term this manifest states
+   and an omitting build would violate, or `retired` with its sanction line. **A
+   `missed` row blocks the lock.** So does an unsanctioned `retired` row, and so
+   does one whose only sanction is a term of this very manifest — a lock cannot
+   sanction the omissions it is itself freezing. A greenfield surface records the
+   one-line skip and moves on.
 
    **This one pass precedes the lock; the rest of the sweep follows it — and the
    ordering is the whole point.** The rest needs a frozen mock, so it cannot run

@@ -17,6 +17,11 @@ It is not a build call and not a bug fix: the merged lock currently says the
 behavior is gone, so restoring it quietly is the private arbitration the lock
 exists to forbid, and dropping it quietly is the original defect a second time.
 
+This is also where the pass lands when it runs late — against a lock that closed
+before anyone was looking backwards. Expect a pile rather than a row: the first
+predecessor inventory run against a merged 60-term lock returned 43 unruled
+retirements, one drawn selection window accounting for seventeen of them.
+
 The operator rules it, and the ruling lands as one of two change sets:
 
 - **kept** — re-settle the terms that have to describe the behavior. Usually
@@ -26,7 +31,11 @@ The operator rules it, and the ruling lands as one of two change sets:
   ledger gains its STORY and the replay script its function, in the same set.
 - **retired** — no term moves. The sanction line is written into the behavior
   ledger's RETIRED entry (§2's format), dated and quoted, and the entry's
-  absence assertion is added to the replay script.
+  absence assertion is added to the replay script. Where the merged lock already
+  spoke to the retirement, that citation rides along as the row's
+  `ruled-elsewhere` annotation and nothing more: it is what turns the ruling into
+  a one-sentence confirmation instead of a fresh decision, and it is never the
+  sanction itself.
 
 Either way it is dated and recorded, and the ledger keeps the trail.
 
