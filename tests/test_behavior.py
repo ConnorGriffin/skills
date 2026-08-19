@@ -1724,6 +1724,57 @@ class EvidenceEnvelopeTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(relative_path, result.stderr)
 
+    def test_validator_rejects_an_unquoted_frontmatter_colon(self):
+        self.assertEqual(run(["python3", "scripts/validate.py"], cwd=ROOT).returncode, 0)
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
+            copy = Path(temporary) / "skills"
+            shutil.copytree(
+                ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__")
+            )
+            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
+            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
+            self.assertEqual(
+                run(
+                    [
+                        "git",
+                        "-c",
+                        "user.name=Test",
+                        "-c",
+                        "user.email=test@example.invalid",
+                        "commit",
+                        "-m",
+                        "fixture",
+                    ],
+                    cwd=copy,
+                ).returncode,
+                0,
+            )
+
+            skill_path = Path("skills") / "drivers" / "openspec-adopt" / "SKILL.md"
+            skill = copy / skill_path
+            original = skill.read_text(encoding="utf-8")
+
+            # Reproduce the defect this test guards: a description value that
+            # carries ": " but lost its wrapping quotes.
+            unquoted = re.sub(
+                r'^description:\s*"(.*)"$',
+                lambda match: f"description: {match.group(1)}",
+                original,
+                count=1,
+                flags=re.MULTILINE,
+            )
+            self.assertNotEqual(unquoted, original)
+            skill.write_text(unquoted, encoding="utf-8")
+
+            failing = run(["python3", "scripts/validate.py"], cwd=copy)
+            self.assertNotEqual(failing.returncode, 0)
+            self.assertIn(str(skill_path), failing.stderr)
+
+            skill.write_text(original, encoding="utf-8")
+            passing = run(["python3", "scripts/validate.py"], cwd=copy)
+            self.assertEqual(passing.returncode, 0, passing.stderr)
+
 
 class DriveLocalWebappSandboxRecoveryTests(unittest.TestCase):
     DRIVER = ROOT / "skills" / "tools" / "drive-local-webapp" / "scripts" / "driver.mjs"

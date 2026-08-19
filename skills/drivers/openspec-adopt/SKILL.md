@@ -1,6 +1,6 @@
 ---
 name: openspec-adopt
-description: Adopt OpenSpec in a repo that lacks it: scaffold the openspec/ layout, write baseline specs describing the system as it exists today (from code, docs, and git history), and deliver the whole thing as a documentation-only PR. One-time per repo. Trigger when the user asks to adopt openspec, add openspec to a repo, scaffold openspec, or write baseline specs. Invoked as /openspec-adopt <org/repo or path>.
+description: "Adopt OpenSpec in a repo that lacks it: scaffold the openspec/ layout, write baseline specs describing the system as it exists today (from code, docs, and git history), and deliver the whole thing as a documentation-only PR. One-time per repo. Trigger when the user asks to adopt openspec, add openspec to a repo, scaffold openspec, or write baseline specs. Invoked as /openspec-adopt <org/repo or path>."
 ---
 
 # openspec-adopt

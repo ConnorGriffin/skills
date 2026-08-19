@@ -137,6 +137,19 @@ def validate_frontmatter(path: Path, errors: list[str]) -> None:
         for line in match.group(1).splitlines()
         if ":" in line
     }
+    for line in match.group(1).splitlines():
+        if ":" not in line:
+            continue
+        field, _, value = line.partition(":")
+        field = field.strip()
+        value = value.strip()
+        quoted = len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'"
+        if not quoted and ": " in value:
+            fail(
+                errors,
+                f"{path.relative_to(ROOT)}: {field} value contains ': ' unquoted; "
+                "wrap the value in double quotes",
+            )
     required = {"name", "description"}
     allowed = required | {"disable-model-invocation"}
     if fields < required or fields - allowed:
