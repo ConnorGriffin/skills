@@ -1,4 +1,4 @@
 interface:
   display_name: "Review"
-  short_description: "Review a diff against standards and spec in parallel"
-  default_prompt: "Use $review to review the changes since this fixed point along the standards and spec axes."
+  short_description: "Route to one review type: code, plan, personas, or security"
+  default_prompt: "Use $review to route this to the right review skill — code, plan, personas, or security."

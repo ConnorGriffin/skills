@@ -1,69 +1,107 @@
 ---
 name: review
-description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/PRD asked for?). Runs both reviews in parallel sub-agents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to "review since X".
+description: Front door for review of any kind — code, a plan, a document that needs named reviewer perspectives, or pending changes with a security question. Classifies the subject in front of it and routes to exactly one review skill; does no reviewing itself. Use for 'review this', '/review', or any request to review a PR, diff, plan, spec, brief, document, or security-sensitive change.
 ---
 
-Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
+# Review
 
-- **Standards** — does the code conform to this repo's documented coding standards?
-- **Spec** — does the code faithfully implement the originating issue / PRD / spec?
+Front door for review, the way `scope` is the front door for work that isn't ready to
+build. Classify what is in front of it, announce the route, invoke that route's
+skill. This skill does none of the reviewing itself — the standards-and-spec pass it
+used to run now lives in `code-review`.
 
-Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.
+## Routes
 
-If the project documents its issue tracker (a file under `docs/` describing how to fetch issues, or a note in `CONTRIBUTING.md` / `README.md`), follow that. Otherwise infer it from the git remotes — a GitHub remote means GitHub Issues via the `gh` CLI, which is the default assumption. If neither resolves, ask the user where issues live rather than guessing.
+Routes are data, not prose, layered from two files:
+
+- **Shipped:** [`routes.json`](routes.json) in this directory. Four rows ship today:
+  - `code` → `code-review` — changed code against the repo's documented standards and
+    the originating issue.
+  - `plan` → `plan-review` — a plan, spec, work order, or agent brief, before anything
+    is built.
+  - `personas` → `persona-review` — a document that needs named reviewer
+    perspectives.
+  - `security` → the security review that ships with the agent — pending changes
+    carrying a security question.
+- **Operator:** `~/.config/review/routes.json`. A row whose `route` matches a shipped
+  row replaces it; any other `route` extends the table. See *Registering a review
+  type* below.
 
 ## Process
 
-### 1. Pin the fixed point
+1. **Classify.** Read what's in front of you — a diff, a document, the user's own
+   words — and pick the route whose `for` text matches it.
+2. **Announce.** Say the route in one line before invoking anything: "routing to
+   `code-review`" or equivalent. This is how the caller knows which review ran, not a
+   request for approval.
+3. **Invoke.** Call that route's skill (or, for `security`, the agent's built-in
+   security review) and stop. Nothing here re-runs the review or second-guesses its
+   output.
 
-Whatever the user said is the fixed point — a commit SHA, branch name, tag, `main`, `HEAD~5`, etc. If they didn't specify one, ask for it.
+## Ambiguity
 
-Capture the diff command once: `git diff <fixed-point>...HEAD` (three-dot, so the comparison is against the merge-base). Also note the list of commits via `git log <fixed-point>..HEAD --oneline`.
+Matching `scope`: pick a route and announce it. Ask exactly **one** framing question
+only when the subject genuinely admits two routes — a spec with code already written
+against it, say. Never ask when the subject is clearly one thing; a clear subject
+paired with a manufactured question is stalling, not scoping.
 
-Before going further, confirm the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff should fail here — not inside two parallel sub-agents.
+## The stop rule
 
-### 2. Identify the spec source
+A registered route whose skill is missing **stops** and reports what is missing and
+how to install it. It never runs a nearby review instead. This is the load-bearing
+rule in this skill: a missing `security` route that silently becomes a `code` review
+produces a passing verdict nobody should trust, which is worse than no review at all.
 
-Look for the originating spec, in this order:
+Route resolution decides this mechanically — see *Resolving a route* below — and its
+answer is final, not a suggestion to route around.
 
-1. Issue references in the commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.) — fetch them from the issue tracker identified above (`gh issue view <n>` for GitHub).
-2. A path the user passed as an argument.
-3. A PRD/spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
-4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** sub-agent will skip and report "no spec available".
+The **not-a-route** case reads differently from **not-installed**, on purpose: one
+means "review has no idea what that is," the other means "review knows what that is
+and can't reach it yet." Conflating them either hides a real gap behind "not
+supported," or manufactures support behind a name nobody registered.
 
-### 3. Identify the standards sources
+## Resolving a route
 
-Anything in the repo that documents how code should be written, such as `CODING_STANDARDS.md` or `CONTRIBUTING.md`.
+`scripts/resolve_route.py` makes the outcomes above machine-decidable instead of
+judgment calls:
 
-### 4. Spawn both sub-agents in parallel
+```
+python3 scripts/resolve_route.py <route>
+python3 scripts/resolve_route.py --list
+```
 
-Send a single message with two `Agent` tool calls. Use the `general-purpose` subagent for both.
+Exit statuses:
 
-**Standards sub-agent prompt** — include:
+- **0 — installed.** The route is registered and its skill was found (or, for an
+  `agent-builtin` row, ships with the agent — presence not verified on disk).
+- **3 — registered but missing.** The route is registered, its skill is a `skill`
+  kind, and no skill directory was found. The message names the skill and, for a
+  skill this pack ships, the install command; for one it doesn't ship, the row's
+  source file instead. It never names another route.
+- **4 — not a route.** The name matches no row. The message lists the registered
+  route names.
+- **2 — malformed config.** `~/.config/review/routes.json` is not valid JSON, or a
+  row is missing a field or carries an unknown `kind`. Names the file and the
+  problem. This exit is never returned for the three outcomes above.
 
-- The full diff command and commit list.
-- The list of standards-source files you found in step 3.
-- The brief: "Report — per file/hunk where relevant — every place the diff violates a documented standard. Cite the standard (file + the rule). Distinguish hard violations from judgement calls. Skip anything tooling enforces. Under 400 words."
+`--list` prints every registered row as `route<TAB>skill<TAB>kind<TAB>for`, exit 0.
 
-**Spec sub-agent prompt** — include:
+## Registering a review type
 
-- The diff command and commit list.
-- The path or fetched contents of the spec.
-- The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Under 400 words."
+An installation with its own review skill — an infra-plan review, a compliance
+review, whatever it runs internally — registers it by adding a row to
+`~/.config/review/routes.json`:
 
-If the spec is missing, skip the Spec sub-agent and note this in the final report.
+```json
+[
+  { "route": "code", "skill": "internal-code-review", "kind": "skill",
+    "for": "changed code, using our internal standards checker" },
+  { "route": "infra", "skill": "infra-plan-review", "kind": "skill",
+    "for": "a pulumi or terraform plan before it's applied" }
+]
+```
 
-### 5. Aggregate
-
-Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned. Do **not** merge or rerank findings — the two axes are deliberately separate (see _Why two axes_).
-
-End with a one-line summary: total findings per axis, and the worst issue _within each axis_ (if any). Don't pick a single winner across axes — that's the reranking the separation exists to prevent.
-
-## Why two axes
-
-A change can pass one axis and fail the other:
-
-- Code that follows every standard but implements the wrong thing → **Standards pass, Spec fail.**
-- Code that does exactly what the issue asked but breaks the project's conventions → **Spec pass, Standards fail.**
-
-Reporting them separately stops one axis from masking the other.
+The first row replaces the shipped `code` route (same `route` value); the second adds
+a new one. Registering a row does **not** install the skill it names — the operator
+still installs `infra-plan-review` separately, and until then `resolve_route.py infra`
+reports it registered but missing.

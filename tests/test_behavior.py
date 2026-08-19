@@ -1894,5 +1894,186 @@ class WayfinderResearchDispatchHandshakeTests(unittest.TestCase):
         )
 
 
+class ReviewRouteResolverTests(unittest.TestCase):
+    RESOLVER = ROOT / "skills" / "workflows" / "review" / "scripts" / "resolve_route.py"
+    ROUTES_JSON = ROOT / "skills" / "workflows" / "review" / "routes.json"
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.scratch = Path(self.temporary.name)
+        self.environment = os.environ.copy()
+        # A nonexistent operator config is the "no operator rows" case, not an
+        # error, so tests that don't care about operator rows can leave this
+        # pointed at nothing rather than the real developer home directory.
+        self.environment["REVIEW_ROUTES_CONFIG"] = str(self.scratch / "unset-routes.json")
+        self.environment["REVIEW_SKILL_ROOTS"] = str(self.scratch / "empty-root")
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def resolve(self, *arguments: str, env: Optional[dict[str, str]] = None):
+        return run(
+            ["python3", str(self.RESOLVER), *arguments],
+            cwd=ROOT,
+            env=env if env is not None else self.environment,
+        )
+
+    def test_installed_route_resolves_to_the_skill_path(self):
+        root = self.scratch / "skills-root"
+        skill_file = root / "code-review" / "SKILL.md"
+        skill_file.parent.mkdir(parents=True)
+        skill_file.write_text("---\nname: code-review\n---\n", encoding="utf-8")
+        environment = dict(self.environment, REVIEW_SKILL_ROOTS=str(root))
+
+        result = self.resolve("code", env=environment)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("code-review", result.stdout)
+        self.assertIn(str(skill_file), result.stdout)
+
+    def test_registered_route_with_missing_skill_names_the_install_command_only(self):
+        result = self.resolve("code")
+
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertIn("code-review", result.stdout)
+        self.assertIn(
+            "npx skills add ConnorGriffin/skills --skill code-review", result.stdout
+        )
+        for other_route in ("plan", "personas", "security"):
+            self.assertNotIn(other_route, result.stdout)
+        for other_skill in ("plan-review", "persona-review", "security-review"):
+            self.assertNotIn(other_skill, result.stdout)
+
+    def test_registered_route_missing_and_not_pack_shipped_names_the_source_file(self):
+        operator_config = self.scratch / "routes.json"
+        operator_config.write_text(
+            json.dumps(
+                [
+                    {
+                        "route": "infra",
+                        "skill": "infra-plan-review",
+                        "kind": "skill",
+                        "for": "a pulumi or terraform plan before it's applied",
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+        environment = dict(self.environment, REVIEW_ROUTES_CONFIG=str(operator_config))
+
+        result = self.resolve("infra", env=environment)
+
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertIn("infra-plan-review", result.stdout)
+        self.assertIn(str(operator_config), result.stdout)
+        self.assertNotIn("npx skills add", result.stdout)
+
+    def test_unregistered_name_is_not_a_route_and_lists_registered_names(self):
+        result = self.resolve("nonsense")
+
+        self.assertEqual(result.returncode, 4, result.stderr)
+        self.assertIn("not a registered review type", result.stdout)
+        for route in ("code", "plan", "personas", "security"):
+            self.assertIn(route, result.stdout)
+
+    def test_agent_builtin_route_reports_unverified_presence_without_a_path(self):
+        result = self.resolve("security")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("ships with the agent", result.stdout)
+        self.assertIn("not verified", result.stdout)
+        self.assertNotIn("SKILL.md", result.stdout)
+
+    def test_operator_config_replaces_a_route_and_adds_a_new_one(self):
+        operator_config = self.scratch / "routes.json"
+        operator_config.write_text(
+            json.dumps(
+                [
+                    {
+                        "route": "code",
+                        "skill": "internal-code-review",
+                        "kind": "skill",
+                        "for": "changed code, using our internal standards checker",
+                    },
+                    {
+                        "route": "infra",
+                        "skill": "infra-plan-review",
+                        "kind": "skill",
+                        "for": "a pulumi or terraform plan before it's applied",
+                    },
+                ]
+            ),
+            encoding="utf-8",
+        )
+        environment = dict(self.environment, REVIEW_ROUTES_CONFIG=str(operator_config))
+
+        result = self.resolve("--list", env=environment)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("code\tinternal-code-review\tskill\t", result.stdout)
+        self.assertNotIn("code\tcode-review\tskill\t", result.stdout)
+        self.assertIn("infra\tinfra-plan-review\tskill\t", result.stdout)
+        self.assertIn("plan\tplan-review\tskill\t", result.stdout)
+
+    def test_malformed_operator_config_invalid_json_exits_2_naming_the_file(self):
+        operator_config = self.scratch / "routes.json"
+        operator_config.write_text("not json", encoding="utf-8")
+        environment = dict(self.environment, REVIEW_ROUTES_CONFIG=str(operator_config))
+
+        result = self.resolve("code", env=environment)
+
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn(str(operator_config), result.stderr)
+
+    def test_malformed_operator_config_unknown_kind_exits_2(self):
+        operator_config = self.scratch / "routes.json"
+        operator_config.write_text(
+            json.dumps(
+                [
+                    {
+                        "route": "infra",
+                        "skill": "infra-plan-review",
+                        "kind": "not-a-real-kind",
+                        "for": "a pulumi or terraform plan before it's applied",
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+        environment = dict(self.environment, REVIEW_ROUTES_CONFIG=str(operator_config))
+
+        result = self.resolve("--list", env=environment)
+
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertIn(str(operator_config), result.stderr)
+
+    def test_symlinked_skill_directory_resolves(self):
+        real_root = self.scratch / "real-skills"
+        real_skill_file = real_root / "code-review" / "SKILL.md"
+        real_skill_file.parent.mkdir(parents=True)
+        real_skill_file.write_text("---\nname: code-review\n---\n", encoding="utf-8")
+        linked_root = self.scratch / "linked-skills"
+        linked_root.mkdir()
+        (linked_root / "code-review").symlink_to(
+            real_root / "code-review", target_is_directory=True
+        )
+        environment = dict(self.environment, REVIEW_SKILL_ROOTS=str(linked_root))
+
+        result = self.resolve("code", env=environment)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(str(linked_root / "code-review" / "SKILL.md"), result.stdout)
+
+    def test_shipped_routes_are_exactly_four_and_each_names_a_for_sentence(self):
+        rows = json.loads(self.ROUTES_JSON.read_text(encoding="utf-8"))
+        routes = {row["route"] for row in rows}
+
+        self.assertEqual(routes, {"code", "plan", "personas", "security"})
+        for row in rows:
+            self.assertEqual(set(row), {"route", "skill", "kind", "for"})
+            self.assertIsInstance(row["for"], str)
+            self.assertTrue(row["for"].strip())
+
+
 if __name__ == "__main__":
     unittest.main()

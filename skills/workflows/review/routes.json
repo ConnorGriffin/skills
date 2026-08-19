@@ -1,0 +1,26 @@
+[
+  {
+    "route": "code",
+    "skill": "code-review",
+    "kind": "skill",
+    "for": "changed code against the repo's documented standards and the originating issue"
+  },
+  {
+    "route": "plan",
+    "skill": "plan-review",
+    "kind": "skill",
+    "for": "a plan, spec, work order, or agent brief, before anything is built"
+  },
+  {
+    "route": "personas",
+    "skill": "persona-review",
+    "kind": "skill",
+    "for": "a document that needs named reviewer perspectives"
+  },
+  {
+    "route": "security",
+    "skill": "security-review",
+    "kind": "agent-builtin",
+    "for": "pending changes carrying a security question"
+  }
+]

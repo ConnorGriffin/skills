@@ -14,14 +14,14 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
 | [`scope`](skills/workflows/scope/SKILL.md) | Triage front door for work that isn't ready to build: classify the dominant uncertainty and route to one specialist skill, including a bundled interview mode | — |
-| [`review`](skills/workflows/review/SKILL.md) | Review changed code against the project's standards and the originating issue | — |
+| [`review`](skills/workflows/review/SKILL.md) | Front door for review: classify what's in front of it and route to exactly one review skill (`code-review`, `plan-review`, `persona-review`, or the agent's built-in security review) | — |
 
 ### Drivers
 
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
 | [`wayfinder`](skills/drivers/wayfinder/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `scope`'s interview mode, `ui-craft` |
-| [`implement`](skills/drivers/implement/SKILL.md) | Implement a PRD or issue set via `tdd`, then `review`, then commit | `tdd` and `review` from this pack |
+| [`implement`](skills/drivers/implement/SKILL.md) | Implement a PRD or issue set via `tdd`, then `code-review`, then commit | `tdd` and `code-review` from this pack |
 | [`ui-craft`](skills/drivers/ui-craft/SKILL.md) | Full surface lifecycle: lock a visual spec, build to it, critique with personas, audit against the lock, polish, re-settle | `drive-local-webapp` for rendered review; parallel-agent support is recommended |
 | [`orchestrate`](skills/drivers/orchestrate/SKILL.md) | Flip the session into coordinator mode: delegate all real work to sub-agents routed by an empirically benchmarked model capability table | Codex CLI for GPT-tier sub-agents; table re-benchmarked per its bundled procedure |
 
@@ -99,7 +99,7 @@ npx skills add mattpocock/skills --skill codebase-design --skill domain-modeling
 
 ## Attribution
 
-The `implement`, `tdd`, `review`, and `prototype` skills are adopted from — and
+The `implement`, `tdd`, and `prototype` skills are adopted from — and
 `scope`'s interview mode and `code-review` are derived from — [Matt Pocock's
 skills repository](https://github.com/mattpocock/skills) (MIT, copyright (c) 2026
 Matt Pocock), lightly edited here to be self-contained. See [LICENSE](LICENSE) and
