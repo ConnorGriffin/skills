@@ -19,6 +19,7 @@ EXPECTED = {
     "workflows/review",
     "drivers/wayfinder",
     "drivers/implement",
+    "drivers/openspec-adopt",
     "drivers/ui-craft",
     "drivers/orchestrate",
     "tools/cbm-onboard",

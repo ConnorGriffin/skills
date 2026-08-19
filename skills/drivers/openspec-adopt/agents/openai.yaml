@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenSpec Adopt"
+  short_description: "Scaffold OpenSpec baseline specs describing the system as it exists today"
+  default_prompt: "Use /openspec-adopt to set up OpenSpec for this repo."
