@@ -23,9 +23,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CBM_SCRIPT = ROOT / "skills" / "cbm-onboard" / "scripts" / "cbm-onboard.sh"
 SPIN_SCRIPT = ROOT / "skills" / "spin-worktree" / "scripts" / "spin-worktree.py"
 CODEX_WORKER = ROOT / "skills" / "orchestrate" / "scripts" / "codex-worker.py"
-UI_CRAFT_SKILL = ROOT / "skills" / "ui-craft" / "SKILL.md"
 UI_CRAFT_AUDIT = ROOT / "skills" / "ui-craft" / "reference" / "audit.md"
+UI_CRAFT_CRITIQUE = ROOT / "skills" / "ui-craft" / "reference" / "critique.md"
 UI_CRAFT_SWEEP = ROOT / "skills" / "ui-craft" / "reference" / "behavior-sweep.md"
+UI_CRAFT_ROUTE = ROOT / "skills" / "ui-craft" / "scripts" / "route.mjs"
 README = ROOT / "README.md"
 BEGIN_IGNORE = "# >>> cbm-onboard managed baseline — do not edit inside this block >>>"
 BEGIN_HOOK = "# >>> cbm-onboard managed reindex >>>"
@@ -163,14 +164,40 @@ class CbmOnboardTests(unittest.TestCase):
 
 class UiCraftContractTests(unittest.TestCase):
     def test_shipped_surface_routing_contract_is_closed(self):
-        skill = UI_CRAFT_SKILL.read_text(encoding="utf-8")
         audit = UI_CRAFT_AUDIT.read_text(encoding="utf-8")
+        critique = UI_CRAFT_CRITIQUE.read_text(encoding="utf-8")
         sweep = UI_CRAFT_SWEEP.read_text(encoding="utf-8")
         readme = README.read_text(encoding="utf-8")
 
-        self.assertIn("surface → `revise`", skill)
-        self.assertIn("shipped surface → `revise`-then-fix", skill)
+        cases = (
+            (("greenfield", "absent", "unknown"), 0, "lock"),
+            (("shipped", "complete", "synthetic"), 0, "revise"),
+            (("shipped", "complete", "manufactured"), 0, "revise"),
+            (("shipped", "absent", "unknown"), 0, "lock-fallback"),
+            (("shipped", "incomplete", "unknown"), 2, "refuse"),
+            (("shipped", "ambiguous", "unknown"), 2, "refuse"),
+            (("shipped", "complete", "real"), 2, "refuse"),
+        )
+        for arguments, exit_code, mode in cases:
+            with self.subTest(arguments=arguments):
+                result = run(
+                    [
+                        "node",
+                        str(UI_CRAFT_ROUTE),
+                        "--embodiment",
+                        arguments[0],
+                        "--declaration",
+                        arguments[1],
+                        "--data-source",
+                        arguments[2],
+                    ],
+                    cwd=ROOT,
+                )
+                self.assertEqual(result.returncode, exit_code, result.stderr)
+                self.assertEqual(json.loads(result.stdout)["mode"], mode)
+
         self.assertIn("`revise` for shipped-surface changes", audit)
+        self.assertIn("Route every shipped-surface change through `revise`", critique)
         self.assertRegex(sweep, r"Under `revise`, the\s+ledger amendment")
         self.assertIn("--skill spin-worktree", readme)
 

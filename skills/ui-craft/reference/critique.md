@@ -134,7 +134,7 @@ For each issue, tag with **P0-P3 severity** (see [Issue Severity below](#issue-s
 - **[P?] What**: Name the problem clearly
 - **Why it matters**: How this hurts users or undermines goals
 - **Fix**: What to do about it (be concrete)
-- **Suggested command**: Which command could address this (ui-craft modes only: `polish` for fix passes, `audit` for measurable checks, `resettle` for locked-term changes, `document` for a missing DESIGN.md, or a targeted fix under the general invocation)
+- **Suggested command**: Which command could address this (ui-craft modes only: `revise` for shipped-surface changes, `polish` for greenfield fix passes, `audit` for measurable checks, `resettle` for locked-term changes, `document` for a missing DESIGN.md, or a targeted greenfield fix under the general invocation)
 
 #### Persona Red Flags
 > *Consult the [Personas reference](#persona-based-design-testing) below.*
@@ -236,14 +236,16 @@ List recommended commands in priority order, based on the user's answers:
 ...
 
 **Rules for recommendations**:
-- Only recommend ui-craft modes: `polish`, `audit`, `resettle`, `document`, or a targeted fix under the general invocation
+- Only recommend ui-craft modes: `revise`, `polish`, `audit`, `resettle`, `document`, or a targeted greenfield fix under the general invocation
+- Route every shipped-surface change through `revise`; `polish` and targeted fixes apply directly only to greenfield work
 - Order by the user's stated priorities first, then by impact
 - Each item's description should carry enough context that the command knows what to focus on
 - Map each Priority Issue to the appropriate command
 - Skip commands that would address zero issues
 - If the user chose a limited scope, only include items within that scope
 - If the user marked areas as off-limits, exclude commands that would touch those areas
-- End with `/ui-craft polish` as the final step if any fixes were recommended
+- End greenfield recommendations with `/ui-craft polish`; a shipped-surface set
+  stays under `/ui-craft revise` through its own review-and-land gate
 
 After presenting the summary, tell the user:
 

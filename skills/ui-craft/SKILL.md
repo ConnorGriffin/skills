@@ -27,18 +27,30 @@ class, function signature, or module boundary, this is the wrong skill.
    PRODUCT.md / DESIGN.md directly, and continue — the scripts are
    accelerators, not gates.
 
+Before routing any design change:
+
+3. Resolve whether the app already embodies the surface (`shipped` or
+   `greenfield`). For a shipped surface, inspect its `CLAUDE.md` / `AGENTS.md`
+   dev-server declaration and classify it as `absent`, `complete`, `incomplete`
+   or `ambiguous`; classify its named data source as `manufactured`, `synthetic`
+   or `unknown`.
+4. Run `node $UI_CRAFT_SKILL_DIR/scripts/route.mjs --embodiment <state>
+   --declaration <state> --data-source <kind>` and obey its mode. A `refuse`
+   result is blocking. `lock-fallback` is the recorded predecessor fallback in
+   `reference/revise.md`, not ordinary `lock` permission.
+
 For `revise`, `lock`, `build`, and general design invocations only:
 
-3. Read the project's design system: tokens, theme, one representative
+5. Read the project's design system: tokens, theme, one representative
    component or page. Use what's there when it works. **The shipped app wins
    over any mock scaffold**: when a repo carries both an app stylesheet and a
    `mockups/` theme, the app is chrome ground truth for every surface that
    has shipped. `revise` operates on that app directly; `lock` mode's step-0
    pre-flight (reference/lock.md) refuses to replace it with a fresh mock.
-4. Read the matching register reference: `reference/brand.md` when design IS
+6. Read the matching register reference: `reference/brand.md` when design IS
    the product (marketing, landing, portfolio), `reference/product.md` when
    design SERVES the product (app UI, dashboards, tools).
-5. New project with no committed tokens: run
+7. New project with no committed tokens: run
    `node $UI_CRAFT_SKILL_DIR/scripts/palette.mjs` for a brand seed.
 
 ## The contract follows the surface
