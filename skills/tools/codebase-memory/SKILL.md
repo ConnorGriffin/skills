@@ -1,0 +1,42 @@
+---
+name: codebase-memory
+description: Use the codebase knowledge graph for structural code queries, trace call paths and dependencies, inspect architecture, assess change impact, or activate the bundled Claude Code discovery hooks.
+---
+
+# Codebase Memory
+
+Follow [reminder.md](reminder.md) for the standing discovery policy; it is the one
+authored policy shared by this skill, the profile pointer, and the installed
+SessionStart hook.
+
+## Activate discovery guidance in Claude Code
+
+After the standard skills installer copies this directory, run:
+
+```sh
+python3 ~/.claude/skills/codebase-memory/scripts/install.py
+```
+
+For a non-default Claude home:
+
+```sh
+python3 <installed-skill>/scripts/install.py --claude-home PATH
+```
+
+The installer owns three files under the selected Claude home's `hooks/`
+directory and merges the skill's registrations into `settings.json`. It preserves
+unrelated settings and hook registrations. Malformed settings, conflicting
+registrations, symlinks, and unowned managed-path files are no-write failures.
+Its scope is the bundled files and registrations.
+
+## Graph-query vocabulary
+
+- `list_projects` and `index_status` report indexed-project inventory and health.
+- `get_architecture` summarizes repository structure and architectural relationships.
+- `search_graph` locates symbols by name, label, or qualified-name pattern.
+- `trace_path` follows callers, callees, data flow, and cross-service paths.
+- `get_code_snippet` returns exact source for a resolved symbol.
+- `query_graph` handles complex multi-hop graph questions.
+- `search_code` searches literal source text.
+- `detect_changes` maps a Git diff to its structural impact.
+- `index_repository` creates or refreshes a repository graph.

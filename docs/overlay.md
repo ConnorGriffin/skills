@@ -22,8 +22,9 @@ step, so deleting a line removes the link on the next run.
 3. Third-party packs, read only. One machine links 13 skills from an internal pack
    published by its employer, and 2 from `github.com/mattpocock/skills`. Cloned, pinned
    to `main`, linked by allowlist, never edited in place.
-4. The machine's dotfiles: private. The `CLAUDE.md` overlay, `settings.json`, hooks,
-   `.mcp.json`, and the allowlists. It holds no skills at all.
+4. The machine's dotfiles: private. The `CLAUDE.md` overlay, machine-only
+   `settings.json` entries and hooks, `.mcp.json`, and the allowlists. It holds no
+   skills and does not own portable skill behavior.
 
 ### Where a new skill goes
 
@@ -31,7 +32,9 @@ step, so deleting a line removes the link on the next run.
    work? It goes in the private per-machine repo.
 2. Does someone else maintain it? It stays in their pack, linked read only.
 3. Otherwise it goes here, where every machine can link it.
-4. Configuration is not a skill. Hooks, settings and allowlists go in dotfiles.
+4. Portable skill-owned hooks and registration templates live with their skill and
+   are activated through that skill's installer. Machine-only configuration and
+   allowlists stay in dotfiles.
 
 ## Precedence
 
@@ -101,6 +104,11 @@ A skill carrying always-on rules ships a `reminder.md` digest next to its `SKILL
 Those rules decay over a long session, so a `UserPromptSubmit` hook re-injects the
 digest at prompt time. There is no second copy to drift.
 
+The event belongs to the behavior: `say-less` uses `UserPromptSubmit`, while
+`codebase-memory` installs its byte-identical reminder for `SessionStart` and keeps
+the canonical registrations under `skills/tools/codebase-memory/config/`. In both
+cases `reminder.md` is the only authored policy.
+
 ```json
 {
   "hooks": {
@@ -130,7 +138,8 @@ missing file is non-blocking.
 3. Write one allowlist per source, then run the installer.
 4. Link `output-styles/say-less.md` into `~/.claude/output-styles/` and set
    `"outputStyle": "say-less"` in `~/.claude/settings.json`.
-5. Add the digest hook to that same settings file.
+5. Activate each portable skill-owned hook through that skill's installer; add only
+   machine-owned registrations directly to the settings file.
 6. Re-run the installer after any allowlist edit and after any `git pull`.
 
 ## Rules
@@ -150,5 +159,7 @@ missing file is non-blocking.
   carry it, and reserve instructions for what only the model can decide.
 * Delete what nothing invokes. A skill with no recorded invocation gets deleted, not
   kept in case it is useful later. The local transcripts are the evidence.
-* A skill that carries always-on behavior ships a `reminder.md` digest and documents the
-  pointer line an overlay should add.
+* A skill that carries always-on behavior ships a `reminder.md` digest, owns any
+  portable hook and registration template that enforces it, and documents its
+  activation command and shared-profile pointer. Machine-only hooks remain in
+  dotfiles.

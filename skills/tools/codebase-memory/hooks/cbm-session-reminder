@@ -1,0 +1,5 @@
+#!/bin/sh
+# Managed by codebase-memory skill installer.
+
+cbm_hook_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 0
+cat "$cbm_hook_dir/cbm-code-discovery-reminder.md" 2>/dev/null || true

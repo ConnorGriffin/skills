@@ -24,6 +24,7 @@ EXPECTED = {
     "drivers/orchestrate",
     "drivers/ticket",
     "tools/cbm-onboard",
+    "tools/codebase-memory",
     "tools/ci-design",
     "tools/code-review",
     "tools/codebase-design",
