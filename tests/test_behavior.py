@@ -8,6 +8,7 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -298,6 +299,8 @@ class CodexWorkerTests(unittest.TestCase):
             "    pathlib.Path(os.environ['FAKE_CODEX_CHILD']).write_text(str(child.pid))\n"
             "    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))\n"
             "    while True: time.sleep(1)\n"
+            "if os.environ.get('FAKE_CODEX_READ_STDIN') == '1':\n"
+            "    sys.stdin.read()\n"
             "sys.stdout.write(os.environ.get('FAKE_CODEX_OUTPUT', ''))\n"
             "sys.exit(int(os.environ.get('FAKE_CODEX_EXIT', '0')))\n",
             encoding="utf-8",
@@ -838,8 +841,54 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertFalse(self.arguments.exists())
 
 
+    def test_a_worker_launched_with_an_open_stdin_does_not_hang_before_session_start(self):
+        self.environment["FAKE_CODEX_READ_STDIN"] = "1"
+        self.environment["FAKE_CODEX_OUTPUT"] = (
+            '{"type":"thread.started","thread_id":"worker-1"}\n'
+            + json.dumps(
+                {
+                    "type": "item.completed",
+                    "item": {"type": "agent_message", "text": "worker answer"},
+                }
+            )
+            + "\n"
+        )
+        held, other = socket.socketpair()
+        process = None
+        try:
+            process = subprocess.Popen(
+                [
+                    "python3", str(CODEX_WORKER), "start",
+                    "--codex", str(self.binary),
+                    "--state", str(self.state),
+                    "--model", "Terra",
+                    "--sandbox", "read-only",
+                    "--cwd", str(self.worktree),
+                    "do the work",
+                ],
+                cwd=ROOT,
+                env=self.environment,
+                stdin=held.fileno(),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            try:
+                stdout, stderr = process.communicate(timeout=30)
+            except subprocess.TimeoutExpired:
+                self.fail("the worker hung waiting on an inherited open stdin")
+            self.assertEqual(process.returncode, 0, stderr)
+            self.assertIn("worker answer", stdout)
+        finally:
+            if process is not None and process.poll() is None:
+                process.kill()
+                process.communicate()
+            held.close()
+            other.close()
+
+
 class OrchestrateCodexPolicyTests(unittest.TestCase):
-    def test_codex_headroom_and_single_rung_policy_are_explicit(self):
+    def test_codex_dispatch_policy_rules_are_explicit(self):
         skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(
             encoding="utf-8"
         )
@@ -857,6 +906,13 @@ class OrchestrateCodexPolicyTests(unittest.TestCase):
         self.assertIn("cannot switch to Claude workers", dispatch)
         self.assertIn("headroom at or below 5%", dispatch)
         self.assertIn("Each admitted v0 route is one", dispatch)
+        self.assertIn("The helper closes a worker's stdin itself.", dispatch)
+        self.assertIn("must redirect stdin from /dev/null", dispatch)
+        self.assertIn("an inherited open stdin is a permanent pre-session hang", dispatch)
+        self.assertIn("## Worker liveness", dispatch)
+        self.assertIn("A PID appearing in `ps` proves nothing.", dispatch)
+        self.assertIn("`ps -o time` is growing", dispatch)
+        self.assertIn("rollout-*.jsonl", dispatch)
 
 
 class WorkerLifecycleContractTests(unittest.TestCase):

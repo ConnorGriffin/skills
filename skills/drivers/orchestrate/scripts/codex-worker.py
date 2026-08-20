@@ -305,7 +305,8 @@ def gated_process(command: list[str], cwd: Path) -> tuple[subprocess.Popen[str],
     )
     process = subprocess.Popen(
         [sys.executable, "-c", wrapper, str(gate_read), str(cwd), json.dumps(command)],
-        text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, pass_fds=(gate_read,),
+        text=True, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        pass_fds=(gate_read,),
     )
     os.close(gate_read)
     return process, gate_write
@@ -375,6 +376,7 @@ def run_portable(
         command,
         cwd=Path(state["cwd"]),
         text=True,
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=False,
