@@ -63,7 +63,15 @@ substitutes a lighter check for the depth the order stamped.
    `<ticket-id> <verb>` when the harness offers a chapter tool, so the user can
    scroll back to it. Skip the chapter silently when it does not.
 
-2. **Attribution first.** Every comment this skill posts opens with a one-line
+2. **Claim the session.** Immediately after the ticket summary, run
+   `python3 <ticket-skill-directory>/scripts/ticket.py claim <ticket-id>`, so the
+   sessions that worked this ticket are recorded as they work it rather than
+   guessed from prose afterwards. Pass `--session` and `--agent` whenever the
+   environment cannot answer on its own: no session id in it, or more than one,
+   which is what a worker launched from another agent's session sees. A claim that fails is said in one
+   line and never blocks the verb: telemetry is a measurement, not a gate.
+
+3. **Attribution first.** Every comment this skill posts opens with a one-line
    quote block. With an operator name configured:
 
    > Written by an AI agent operating for `<operator>`. Verify before relying on it.
@@ -76,12 +84,12 @@ substitutes a lighter check for the depth the order stamped.
    key, or an empty value all mean the nameless form. Then the content. Never post
    an unattributed comment.
 
-3. **The lock is the only entry to execution.** A work order is a ticket comment
+4. **The lock is the only entry to execution.** A work order is a ticket comment
    whose body contains a fenced block starting `WORK ORDER`. `start` and `revise`
    locate it by scanning the ticket's comments newest-first; the newest one wins.
    No order, no execution: refuse and route to `/ticket triage <ticket-id>`.
 
-4. **One worktree, one branch, per ticket, for the whole lifecycle.** `triage`
+5. **One worktree, one branch, per ticket, for the whole lifecycle.** `triage`
    cuts the branch and worktree through `spin-worktree`; `start` and `revise`
    reuse them; `finalize` tears them down. The first action of any verb, before
    grounding or any repo read, is to cut or reuse the ticket's worktree, which is
@@ -96,24 +104,24 @@ substitutes a lighter check for the depth the order stamped.
    chunk merges back into it, so the ticket still ends with one branch and one
    pull request ([references/coordinator-mode.md](references/coordinator-mode.md)).
 
-5. **Working state lives on the ticket.** No plan files and no scratch
+6. **Working state lives on the ticket.** No plan files and no scratch
    directories on the branch. The branch carries shipping code plus the repo's own
    change record, nothing else.
 
-6. **Ground in what the repo already says.** Read the repo's own decision and
+7. **Ground in what the repo already says.** Read the repo's own decision and
    change records, `docs/`, and recent `git log` before forming opinions. Read the
    standing-decisions source named below when a project configured one.
 
-7. **Status transitions.** Verbs move the ticket: `triage` to triaged, `start` to
+8. **Status transitions.** Verbs move the ticket: `triage` to triaged, `start` to
    in progress when the branch is cut, `start` to pending review when the pull
    request opens, `finalize` to done. Status is the contract's one non-fatal
    operation: when a move is unavailable or fails, say so in one line and
    continue. Never retry a failed move and never force a workaround.
 
-8. **Stop at the pull request boundary.** Opening the pull request ends `start`.
+9. **Stop at the pull request boundary.** Opening the pull request ends `start`.
    Merging is human. `finalize` only runs after a human merged.
 
-9. **Fresh-session contract.** `start` assumes no memory of triage. Everything it
+10. **Fresh-session contract.** `start` assumes no memory of triage. Everything it
    needs must be on the ticket, in the description plus the work order. If it is
    not there, that is a triage defect: refuse and say what is missing.
 
