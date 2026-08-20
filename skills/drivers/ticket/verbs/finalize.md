@@ -78,8 +78,10 @@ the code host back to the tracker; this verb is that sync.
    pull request they approve. The skill never amends its own rubric, and never edits
    `references/slicing.md` itself.
 
-   `no-data` is not a misprediction. Say the ticket ran outside this machine's
-   transcripts, and draft nothing.
+   `no-data` is not a misprediction, and it has two readings the report keeps
+   apart: no session claimed the ticket, so it ran outside this machine's
+   transcripts, or sessions claimed it and their transcripts are gone. Draft
+   nothing either way.
 
 4. **Abandoned path** (pull request closed unmerged, or the work cancelled): comment
    why, then on explicit user confirmation run the same teardown as step 2f. Never

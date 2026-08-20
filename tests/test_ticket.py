@@ -302,6 +302,19 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(chosen.returncode, 0, chosen.stderr)
         self.assertEqual(json.loads(chosen.stdout)["agent"], "codex")
 
+    def test_a_session_id_carrying_glob_syntax_is_refused(self):
+        # The id reaches a filesystem glob, so "*" would resolve to every
+        # transcript on the machine and report their maximum as one session.
+        self.write_session("proj-a", "session-1", [assistant_line(200_000)])
+
+        for bad in ("*", "ses?ion-1", "../escape", "a[bc]"):
+            with self.subTest(bad=bad):
+                result = self.ticket("claim", "TICKET-19", "--session", bad, "--agent", "claude")
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("session id", result.stderr)
+        self.assertFalse(self.claims.exists())
+
     def test_a_resumed_session_is_measured_across_every_file_it_wrote(self):
         directory = self.codex_home / "sessions" / "2026" / "01" / "01"
         directory.mkdir(parents=True, exist_ok=True)

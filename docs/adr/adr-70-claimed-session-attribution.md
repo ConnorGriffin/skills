@@ -44,7 +44,10 @@ was written.
 
 A session id comes from the agent's own environment (`CLAUDE_CODE_SESSION_ID`,
 `CODEX_SESSION_ID`) or from `--session` with `--agent`, so a coordinator can
-claim on behalf of a dispatched worker. Which agent wrote a session is part of
+claim on behalf of a dispatched worker. Two visible ids are a refusal rather
+than a preference order: a worker launched from another agent's session
+inherits that session's variable, and choosing between them would record the
+coordinator's transcript against the worker's ticket. Which agent wrote a session is part of
 the claim because it decides both where the transcript lives and how context is
 counted: a Claude transcript sums three usage fields per turn, while a Codex
 rollout reports one input total that already contains its cached part.

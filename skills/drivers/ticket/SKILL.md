@@ -66,8 +66,9 @@ substitutes a lighter check for the depth the order stamped.
 2. **Claim the session.** Immediately after the ticket summary, run
    `python3 <ticket-skill-directory>/scripts/ticket.py claim <ticket-id>`, so the
    sessions that worked this ticket are recorded as they work it rather than
-   guessed from prose afterwards. An agent whose session id is not in its own
-   environment passes `--session` and `--agent`. A claim that fails is said in one
+   guessed from prose afterwards. Pass `--session` and `--agent` whenever the
+   environment cannot answer on its own: no session id in it, or more than one,
+   which is what a worker launched from another agent's session sees. A claim that fails is said in one
    line and never blocks the verb: telemetry is a measurement, not a gate.
 
 3. **Attribution first.** Every comment this skill posts opens with a one-line

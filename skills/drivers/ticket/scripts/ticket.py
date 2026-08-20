@@ -59,6 +59,21 @@ def validate_ticket_id(value: str) -> str:
     return value
 
 
+def validate_session_id(value: str) -> str:
+    """A session id is pasted in from elsewhere and reaches a filesystem glob.
+
+    An id carrying glob syntax matches transcripts the claim never named:
+    `--session '*'` resolved to every transcript on the machine and reported
+    their maximum as one session's peak.
+    """
+    if not value or any(character.isspace() for character in value):
+        raise TelemetryError("session id must be a single token with no whitespace")
+    forbidden = set("*?[]/\\")
+    if forbidden & set(value):
+        raise TelemetryError("session id must not contain glob or path characters")
+    return value
+
+
 def context_size(usage: dict) -> int:
     return sum(
         int(usage.get(field) or 0)
@@ -326,7 +341,10 @@ def command_record(arguments: argparse.Namespace) -> int:
 
 def command_claim(arguments: argparse.Namespace) -> int:
     ticket_id = validate_ticket_id(arguments.ticket_id)
-    agent, session_id = detect_session(arguments.session, arguments.agent)
+    agent, session_id = detect_session(
+        validate_session_id(arguments.session) if arguments.session else None,
+        arguments.agent,
+    )
     claim = {
         "ticket_id": ticket_id,
         "session_id": session_id,
