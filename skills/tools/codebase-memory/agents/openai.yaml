@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codebase Memory"
+  short_description: "Explore indexed code through its knowledge graph"
+  default_prompt: "Use $codebase-memory to explore this repository through the code graph."

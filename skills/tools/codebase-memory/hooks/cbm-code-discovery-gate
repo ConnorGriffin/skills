@@ -1,0 +1,17 @@
+#!/bin/sh
+# Managed by codebase-memory skill installer.
+# Augment Grep/Glob discovery when codebase-memory-mcp is available; fail open.
+
+if [ -n "${CODEBASE_MEMORY_BIN:-}" ]; then
+    cbm_bin=$CODEBASE_MEMORY_BIN
+else
+    cbm_bin=$(command -v codebase-memory-mcp 2>/dev/null) || exit 0
+fi
+
+[ -x "$cbm_bin" ] || exit 0
+cbm_output=$(mktemp "${TMPDIR:-/tmp}/cbm-augment.XXXXXX") || exit 0
+trap 'rm -f "$cbm_output"' EXIT HUP INT TERM
+if "$cbm_bin" hook-augment >"$cbm_output" 2>/dev/null; then
+    cat "$cbm_output"
+fi
+exit 0

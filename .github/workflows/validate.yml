@@ -28,6 +28,7 @@ jobs:
           tests.test_pr_body_gate
           tests.test_pr_body_bench
           tests.test_ticket
+          tests.test_codebase_memory_install
       - name: Check DCO
         if: github.event_name == 'pull_request'
         run: >-
@@ -40,6 +41,7 @@ jobs:
           python3 -m py_compile skills/workflows/review/scripts/resolve_route.py
           python3 -m py_compile skills/drivers/ticket/scripts/ticket.py
           python3 -m py_compile skills/tools/cbm-onboard/scripts/cbm-lifecycle.py
+          python3 -m py_compile skills/tools/codebase-memory/scripts/install.py
           node --check skills/tools/drive-local-webapp/scripts/driver.mjs
           node --check skills/tools/drive-local-webapp/scripts/self-check.mjs
           sh -n skills/tools/cbm-onboard/scripts/cbm-onboard.sh
@@ -52,9 +54,14 @@ jobs:
       - name: Verify installed skills
         run: |
           for skill in drive-local-webapp cbm-onboard spin-worktree research \
-            implement tdd review prototype scope wayfinder plan-review \
+            codebase-memory implement tdd review prototype scope wayfinder plan-review \
             ui-craft orchestrate; do
             test -f ".agents/skills/$skill/SKILL.md"
+          done
+          for file in scripts/install.py config/claude-settings.json reminder.md \
+            hooks/cbm-code-discovery-gate hooks/cbm-session-reminder; do
+            cmp "skills/tools/codebase-memory/$file" \
+              ".agents/skills/codebase-memory/$file"
           done
       - name: Install pinned browser driver dependencies
         working-directory: skills/tools/drive-local-webapp

@@ -63,6 +63,10 @@ re-raise it.
 **Register.** The say-less skill in this pack owns response shape and register
 (answer-first, stop when done, terse); follow it wherever it is installed.
 
+**Code discovery.** When
+`~/.claude/skills/codebase-memory/reminder.md` is installed, read and follow that
+skill-owned policy for code discovery.
+
 **The final answer stands alone** — the outcome, what was decided, what changed on
 disk, and anything still blocked, without me scrolling the tool log. Restate a narrated
 finding where the answer needs it, and always repeat the state changes. Omit the

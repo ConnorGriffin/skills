@@ -32,6 +32,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
 | [`cbm-onboard`](skills/tools/cbm-onboard/SKILL.md) | Keep a maintained checkout indexed, or onboard and tear down a hookless ephemeral worktree | `codebase-memory-mcp` on `PATH`; v0.10.8+ for ephemeral lifecycle |
+| [`codebase-memory`](skills/tools/codebase-memory/SKILL.md) | Explore indexed code through the graph and activate portable Claude Code discovery hooks | `codebase-memory-mcp` for graph queries; activation fails open without it |
 | [`ci-design`](skills/tools/ci-design/SKILL.md) | Vocabulary and principles for well-designed CI | — |
 | [`code-review`](skills/tools/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | Parallel-agent support recommended; GitHub CLI to fetch an originating issue; see [docs/review-round-mining.md](docs/review-round-mining.md) for the mined evidence behind the fix protocol and the round cap |
 | [`codebase-design`](skills/tools/codebase-design/SKILL.md) | Shared vocabulary for designing deep modules | — |
@@ -67,6 +68,17 @@ Install another skill by itself:
 npx skills add ConnorGriffin/skills --skill spin-worktree
 ```
 
+Install and activate the code-discovery bundle:
+
+```sh
+npx skills add ConnorGriffin/skills --skill codebase-memory
+python3 ~/.claude/skills/codebase-memory/scripts/install.py
+```
+
+The activation command merges the skill-owned hook registrations into existing
+Claude Code settings without replacing unrelated hooks. It does not install the
+external `codebase-memory-mcp` executable/server or index a repository.
+
 Install every skill:
 
 ```sh
@@ -82,8 +94,10 @@ hooks.
 
 Optional integrations are enhancements, not hidden runtime requirements:
 
-- **Codebase Memory:** accelerates structural exploration. Without it, use
-  ordinary repository search and file reads.
+- **`codebase-memory-mcp`:** the external executable/server used by the included
+  `codebase-memory` skill for graph queries. Without the server, the discovery
+  augmentation hook fails open and ordinary repository search and file reads remain
+  available; installing or activating the skill does not install the server.
 - **`codebase-design`:** referenced by `tdd`; helps shape non-trivial module
   interfaces. Without it, keep the shipping module shape and preserve locality.
 - **`domain-modeling`:** referenced by `scope`'s interview mode and `wayfinder`; maintains a

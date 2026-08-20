@@ -1,0 +1,54 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<CLAUDE_HOME>/hooks/cbm-code-discovery-gate",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<CLAUDE_HOME>/hooks/cbm-session-reminder"
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<CLAUDE_HOME>/hooks/cbm-session-reminder"
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<CLAUDE_HOME>/hooks/cbm-session-reminder"
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<CLAUDE_HOME>/hooks/cbm-session-reminder"
+          }
+        ]
+      }
+    ]
+  }
+}
