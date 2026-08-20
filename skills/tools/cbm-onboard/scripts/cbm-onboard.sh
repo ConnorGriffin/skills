@@ -11,17 +11,53 @@ BIN="${CODEBASE_MEMORY_BIN:-$(command -v codebase-memory-mcp 2>/dev/null || true
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REINDEX="$SCRIPT_DIR/cbm-reindex.sh"
+LIFECYCLE="$SCRIPT_DIR/cbm-lifecycle.py"
 
 THIS_CHECKOUT=0
+NO_HOOKS=0
 TARGET="."
-for arg in "$@"; do
-  case "$arg" in
+TARGET_SET=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
     --this-checkout) THIS_CHECKOUT=1 ;;
-    *) TARGET="$arg" ;;
+    --no-hooks) NO_HOOKS=1 ;;
+    --*)
+      printf 'unknown option: %s\n' "$1" >&2
+      exit 1
+      ;;
+    *)
+      [ "$TARGET_SET" -eq 0 ] || {
+        printf '%s\n' "expected at most one repository path" >&2
+        exit 1
+      }
+      TARGET="$1"
+      TARGET_SET=1
+      ;;
   esac
+  shift
 done
 
-if [ "$THIS_CHECKOUT" -eq 1 ]; then
+if [ "$NO_HOOKS" -eq 1 ] && [ "${CBM_SKIP_INDEX:-0}" = "1" ]; then
+  printf '%s\n' "CBM_SKIP_INDEX=1 is not supported with --no-hooks" >&2
+  exit 1
+fi
+
+IDENTITY_TMP="$(mktemp)"
+VERSION_TMP="$(mktemp)"
+RESPONSE_TMP="$(mktemp)"
+trap 'rm -f "$IDENTITY_TMP" "$VERSION_TMP" "$RESPONSE_TMP"' EXIT
+
+if [ "$NO_HOOKS" -eq 1 ]; then
+  if [ "$THIS_CHECKOUT" -eq 1 ]; then
+    python3 "$LIFECYCLE" identity "$TARGET" >"$IDENTITY_TMP"
+  else
+    python3 "$LIFECYCLE" identity --main "$TARGET" >"$IDENTITY_TMP"
+  fi
+  ROOT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["root"])' "$IDENTITY_TMP")"
+  PROJECT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["project"])' "$IDENTITY_TMP")"
+  "$BIN" --version >"$VERSION_TMP"
+  python3 "$LIFECYCLE" version "$VERSION_TMP"
+elif [ "$THIS_CHECKOUT" -eq 1 ]; then
   ROOT="$(git -C "$TARGET" rev-parse --show-toplevel 2>/dev/null || true)"
 else
   ROOT="$(git -C "$TARGET" worktree list --porcelain 2>/dev/null |
@@ -46,7 +82,7 @@ END_HOOK="# <<< cbm-onboard managed reindex <<<"
 MANAGED_TMP="$(mktemp)"
 OUTPUT_TMP="$(mktemp)"
 HOOK_TMP="$(mktemp)"
-trap 'rm -f "$MANAGED_TMP" "$OUTPUT_TMP" "$HOOK_TMP"' EXIT
+trap 'rm -f "$IDENTITY_TMP" "$VERSION_TMP" "$RESPONSE_TMP" "$MANAGED_TMP" "$OUTPUT_TMP" "$HOOK_TMP"' EXIT
 
 {
   printf '%s\n' "$BEGIN_IGNORE"
@@ -109,6 +145,7 @@ else
   printf '%s\n' "$IGNORE is already current"
 fi
 
+if [ "$NO_HOOKS" -eq 0 ]; then
 COMMON_DIR="$(git -C "$ROOT" rev-parse --git-common-dir)"
 case "$COMMON_DIR" in
   /*) : ;;
@@ -194,9 +231,20 @@ for HOOK_NAME in post-commit post-merge post-checkout; do
 done
 
 [ "$HOOK_SYMLINK_REFUSED" -eq 0 ] || exit 1
+fi
 
 if [ "${CBM_SKIP_INDEX:-0}" = "1" ]; then
   printf '%s\n' "skipped initial index (CBM_SKIP_INDEX=1): $ROOT"
+elif [ "$NO_HOOKS" -eq 1 ]; then
+  INDEX_EXIT=0
+  "$BIN" cli --json index_repository --repo-path "$ROOT" --mode full --name "$PROJECT" \
+    >"$RESPONSE_TMP" || INDEX_EXIT=$?
+  python3 "$LIFECYCLE" response "$PROJECT" indexed false "$RESPONSE_TMP" || exit 1
+  [ "$INDEX_EXIT" -eq 0 ] || {
+    printf 'Codebase Memory index failed with exit %s\n' "$INDEX_EXIT" >&2
+    exit 1
+  }
+  printf '%s\n' "indexed $ROOT as $PROJECT"
 else
   PAYLOAD="$(python3 -c \
     'import json,sys; print(json.dumps({"repo_path": sys.argv[1], "mode": "full"}))' \

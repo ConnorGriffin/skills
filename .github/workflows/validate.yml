@@ -39,10 +39,12 @@ jobs:
           python3 -m py_compile skills/tools/spin-worktree/scripts/spin-worktree.py
           python3 -m py_compile skills/workflows/review/scripts/resolve_route.py
           python3 -m py_compile skills/drivers/ticket/scripts/ticket.py
+          python3 -m py_compile skills/tools/cbm-onboard/scripts/cbm-lifecycle.py
           node --check skills/tools/drive-local-webapp/scripts/driver.mjs
           node --check skills/tools/drive-local-webapp/scripts/self-check.mjs
           sh -n skills/tools/cbm-onboard/scripts/cbm-onboard.sh
           sh -n skills/tools/cbm-onboard/scripts/cbm-reindex.sh
+          sh -n skills/tools/cbm-onboard/scripts/cbm-teardown.sh
       - name: Fresh-install through the standard skills CLI
         run: >-
           npx --yes skills@1.5.20 add . --skill '*'
