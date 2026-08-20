@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
 import importlib.util
 import io
 import json
@@ -22,6 +23,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 CBM_SCRIPT = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-onboard.sh"
+CBM_TEARDOWN = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-teardown.sh"
 SPIN_SCRIPT = ROOT / "skills" / "tools" / "spin-worktree" / "scripts" / "spin-worktree.py"
 CODEX_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "codex-worker.py"
 UI_CRAFT_AUDIT = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "audit.md"
@@ -78,6 +80,351 @@ class CbmOnboardTests(unittest.TestCase):
         )
         self.assertNotIn("must-not-appear", result.stdout + result.stderr)
         return result
+
+    def configure_lifecycle_binary(self):
+        self.requests = self.scratch / "requests.jsonl"
+        self.binary.write_text(
+            """#!/usr/bin/env python3
+import json
+import os
+import sys
+
+if sys.argv[1:] == ["--version"]:
+    print(os.environ.get("CBM_FAKE_VERSION", "codebase-memory-mcp 0.10.8"))
+    raise SystemExit(0)
+
+with open(os.environ["CBM_FAKE_REQUESTS"], "a", encoding="utf-8") as handle:
+    handle.write(json.dumps(sys.argv[1:]) + "\\n")
+
+if "index_repository" in sys.argv:
+    project = sys.argv[sys.argv.index("--name") + 1] if "--name" in sys.argv else "derived-by-cbm"
+    status = "indexed"
+    is_error = False
+    exit_code = 0
+elif "delete_project" in sys.argv:
+    project = sys.argv[sys.argv.index("--project") + 1]
+    state = os.environ["CBM_FAKE_DELETE_STATE"]
+    if os.path.exists(state):
+        status = "not_found"
+        is_error = True
+        exit_code = 1
+    else:
+        open(state, "w", encoding="utf-8").close()
+        status = "deleted"
+        is_error = False
+        exit_code = 0
+else:
+    raise SystemExit(9)
+project = os.environ.get("CBM_FAKE_PROJECT", project)
+status = os.environ.get("CBM_FAKE_STATUS", status)
+if "CBM_FAKE_IS_ERROR" in os.environ:
+    is_error = os.environ["CBM_FAKE_IS_ERROR"] == "true"
+exit_code = int(os.environ.get("CBM_FAKE_EXIT", exit_code))
+if os.environ.get("CBM_FAKE_MALFORMED") == "1":
+    print("not json")
+    raise SystemExit(exit_code)
+print(json.dumps({
+    "structuredContent": {"project": project, "status": status},
+    "isError": is_error,
+}))
+raise SystemExit(exit_code)
+""",
+            encoding="utf-8",
+        )
+        self.binary.chmod(0o755)
+        self.environment["CBM_FAKE_REQUESTS"] = str(self.requests)
+        self.environment["CBM_FAKE_DELETE_STATE"] = str(self.scratch / "deleted")
+
+    def test_hookless_onboarding_indexes_exact_worktree_without_touching_hooks(self):
+        run(["git", "config", "user.name", "Test User"], cwd=self.repo)
+        run(["git", "config", "user.email", "test@example.invalid"], cwd=self.repo)
+        (self.repo / "README.md").write_text("fixture\n", encoding="utf-8")
+        run(["git", "add", "README.md"], cwd=self.repo)
+        self.assertEqual(run(["git", "commit", "-m", "fixture"], cwd=self.repo).returncode, 0)
+        worktree = self.scratch / "linked worktree"
+        self.assertEqual(
+            run(["git", "worktree", "add", "-b", "fixture-worktree", str(worktree)], cwd=self.repo).returncode,
+            0,
+        )
+        run(["git", "config", "core.hooksPath", ".custom-hooks"], cwd=self.repo)
+        configured_hooks = self.repo / ".custom-hooks"
+        configured_hooks.mkdir()
+        hooks = (
+            self.repo / ".git" / "hooks" / "post-commit",
+            configured_hooks / "post-commit",
+        )
+        for hook in hooks:
+            hook.write_bytes(b"#!/bin/sh\nprintf 'sentinel\\n'\n")
+        before = {hook: hook.read_bytes() for hook in hooks}
+        self.configure_lifecycle_binary()
+
+        result = run(
+            [str(CBM_SCRIPT), "--no-hooks", "--this-checkout", str(worktree)],
+            cwd=ROOT,
+            env=self.environment,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((worktree / ".cbmignore").exists())
+        self.assertFalse((self.repo / ".cbmignore").exists())
+        self.assertEqual({hook: hook.read_bytes() for hook in hooks}, before)
+        request = json.loads(self.requests.read_text(encoding="utf-8"))
+        canonical = str(worktree.resolve())
+        expected_name = "cbm-onboard-v1-" + hashlib.sha256(canonical.encode()).hexdigest()
+        self.assertEqual(
+            request,
+            ["cli", "--json", "index_repository", "--repo-path", canonical, "--mode", "full", "--name", expected_name],
+        )
+
+    def test_teardown_is_exact_idempotent_and_does_not_mutate_repository(self):
+        self.configure_lifecycle_binary()
+        hook = self.repo / ".git" / "hooks" / "post-commit"
+        hook.write_bytes(b"#!/bin/sh\nprintf 'sentinel\\n'\n")
+        onboard = run(
+            [str(CBM_SCRIPT), "--no-hooks", "--this-checkout", str(self.repo)],
+            cwd=ROOT,
+            env=self.environment,
+        )
+        self.assertEqual(onboard.returncode, 0, onboard.stderr)
+        before = {
+            "ignore": (self.repo / ".cbmignore").read_bytes(),
+            "hook": hook.read_bytes(),
+        }
+        before_files = {
+            path.relative_to(self.repo): (path.stat().st_mode, path.read_bytes())
+            for path in self.repo.rglob("*")
+            if path.is_file() and not path.is_symlink()
+        }
+
+        first = run([str(CBM_TEARDOWN), str(self.repo)], cwd=ROOT, env=self.environment)
+        second = run([str(CBM_TEARDOWN), str(self.repo)], cwd=ROOT, env=self.environment)
+
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertIn("deleted", first.stdout)
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertIn("not found", second.stdout)
+        self.assertEqual((self.repo / ".cbmignore").read_bytes(), before["ignore"])
+        self.assertEqual(hook.read_bytes(), before["hook"])
+        after_files = {
+            path.relative_to(self.repo): (path.stat().st_mode, path.read_bytes())
+            for path in self.repo.rglob("*")
+            if path.is_file() and not path.is_symlink()
+        }
+        self.assertEqual(after_files, before_files)
+        canonical = str(self.repo.resolve())
+        project = "cbm-onboard-v1-" + hashlib.sha256(canonical.encode()).hexdigest()
+        requests = [json.loads(line) for line in self.requests.read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(
+            requests[1:],
+            [
+                ["cli", "--json", "delete_project", "--project", project],
+                ["cli", "--json", "delete_project", "--project", project],
+            ],
+        )
+        self.assertTrue(all("list_projects" not in request for request in requests))
+
+    def test_default_onboarding_keeps_skip_hooks_and_derived_name_request(self):
+        self.configure_lifecycle_binary()
+        skipped_environment = self.environment | {"CBM_SKIP_INDEX": "1"}
+
+        skipped = run([str(CBM_SCRIPT), str(self.repo)], cwd=ROOT, env=skipped_environment)
+
+        self.assertEqual(skipped.returncode, 0, skipped.stderr)
+        self.assertIn(BEGIN_HOOK, (self.repo / ".git" / "hooks" / "post-commit").read_text())
+        self.assertFalse(self.requests.exists())
+
+        indexed = run([str(CBM_SCRIPT), str(self.repo)], cwd=ROOT, env=self.environment)
+
+        self.assertEqual(indexed.returncode, 0, indexed.stderr)
+        request = json.loads(self.requests.read_text(encoding="utf-8"))
+        self.assertEqual(request[:2], ["cli", "index_repository"])
+        self.assertEqual(json.loads(request[2]), {"repo_path": str(self.repo.resolve()), "mode": "full"})
+        self.assertNotIn("--name", request)
+
+    def test_hookless_onboarding_enforces_stable_numeric_version_grammar(self):
+        self.configure_lifecycle_binary()
+        cases = (
+            ("codebase-memory-mcp 0.10.7", False),
+            ("codebase-memory-mcp 0.10.8", True),
+            ("codebase-memory-mcp 0.10.10", True),
+            ("codebase-memory-mcp 0.11.0", True),
+            ("codebase-memory-mcp 1.0.0", True),
+            ("codebase-memory-mcp 0.010.8", False),
+            ("codebase-memory-mcp 0.10", False),
+            ("codebase-memory-mcp 0.10.8-beta.1", False),
+            ("prefix codebase-memory-mcp 0.10.8", False),
+            ("codebase-memory-mcp 0.10.8 suffix", False),
+        )
+
+        for banner, supported in cases:
+            with self.subTest(banner=banner):
+                ignore = self.repo / ".cbmignore"
+                if ignore.exists():
+                    ignore.unlink()
+                if self.requests.exists():
+                    self.requests.unlink()
+                environment = self.environment | {"CBM_FAKE_VERSION": banner}
+
+                result = run(
+                    [str(CBM_SCRIPT), "--no-hooks", "--this-checkout", str(self.repo)],
+                    cwd=ROOT,
+                    env=environment,
+                )
+
+                self.assertEqual(result.returncode == 0, supported, result.stderr)
+                self.assertEqual(ignore.exists(), supported)
+                self.assertEqual(self.requests.exists(), supported)
+
+    def test_lifecycle_responses_fail_closed(self):
+        self.configure_lifecycle_binary()
+        index_cases = (
+            {"CBM_FAKE_PROJECT": "wrong-project"},
+            {"CBM_FAKE_STATUS": "deleted"},
+            {"CBM_FAKE_IS_ERROR": "true"},
+            {"CBM_FAKE_EXIT": "1"},
+            {"CBM_FAKE_MALFORMED": "1"},
+        )
+        for update in index_cases:
+            with self.subTest(operation="index", update=update):
+                if self.requests.exists():
+                    self.requests.unlink()
+                result = run(
+                    [str(CBM_SCRIPT), "--no-hooks", "--this-checkout", str(self.repo)],
+                    cwd=ROOT,
+                    env=self.environment | update,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                request = json.loads(self.requests.read_text(encoding="utf-8"))
+                self.assertIn("index_repository", request)
+
+        delete_cases = (
+            {"CBM_FAKE_PROJECT": "wrong-project", "CBM_FAKE_STATUS": "deleted", "CBM_FAKE_IS_ERROR": "false", "CBM_FAKE_EXIT": "0"},
+            {"CBM_FAKE_STATUS": "indexed", "CBM_FAKE_IS_ERROR": "false", "CBM_FAKE_EXIT": "0"},
+            {"CBM_FAKE_STATUS": "deleted", "CBM_FAKE_IS_ERROR": "true", "CBM_FAKE_EXIT": "0"},
+            {"CBM_FAKE_STATUS": "deleted", "CBM_FAKE_IS_ERROR": "false", "CBM_FAKE_EXIT": "1"},
+            {"CBM_FAKE_STATUS": "not_found", "CBM_FAKE_IS_ERROR": "true", "CBM_FAKE_EXIT": "0"},
+            {"CBM_FAKE_STATUS": "deleted", "CBM_FAKE_IS_ERROR": "false", "CBM_FAKE_EXIT": "2"},
+            {"CBM_FAKE_MALFORMED": "1", "CBM_FAKE_EXIT": "0"},
+        )
+        for update in delete_cases:
+            with self.subTest(operation="delete", update=update):
+                if self.requests.exists():
+                    self.requests.unlink()
+                result = run(
+                    [str(CBM_TEARDOWN), str(self.repo)],
+                    cwd=ROOT,
+                    env=self.environment | update,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                request = json.loads(self.requests.read_text(encoding="utf-8"))
+                self.assertEqual(request[2], "delete_project")
+                self.assertNotIn("list_projects", request)
+
+    def test_identity_is_physical_across_relative_and_symlink_spellings(self):
+        self.configure_lifecycle_binary()
+        alias = self.scratch / "repo alias"
+        alias.symlink_to(self.repo, target_is_directory=True)
+        relative = os.path.relpath(self.repo, ROOT)
+
+        onboard = run(
+            [str(CBM_SCRIPT), "--no-hooks", "--this-checkout", str(alias)],
+            cwd=ROOT,
+            env=self.environment,
+        )
+        teardown = run([str(CBM_TEARDOWN), relative], cwd=ROOT, env=self.environment)
+
+        self.assertEqual(onboard.returncode, 0, onboard.stderr)
+        self.assertEqual(teardown.returncode, 0, teardown.stderr)
+        requests = [json.loads(line) for line in self.requests.read_text().splitlines()]
+        indexed_name = requests[0][requests[0].index("--name") + 1]
+        deleted_name = requests[1][requests[1].index("--project") + 1]
+        self.assertEqual(indexed_name, deleted_name)
+        self.assertEqual(
+            indexed_name,
+            "cbm-onboard-v1-" + hashlib.sha256(os.fsencode(self.repo.resolve())).hexdigest(),
+        )
+
+    def test_newline_checkout_paths_fail_before_mutation_or_graph_request(self):
+        self.configure_lifecycle_binary()
+        for name in ("embedded\nname", "trailing\n"):
+            with self.subTest(name=name):
+                checkout = self.scratch / name
+                checkout.mkdir()
+                self.assertEqual(run(["git", "init", "-b", "main"], cwd=checkout).returncode, 0)
+                if self.requests.exists():
+                    self.requests.unlink()
+
+                onboard = run(
+                    [str(CBM_SCRIPT), "--no-hooks", "--this-checkout", str(checkout)],
+                    cwd=ROOT,
+                    env=self.environment,
+                )
+                teardown = run([str(CBM_TEARDOWN), str(checkout)], cwd=ROOT, env=self.environment)
+
+                self.assertNotEqual(onboard.returncode, 0)
+                self.assertNotEqual(teardown.returncode, 0)
+                self.assertFalse((checkout / ".cbmignore").exists())
+                self.assertFalse(self.requests.exists())
+
+    def test_hookless_without_this_checkout_retains_main_checkout_resolution(self):
+        run(["git", "config", "user.name", "Test User"], cwd=self.repo)
+        run(["git", "config", "user.email", "test@example.invalid"], cwd=self.repo)
+        (self.repo / "README.md").write_text("fixture\n", encoding="utf-8")
+        run(["git", "add", "README.md"], cwd=self.repo)
+        self.assertEqual(run(["git", "commit", "-m", "fixture"], cwd=self.repo).returncode, 0)
+        worktree = self.scratch / "linked"
+        self.assertEqual(
+            run(["git", "worktree", "add", "-b", "linked", str(worktree)], cwd=self.repo).returncode,
+            0,
+        )
+        self.configure_lifecycle_binary()
+
+        result = run(
+            [str(CBM_SCRIPT), "--no-hooks", str(worktree)],
+            cwd=ROOT,
+            env=self.environment,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.repo / ".cbmignore").exists())
+        self.assertFalse((worktree / ".cbmignore").exists())
+        request = json.loads(self.requests.read_text())
+        self.assertEqual(request[request.index("--repo-path") + 1], str(self.repo.resolve()))
+
+    def test_rejects_invalid_arguments_and_hookless_skip_before_mutation(self):
+        cases = (
+            (["--unknown"], {}),
+            ([str(self.repo), str(self.scratch)], {}),
+            (["--no-hooks", str(self.repo)], {"CBM_SKIP_INDEX": "1"}),
+        )
+
+        for arguments, environment_update in cases:
+            with self.subTest(arguments=arguments):
+                ignore = self.repo / ".cbmignore"
+                if ignore.exists():
+                    ignore.unlink()
+                environment = self.environment | environment_update
+                result = run(
+                    [str(CBM_SCRIPT), *arguments],
+                    cwd=ROOT,
+                    env=environment,
+                )
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(ignore.exists())
+                self.assertFalse(
+                    (self.repo / ".git" / "hooks" / "post-commit").exists()
+                )
+
+        for arguments in (["--unknown"], [str(self.repo), str(self.scratch)]):
+            with self.subTest(command="teardown", arguments=arguments):
+                result = run(
+                    [str(CBM_TEARDOWN), *arguments],
+                    cwd=ROOT,
+                    env=self.environment,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse((self.repo / ".cbmignore").exists())
 
     def test_refuses_cbmignore_symlink_without_touching_target(self):
         target = self.scratch / "outside-ignore"

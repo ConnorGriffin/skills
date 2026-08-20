@@ -31,7 +31,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
-| [`cbm-onboard`](skills/tools/cbm-onboard/SKILL.md) | Index a repository with codebase-memory-mcp and keep it current | `codebase-memory-mcp` on `PATH` |
+| [`cbm-onboard`](skills/tools/cbm-onboard/SKILL.md) | Keep a maintained checkout indexed, or onboard and tear down a hookless ephemeral worktree | `codebase-memory-mcp` on `PATH`; v0.10.8+ for ephemeral lifecycle |
 | [`ci-design`](skills/tools/ci-design/SKILL.md) | Vocabulary and principles for well-designed CI | — |
 | [`code-review`](skills/tools/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | Parallel-agent support recommended; GitHub CLI to fetch an originating issue; see [docs/review-round-mining.md](docs/review-round-mining.md) for the mined evidence behind the fix protocol and the round cap |
 | [`codebase-design`](skills/tools/codebase-design/SKILL.md) | Shared vocabulary for designing deep modules | — |
