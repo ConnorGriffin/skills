@@ -20,9 +20,17 @@ They do not lapse when the topic changes. Turn them off only when the reader say
 "stop say-less" or "normal mode"; confirm in one line, then return to default style.
 
 Invoked mid-conversation with no arguments, first re-state the previous assistant
-message under these rules, then stay active for the rest of the session. The
-re-statement keeps every decision the reader still owes and every fact they need
-to make it; it drops the process narration.
+message under these rules, then stay active for the rest of the session.
+
+The re-statement is a contraction. It is one sentence: the fact that answers the
+reader's last question, in the words they used. A second sentence is allowed only
+for the one decision that blocks their next action. Nothing else survives, whatever
+it cost to produce: process narration, tradeoffs already stated, remaining loose
+ends, shorthand the reader never used. A re-statement longer than the message it
+re-states has failed, and is the most common way this rule is broken.
+
+The dropped material is not lost, it is unasked for. Raise a dropped loose end when
+the reader reaches it, or when acting without it would be unsafe.
 
 A machine can also wire the digest ([reminder.md](reminder.md)) into a
 user-prompt-submit hook so the core rules re-inject on every prompt without invoking
