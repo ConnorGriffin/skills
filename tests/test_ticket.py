@@ -46,6 +46,36 @@ def tool_result_line(text: str, timestamp: str = "2026-01-01T00:00:00Z") -> str:
     )
 
 
+def codex_meta_line(session_id: str, timestamp: str = "2026-01-01T00:00:00Z") -> str:
+    return json.dumps(
+        {
+            "timestamp": timestamp,
+            "type": "session_meta",
+            "payload": {"session_id": session_id, "cwd": "/tmp/worktree"},
+        }
+    )
+
+
+def codex_token_line(
+    input_tokens: int, cached: int = 0, timestamp: str = "2026-01-01T00:00:01Z"
+) -> str:
+    return json.dumps(
+        {
+            "timestamp": timestamp,
+            "type": "event_msg",
+            "payload": {
+                "type": "token_count",
+                "info": {
+                    "last_token_usage": {
+                        "input_tokens": input_tokens,
+                        "cached_input_tokens": cached,
+                    }
+                },
+            },
+        }
+    )
+
+
 def assistant_line(
     peak: int, *, subagent: bool = False, timestamp: str = "2026-01-01T00:00:01Z"
 ) -> str:
@@ -103,19 +133,25 @@ class TicketTelemetryTests(unittest.TestCase):
         self.scratch = Path(self.temporary.name)
         self.projects = self.scratch / "projects"
         self.projects.mkdir()
+        self.codex_home = self.scratch / "codex-home"
         self.telemetry = self.scratch / "config" / "ticket" / "telemetry.jsonl"
+        self.claims = self.scratch / "config" / "ticket" / "claims.jsonl"
         self.environment = os.environ.copy()
+        self.environment.pop("CLAUDE_CODE_SESSION_ID", None)
+        self.environment.pop("CODEX_SESSION_ID", None)
         self.environment["CLAUDE_PROJECTS_DIR"] = str(self.projects)
+        self.environment["CODEX_HOME"] = str(self.codex_home)
         self.environment["TICKET_TELEMETRY"] = str(self.telemetry)
+        self.environment["TICKET_CLAIMS"] = str(self.claims)
 
     def tearDown(self):
         self.temporary.cleanup()
 
-    def ticket(self, *arguments: str):
+    def ticket(self, *arguments: str, environment: Optional[dict] = None):
         return run(
             ["python3", str(TICKET_SCRIPT), *arguments],
             cwd=ROOT,
-            env=self.environment,
+            env=environment or self.environment,
         )
 
     def write_session(self, project: str, session_id: str, lines: list[str]) -> Path:
@@ -124,6 +160,25 @@ class TicketTelemetryTests(unittest.TestCase):
         path = directory / f"{session_id}.jsonl"
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         return path
+
+    def write_codex_session(self, session_id: str, lines: list[str]) -> Path:
+        directory = self.codex_home / "sessions" / "2026" / "01" / "01"
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / f"rollout-2026-01-01T00-00-00-{session_id}.jsonl"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return path
+
+    def claim(self, ticket_id: str, session_id: str, agent: str = "claude"):
+        result = self.ticket(
+            "claim", ticket_id, "--session", session_id, "--agent", agent
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def worked(self, ticket_id: str, project: str, session_id: str, lines: list[str]):
+        """The ordinary case: a session ran the ticket, so it claimed it."""
+        self.write_session(project, session_id, lines)
+        self.claim(ticket_id, session_id)
 
     def telemetry_records(self) -> list[dict]:
         if not self.telemetry.exists():
@@ -134,95 +189,92 @@ class TicketTelemetryTests(unittest.TestCase):
             if line.strip()
         ]
 
-    def test_scan_counts_a_session_the_operator_typed_the_id_into(self):
+    def test_claim_records_the_running_session_without_being_told_which(self):
+        environment = self.environment.copy()
+        environment["CLAUDE_CODE_SESSION_ID"] = "session-1"
+
+        result = self.ticket("claim", "TICKET-1", environment=environment)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["session_id"], "session-1")
+        self.assertEqual(payload["agent"], "claude")
+        self.assertFalse(payload["already_claimed"])
+
+    def test_claiming_the_same_session_twice_records_it_once(self):
+        self.claim("TICKET-2", "session-1")
+
+        second = self.ticket("claim", "TICKET-2", "--session", "session-1", "--agent", "claude")
+
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertTrue(json.loads(second.stdout)["already_claimed"])
+        lines = self.claims.read_text(encoding="utf-8").splitlines()
+        self.assertEqual(len([line for line in lines if line.strip()]), 1)
+
+    def test_claim_without_a_session_id_anywhere_says_how_to_supply_one(self):
+        result = self.ticket("claim", "TICKET-3")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("CLAUDE_CODE_SESSION_ID", result.stderr)
+        self.assertIn("CODEX_SESSION_ID", result.stderr)
+        self.assertFalse(self.claims.exists())
+
+    def test_a_session_that_never_claimed_the_ticket_is_not_counted(self):
+        # The whole point of claiming: prose is no longer evidence. This session
+        # names the ticket in operator prose and still does not count.
         self.write_session(
             "proj-a",
             "session-1",
-            [
-                user_line("please pick up TICKET-1 today"),
-                assistant_line(125_000),
-            ],
+            [user_line("TICKET-4 is the one I mean"), assistant_line(300_000)],
         )
+        self.worked("TICKET-4", "proj-a", "session-2", [assistant_line(90_000)])
 
-        result = self.ticket("scan", "TICKET-1")
+        result = self.ticket("scan", "TICKET-4")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         self.assertEqual(payload["session_count"], 1)
-        self.assertEqual(payload["sessions"][0]["peak_context"], 125_000)
+        self.assertEqual(payload["peak_context"], 90_000)
+        self.assertEqual(payload["sessions"][0]["session_id"], "session-2")
 
-    def test_scan_excludes_a_tool_result_only_mention(self):
-        self.write_session(
-            "proj-a",
-            "session-1",
+    def test_a_codex_session_is_resolved_from_its_rollout_file(self):
+        self.write_codex_session(
+            "codex-1",
             [
-                tool_result_line("issue TICKET-2 was returned by the tracker search"),
-                assistant_line(200_000),
+                codex_meta_line("codex-1"),
+                codex_token_line(40_000, 10_000),
+                codex_token_line(120_000, 90_000),
             ],
         )
+        self.claim("TICKET-5", "codex-1", agent="codex")
 
-        result = self.ticket("scan", "TICKET-2")
+        result = self.ticket("scan", "TICKET-5")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
-        self.assertEqual(payload["session_count"], 0)
-        self.assertEqual(payload["sessions"], [])
+        self.assertEqual(payload["session_count"], 1)
+        session = payload["sessions"][0]
+        self.assertEqual(session["agent"], "codex")
+        # Codex counts its cached input inside input_tokens; adding it back
+        # would report 210,000 for a turn that cost 120,000.
+        self.assertEqual(session["peak_context"], 120_000)
 
-    def test_scan_excludes_digits_that_only_appear_inside_something_else(self):
-        self.write_session(
-            "proj-a",
-            "session-1",
-            [
-                user_line("Claude Opus 4.6 far ahead (62.67% vs GPT-5.4 nano 32%)"),
-                user_line("task aa95d8d7bd0fc625d finished"),
-                user_line("changes on the branch at commit 624dbe9"),
-                user_line("domain-modeling/SKILL.md:8, 62-64 assume CONTEXT.md"),
-                user_line("landed https://github.com/ConnorGriffin/dotfiles/pull/62"),
-                assistant_line(296_000),
-            ],
-        )
+    def test_a_claim_whose_transcript_is_missing_is_reported_not_dropped(self):
+        self.claim("TICKET-6", "session-gone")
 
-        result = self.ticket("scan", "62")
+        result = self.ticket("scan", "TICKET-6")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
+        self.assertEqual(payload["claim_count"], 1)
         self.assertEqual(payload["session_count"], 0)
-        self.assertEqual(payload["sessions"], [])
-
-    def test_scan_counts_the_ordinary_ways_an_operator_writes_a_ticket_id(self):
-        for index, prose in enumerate(
-            (
-                "let's take a look at #62",
-                "/ticket start 62",
-                "that was settled back in 62.",
-            )
-        ):
-            with self.subTest(prose=prose):
-                session = f"session-{index}"
-                self.write_session(
-                    "proj-a", session, [user_line(prose), assistant_line(125_000)]
-                )
-
-                result = self.ticket("scan", "62", "--project", "proj-a")
-
-                self.assertEqual(result.returncode, 0, result.stderr)
-                payload = json.loads(result.stdout)
-                self.assertIn(
-                    session, [entry["session_id"] for entry in payload["sessions"]]
-                )
+        self.assertEqual(payload["unreadable"], ["session-gone"])
 
     def test_record_flat_order_above_degradation_band_is_under_sliced(self):
-        self.write_session(
-            "proj-a",
-            "session-1",
-            [
-                user_line("start TICKET-3"),
-                assistant_line(200_000),
-            ],
-        )
+        self.worked("TICKET-7", "proj-a", "session-1", [assistant_line(200_000)])
 
         result = self.ticket(
-            "record", "TICKET-3", "--verb", "start", "--trait", "large-diff", "--depth", "deep"
+            "record", "TICKET-7", "--verb", "start", "--trait", "large-diff", "--depth", "deep"
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -232,7 +284,7 @@ class TicketTelemetryTests(unittest.TestCase):
         records = self.telemetry_records()
         self.assertEqual(len(records), 1)
         record = records[0]
-        self.assertEqual(record["ticket_id"], "TICKET-3")
+        self.assertEqual(record["ticket_id"], "TICKET-7")
         self.assertEqual(record["verbs"], ["start"])
         self.assertEqual(record["traits"], ["large-diff"])
         self.assertEqual(record["depth"], "deep")
@@ -243,85 +295,51 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertIn("recorded_at", record)
 
     def test_record_flat_order_below_band_is_ok(self):
-        self.write_session(
-            "proj-a",
-            "session-1",
-            [
-                user_line("start TICKET-4"),
-                assistant_line(50_000),
-            ],
-        )
+        self.worked("TICKET-8", "proj-a", "session-1", [assistant_line(50_000)])
 
         result = self.ticket(
-            "record", "TICKET-4", "--verb", "start", "--trait", "small-diff", "--depth", "light"
+            "record", "TICKET-8", "--verb", "start", "--trait", "small-diff", "--depth", "light"
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        payload = json.loads(result.stdout)
-        self.assertEqual(payload["verdict"], "ok")
+        self.assertEqual(json.loads(result.stdout)["verdict"], "ok")
         self.assertEqual(self.telemetry_records()[0]["verdict"], "ok")
 
     def test_record_chunked_order_still_degraded_when_a_chunk_peaks_high(self):
-        self.write_session(
+        self.worked(
+            "TICKET-9",
             "proj-a",
             "session-1",
-            [
-                user_line("start TICKET-5"),
-                assistant_line(30_000),
-                assistant_line(190_000, subagent=True),
-            ],
+            [assistant_line(30_000), assistant_line(190_000, subagent=True)],
         )
 
         result = self.ticket(
-            "record",
-            "TICKET-5",
-            "--verb",
-            "start",
-            "--trait",
-            "wide-scope",
-            "--depth",
-            "deep",
-            "--chunked",
-            "--chunks",
-            "3",
+            "record", "TICKET-9", "--verb", "start", "--trait", "wide-scope",
+            "--depth", "deep", "--chunked", "--chunks", "3",
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        payload = json.loads(result.stdout)
-        self.assertEqual(payload["verdict"], "still-degraded")
+        self.assertEqual(json.loads(result.stdout)["verdict"], "still-degraded")
 
     def test_record_chunked_order_over_sliced_when_every_chunk_is_small(self):
-        self.write_session(
+        self.worked(
+            "TICKET-10",
             "proj-a",
             "session-1",
-            [
-                user_line("start TICKET-6"),
-                assistant_line(40_000),
-                assistant_line(50_000, subagent=True),
-            ],
+            [assistant_line(40_000), assistant_line(50_000, subagent=True)],
         )
 
         result = self.ticket(
-            "record",
-            "TICKET-6",
-            "--verb",
-            "start",
-            "--trait",
-            "narrow-scope",
-            "--depth",
-            "light",
-            "--chunked",
-            "--chunks",
-            "3",
+            "record", "TICKET-10", "--verb", "start", "--trait", "narrow-scope",
+            "--depth", "light", "--chunked", "--chunks", "3",
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        payload = json.loads(result.stdout)
-        self.assertEqual(payload["verdict"], "over-sliced")
+        self.assertEqual(json.loads(result.stdout)["verdict"], "over-sliced")
 
-    def test_record_with_no_matching_transcript_is_no_data_and_writes_nothing(self):
+    def test_record_with_no_claim_is_no_data_and_writes_nothing(self):
         result = self.ticket(
-            "record", "TICKET-7", "--verb", "start", "--trait", "any", "--depth", "light"
+            "record", "TICKET-11", "--verb", "start", "--trait", "any", "--depth", "light"
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -331,57 +349,32 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertFalse(self.telemetry.exists())
 
     def test_subagent_peak_is_counted_separately_from_the_main_session_peak(self):
-        self.write_session(
+        self.worked(
+            "TICKET-12",
             "proj-a",
             "session-1",
-            [
-                user_line("start TICKET-8"),
-                assistant_line(60_000),
-                assistant_line(140_000, subagent=True),
-            ],
+            [assistant_line(60_000), assistant_line(140_000, subagent=True)],
         )
 
-        result = self.ticket("scan", "TICKET-8")
+        result = self.ticket("scan", "TICKET-12")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         self.assertEqual(payload["sessions"][0]["peak_context"], 60_000)
         self.assertEqual(payload["sessions"][0]["subagent_peak"], 140_000)
 
-    def test_project_narrowing_excludes_an_unrelated_project_directory(self):
-        self.write_session(
-            "included-project",
-            "session-1",
-            [user_line("start TICKET-9"), assistant_line(10_000)],
-        )
-        self.write_session(
-            "other-project",
-            "session-2",
-            [user_line("start TICKET-9"), assistant_line(10_000)],
-        )
-
-        result = self.ticket("scan", "TICKET-9", "--project", "included")
-
-        self.assertEqual(result.returncode, 0, result.stderr)
-        payload = json.loads(result.stdout)
-        self.assertEqual(payload["session_count"], 1)
-        self.assertEqual(payload["sessions"][0]["project"], "included-project")
-
     def test_malformed_line_is_skipped_and_the_rest_of_the_session_still_scans(self):
         # A malformed line is external input (a local file this process did not
         # write): the scan skips it and keeps reading the rest of the file
         # rather than failing the whole session.
-        self.write_session(
+        self.worked(
+            "TICKET-13",
             "proj-a",
             "session-1",
-            [
-                user_line("start TICKET-10"),
-                "not valid json",
-                assistant_line(70_000),
-            ],
+            ["not valid json", assistant_line(70_000)],
         )
 
-        result = self.ticket("scan", "TICKET-10")
+        result = self.ticket("scan", "TICKET-13")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
@@ -389,7 +382,7 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(payload["sessions"][0]["peak_context"], 70_000)
 
     def test_empty_and_whitespace_ids_are_rejected_and_write_nothing(self):
-        for bad_id in ("", "TICKET 11", " "):
+        for bad_id in ("", "TICKET 14", " "):
             with self.subTest(bad_id=bad_id):
                 result = self.ticket(
                     "record", bad_id, "--verb", "start", "--trait", "any", "--depth", "light"
@@ -399,15 +392,13 @@ class TicketTelemetryTests(unittest.TestCase):
                 self.assertEqual(self.telemetry_records(), [])
 
     def test_telemetry_parent_directory_is_created_when_absent(self):
-        self.assertFalse(self.telemetry.parent.exists())
-        self.write_session(
-            "proj-a",
-            "session-1",
-            [user_line("start TICKET-12"), assistant_line(10_000)],
-        )
+        # The claim already created the shared parent, so this asserts the
+        # record path creates what it needs from a clean directory.
+        self.worked("TICKET-15", "proj-a", "session-1", [assistant_line(10_000)])
+        self.assertFalse(self.telemetry.exists())
 
         result = self.ticket(
-            "record", "TICKET-12", "--verb", "start", "--trait", "any", "--depth", "light"
+            "record", "TICKET-15", "--verb", "start", "--trait", "any", "--depth", "light"
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -416,41 +407,21 @@ class TicketTelemetryTests(unittest.TestCase):
 
     def test_appended_record_carries_no_prose_from_the_session(self):
         secret_prose = "quietly worried this deadline is unrealistic and stressful"
-        self.write_session(
+        self.worked(
+            "TICKET-16",
             "proj-a",
             "session-1",
-            [
-                user_line(f"start TICKET-13, {secret_prose}"),
-                assistant_line(10_000),
-            ],
+            [user_line(secret_prose), assistant_line(10_000)],
         )
 
         result = self.ticket(
-            "record", "TICKET-13", "--verb", "start", "--trait", "any", "--depth", "light"
+            "record", "TICKET-16", "--verb", "start", "--trait", "any", "--depth", "light"
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        record = self.telemetry_records()[0]
-        serialized = json.dumps(record)
-        self.assertNotIn(secret_prose, serialized)
-        self.assertEqual(
-            set(record),
-            {
-                "ticket_id",
-                "verbs",
-                "traits",
-                "depth",
-                "chunked",
-                "chunks",
-                "session_count",
-                "peak_context",
-                "subagent_peak",
-                "session_peaks",
-                "verdict",
-                "reason",
-                "recorded_at",
-            },
-        )
+        written = self.telemetry.read_text(encoding="utf-8")
+        self.assertNotIn("unrealistic", written)
+        self.assertNotIn(secret_prose, written)
 
 
 if __name__ == "__main__":

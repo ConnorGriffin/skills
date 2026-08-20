@@ -49,7 +49,7 @@ the code host back to the tracker; this verb is that sync.
      --verb <verb that ran, repeated> \
      --trait <trait that fired, repeated> \
      --depth <stamped depth> \
-     [--chunked --chunks <n>] [--project <substring>]
+     [--chunked --chunks <n>]
    ```
 
    The helper appends one record under `~/.config/ticket/` and returns one verdict:
@@ -60,8 +60,10 @@ the code host back to the tracker; this verb is that sync.
    * `over-sliced`: chunks that no single agent would have struggled with.
    * `no-data`: no local transcript matched the ticket, so nothing is judged.
 
-   Add `--project <substring>` when unrelated sessions in other repos discussed the
-   ticket id and skew the count.
+   The helper reads the sessions that claimed this ticket, so nothing is inferred
+   from prose and there is nothing to narrow. A claimed session whose transcript
+   has been deleted appears under `unreadable`: report it rather than treating it
+   as a session that cost nothing.
    `python3 <ticket-skill-directory>/scripts/ticket.py scan <ticket-id>` reports peak
    context per matching session without recording anything, which is the way to look
    before committing a record.
