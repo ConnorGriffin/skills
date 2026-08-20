@@ -29,8 +29,9 @@ A PID appearing in `ps` proves nothing. A healthy worker accrues CPU time
 within a minute and writes `~/.codex/sessions/<date>/rollout-*.jsonl` at session
 start. Before trusting a long-running worker, check that `ps -o time` is growing
 and that the rollout file exists; a worker with neither hung before session
-start. Such a worker burned no tokens, and recovery is to relaunch into a fresh
-directory so a late-waking zombie cannot clobber the new run.
+start. Such a worker burned no tokens. The coordinator stops it through the
+recovery below and reports; it may then relaunch into a fresh directory, so a
+late-waking zombie cannot clobber the new run.
 
 ## Interrupted workers
 
