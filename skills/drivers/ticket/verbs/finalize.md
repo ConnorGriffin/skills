@@ -58,14 +58,14 @@ the code host back to the tracker; this verb is that sync.
    * `under-sliced`: a flat order that peaked past the degradation band.
    * `still-degraded`: a chunked order whose chunks were themselves too big.
    * `over-sliced`: chunks that no single agent would have struggled with.
-   * `no-data`: no local transcript matched the ticket, so nothing is judged.
+   * `no-data`: no session claimed this ticket, so nothing measured it.
 
    The helper reads the sessions that claimed this ticket, so nothing is inferred
    from prose and there is nothing to narrow. A claimed session whose transcript
    has been deleted appears under `unreadable`: report it rather than treating it
    as a session that cost nothing.
    `python3 <ticket-skill-directory>/scripts/ticket.py scan <ticket-id>` reports peak
-   context per matching session without recording anything, which is the way to look
+   context per claimed session without recording anything, which is the way to look
    before committing a record.
 
    **On `under-sliced`, `still-degraded`, or `over-sliced`, report the misprediction

@@ -85,23 +85,30 @@ def detect_session(explicit: Optional[str], agent: Optional[str]) -> tuple[str, 
     agent wrote a session decides where its transcript lives and how its context
     is counted.
     """
-    running = next(
-        ((name, os.environ[variable]) for name, variable in SESSION_VARIABLES if os.environ.get(variable)),
-        None,
-    )
-    if explicit:
-        if agent:
-            return agent, explicit
-        if running:
-            return running[0], explicit
-        names = " or ".join(name for name, _ in SESSION_VARIABLES)
-        raise TelemetryError(f"--session needs --agent ({names}) outside a known agent")
-    if agent:
+    visible = [
+        (name, os.environ[variable])
+        for name, variable in SESSION_VARIABLES
+        if os.environ.get(variable)
+    ]
+    names = " or ".join(name for name, _ in SESSION_VARIABLES)
+    if agent and not explicit:
         raise TelemetryError("--agent needs --session")
-    if running:
-        return running
-    names = " or ".join(variable for _, variable in SESSION_VARIABLES)
-    raise TelemetryError(f"no session id: pass --session, or run where {names} is set")
+    if agent:
+        return agent, explicit
+    # A Codex worker launched from a Claude session inherits that session's
+    # variable, so two visible ids mean the environment cannot say which agent
+    # is running. Guessing there records the coordinator's transcript against
+    # the worker's ticket.
+    if len(visible) > 1:
+        raise TelemetryError(f"more than one agent session in the environment: pass --agent ({names})")
+    if explicit:
+        if visible:
+            return visible[0][0], explicit
+        raise TelemetryError(f"--session needs --agent ({names}) outside a known agent")
+    if visible:
+        return visible[0]
+    variables = " or ".join(variable for _, variable in SESSION_VARIABLES)
+    raise TelemetryError(f"no session id: pass --session, or run where {variables} is set")
 
 
 def read_claims(ticket_id: str) -> list[dict]:
@@ -115,7 +122,7 @@ def read_claims(ticket_id: str) -> list[dict]:
             claim = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if claim.get("ticket_id") == ticket_id:
+        if claim.get("ticket_id") == ticket_id and claim.get("session_id"):
             claims.append(claim)
     return claims
 
@@ -132,16 +139,17 @@ def append_claim(claim: dict) -> Optional[Path]:
     return CLAIMS_PATH
 
 
-def transcript_for(claim: dict, projects_dir: Path) -> Optional[Path]:
-    """Find one claimed session's transcript by its id, never by its contents."""
-    session_id = claim.get("session_id", "")
-    if not session_id:
-        return None
+def transcripts_for(claim: dict, projects_dir: Path) -> list[Path]:
+    """Find a claimed session's transcripts by id, never by their contents.
+
+    A resumed session writes more than one file, so this returns every match
+    and the caller takes the peak across them. Picking one would report
+    whichever the filesystem happened to sort first.
+    """
+    session_id = claim["session_id"]
     if claim.get("agent") == "codex":
-        matches = sorted(CODEX_SESSIONS_DIR.glob(f"**/rollout-*-{session_id}.jsonl"))
-    else:
-        matches = sorted(projects_dir.glob(f"*/{session_id}.jsonl"))
-    return matches[0] if matches else None
+        return sorted(CODEX_SESSIONS_DIR.glob(f"**/rollout-*-{session_id}.jsonl"))
+    return sorted(projects_dir.glob(f"*/{session_id}.jsonl"))
 
 
 def claude_peaks(raw: bytes) -> tuple[Optional[str], int, int]:
@@ -194,42 +202,37 @@ def codex_peaks(raw: bytes) -> tuple[Optional[str], int, int]:
 
 
 def session_cost(claim: dict, projects_dir: Path) -> dict:
-    path = transcript_for(claim, projects_dir)
-    session = {
-        "session_id": claim.get("session_id"),
+    paths = transcripts_for(claim, projects_dir)
+    read = codex_peaks if claim.get("agent") == "codex" else claude_peaks
+    started = None
+    peak = 0
+    subagent_peak = 0
+    for path in paths:
+        first, own, sub = read(path.read_bytes())
+        started = min(x for x in (started, first) if x) if (started or first) else None
+        peak = max(peak, own)
+        subagent_peak = max(subagent_peak, sub)
+    return {
+        "session_id": claim["session_id"],
         "agent": claim.get("agent"),
         "project": claim.get("project"),
-        "started": claim.get("claimed_at"),
-        "peak_context": 0,
-        "subagent_peak": 0,
-        "transcript": None,
+        "started": started or claim.get("claimed_at"),
+        "peak_context": peak,
+        "subagent_peak": subagent_peak,
+        "transcripts": [str(path) for path in paths],
     }
-    if path is None:
-        return session
-    started, peak, subagent_peak = (
-        codex_peaks(path.read_bytes())
-        if claim.get("agent") == "codex"
-        else claude_peaks(path.read_bytes())
-    )
-    session.update(
-        started=started or session["started"],
-        peak_context=peak,
-        subagent_peak=subagent_peak,
-        transcript=str(path),
-    )
-    return session
 
 
 def scan(ticket_id: str, projects_dir: Path) -> dict:
     sessions = [session_cost(claim, projects_dir) for claim in read_claims(ticket_id)]
     sessions.sort(key=lambda session: session["started"] or "")
-    measured = [session for session in sessions if session["transcript"]]
+    measured = [session for session in sessions if session["transcripts"]]
     return {
         "ticket_id": ticket_id,
         "session_count": len(measured),
         "claim_count": len(sessions),
         "unreadable": [
-            session["session_id"] for session in sessions if not session["transcript"]
+            session["session_id"] for session in sessions if not session["transcripts"]
         ],
         "peak_context": max((session["peak_context"] for session in measured), default=0),
         "subagent_peak": max((session["subagent_peak"] for session in measured), default=0),
@@ -247,6 +250,12 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
     is the work and counts.
     """
     if actual["session_count"] == 0:
+        if actual["claim_count"]:
+            return (
+                "no-data",
+                f"{actual['claim_count']} session(s) claimed this ticket and their "
+                "transcripts are gone, so nothing could be measured",
+            )
         return "no-data", "no session claimed this ticket, so nothing measured it"
     own = max(session["peak_context"] for session in actual["sessions"])
     if not chunked:
@@ -298,9 +307,13 @@ def command_record(arguments: argparse.Namespace) -> int:
         "chunked": arguments.chunked,
         "chunks": arguments.chunks,
         "session_count": actual["session_count"],
+        "claim_count": actual["claim_count"],
+        "unreadable": actual["unreadable"],
         "peak_context": actual["peak_context"],
         "subagent_peak": actual["subagent_peak"],
-        "session_peaks": [session["peak_context"] for session in actual["sessions"]],
+        "session_peaks": [
+            session["peak_context"] for session in actual["sessions"] if session["transcripts"]
+        ],
         "verdict": call,
         "reason": reason,
         "recorded_at": datetime.now(timezone.utc).isoformat(),

@@ -36,16 +36,6 @@ def user_line(text: str, timestamp: str = "2026-01-01T00:00:00Z") -> str:
     )
 
 
-def tool_result_line(text: str, timestamp: str = "2026-01-01T00:00:00Z") -> str:
-    return json.dumps(
-        {
-            "type": "user",
-            "timestamp": timestamp,
-            "message": {"content": [{"type": "tool_result", "content": text}]},
-        }
-    )
-
-
 def codex_meta_line(session_id: str, timestamp: str = "2026-01-01T00:00:00Z") -> str:
     return json.dumps(
         {
@@ -270,6 +260,65 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(payload["session_count"], 0)
         self.assertEqual(payload["unreadable"], ["session-gone"])
 
+        gone = self.ticket(
+            "record", "TICKET-6", "--verb", "start", "--trait", "any", "--depth", "deep"
+        )
+
+        self.assertEqual(json.loads(gone.stdout)["verdict"], "no-data")
+        self.assertIn("transcripts are gone", json.loads(gone.stdout)["reason"])
+        self.assertEqual(self.telemetry_records(), [])
+
+        # A deleted transcript must not reach the durable record as a session
+        # that cost nothing: that is the reading adr-70 rules out.
+        self.worked("TICKET-6", "proj-a", "session-2", [assistant_line(190_000)])
+        recorded = self.ticket(
+            "record", "TICKET-6", "--verb", "start", "--trait", "any", "--depth", "deep"
+        )
+
+        self.assertEqual(recorded.returncode, 0, recorded.stderr)
+        record = self.telemetry_records()[0]
+        self.assertEqual(record["session_peaks"], [190_000])
+        self.assertEqual(record["claim_count"], 2)
+        self.assertEqual(record["unreadable"], ["session-gone"])
+
+    def test_two_visible_agent_sessions_refuse_to_guess_which_is_running(self):
+        # A Codex worker launched from a Claude session inherits that session's
+        # variable. Guessing here would measure the coordinator's transcript.
+        environment = self.environment.copy()
+        environment["CLAUDE_CODE_SESSION_ID"] = "claude-1"
+        environment["CODEX_SESSION_ID"] = "codex-1"
+
+        result = self.ticket("claim", "TICKET-17", environment=environment)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--agent", result.stderr)
+        self.assertFalse(self.claims.exists())
+
+        chosen = self.ticket(
+            "claim", "TICKET-17", "--session", "codex-1", "--agent", "codex",
+            environment=environment,
+        )
+
+        self.assertEqual(chosen.returncode, 0, chosen.stderr)
+        self.assertEqual(json.loads(chosen.stdout)["agent"], "codex")
+
+    def test_a_resumed_session_is_measured_across_every_file_it_wrote(self):
+        directory = self.codex_home / "sessions" / "2026" / "01" / "01"
+        directory.mkdir(parents=True, exist_ok=True)
+        for stamp, peak in (("00-00-00", 5_000), ("11-00-00", 200_000)):
+            (directory / f"rollout-2026-01-01T{stamp}-codex-2.jsonl").write_text(
+                "\n".join([codex_meta_line("codex-2"), codex_token_line(peak)]) + "\n",
+                encoding="utf-8",
+            )
+        self.claim("TICKET-18", "codex-2", agent="codex")
+
+        result = self.ticket("scan", "TICKET-18")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(len(payload["sessions"][0]["transcripts"]), 2)
+        self.assertEqual(payload["peak_context"], 200_000)
+
     def test_record_flat_order_above_degradation_band_is_under_sliced(self):
         self.worked("TICKET-7", "proj-a", "session-1", [assistant_line(200_000)])
 
@@ -422,6 +471,9 @@ class TicketTelemetryTests(unittest.TestCase):
         written = self.telemetry.read_text(encoding="utf-8")
         self.assertNotIn("unrealistic", written)
         self.assertNotIn(secret_prose, written)
+        claimed = self.claims.read_text(encoding="utf-8")
+        self.assertNotIn("unrealistic", claimed)
+        self.assertNotIn(secret_prose, claimed)
 
 
 if __name__ == "__main__":
