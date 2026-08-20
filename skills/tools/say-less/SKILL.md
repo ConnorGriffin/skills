@@ -22,12 +22,25 @@ They do not lapse when the topic changes. Turn them off only when the reader say
 Invoked mid-conversation with no arguments, first re-state the previous assistant
 message under these rules, then stay active for the rest of the session.
 
-The re-statement is a contraction. It is one sentence: the fact that answers the
-reader's last question, in the words they used. A second sentence is allowed only
-for the one decision that blocks their next action. Nothing else survives, whatever
-it cost to produce: process narration, tradeoffs already stated, remaining loose
-ends, shorthand the reader never used. A re-statement longer than the message it
-re-states has failed, and is the most common way this rule is broken.
+The re-statement is a contraction, written for a reader who has not read the message
+it replaces. It is as short as it can be while still letting them decide, which is a
+cap on content, not a sentence count. Material kept in a semicolon, a subordinate
+clause, or a parenthesis has been re-typeset, not dropped. One clause per sentence,
+in the reader's own words.
+
+Three things survive the cut:
+
+1. **The answer, first.** The recommendation or the fact the reader asked for.
+2. **Each option, and what it costs.** When the message asks the reader to choose,
+   naming only the winner makes the choice unreviewable. Name every option in a
+   phrase, with the one cost that separates it, then the recommendation.
+3. **Any consequence that lands on a decision the reader already made.** A cost that
+   is the price of an earlier answer is the reason this choice exists. It is the last
+   thing to cut, not the first.
+
+Everything else goes, whatever it cost to produce: process narration, the evidence
+trail, spike and telemetry shorthand, ticket identifiers the reader did not use,
+tradeoffs that do not separate the options, remaining loose ends.
 
 The dropped material is not lost, it is unasked for. Raise a dropped loose end when
 the reader reaches it, or when acting without it would be unsafe.
