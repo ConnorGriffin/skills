@@ -164,10 +164,12 @@ def transcripts_for(claim: dict, projects_dir: Path) -> list[Path]:
     session_id = claim["session_id"]
     if claim.get("agent") == "codex":
         return sorted(CODEX_SESSIONS_DIR.glob(f"**/rollout-*-{session_id}.jsonl"))
-    return sorted(projects_dir.glob(f"*/{session_id}.jsonl"))
+    parent_sessions = projects_dir.glob(f"*/{session_id}.jsonl")
+    native_workers = projects_dir.glob(f"*/*/subagents/agent-{session_id}.jsonl")
+    return sorted([*parent_sessions, *native_workers])
 
 
-def claude_peaks(raw: bytes) -> tuple[Optional[str], int, int]:
+def claude_peaks(raw: bytes, *, claimed_worker: bool = False) -> tuple[Optional[str], int, int]:
     started = None
     peak = 0
     subagent_peak = 0
@@ -183,7 +185,7 @@ def claude_peaks(raw: bytes) -> tuple[Optional[str], int, int]:
         if entry.get("type") != "assistant":
             continue
         size = context_size(entry.get("message", {}).get("usage", {}))
-        if entry.get("isSidechain"):
+        if entry.get("isSidechain") and not claimed_worker:
             subagent_peak = max(subagent_peak, size)
         else:
             peak = max(peak, size)
@@ -218,12 +220,16 @@ def codex_peaks(raw: bytes) -> tuple[Optional[str], int, int]:
 
 def session_cost(claim: dict, projects_dir: Path) -> dict:
     paths = transcripts_for(claim, projects_dir)
-    read = codex_peaks if claim.get("agent") == "codex" else claude_peaks
     started = None
     peak = 0
     subagent_peak = 0
     for path in paths:
-        first, own, sub = read(path.read_bytes())
+        if claim.get("agent") == "codex":
+            first, own, sub = codex_peaks(path.read_bytes())
+        else:
+            first, own, sub = claude_peaks(
+                path.read_bytes(), claimed_worker=path.parent.name == "subagents"
+            )
         started = min(x for x in (started, first) if x) if (started or first) else None
         peak = max(peak, own)
         subagent_peak = max(subagent_peak, sub)
