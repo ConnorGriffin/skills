@@ -14,13 +14,16 @@ Slice when **two or more** of these hold. One or zero: the order stays flat.
 | Writes across a trust boundary | The change writes in more than one account, project, or trust boundary |
 | Multiple deliverable artifacts | More than one shippable thing: a library change plus its consumers, a workflow plus the scripts it calls, code plus a runbook |
 | Live run inside the ticket | Acceptance requires running the artifact against real infrastructure before the pull request, so what the run exposes is corrected in the same session |
+| Split-path evidence | Acceptance requires proving the same behavior on more than one code path that a single run cannot both exercise (a platform or feature-flag branch), so each path costs its own harness |
 
 The traits are proxies for context load, not for effort. A long-but-uniform change
 (twenty near-identical grants in one target) fires nothing and stays flat, while a
 short change that writes across two accounts and imports live resources fires
 twice and gets sliced. The first four ask where the code lands. The fifth asks
 whether the ticket also has to operate it, which costs a discovery-and-fix cycle
-per surprise plus whatever the run itself takes.
+per surprise plus whatever the run itself takes. The sixth asks what it costs to
+prove the change: a diff of two lines can owe two harnesses when the paths it
+touches cannot both run at once, and building the second one is the work.
 
 ## Anchor table
 
