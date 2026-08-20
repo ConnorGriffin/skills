@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -83,11 +84,36 @@ def user_text(entry: dict) -> str:
     )
 
 
+def typed_reference(ticket_id: str) -> "re.Pattern[str]":
+    """Match the id as a reference to the ticket, not as digits inside something else.
+
+    A bare substring test counts any session whose prose happens to contain the
+    digits: a percentage (62.67%), a hex task id, a commit sha, a line range
+    (SKILL.md:8, 62-64), or another repository's pull request (dotfiles/pull/62).
+    Those sessions never worked the ticket, and their peaks skew the slicing
+    rubric they are recorded to calibrate. So the neighbours decide: an
+    alphanumeric, underscore, hyphen, or slash on either side means the id is
+    part of something longer, and a digit across a decimal point means a number.
+    A sentence-final "62." still counts.
+
+    The slash costs a link: an id written only as an issue or pull-request URL
+    is not counted, because nothing here knows which repository a URL points at
+    and the observed false match was another repository's pull/62. Across five
+    ticket ids in this machine's transcripts, every session that linked a ticket
+    also typed its id, so the trade buys a measured false positive for a
+    hypothetical false negative.
+    """
+    return re.compile(
+        rf"(?<![0-9A-Za-z_/-])(?<!\d\.){re.escape(ticket_id)}(?![0-9A-Za-z_/-])(?!\.\d)"
+    )
+
+
 def scan_transcript(path: Path, ticket_id: str) -> Optional[dict]:
     raw = path.read_bytes()
     if ticket_id.encode() not in raw:
         return None
 
+    reference = typed_reference(ticket_id)
     typed = False
     peak = 0
     subagent_peak = 0
@@ -102,7 +128,7 @@ def scan_transcript(path: Path, ticket_id: str) -> Optional[dict]:
             continue
         if started is None and entry.get("timestamp"):
             started = entry["timestamp"]
-        if not typed and ticket_id in user_text(entry):
+        if not typed and reference.search(user_text(entry)):
             typed = True
         if entry.get("type") != "assistant":
             continue

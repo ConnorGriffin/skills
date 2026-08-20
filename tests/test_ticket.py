@@ -168,6 +168,49 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(payload["session_count"], 0)
         self.assertEqual(payload["sessions"], [])
 
+    def test_scan_excludes_digits_that_only_appear_inside_something_else(self):
+        self.write_session(
+            "proj-a",
+            "session-1",
+            [
+                user_line("Claude Opus 4.6 far ahead (62.67% vs GPT-5.4 nano 32%)"),
+                user_line("task aa95d8d7bd0fc625d finished"),
+                user_line("changes on the branch at commit 624dbe9"),
+                user_line("domain-modeling/SKILL.md:8, 62-64 assume CONTEXT.md"),
+                user_line("landed https://github.com/ConnorGriffin/dotfiles/pull/62"),
+                assistant_line(296_000),
+            ],
+        )
+
+        result = self.ticket("scan", "62")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["session_count"], 0)
+        self.assertEqual(payload["sessions"], [])
+
+    def test_scan_counts_the_ordinary_ways_an_operator_writes_a_ticket_id(self):
+        for index, prose in enumerate(
+            (
+                "let's take a look at #62",
+                "/ticket start 62",
+                "that was settled back in 62.",
+            )
+        ):
+            with self.subTest(prose=prose):
+                session = f"session-{index}"
+                self.write_session(
+                    "proj-a", session, [user_line(prose), assistant_line(125_000)]
+                )
+
+                result = self.ticket("scan", "62", "--project", "proj-a")
+
+                self.assertEqual(result.returncode, 0, result.stderr)
+                payload = json.loads(result.stdout)
+                self.assertIn(
+                    session, [entry["session_id"] for entry in payload["sessions"]]
+                )
+
     def test_record_flat_order_above_degradation_band_is_under_sliced(self):
         self.write_session(
             "proj-a",
