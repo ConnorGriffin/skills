@@ -223,6 +223,30 @@ class CodebaseMemoryInstallTests(unittest.TestCase):
         self.assertEqual(settings_path.read_bytes(), original)
         self.assertFalse((claude_home / "hooks").exists())
 
+    def test_managed_command_with_arguments_is_a_conflict(self):
+        self.claude_home.mkdir()
+        settings_path = self.claude_home / "settings.json"
+        command = f"{self.claude_home}/hooks/cbm-code-discovery-gate --unexpected"
+        conflicting = {
+            "hooks": {
+                "PreToolUse": [
+                    {
+                        "matcher": "Grep|Glob",
+                        "hooks": [{"type": "command", "command": command, "timeout": 5}],
+                    }
+                ]
+            }
+        }
+        original = (json.dumps(conflicting) + "\n").encode()
+        settings_path.write_bytes(original)
+
+        result = self.install()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("conflicting managed hook registration", result.stderr)
+        self.assertEqual(settings_path.read_bytes(), original)
+        self.assertFalse((self.claude_home / "hooks").exists())
+
     def test_symlinked_settings_fail_without_following_the_external_target(self):
         self.claude_home.mkdir()
         external = self.scratch / "external-settings.json"
@@ -256,16 +280,18 @@ class CodebaseMemoryInstallTests(unittest.TestCase):
         self.assertFalse((self.claude_home / "settings.json").exists())
 
     def test_every_non_regular_or_unowned_managed_node_is_a_no_write_failure(self):
-        cases = (
+        cases = [
             ("settings-directory", "settings", "directory"),
             ("settings-fifo", "settings", "fifo"),
             ("hooks-file", "hooks", "file"),
-            ("gate-unmarked", "gate", "file"),
-            ("gate-symlink", "gate", "symlink"),
-            ("gate-broken-symlink", "gate", "broken-symlink"),
-            ("gate-directory", "gate", "directory"),
-            ("gate-fifo", "gate", "fifo"),
-        )
+        ]
+        for managed_name in (
+            "cbm-code-discovery-gate",
+            "cbm-session-reminder",
+            "cbm-code-discovery-reminder.md",
+        ):
+            for node_kind in ("file", "symlink", "broken-symlink", "directory", "fifo"):
+                cases.append((f"{managed_name}-{node_kind}", managed_name, node_kind))
         for name, target, node_kind in cases:
             with self.subTest(name=name):
                 claude_home = self.scratch / name
@@ -279,7 +305,7 @@ class CodebaseMemoryInstallTests(unittest.TestCase):
                 else:
                     hooks = claude_home / "hooks"
                     hooks.mkdir()
-                    path = hooks / "cbm-code-discovery-gate"
+                    path = hooks / target
 
                 if node_kind == "directory":
                     path.mkdir()
@@ -461,6 +487,8 @@ class CodebaseMemoryInstallTests(unittest.TestCase):
         ):
             self.assertIn(phrase, normalized_reminder)
         self.assertIn("[reminder.md](reminder.md)", skill)
+        self.assertNotIn("Use the graph for structural code discovery", skill)
+        self.assertNotIn("Use `index_repository` only", skill)
         self.assertIn("~/.claude/skills/codebase-memory/reminder.md", profile)
         self.assertIn("python3 ~/.claude/skills/codebase-memory/scripts/install.py", readme)
         self.assertIn("portable skill-owned hooks", overlay.lower())

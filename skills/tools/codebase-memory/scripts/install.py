@@ -69,7 +69,7 @@ def command_target(command: object) -> str | None:
         words = shlex.split(command)
     except ValueError:
         return None
-    if len(words) != 1:
+    if not words:
         return None
     return os.path.abspath(os.path.expanduser(words[0]))
 
