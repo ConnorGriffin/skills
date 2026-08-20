@@ -95,6 +95,13 @@ def typed_reference(ticket_id: str) -> "re.Pattern[str]":
     alphanumeric, underscore, hyphen, or slash on either side means the id is
     part of something longer, and a digit across a decimal point means a number.
     A sentence-final "62." still counts.
+
+    The slash costs a link: an id written only as an issue or pull-request URL
+    is not counted, because nothing here knows which repository a URL points at
+    and the observed false match was another repository's pull/62. Across five
+    ticket ids in this machine's transcripts, every session that linked a ticket
+    also typed its id, so the trade buys a measured false positive for a
+    hypothetical false negative.
     """
     return re.compile(
         rf"(?<![0-9A-Za-z_/-])(?<!\d\.){re.escape(ticket_id)}(?![0-9A-Za-z_/-])(?!\.\d)"
