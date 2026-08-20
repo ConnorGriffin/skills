@@ -13,9 +13,25 @@ control checkout. Persist one state file per worker. Use `resume` with that
 state file for retry findings and ordinary follow-ups; it restores the captured
 model, sandbox, and canonical cwd rather than taking replacements.
 
+The helper closes a worker's stdin itself. Any hand-rolled background `codex
+exec` must redirect stdin from /dev/null (or pipe a prompt deliberately and let
+it reach EOF): an inherited open stdin is a permanent pre-session hang, because
+codex reads stdin for an appended `<stdin>` block and blocks until EOF even when
+the prompt was passed as an argument.
+
 On success the helper emits one public JSON object. Read its `final_message`
 field as the current worker's answer; do not infer an answer from its session or
 headroom metadata.
+
+## Worker liveness
+
+A PID appearing in `ps` proves nothing. A healthy worker accrues CPU time
+within a minute and writes `~/.codex/sessions/<date>/rollout-*.jsonl` at session
+start. Before trusting a long-running worker, check that `ps -o time` is growing
+and that the rollout file exists; a worker with neither hung before session
+start. Such a worker burned no tokens. The coordinator stops it through the
+recovery below and reports; it may then relaunch into a fresh directory, so a
+late-waking zombie cannot clobber the new run.
 
 ## Interrupted workers
 
