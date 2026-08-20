@@ -37,25 +37,33 @@ long ago and the pull request is one diff.
    checks, and any new verification output CI posted. List them before touching
    code.
 
-5. **Judge, then fix.** For each item: fix it, or push back with a reasoned reply.
-   Never silently ignore one. What blocks is what breaks the order's Done when
-   clause; [references/review-depth.md](../references/review-depth.md) governs that
-   call, and the order's stamped depth (Full when any chunk was Full) sets how far
-   to look. Scope discipline: a review comment that expands scope beyond the work
-   order gets a reply naming it out of scope and, if it is real, a suggestion to
-   file a ticket. The order is still the contract.
+5. **Judge, then fix.** Ground every item and classify it with
+   [references/review-actions.md](../references/review-actions.md). Never silently
+   ignore one. What blocks is what breaks the order's Done when clause;
+   [references/review-depth.md](../references/review-depth.md) governs that call,
+   and the order's stamped depth (Full when any chunk was Full) sets how far to
+   look. The order is still the contract.
 
-6. **Re-verify.** Re-run the order's verification command after changes, same rules
-   as `start`: the output must match the order's expectation. Re-read the repo's
-   `AGENTS.md` or `CLAUDE.md` and audit the changes you are about to push against
-   it, including any completion checklist it defines. Fix violations before pushing.
+6. **Refresh mergeability.** Before handing the pull request back for human merge,
+   `git fetch origin`, refresh `baseRefName` and `mergeStateStatus` with `gh pr
+   view`, then rebase once onto `origin/<baseRefName>`. Do not retry the rebase. If
+   GitHub reports a conflict or the rebase has a semantic conflict you cannot
+   resolve safely, abort it and stop; surface the conflict to the human rather than
+   force a resolution.
 
-7. **Push and respond.** Push to the same branch. Reply to each addressed comment on
+7. **Re-verify and re-review.** Re-run the order's verification command after the
+   changes and rebase, same rules as `start`: the output must match the order's
+   expectation. Re-read the repo's `AGENTS.md` or `CLAUDE.md` and audit the changes
+   you are about to push against it, including any completion checklist it defines.
+   Fix violations, then run `/review` at the order's stamped review depth. Fix
+   confirmed findings and repeat verification if code changed.
+
+8. **Push and respond.** Push to the same branch. Reply to each addressed comment on
    the pull request, resolving or answering it. Update the repo's change record if
    its checklist moved, and update its decision record if a decision changed during
    review.
 
-8. **Status.** Comment on the ticket (attribution first) only if the round
+9. **Status.** Comment on the ticket (attribution first) only if the round
    materially changed the plan. Routine fix-and-push rounds need no ticket comment.
 
 ## Refusals

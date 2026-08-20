@@ -52,6 +52,10 @@ of either shape carries a `Review depth:` line
 
 ## Work order
 
+Before filling either shape, apply
+[brief quality](../references/brief-quality.md). It is a drafting checklist, not
+an extra ticket-comment format.
+
 ```
 WORK ORDER <ticket-id>: <ticket summary>
 Open as: <model> / <effort>.

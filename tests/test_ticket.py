@@ -11,6 +11,7 @@ from typing import Optional
 
 ROOT = Path(__file__).resolve().parents[1]
 TICKET_SCRIPT = ROOT / "skills" / "drivers" / "ticket" / "scripts" / "ticket.py"
+TICKET_DIRECTORY = ROOT / "skills" / "drivers" / "ticket"
 
 
 def run(command: list[str], *, cwd: Path, env: Optional[dict[str, str]] = None):
@@ -62,6 +63,38 @@ def assistant_line(
             },
         }
     )
+
+
+class TicketSkillContractTests(unittest.TestCase):
+    def test_triage_requires_the_brief_quality_checklist(self):
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
+        checklist = TICKET_DIRECTORY / "references" / "brief-quality.md"
+
+        self.assertTrue(checklist.is_file())
+        self.assertIn("[references/brief-quality.md](../references/brief-quality.md)", triage)
+
+    def test_revise_requires_the_four_review_action_dispositions(self):
+        revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")
+        actions = (TICKET_DIRECTORY / "references" / "review-actions.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("[references/review-actions.md](../references/review-actions.md)", revise)
+        for disposition in (
+            "Fix before completion",
+            "Necessary follow-up",
+            "Ask the maintainer",
+            "Discard as preference",
+        ):
+            self.assertIn(disposition, actions)
+
+    def test_revise_requires_a_base_currency_and_mergeability_refresh(self):
+        revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")
+
+        self.assertIn("mergeStateStatus", revise)
+        self.assertIn("rebase once", revise)
+        self.assertIn("stamped review depth", revise)
+        self.assertIn("semantic conflict", revise)
 
 
 class TicketTelemetryTests(unittest.TestCase):
