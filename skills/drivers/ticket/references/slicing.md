@@ -13,8 +13,9 @@ Slice when **two or more** of these hold. One or zero: the order stays flat.
 | Live-resource import or tool port | Live resources are brought under the repo's control, or moved from one tool to another |
 | Writes across a trust boundary | The change writes in more than one account, project, or trust boundary |
 | Multiple deliverable artifacts | More than one shippable thing: a library change plus its consumers, a workflow plus the scripts it calls, code plus a runbook |
-| Live run inside the ticket | Acceptance requires running the artifact against real infrastructure before the pull request, so what the run exposes is corrected in the same session |
-| Split-path evidence | Acceptance requires proving the same behavior on more than one code path that a single run cannot both exercise (a platform or feature-flag branch), so each path costs its own harness |
+| Live run inside the ticket | Acceptance requires standing up and running the artifact before the pull request — real infrastructure, or a local harness the ticket must build first (a browser driver, a seeded database, an offline server) — so what the run exposes is corrected in the same session |
+| Split-path evidence | Acceptance requires proving the same behavior on more than one code path that a single run cannot both exercise — a platform or feature-flag branch, or a re-implementation in another language held identical by test — so each path costs its own harness |
+| Lockstep copies of one fact | Adding one member to a closed set obliges edits in more than two encodings that no single tool checks together: a source of truth, a hand-maintained transcription, a fixture generator, and the committed fixture it freezes |
 
 The traits are proxies for context load, not for effort. A long-but-uniform change
 (twenty near-identical grants in one target) fires nothing and stays flat, while a
@@ -23,7 +24,10 @@ twice and gets sliced. The first four ask where the code lands. The fifth asks
 whether the ticket also has to operate it, which costs a discovery-and-fix cycle
 per surprise plus whatever the run itself takes. The sixth asks what it costs to
 prove the change: a diff of two lines can owe two harnesses when the paths it
-touches cannot both run at once, and building the second one is the work.
+touches cannot both run at once, and building the second one is the work. The
+seventh asks how many places one fact is written down: a single new member of a
+closed set costs a pass per encoding, and the encodings drift because nothing
+checks them together.
 
 ## Anchor table
 
@@ -37,6 +41,7 @@ the helper's `scan` command, not estimates.
 | C | Routes across two environments and two accounts | multiple targets, cross-boundary writes | slice by target | 4 sessions, 275k to 408k |
 | D | Port live networking into the repo's own tooling, with imports | multiple targets, import | slice; was not | 574k in one session |
 | E | CI previewing every deployment target | multiple targets, multiple artifacts | slice | 359k plus a 313k resume |
+| F | One new member of a closed behavioural taxonomy, wired through its server projection, a JS mirror, three fixture generators and a browser gate | multiple artifacts, live run, lockstep copies | slice: detector and its tests, then the surface and its fixtures | flat; peaked 503k over 4 sessions |
 
 When a ticket's traits match an anchor row, take that row's shape. When it sits
 between rows, say which two and pick the more conservative one.
