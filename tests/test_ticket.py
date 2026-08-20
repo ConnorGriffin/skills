@@ -86,6 +86,36 @@ def assistant_line(
 
 
 class TicketSkillContractTests(unittest.TestCase):
+    def test_start_opens_with_summary_and_claim_before_fetching_the_order(self):
+        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")
+
+        self.assertLess(shared.index("Open with the ticket summary"), shared.index("Claim the session"))
+        opening = start.index("Complete shared rules 1–2")
+        fetch = start.index("Fetch the order")
+        self.assertLess(opening, fetch)
+        self.assertLess(start.index("Worktree and branch"), start.index("Sufficiency check"))
+        self.assertIn("never blocks the verb", shared)
+
+    def test_coordinator_claims_unique_implementation_workers_not_reviewers(self):
+        coordinator = (TICKET_DIRECTORY / "references" / "coordinator-mode.md").read_text(
+            encoding="utf-8"
+        )
+        contract = " ".join(coordinator.split())
+
+        for requirement in (
+            "each unique implementation-worker session",
+            "`--session <id>`",
+            "`--agent <agent>`",
+            "`--project <chunk-worktree>`",
+            "Same-session retries are not re-claimed",
+            "fresh implementation escalation",
+            "Review-only sessions are not claimed",
+            "stable transcript id",
+            "one line and continue",
+        ):
+            self.assertIn(requirement, contract)
+
     def test_triage_requires_the_brief_quality_checklist(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
         checklist = TICKET_DIRECTORY / "references" / "brief-quality.md"
@@ -248,6 +278,41 @@ class TicketTelemetryTests(unittest.TestCase):
         # Codex counts its cached input inside input_tokens; adding it back
         # would report 210,000 for a turn that cost 120,000.
         self.assertEqual(session["peak_context"], 120_000)
+
+    def test_a_claimed_native_claude_worker_is_measured_as_its_own_session(self):
+        worker_id = "worker-synthetic-1"
+        directory = self.projects / "synthetic-project" / "parent-synthetic" / "subagents"
+        directory.mkdir(parents=True)
+        claimed_path = directory / f"agent-{worker_id}.jsonl"
+        claimed_path.write_text(assistant_line(130_000, subagent=True) + "\n", encoding="utf-8")
+        (directory / f"agent-{worker_id}-near-collision.jsonl").write_text(
+            assistant_line(260_000, subagent=True) + "\n", encoding="utf-8"
+        )
+        worker_project = "/tmp/synthetic-chunk-worktree"
+        claim = self.ticket(
+            "claim",
+            "TICKET-20",
+            "--session",
+            worker_id,
+            "--agent",
+            "claude",
+            "--project",
+            worker_project,
+        )
+        self.assertEqual(claim.returncode, 0, claim.stderr)
+
+        result = self.ticket("scan", "TICKET-20")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["session_count"], 1)
+        self.assertEqual(payload["peak_context"], 130_000)
+        self.assertEqual(payload["subagent_peak"], 0)
+        session = payload["sessions"][0]
+        self.assertEqual(session["project"], worker_project)
+        self.assertEqual(session["transcripts"], [str(claimed_path)])
+        self.assertEqual(session["peak_context"], 130_000)
+        self.assertEqual(session["subagent_peak"], 0)
 
     def test_a_claim_whose_transcript_is_missing_is_reported_not_dropped(self):
         self.claim("TICKET-6", "session-gone")

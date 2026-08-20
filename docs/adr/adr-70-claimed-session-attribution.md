@@ -37,10 +37,12 @@ its session as an early step. `scan` and `record` read those claims and resolve
 each session's transcript by exact id.
 
 The matching machinery is deleted rather than kept as a fallback: the reference
-regex, the operator-typed text extractor, the substring prefilter, and the
-`--project` flag. A fallback would reintroduce the failure mode on exactly the
-tickets where claims are absent, and silently, which is how the first bad record
-was written.
+regex, the operator-typed text extractor, the substring prefilter, and the old
+`scan`/`record --project` filter. Claim's `--project` metadata remains: it records
+the actual working directory of the claimed session, including a dispatched
+worker's chunk worktree. A fallback would reintroduce the failure mode on exactly
+the tickets where claims are absent, and silently, which is how the first bad
+record was written.
 
 A session id comes from the agent's own environment (`CLAUDE_CODE_SESSION_ID`,
 `CODEX_SESSION_ID`) or from `--session` with `--agent`, so a coordinator can

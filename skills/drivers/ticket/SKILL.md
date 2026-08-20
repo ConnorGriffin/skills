@@ -91,10 +91,11 @@ substitutes a lighter check for the depth the order stamped.
 
 5. **One worktree, one branch, per ticket, for the whole lifecycle.** `triage`
    cuts the branch and worktree through `spin-worktree`; `start` and `revise`
-   reuse them; `finalize` tears them down. The first action of any verb, before
-   grounding or any repo read, is to cut or reuse the ticket's worktree, which is
-   refused if the control checkout is dirty. Grounding, scope ledgers, and change
-   records all happen and get committed there. The control checkout may be stale
+   reuse them; `finalize` tears them down. The first repository action after the
+   summary-and-claim opening, before grounding or any repo read, is to cut or
+   reuse the ticket's worktree, which is refused if the control checkout is dirty.
+   Grounding, scope ledgers, and change records all happen and get committed
+   there. The control checkout may be stale
    or on another branch: its working tree is never read or written, and it never
    switches branches. It holds the ticket's branch ref, which is what the worktree
    is cut from. Before its first write, every verb confirms that its working

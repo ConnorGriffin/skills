@@ -1,14 +1,14 @@
 # Coordinator mode
 
-Reached from `start` step 5, on a chunked order only. `/orchestrate`'s rules bind:
+Reached from `start` step 6, on a chunked order only. `/orchestrate`'s rules bind:
 delegate the work, verify every result, never write the implementation yourself.
 Its carve-out binds too, and this flow leans on it twice: small mechanical glue
 stays with the coordinator, so a mechanical merge conflict (step 5) and a finding
 whose chunk agent is already gone (step 8) are fixed in place and mentioned in the
 report. Anything larger than mechanical goes back to a delegate.
 
-What follows is what this skill adds on top. It replaces `start` steps 7 through
-10, and rejoins that verb at step 11 when the last chunk has merged.
+What follows is what this skill adds on top. It replaces `start` steps 8 through
+11, and rejoins that verb at step 12 when the last chunk has merged.
 
 1. **One branch, one pull request, still.** The ticket branch from `start` step 4 is
    the trunk. Each chunk gets its own branch cut from it and merges back. Nothing
@@ -36,6 +36,15 @@ What follows is what this skill adds on top. It replaces `start` steps 7 through
    that needs coordinator commentary to be executable is a triage defect, and the fix
    is to say so, not to patch it in the prompt.
 
+   Once the dispatcher exposes a stable transcript id, claim each unique
+   implementation-worker session through the shared claim rule, passing
+   `--session <id>`, `--agent <agent>`, and `--project <chunk-worktree>`. The agent
+   and project name the worker that did the work and its actual working directory,
+   not the coordinator's. Keep identifiers in coordinator bookkeeping; they never
+   enter sub-order prompts or published comments. If the dispatcher exposes no
+   stable transcript id, report the omitted claim in one line and continue. Claim
+   failures use the shared visible, non-blocking rule.
+
 4. **Review each chunk as it lands**, at that sub-order's stamped depth, before
    merging it. Two things happen, in order, and neither substitutes for the other:
 
@@ -48,7 +57,11 @@ What follows is what this skill adds on top. It replaces `start` steps 7 through
    b. Verify the result yourself, as `/orchestrate` requires of every delegated
    result: read the diff, run the verification command, check the chunk's Done when
    clause. A failed verification retries once in the chunk's agent with the specific
-   finding, then escalates one tier per the routing table.
+   finding, then escalates one tier per the routing table. Same-session retries are
+   not re-claimed; claim every fresh implementation escalation once, using the
+   escalation's stable transcript id, agent, and chunk worktree. Review-only
+   sessions are not claimed in this issue; role-aware review attribution belongs to
+   ticket 77.
 
 5. **Merge into the ticket branch** in the ticket's worktree, one chunk at a time,
    with `--no-ff`. A conflict between two chunks that declared disjoint ownership
