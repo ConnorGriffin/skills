@@ -68,6 +68,10 @@ class CbmOnboardTests(unittest.TestCase):
         self.environment = os.environ.copy()
         self.environment["CODEBASE_MEMORY_BIN"] = str(self.binary)
         self.environment["PRIVATE_SENTINEL"] = "must-not-appear"
+        # A developer's own global core.hooksPath would otherwise decide where the
+        # script installs, and the run would write outside the fixture.
+        self.environment["GIT_CONFIG_GLOBAL"] = os.devnull
+        self.environment["GIT_CONFIG_SYSTEM"] = os.devnull
 
     def tearDown(self):
         self.temporary.cleanup()
@@ -240,6 +244,22 @@ raise SystemExit(exit_code)
         self.assertEqual(request[:2], ["cli", "index_repository"])
         self.assertEqual(json.loads(request[2]), {"repo_path": str(self.repo.resolve()), "mode": "full"})
         self.assertNotIn("--name", request)
+
+    def test_tilde_hooks_path_installs_under_home_not_inside_the_checkout(self):
+        self.configure_lifecycle_binary()
+        home = self.scratch / "home"
+        (home / "hooks").mkdir(parents=True)
+        run(["git", "config", "core.hooksPath", "~/hooks"], cwd=self.repo)
+
+        result = run(
+            [str(CBM_SCRIPT), str(self.repo)],
+            cwd=ROOT,
+            env=self.environment | {"HOME": str(home), "CBM_SKIP_INDEX": "1"},
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(BEGIN_HOOK, (home / "hooks" / "post-commit").read_text())
+        self.assertFalse((self.repo / "~").exists())
 
     def test_hookless_onboarding_enforces_stable_numeric_version_grammar(self):
         self.configure_lifecycle_binary()
@@ -437,7 +457,7 @@ raise SystemExit(exit_code)
         self.assertIn("refusing symlink target", result.stderr)
         self.assertEqual(target.read_text(encoding="utf-8"), "sentinel\n")
 
-    def test_refuses_hook_symlink_and_honors_core_hooks_path(self):
+    def test_follows_hook_symlink_to_its_target_and_honors_core_hooks_path(self):
         run(
             ["git", "config", "core.hooksPath", ".custom-hooks"],
             cwd=self.repo,
@@ -445,18 +465,43 @@ raise SystemExit(exit_code)
         hooks = self.repo / ".custom-hooks"
         hooks.mkdir()
         target = self.scratch / "outside-hook"
-        target.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
-        (hooks / "post-commit").symlink_to(target)
+        target.write_text("#!/bin/sh\nprintf 'dispatcher\\n'\n", encoding="utf-8")
+        link = hooks / "post-commit"
+        link.symlink_to(target)
+
+        result = self.onboard()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        physical_link = Path(os.path.realpath(link.parent)) / link.name
+        self.assertIn(
+            f"following symlink {physical_link} to {Path(os.path.realpath(target))}",
+            result.stdout,
+        )
+        contents = target.read_text(encoding="utf-8")
+        self.assertIn("printf 'dispatcher\\n'", contents)
+        self.assertIn(BEGIN_HOOK, contents)
+        self.assertTrue(link.is_symlink())
+        self.assertFalse((self.repo / ".git" / "hooks" / "post-commit").exists())
+
+        again = self.onboard()
+
+        self.assertEqual(again.returncode, 0, again.stderr)
+        self.assertEqual(target.read_text(encoding="utf-8"), contents)
+
+    def test_refuses_hook_symlink_with_no_regular_file_target(self):
+        run(
+            ["git", "config", "core.hooksPath", ".custom-hooks"],
+            cwd=self.repo,
+        )
+        hooks = self.repo / ".custom-hooks"
+        hooks.mkdir()
+        (hooks / "post-commit").symlink_to(self.scratch / "does-not-exist")
 
         result = self.onboard()
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("refusing symlink target", result.stderr)
-        self.assertEqual(
-            target.read_text(encoding="utf-8"),
-            "#!/bin/sh\nexit 0\n",
-        )
-        self.assertFalse((self.repo / ".git" / "hooks" / "post-commit").exists())
+        self.assertIn("refusing symlink without a regular-file target", result.stderr)
+        self.assertFalse((self.scratch / "does-not-exist").exists())
     def test_preserves_unmatched_markers_foreign_hook_and_is_idempotent(self):
         run(
             ["git", "config", "core.hooksPath", ".custom-hooks"],

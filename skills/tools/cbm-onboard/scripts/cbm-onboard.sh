@@ -157,6 +157,13 @@ esac
 # to the repo-local, worktree-safe hooks dir when unset.
 HOOKS_PATH="$(git -C "$ROOT" config --get core.hooksPath 2>/dev/null || true)"
 if [ -n "$HOOKS_PATH" ]; then
+  # git expands a leading tilde in a path-valued config; a global hooksPath is
+  # commonly written that way, and joining it to the repo would create a literal
+  # "~" directory inside the checkout.
+  case "$HOOKS_PATH" in
+    "~") HOOKS_PATH="$HOME" ;;
+    "~/"*) HOOKS_PATH="$HOME/${HOOKS_PATH#\~/}" ;;
+  esac
   case "$HOOKS_PATH" in
     /*) HOOKS_DIR="$HOOKS_PATH" ;;
     *) HOOKS_DIR="$ROOT/$HOOKS_PATH" ;;
@@ -168,22 +175,30 @@ fi
 HOOK_SYMLINK_REFUSED=0
 for HOOK_NAME in post-commit post-merge post-checkout; do
   HOOK="$HOOKS_DIR/$HOOK_NAME"
+  HOOK_FILE="$HOOK"
 
+  # A dotfiles-managed hooks dir is usually a farm of symlinks into the dotfiles
+  # checkout. Edit the file the link resolves to: shadowing the link would be
+  # clobbered by the next dotfiles run, and refusing leaves no hook at all.
   if [ -L "$HOOK" ]; then
-    printf 'refusing symlink target: %s\n' "$HOOK" >&2
-    HOOK_SYMLINK_REFUSED=1
-    continue
+    HOOK_FILE="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$HOOK")"
+    if [ ! -f "$HOOK_FILE" ]; then
+      printf 'refusing symlink without a regular-file target: %s\n' "$HOOK" >&2
+      HOOK_SYMLINK_REFUSED=1
+      continue
+    fi
+    printf 'following symlink %s to %s\n' "$HOOK" "$HOOK_FILE"
   fi
 
   : >"$HOOK_TMP"
-  mkdir -p "$(dirname "$HOOK")"
+  mkdir -p "$(dirname "$HOOK_FILE")"
   INSTALL_HOOK=1
-  if [ -e "$HOOK" ]; then
-    FIRST_LINE="$(sed -n '1p' "$HOOK")"
+  if [ -e "$HOOK_FILE" ]; then
+    FIRST_LINE="$(sed -n '1p' "$HOOK_FILE")"
     if ! printf '%s\n' "$FIRST_LINE" |
       grep -Eq '^#!.*[/[:space:]](ba|da|k|z)?sh([[:space:]]|$)'; then
       printf 'SKIP hook installation: existing hook is not a shell script; left unchanged: %s\n' \
-        "$HOOK" >&2
+        "$HOOK_FILE" >&2
       INSTALL_HOOK=0
     fi
   else
@@ -192,7 +207,7 @@ for HOOK_NAME in post-commit post-merge post-checkout; do
 
   [ "$INSTALL_HOOK" -eq 1 ] || continue
 
-  if [ -e "$HOOK" ]; then
+  if [ -e "$HOOK_FILE" ]; then
     awk -v begin="$BEGIN_HOOK" -v end="$END_HOOK" '
       { lines[++n] = $0 }
       END {
@@ -215,7 +230,7 @@ for HOOK_NAME in post-commit post-merge post-checkout; do
         }
         for (i = 1; i <= out_n; i++) print output[i]
       }
-    ' "$HOOK" >"$HOOK_TMP"
+    ' "$HOOK_FILE" >"$HOOK_TMP"
   fi
   {
     printf '\n%s\n' "$BEGIN_HOOK"
@@ -225,9 +240,9 @@ for HOOK_NAME in post-commit post-merge post-checkout; do
     printf '"%s"\n' "$REINDEX"
     printf '%s\n' "$END_HOOK"
   } >>"$HOOK_TMP"
-  cp "$HOOK_TMP" "$HOOK"
-  chmod +x "$HOOK"
-  printf '%s\n' "installed managed reindex command in $HOOK"
+  cp "$HOOK_TMP" "$HOOK_FILE"
+  chmod +x "$HOOK_FILE"
+  printf '%s\n' "installed managed reindex command in $HOOK_FILE"
 done
 
 [ "$HOOK_SYMLINK_REFUSED" -eq 0 ] || exit 1
