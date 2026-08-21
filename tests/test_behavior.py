@@ -744,18 +744,32 @@ class SpinWorktreeTests(unittest.TestCase):
         self.temporary.cleanup()
 
     def spin(self, *arguments: str):
+        return self.spin_from(self.repo, *arguments)
+
+    def spin_from(self, repo: Path, *arguments: str):
         return run(
             [
                 "python3",
                 str(SPIN_SCRIPT),
                 "--repo",
-                str(self.repo),
+                str(repo),
                 "--worktree-root",
                 str(self.scratch / "worktrees"),
                 *arguments,
             ],
             cwd=ROOT,
         )
+
+    def configure_origin(self):
+        remote = self.scratch / "origin.git"
+        result = run(
+            ["git", "init", "--bare", "-b", "main", str(remote)],
+            cwd=self.scratch,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        run(["git", "remote", "add", "origin", str(remote)], cwd=self.repo)
+        result = run(["git", "push", "-u", "origin", "main"], cwd=self.repo)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_rejects_names_that_can_escape_the_task_directory(self):
         for unsafe in ("", ".", "..", "../escape", "nested/name", "nested\\name", "/tmp/x"):
@@ -785,6 +799,52 @@ class SpinWorktreeTests(unittest.TestCase):
         self.assertTrue(
             (self.scratch / "worktrees" / "repo" / "local-topic" / ".git").exists()
         )
+
+    def test_dirty_control_checkout_does_not_block_fresh_issue_work(self):
+        self.configure_origin()
+        untracked = self.repo / "unfinished-notes.md"
+        untracked.write_text("keep me\n", encoding="utf-8")
+
+        result = self.spin(
+            "--issue",
+            "13",
+            "--slug",
+            "isf-safety-predicate",
+            "--name",
+            "13",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        worktree = self.scratch / "worktrees" / "repo" / "13"
+        self.assertTrue((worktree / ".git").exists())
+        branch = run(["git", "branch", "--show-current"], cwd=worktree)
+        self.assertEqual(branch.stdout.strip(), "codex/13-isf-safety-predicate")
+        self.assertEqual(untracked.read_text(encoding="utf-8"), "keep me\n")
+        status = run(["git", "status", "--short"], cwd=self.repo)
+        self.assertEqual(status.stdout, "?? unfinished-notes.md\n")
+
+    def test_linked_worktree_input_uses_primary_repository_identity(self):
+        run(["git", "branch", "task-52"], cwd=self.repo)
+        run(["git", "branch", "local-topic"], cwd=self.repo)
+        linked = self.scratch / "linked" / "52"
+        linked.parent.mkdir()
+        result = run(
+            ["git", "worktree", "add", str(linked), "task-52"],
+            cwd=self.repo,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        result = self.spin_from(
+            linked,
+            "--branch",
+            "local-topic",
+            "--name",
+            "13",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.scratch / "worktrees" / "repo" / "13" / ".git").exists())
+        self.assertFalse((self.scratch / "worktrees" / "52").exists())
 
 
 class CodexWorkerTests(unittest.TestCase):

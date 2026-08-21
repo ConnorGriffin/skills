@@ -93,13 +93,14 @@ substitutes a lighter check for the depth the order stamped.
    cuts the branch and worktree through `spin-worktree`; `start` and `revise`
    reuse them; `finalize` tears them down. The first repository action after the
    summary-and-claim opening, before grounding or any repo read, is to cut or
-   reuse the ticket's worktree, which is refused if the control checkout is dirty.
-   Grounding, scope ledgers, and change records all happen and get committed
-   there. The control checkout may be stale
-   or on another branch: its working tree is never read or written, and it never
-   switches branches. It holds the ticket's branch ref, which is what the worktree
-   is cut from. Before its first write, every verb confirms that its working
-   directory is the path the worktree helper reported; a mismatch stops the verb.
+   reuse the ticket's worktree. Grounding, scope ledgers, and change records all
+   happen and get committed there. The control checkout may be dirty, stale, or
+   on another branch: its working tree is never read or written, and it never
+   switches branches. Never commit, stash, move, or clean its files, and never
+   substitute another task's worktree as the control checkout. It holds the
+   ticket's branch ref, which is what the worktree is cut from. Before its first
+   write, every verb confirms that its working directory is the path the worktree
+   helper reported; a mismatch stops the verb.
    A chunked order is the one exception and does not loosen the rule: chunk agents
    work in per-chunk worktrees cut from the ticket branch and torn down as each
    chunk merges back into it, so the ticket still ends with one branch and one

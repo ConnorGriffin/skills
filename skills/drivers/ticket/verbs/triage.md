@@ -45,8 +45,10 @@ scope and spec documents committed in that worktree.
    ticket's branch (`git -C <worktree> branch --show-current`) and reuse it rather
    than respinning.
 
-   e. The helper refuses on a dirty control checkout or an existing target path.
-   Surface that refusal to the user; do not force past it.
+   e. A dirty control checkout is valid: leave its files untouched and spin from
+   it directly. Never search the existing task worktrees for a clean substitute.
+   The helper still refuses an existing target path; surface that refusal to the
+   user rather than forcing past it.
 
 3. **Identify the repo or repos.** From the ticket text, its parent, and its links.
    If the target repo does not exist yet, stop: repo scaffolding happens outside
