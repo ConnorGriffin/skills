@@ -9,6 +9,10 @@ run against the built app. The branch is the visual artifact. Review screenshots
 record what changed, but no lock manifest or fidelity ledger is pinned to an app
 template.
 
+Before changing CSS or JavaScript/TypeScript, read
+[web-implementation.md](web-implementation.md); it governs web mechanics while this
+mode's behavior ledger and rendered evidence remain binding.
+
 This mode is for a shipped embodiment of the surface, including a new view inside
 a shell that already ships. A wholly greenfield surface uses `lock`.
 

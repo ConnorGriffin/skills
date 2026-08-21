@@ -47,6 +47,10 @@ behind it. _Avoid_: boundary (overloaded with DDD's bounded context).
 **Adapter** — a concrete thing that satisfies an interface at a seam. Describes
 *role* (what slot it fills), not substance (what's inside).
 
+**Core** — the application or domain code behind a seam. The core offers its
+interface to callers and declares the capability it requires from the outside;
+both interface decisions belong on the core side of the seam.
+
 **Leverage** — what callers get from depth: more capability per unit of
 interface they learn. One implementation pays back across N call sites and M
 tests.
@@ -100,6 +104,11 @@ When designing an interface, ask:
   shape.
 - **One adapter means a hypothetical seam. Two adapters means a real one.**
   Don't introduce a seam unless something actually varies across it.
+- **Hexagonal direction.** Adapters depend toward the core; core code must not
+  import infrastructure, framework, storage, clock, or protocol details. An
+  adapter translates those external details and does not duplicate business rules.
+  Composition selects adapters. Keep a one-adapter case local; a simple module may
+  expose its handler directly.
 
 ## Designing for testability
 
@@ -139,6 +148,9 @@ Good interfaces make testing natural:
 - **Depth** is a property of a **Module**, measured against its **Interface**.
 - A **Seam** is where a **Module**'s **Interface** lives.
 - An **Adapter** sits at a **Seam** and satisfies the **Interface**.
+- The **Core** offers an **Interface** and declares the capability it requires at
+  its **Seam**; **Adapters** depend toward that **Core**, and composition selects
+  them.
 - **Depth** produces **Leverage** for callers and **Locality** for maintainers.
 
 ## Rejected framings

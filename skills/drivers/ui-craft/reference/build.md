@@ -21,6 +21,10 @@ first. The manifest alone never encodes what the surface *does*.
 
 ## Before writing code
 
+Read [web-implementation.md](web-implementation.md) before changing CSS or
+JavaScript/TypeScript; it governs web mechanics while this mode's lock and evidence
+contract remains binding.
+
 1. Read the manifest, the mock headers, and the mock's **component CSS** —
    not just its layout. Diff the mock's component styling (buttons, chips,
    rows) against the app's shipped equivalents; where they differ, the
