@@ -86,6 +86,33 @@ def assistant_line(
 
 
 class TicketSkillContractTests(unittest.TestCase):
+    def test_surface_lifecycle_is_produced_and_consumed_across_ticket_paths(self):
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
+        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
+            encoding="utf-8"
+        )
+        coordinator = (
+            TICKET_DIRECTORY / "references" / "coordinator-mode.md"
+        ).read_text(encoding="utf-8")
+        orchestrate = (
+            ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("Surface lifecycle: <none | build | revise>", template)
+        self.assertEqual(
+            template.count("Surface lifecycle: <none | build | revise>"), 3
+        )
+        for lifecycle in ("`none`", "`build`", "`revise`"):
+            self.assertIn(lifecycle, triage)
+            self.assertIn(lifecycle, start)
+        self.assertIn("legacy order", start)
+        self.assertIn("locked manifest", start)
+        self.assertIn("behavior ledger", start)
+        self.assertIn("before/after", start)
+        self.assertIn("Surface lifecycle:", coordinator)
+        self.assertIn("Shipped-surface revision", orchestrate)
+
     def test_start_opens_with_summary_and_claim_before_fetching_the_order(self):
         shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
         start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")

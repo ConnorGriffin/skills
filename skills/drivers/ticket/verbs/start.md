@@ -43,6 +43,17 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    ownership is still disjoint; an overlap that drift introduced is a re-triage,
    not a merge problem to solve later.
 
+   Resolve the order's `Surface lifecycle:` before implementation. `build` requires
+   the named locked manifest. `revise` requires the named shipped behavior ledger,
+   replay, and repo-declared safe dev-server entrypoint plus fixture source. `none`
+   selects no UI Craft mode. An unknown value or a named contract that is absent is
+   drift and requires re-triage. For a legacy order posted before this slot existed,
+   infer `build` only when it explicitly names a locked manifest; otherwise select
+   no UI Craft mode. A legacy order that still asks to change a rendered surface
+   without either contract is insufficient and requires re-triage. On a chunked
+   order, apply the same check to every sub-order before switching to coordinator
+   mode.
+
 6. **Chunked order: switch to coordinator mode.** If the `Execution:` line says
    `chunked`, load `/orchestrate` now, then follow
    [references/coordinator-mode.md](../references/coordinator-mode.md) instead of
@@ -60,8 +71,11 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    change where the repo already records changes, on the same branch, per the skill
    page's change-record rule.
 
-   **Route by shape of the change.** User-interface work runs as `/ui-craft build`
-   against the locked manifest from triage. A new module or interface loads
+   **Route by shape of the change.** `Surface lifecycle: build` runs `/ui-craft
+   build` against the named locked manifest. `Surface lifecycle: revise` runs
+   `/ui-craft revise` against the named shipped behavior ledger and replay through
+   the repo-declared safe dev-server entrypoint and fixture source. `Surface
+   lifecycle: none` skips UI Craft. A new module or interface loads
    `/codebase-design` vocabulary before the seam is cut. New behavior with testable
    acceptance criteria goes test-first through `/tdd`. CI or workflow-file changes
    read `/ci-design` first.
@@ -108,11 +122,13 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
     ticket to pending review and comment on it (attribution first) with the pull
     request link and a one-line status.
 
-    **User-facing surface changes attach two more things, per the engineering
-    charter:** paired mock-versus-build screenshots (headless, same fixture and
-    viewports as the lock) and a fidelity ledger walking every lock-manifest term to
-    met, re-settle, or blocked. Missing either is a blocking gap on the pull request,
-    not a nit. Do not open it without them when the change touches a locked surface.
+    **Surface evidence follows the lifecycle.** A `build` attaches paired
+    mock-versus-build screenshots (same fixture and viewports as the lock) and a
+    fidelity ledger walking every lock-manifest term to met, re-settle, or blocked.
+    A `revise` attaches base-versus-revision before/after screenshots from the same
+    safe fixture, the amended frozen behavior ledger, and raw replay output against
+    the built revision. Missing lifecycle evidence is a blocking gap, not a nit;
+    `revise` never invents a lock manifest or fidelity ledger after the fact.
 
 13. **Stop.** Report the pull request URL, the verification evidence, review
     findings fixed or carried, and anything from the order left undone and why. On a

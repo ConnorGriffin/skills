@@ -21,6 +21,14 @@ one header fence plus one fence per sub-order, all in the same comment. Every or
 of either shape carries a `Review depth:` line
 ([references/review-depth.md](../references/review-depth.md)).
 
+Every fence also carries `Surface lifecycle:`. Use `none` when no rendered surface
+changes, `build` for a greenfield or accepted-fallback lock, and `revise` for a
+shipped surface whose behavior ledger and replay remain its contract. The chunked
+header carries the one active lifecycle across the whole diff (`none` only when all
+chunks say `none`); each sub-order names its own route so the fence remains
+executable without coordinator commentary. One ticket does not mix `build` and
+`revise`: split those into separate tickets rather than inventing a fourth state.
+
 ## Two authoring checks before the draft leaves triage
 
 * **Wiring table.** Every value the order names (an environment variable, an input,
@@ -62,6 +70,7 @@ Open as: <model> / <effort>.
 Execution: single agent.
 
 Classification: <code | investigation | manual>
+Surface lifecycle: <none | build | revise>
 Repo(s): <org/repo> (branch from the default branch)
 Verification: <the command that verifies this change>
 Expectation: <what that command must report before the pull request opens>
@@ -102,6 +111,7 @@ Launch: open a session at the model above and run `/ticket start <ticket-id>`.
         It loads /orchestrate and coordinates the sub-orders itself.
 
 Classification: <code | investigation | manual>
+Surface lifecycle: <none | build | revise>
 Repo(s): <org/repo> (one ticket branch, one pull request)
 Verification: <the command that verifies the merged branch>
 Expectation: <what that command must report before the pull request opens>
@@ -129,6 +139,7 @@ Boundaries
 SUB-ORDER 1/<n> <ticket-id>: <chunk title>
 Mode: parallel | serial after <n>
 Agent: <haiku | sonnet | opus>
+Surface lifecycle: <none | build | revise>
 Review depth: <focused | targeted | full> (<one-line reason>)
 
 Context
