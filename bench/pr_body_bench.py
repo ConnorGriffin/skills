@@ -136,29 +136,37 @@ def _section_body(text: str, heading_title: str) -> str:
 
 
 def _example_slice(text: str) -> str:
-    """The worked example: the fenced ```markdown block, plus the paragraph that
-    immediately follows it (the "No headings. No reason..." sentence group)."""
-    match = FENCED_MARKDOWN_RE.search(text)
-    if match is None:
+    """"The gold standard" section: the framing paragraphs and the fenced
+    ```markdown body they introduce."""
+    headings = [
+        line_end for _, line_end, title in _headings(text)
+        if title.lower() == "the gold standard"
+    ]
+    if not headings:
+        raise SkillExtractionError(
+            f"heading 'The gold standard' not found in {SKILL_MD}; extraction target moved"
+        )
+    # The example body carries its own markdown headings, so the section cannot be
+    # bounded by the next heading the way a prose section can.
+    fence = FENCED_MARKDOWN_RE.search(text, headings[0])
+    if fence is None:
         raise SkillExtractionError(
             f"no fenced ```markdown example block found in {SKILL_MD}; extraction target moved"
         )
-    fence = match.group(0)
-    rest = text[match.end():]
-    paragraph_match = re.match(r"[ \t]*\n+([^\n].*?)(?:\n[ \t]*\n|\Z)", rest, re.DOTALL)
-    if paragraph_match is None:
+    intro = text[headings[0]:fence.start()].strip()
+    if not intro:
         raise SkillExtractionError(
-            f"no paragraph follows the fenced example block in {SKILL_MD}; extraction target moved"
+            f"no framing paragraph precedes the fenced example block in {SKILL_MD}; "
+            "extraction target moved"
         )
-    sentence = paragraph_match.group(1).strip()
-    return f"{fence}\n\n{sentence}"
+    return f"{intro}\n\n{fence.group(0)}"
 
 
 def _rules_slice(text: str) -> str:
-    """"The shape" numbered list plus the "Textures to cut" list, nothing else."""
-    shape = _section_body(text, "The shape")
-    cuts = _section_body(text, "Textures to cut")
-    return f"{shape}\n\n{cuts}"
+    """"What that body does" numbered list plus the "Never" list, nothing else."""
+    principles = _section_body(text, "What that body does")
+    cuts = _section_body(text, "Never")
+    return f"{principles}\n\n{cuts}"
 
 
 def build_skill_slices(skill_text: str | None = None) -> dict[str, str]:

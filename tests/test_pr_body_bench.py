@@ -41,12 +41,12 @@ class SkillSliceExtractionTests(unittest.TestCase):
         slices = BENCH.build_skill_slices()
         self.assertIn("```markdown", slices["example"])
         self.assertIn(DISCLOSURE, slices["example"])
-        self.assertIn("No headings", slices["example"])
+        self.assertIn("Copy its shape", slices["example"])
 
-    def test_rules_slice_contains_the_shape_and_textures_to_cut_only(self):
+    def test_rules_slice_contains_the_principles_and_never_list_only(self):
         slices = BENCH.build_skill_slices()
-        self.assertIn("Open with the action", slices["rules"])
-        self.assertIn("Verdict clauses", slices["rules"])
+        self.assertIn("Point at the spec", slices["rules"])
+        self.assertIn("Method narration", slices["rules"])
         # Content unique to other sections must not leak in.
         self.assertNotIn("gh pr create --body-file", slices["rules"])
         self.assertNotIn("PreToolUse hook", slices["rules"])
@@ -62,16 +62,16 @@ class SkillSliceExtractionTests(unittest.TestCase):
         self.assertLess(sizes["example"], sizes["full"])
         self.assertLess(sizes["rules"], sizes["full"])
 
-    def test_moved_shape_heading_raises_instead_of_shipping_empty_slice(self):
+    def test_moved_principles_heading_raises_instead_of_shipping_empty_slice(self):
         text = BENCH.SKILL_MD.read_text(encoding="utf-8").replace(
-            "## The shape", "## The Shapeee"
+            "## What that body does", "## What the body doess"
         )
         with self.assertRaises(BENCH.SkillExtractionError):
             BENCH.build_skill_slices(text)
 
-    def test_moved_textures_heading_raises(self):
+    def test_moved_never_heading_raises(self):
         text = BENCH.SKILL_MD.read_text(encoding="utf-8").replace(
-            "## Textures to cut", "## Stuff to trim"
+            "## Never", "## Stuff to trim"
         )
         with self.assertRaises(BENCH.SkillExtractionError):
             BENCH.build_skill_slices(text)
@@ -84,7 +84,10 @@ class SkillSliceExtractionTests(unittest.TestCase):
             BENCH.build_skill_slices(text)
 
     def test_heading_present_but_body_empty_raises(self):
-        text = "# PR body\n\n## The shape\n\n## Textures to cut\n\nsomething\n"
+        text = (
+            "# PR body\n\n## The gold standard\n\n```markdown\nbody\n```\n\n"
+            "## What that body does\n\n## Never\n\nsomething\n"
+        )
         with self.assertRaises(BENCH.SkillExtractionError):
             BENCH.build_skill_slices(text)
 

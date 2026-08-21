@@ -31,9 +31,12 @@ directory containing several repositories.
    a managed reindex block to Git's configured `post-commit`, `post-merge`, and
    `post-checkout` hooks without deleting an existing shell hook. The
    `post-checkout` block carries a `[ "$3" = "1" ] || exit 0` guard so it only
-   fires on branch checkouts, not per-file checkouts. It refuses symlink
-   targets. A non-shell foreign hook is left unchanged with a warning because
-   composing it would be unsafe.
+   fires on branch checkouts, not per-file checkouts. A symlinked hook is
+   followed to the file it resolves to, which is what a dotfiles-managed hooks
+   directory needs, and the write lands in whatever repo owns that file. A
+   symlink with no regular-file target is refused, and a `.cbmignore` symlink
+   is refused outright. A non-shell foreign hook is left unchanged with a
+   warning because composing it would be unsafe.
 
    Linked worktrees share the control checkout's Git hooks; they cannot have
    independent hooks. Pass `--this-checkout` only to select the supplied
