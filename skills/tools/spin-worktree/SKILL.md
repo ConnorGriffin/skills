@@ -6,7 +6,9 @@ description: Create an isolated Git worktree for issue, pull-request, branch, or
 # Spin an isolated worktree
 
 Keep the ordinary checkout as the control checkout and create one worktree per
-task. The bundled helper refuses to update a dirty control checkout.
+task. Dirty files in the control checkout are preserved and do not block the
+helper: it updates Git refs and shared worktree metadata, creates the destination,
+and never switches, stashes, or edits files in the control checkout.
 
 By default worktrees live under `${AGENT_WORKTREE_ROOT:-~/worktrees}`:
 
@@ -16,7 +18,10 @@ By default worktrees live under `${AGENT_WORKTREE_ROOT:-~/worktrees}`:
 
 ## Workflow
 
-1. Resolve the control repository and pass it explicitly with `--repo`.
+1. Resolve the ordinary checkout and pass it explicitly with `--repo`. Never
+   substitute another task's linked worktree just because it is clean. If a
+   linked worktree is passed accidentally, the helper resolves Git's primary
+   worktree before deriving `<repository>` or running commands.
 2. Resolve this installed skill's directory.
 3. Run one of the commands below.
 4. Report the exact path and use it as the working directory.

@@ -86,11 +86,12 @@ def repository_root(path: Path) -> Path:
     return Path(value).resolve()
 
 
-def require_clean(repo: Path, *, dry_run: bool) -> None:
-    if dry_run:
-        return
-    if git(repo, "status", "--short", capture=True):
-        raise SpinError(f"control checkout is dirty: {repo}")
+def primary_worktree(repo: Path) -> Path:
+    value = git(repo, "worktree", "list", "--porcelain", capture=True)
+    first_line = value.splitlines()[0] if value else ""
+    if not first_line.startswith("worktree "):
+        raise SpinError(f"cannot determine the primary worktree for {repo}")
+    return Path(first_line.removeprefix("worktree ")).resolve()
 
 
 def local_branch_exists(repo: Path, branch: str) -> bool:
@@ -207,8 +208,8 @@ def main() -> int:
     try:
         if arguments.name is not None:
             safe_leaf(arguments.name)
-        repo = repository_root(Path(arguments.repo).expanduser())
-        require_clean(repo, dry_run=arguments.dry_run)
+        supplied_repo = repository_root(Path(arguments.repo).expanduser())
+        repo = primary_worktree(supplied_repo)
         root = Path(arguments.worktree_root).expanduser().resolve()
 
         if arguments.issue is not None:
