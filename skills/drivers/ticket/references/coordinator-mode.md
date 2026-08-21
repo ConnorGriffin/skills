@@ -36,6 +36,13 @@ What follows is what this skill adds on top. It replaces `start` steps 8 through
    that needs coordinator commentary to be executable is a triage defect, and the fix
    is to say so, not to patch it in the prompt.
 
+   `Surface lifecycle:` is part of that executable interface. Before dispatch,
+   confirm every UI-affecting sub-order says `build` or `revise` and names the lock
+   manifest or shipped behavior ledger/replay that mode consumes. On a rendered-
+   surface chunk, `none`, a missing legacy field, or a missing contract is a triage
+   defect. The worker loads the named UI Craft mode before implementing its `Do`
+   section; non-UI chunks keep `none`.
+
    Once the dispatcher exposes a stable transcript id, claim each unique
    implementation-worker session through the shared claim rule, passing
    `--session <id>`, `--agent <agent>`, and `--project <chunk-worktree>`. The agent

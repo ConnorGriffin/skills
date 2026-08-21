@@ -104,9 +104,25 @@ scope and spec documents committed in that worktree.
    instead. A single missing fact with no judgment attached (a hostname, a version)
    is the only exception. When nothing is genuinely uncertain, scope says so and
    returns without asking anything; that outcome is the pass signal, not a wasted
-   step. Resolved answers go into the order. A ticket needing user-interface
-   judgment hands off to `/ui-craft`'s lock phase first, and the order links the
-   locked spec.
+   step. Resolved answers go into the order.
+
+   **Resolve the surface lifecycle.** Every order and sub-order gets one closed
+   `Surface lifecycle:` value:
+
+   * `none` when it changes no rendered surface.
+   * `build` for a greenfield surface after `/ui-craft lock`, or for UI Craft's
+     explicit shipped-surface fallback. Name the lock manifest; on fallback also
+     name the predecessor behavior ledger and replay.
+   * `revise` for a shipped surface. Run UI Craft's setup/router during triage,
+     confirm its safe-start declaration and manufactured data source, and name the
+     frozen behavior ledger and replay that execution will use. Triage records the
+     route but does not start the app or implement the revision.
+
+   A UI Craft refusal or ambiguous route blocks the order. In a chunked order the
+   header carries the one non-`none` lifecycle active across the whole diff and
+   every sub-order carries its own; an affected sub-order must repeat the contract
+   paths it needs to stand alone. If chunks would mix `build` and `revise`, split
+   them into separate tickets instead of adding another lifecycle value.
 
 8. **Decide the shape: flat or chunked.** Read
    [references/slicing.md](../references/slicing.md) and run its trait rubric
@@ -130,7 +146,9 @@ scope and spec documents committed in that worktree.
     produce the right change. Name files and targets concretely. State what must
     not change. Set the verification command and its expectation. In a chunked
     order, no sub-order may reference another sub-order's content, and every chunk
-    names the files or targets it owns so parallel chunks cannot collide.
+    names the files or targets it owns so parallel chunks cannot collide. Check
+    that every fence's `Surface lifecycle:` value matches the route and contract
+    artifacts settled in step 7.
 
 11. **Adversarial review, mandatory.** Every draft order gets reviewed before it is
     shown to the user or posted; there is no unreviewed path to step 12. Run

@@ -169,6 +169,13 @@ When coordinator mode runs a ui-craft lifecycle, the delegation split is:
   building to a lock manifest is contract-following, not taste.
 - **Fidelity evidence**: the build agent produces the mock-vs-build screenshots;
   the coordinator walks the ledger as verification.
+- **Shipped-surface revision**: the hermetic-implementation route. The revision
+  agent uses the repo-declared safe fixture, replays the frozen behavior ledger
+  against the base before changing it, and iterates the shipped app in place; it
+  never creates a replacement mock or lock manifest.
+- **Revision evidence**: the revision agent produces same-fixture base-versus-
+  revision before/after renders and raw replay output. The coordinator verifies the
+  behavior-ledger amendment and replay result; there is no fidelity ledger.
 
 Untested seams (benchmark was single-shot mockup generation only): frontend
 build-to-lock with rendered gate assertions, and multi-round mockup iteration.
