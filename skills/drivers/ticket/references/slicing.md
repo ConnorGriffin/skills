@@ -82,6 +82,15 @@ chunk 1".
   that touch the same file are serial, not parallel.
 * **File ownership** is declared per chunk. Every chunk names the files or targets
   it owns, and two parallel chunks' ownership is disjoint, so they cannot collide.
+* **Capability ownership** is declared per chunk. A chunk owns one coherent
+  capability together with its named files or targets; every capability has exactly
+  one owning chunk.
+* **Shared-contract ownership** is explicit. Name every shared contract and give it
+  exactly one owning chunk. Other chunks may rely on the stated shared contract,
+  never on that chunk's private capability.
+* **Parallel isolation** follows from that ownership. A parallel chunk must not
+  implement, revise, or depend on another chunk's private capability; make it
+  serial when that work or dependency is real.
 * **Agent tier** comes from
   [the routing table](../../orchestrate/references/routing-table.md): classify the
   chunk into an area (exploration, hermetic implementation, documentation, review)

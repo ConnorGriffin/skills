@@ -597,6 +597,129 @@ class UiCraftContractTests(unittest.TestCase):
         self.assertRegex(sweep, r"Under `revise`, the\s+ledger amendment")
         self.assertIn("--skill spin-worktree", readme)
 
+    def test_web_implementation_is_disclosed_without_becoming_a_standalone_skill(self):
+        skill = (ROOT / "skills" / "drivers" / "ui-craft" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        build = (ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "build.md").read_text(
+            encoding="utf-8"
+        )
+        revise = (
+            ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "revise.md"
+        ).read_text(encoding="utf-8")
+        web = (
+            ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "web-implementation.md"
+        ).read_text(encoding="utf-8")
+        web_contract = " ".join(web.split())
+
+        pointer = "[reference/web-implementation.md](reference/web-implementation.md)"
+        self.assertIn(pointer, skill)
+        self.assertIn("web-implementation.md", build)
+        self.assertIn("web-implementation.md", revise)
+        self.assertLess(
+            web.index("## Establish the baseline"),
+            web.index("## Preserve behavior and choose CSS deliberately"),
+        )
+        for question in (
+            "ECMAScript standardization",
+            "Runtime or host support",
+            "Transform or polyfill support",
+        ):
+            self.assertIn(question, web)
+        for requirement in (
+            "browser and support policy",
+            "TypeScript target and libraries",
+            "async sequencing, concurrency, and cancellation",
+            "mutation and change-by-copy",
+            "nullish and other property states",
+            "Grid for two-dimensional layout",
+            "Flexbox for one-dimensional layout",
+            "container queries",
+            "logical properties",
+            "reduced motion",
+            "@supports",
+            "fallback or acceptable degradation",
+            "lock manifest",
+            "behavior ledger",
+            "rendered evidence",
+        ):
+            self.assertIn(requirement, web_contract)
+        for forbidden in ("browser or Node matrices", "edition snapshots", "proposal tables"):
+            self.assertIn(forbidden, web)
+        self.assertNotRegex(web, r"(?m)^\s*\|")
+        self.assertNotRegex(web, r"\b(?:Chrome|Firefox|Safari|Edge|Node)\s+(?:v)?\d+\b")
+        self.assertIn(
+            "https://github.com/ccheney/robust-skills/tree/0ace9a7f5c20d19cad678b894a717945da2ea8ed/skills/modern-javascript",
+            web,
+        )
+        self.assertIn(
+            "https://github.com/ccheney/robust-skills/tree/0ace9a7f5c20d19cad678b894a717945da2ea8ed/skills/modern-css",
+            web,
+        )
+        for name in ("modern-css", "modern-javascript"):
+            self.assertFalse((ROOT / "skills" / "tools" / name).exists())
+
+
+class CodebaseDesignHexagonalContractTests(unittest.TestCase):
+    def test_hexagonal_direction_preserves_seam_discipline(self):
+        skill = (ROOT / "skills" / "tools" / "codebase-design" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        deepening = (
+            ROOT / "skills" / "tools" / "codebase-design" / "references" / "DEEPENING.md"
+        ).read_text(encoding="utf-8")
+        core = skill.split("**Core**", 1)[1].split("**Leverage**", 1)[0]
+        principles = skill.split("## Principles", 1)[1].split(
+            "## Designing for testability", 1
+        )[0]
+        skill_direction = principles.split("**Hexagonal direction.**", 1)[1]
+        seam_discipline = deepening.split("## Seam discipline", 1)[1].split(
+            "## Testing strategy", 1
+        )[0]
+        deepening_direction = seam_discipline.split("**Hexagonal direction.**", 1)[1]
+
+        core_terms = core.lower()
+        for requirement in ("offers", "interface", "requires", "core side"):
+            self.assertIn(requirement, core_terms)
+
+        self.assertLess(
+            principles.index("**One adapter means a hypothetical seam."),
+            principles.index("**Hexagonal direction.**"),
+        )
+        self.assertLess(
+            seam_discipline.index("**One adapter means a hypothetical seam."),
+            seam_discipline.index("**Internal seams vs external seams.**"),
+        )
+        self.assertLess(
+            seam_discipline.index("**Internal seams vs external seams.**"),
+            seam_discipline.index("**Hexagonal direction.**"),
+        )
+
+        for direction in (skill_direction, deepening_direction):
+            normalized = " ".join(direction.lower().split())
+            for requirement in (
+                "adapters depend toward the core",
+                "core code must not import",
+                "translate",
+                "business rules",
+                "composition selects adapters",
+                "one-adapter case local",
+                "handler directly",
+            ):
+                self.assertIn(requirement, normalized)
+            self.assertLess(
+                normalized.index("adapters depend toward the core"),
+                normalized.index("composition selects adapters"),
+            )
+
+        self.assertIn("The deletion test.", principles)
+        self.assertIn("Locality", skill)
+        self.assertIn("core side of the seam", deepening_direction)
+
+        design_contract = "\n".join((skill, deepening)).lower()
+        for forbidden in ("cqrs", "event sourcing", "aggregate limit", "outbox"):
+            self.assertNotIn(forbidden, design_contract)
+
 
 class SpinWorktreeTests(unittest.TestCase):
     def setUp(self):

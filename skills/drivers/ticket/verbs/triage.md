@@ -127,9 +127,13 @@ scope and spec documents committed in that worktree.
 8. **Decide the shape: flat or chunked.** Read
    [references/slicing.md](../references/slicing.md) and run its trait rubric
    against what grounding found. It decides flat or chunked and, when chunked,
-   sizes the chunks and names each one's mode, file ownership, agent tier, and the
-   orchestrator tier. Record which traits fired and which anchor row the ticket
-   matches; the order carries that reasoning, so a wrong call is visible later.
+   sizes the chunks and names each one's mode, coherent capability ownership, file
+   or target ownership, shared-contract ownership, agent tier, and the orchestrator
+   tier. Every capability and shared contract has exactly one owning chunk. A
+   parallel chunk must not implement, revise, or depend on another chunk's private
+   capability; make that work serial when the dependency is real. Record which
+   traits fired and which anchor row the ticket matches; the order carries that
+   reasoning, so a wrong call is visible later.
 
 9. **Stamp the review depth.** Read
    [references/review-depth.md](../references/review-depth.md) and stamp one depth
@@ -145,10 +149,11 @@ scope and spec documents committed in that worktree.
     session: a competent agent with only the ticket and that one block should
     produce the right change. Name files and targets concretely. State what must
     not change. Set the verification command and its expectation. In a chunked
-    order, no sub-order may reference another sub-order's content, and every chunk
-    names the files or targets it owns so parallel chunks cannot collide. Check
-    that every fence's `Surface lifecycle:` value matches the route and contract
-    artifacts settled in step 7.
+    order, no sub-order may reference another sub-order's content. Every chunk
+    names its coherent capability and its files or targets; every capability and
+    shared contract has exactly one owning chunk, so parallel chunks cannot collide
+    or depend on private capability. Check that every fence's `Surface lifecycle:`
+    value matches the route and contract artifacts settled in step 7.
 
 11. **Adversarial review, mandatory.** Every draft order gets reviewed before it is
     shown to the user or posted; there is no unreviewed path to step 12. Run
@@ -185,9 +190,10 @@ scope and spec documents committed in that worktree.
     sound order is a successful review.
 
     e. Chunked orders get one more axis: does each sub-order stand alone in a fresh
-    agent, are two parallel chunks' file and target ownership disjoint, and does the
-    serial ordering reflect a real dependency rather than habit. A chunk failing any
-    of those is a blocking objection.
+    agent; does every capability and shared contract have exactly one owning chunk;
+    are two parallel chunks' file, target, and capability ownership disjoint; and
+    does the serial ordering reflect a real dependency rather than habit. A chunk
+    failing any of those is a blocking objection.
 
     Hard cap at three review panels regardless of tier. Blocking objections still
     arriving at the cap mean the order has unsettled decisions, not undiscovered

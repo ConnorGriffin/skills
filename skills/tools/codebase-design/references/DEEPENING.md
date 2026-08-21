@@ -47,6 +47,13 @@ adapter.
   (private to its implementation, used by its own tests) as well as the
   external seam at its interface. Don't expose internal seams through the
   interface just because tests use them.
+- **Hexagonal direction.** The core offers its interface to callers and declares
+  the capability it requires from the outside; locate both interface decisions on
+  the core side of the seam. Adapters depend toward the core, while core code must
+  not import infrastructure, framework, storage, clock, or protocol details.
+  Adapters translate those external details and do not duplicate business rules;
+  composition selects adapters. Keep a one-adapter case local, and let a simple
+  module expose its handler directly.
 
 ## Testing strategy: replace, don't layer
 

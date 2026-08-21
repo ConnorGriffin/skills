@@ -86,6 +86,72 @@ def assistant_line(
 
 
 class TicketSkillContractTests(unittest.TestCase):
+    def test_chunk_contract_owns_capabilities_and_shared_contracts_once(self):
+        slicing = (TICKET_DIRECTORY / "references" / "slicing.md").read_text(
+            encoding="utf-8"
+        )
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
+            encoding="utf-8"
+        )
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(
+            encoding="utf-8"
+        )
+        trait_rubric = slicing.split("## The trait rubric", 1)[1].split(
+            "## Anchor table", 1
+        )[0]
+        chunk_shape = slicing.split("## Chunk shape", 1)[1].split(
+            "## Orchestrator tier", 1
+        )[0]
+        triage_shape = triage.split("8. **Decide the shape", 1)[1].split(
+            "9. **Stamp the review depth", 1
+        )[0]
+        sub_order = template.split("SUB-ORDER 1/<n>", 1)[1].split("```", 1)[0]
+
+        self.assertRegex(
+            trait_rubric,
+            r"Slice when \*\*two or more\*\* of these hold\. One or zero: the order stays flat\.",
+        )
+        for heading in (
+            "**File ownership**",
+            "**Capability ownership**",
+            "**Shared-contract ownership**",
+            "**Parallel isolation**",
+        ):
+            self.assertIn(heading, chunk_shape)
+        self.assertLess(
+            chunk_shape.index("**Capability ownership**"),
+            chunk_shape.index("**Shared-contract ownership**"),
+        )
+        self.assertLess(
+            chunk_shape.index("**Shared-contract ownership**"),
+            chunk_shape.index("**Parallel isolation**"),
+        )
+        self.assertIn("capability ownership", triage_shape)
+        self.assertIn("shared-contract ownership", triage_shape)
+
+        self.assertEqual(template.count("Capability owned:"), 1)
+        self.assertEqual(template.count("Shared contracts owned:"), 1)
+        self.assertLess(
+            sub_order.index("Review depth:"), sub_order.index("Capability owned:")
+        )
+        self.assertLess(
+            sub_order.index("Shared contracts owned:"), sub_order.index("Context")
+        )
+        for heading in ("Context", "Do", "Done when", "Boundaries"):
+            self.assertIn(heading, sub_order)
+
+        parallel_isolation = chunk_shape.split("**Parallel isolation**", 1)[1].split(
+            "**Agent tier**", 1
+        )[0]
+        for contract in (parallel_isolation, triage_shape, sub_order):
+            normalized = " ".join(contract.lower().split())
+            for requirement in ("parallel", "implement", "revise", "depend", "private capability"):
+                self.assertIn(requirement, normalized)
+
+        ticket_contract = "\n".join((slicing, template, triage))
+        for forbidden in ("@x", "Feature-Sliced", "Steiger"):
+            self.assertNotIn(forbidden, ticket_contract)
+
     def test_surface_lifecycle_is_produced_and_consumed_across_ticket_paths(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
         start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")
@@ -98,6 +164,9 @@ class TicketSkillContractTests(unittest.TestCase):
         orchestrate = (
             ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md"
         ).read_text(encoding="utf-8")
+        ui_craft = (ROOT / "skills" / "drivers" / "ui-craft" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
 
         self.assertIn("Surface lifecycle: <none | build | revise>", template)
         self.assertEqual(
@@ -112,6 +181,11 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertIn("before/after", start)
         self.assertIn("Surface lifecycle:", coordinator)
         self.assertIn("Shipped-surface revision", orchestrate)
+        self.assertIn("/ui-craft", " ".join(start.split()))
+        self.assertIn(
+            "[reference/web-implementation.md](reference/web-implementation.md)",
+            ui_craft,
+        )
 
     def test_start_opens_with_summary_and_claim_before_fetching_the_order(self):
         shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")

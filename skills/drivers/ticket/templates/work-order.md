@@ -141,6 +141,8 @@ Mode: parallel | serial after <n>
 Agent: <haiku | sonnet | opus>
 Surface lifecycle: <none | build | revise>
 Review depth: <focused | targeted | full> (<one-line reason>)
+Capability owned: <one coherent capability; exactly one sub-order owns it>
+Shared contracts owned: <none | each named contract this sub-order owns>
 
 Context
 <everything this chunk needs to stand alone in a fresh agent. Never "as established
@@ -154,6 +156,8 @@ Done when
 
 Boundaries
 * Touch only <files/targets this chunk owns>. Another chunk owns <the rest>.
+* A parallel chunk must not implement, revise, or depend on this chunk's private
+  capability. Name any shared contract and its one owning sub-order instead.
 * Do not record the change; the coordinator owns that.
 * Commit on this chunk's branch. Do not open a pull request, do not merge.
 ```

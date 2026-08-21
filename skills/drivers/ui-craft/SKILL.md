@@ -120,6 +120,12 @@ General design invocations with no mode match (e.g. "make this less bland",
 greenfield surface → `critique`-then-fix. Use
 [reference/design-rules.md](reference/design-rules.md) for the craft pass.
 
+**Web implementation.** For `build`, `revise`, and general UI implementation that
+changes CSS or JavaScript/TypeScript, read
+[reference/web-implementation.md](reference/web-implementation.md) before changing
+code. It governs web mechanics; UI Craft retains lifecycle, visual-contract,
+behavior-preservation, and rendered-evidence ownership.
+
 ## Design rules (all modes)
 
 [reference/design-rules.md](reference/design-rules.md) carries the shared
