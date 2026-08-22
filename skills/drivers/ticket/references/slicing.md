@@ -16,6 +16,7 @@ Slice when **two or more** of these hold. One or zero: the order stays flat.
 | Live run inside the ticket | Acceptance requires standing up and running the artifact before the pull request — real infrastructure, or a local harness the ticket must build first (a browser driver, a seeded database, an offline server) — so what the run exposes is corrected in the same session |
 | Split-path evidence | Acceptance requires proving the same behavior on more than one code path that a single run cannot both exercise — a platform or feature-flag branch, or a re-implementation in another language held identical by test — so each path costs its own harness |
 | Lockstep copies of one fact | Adding one member to a closed set obliges edits in more than two encodings that no single tool checks together: a source of truth, a hand-maintained transcription, a fixture generator, and the committed fixture it freezes |
+| Lifecycle-gated surface revision | A shipped user-facing surface must first lock its visual contract, then implement it and prove it through a browser evidence matrix; the lock, implementation, and evidence each consume the same ticket's context |
 
 The traits are proxies for context load, not for effort. A long-but-uniform change
 (twenty near-identical grants in one target) fires nothing and stays flat, while a
@@ -42,6 +43,7 @@ the helper's `scan` command, not estimates.
 | D | Port live networking into the repo's own tooling, with imports | multiple targets, import | slice; was not | 574k in one session |
 | E | CI previewing every deployment target | multiple targets, multiple artifacts | slice | 359k plus a 313k resume |
 | F | One new member of a closed behavioural taxonomy, wired through its server projection, a JS mirror, three fixture generators and a browser gate | multiple artifacts, live run, lockstep copies | slice: detector and its tests, then the surface and its fixtures | flat; peaked 503k over 4 sessions |
+| 10 | Proof-bounded I:C history across an analyzer, server projections, generated fixtures, and a lifecycle-gated Diagnose revision | multiple artifacts, live run, lockstep copies, lifecycle-gated surface revision | slice into four serial chunks: analyzer, server contract, generated projections/evidence, then surface lock and browser evidence | 3 chunks; peaked 244k |
 
 When a ticket's traits match an anchor row, take that row's shape. When it sits
 between rows, say which two and pick the more conservative one.
