@@ -26,6 +26,7 @@ EXPECTED = {
     "tools/cbm-onboard",
     "tools/codebase-memory",
     "tools/ci-design",
+    "tools/clean",
     "tools/code-review",
     "tools/codebase-design",
     "tools/domain-modeling",
