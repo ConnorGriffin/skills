@@ -164,6 +164,50 @@ class TicketSkillContractTests(unittest.TestCase):
         for forbidden in ("@x", "Feature-Sliced", "Steiger"):
             self.assertNotIn(forbidden, ticket_contract)
 
+    def test_trait_explanation_ordinals_still_point_at_their_rows(self):
+        # The paragraph under the trait table explains traits by position ("The
+        # fifth asks..."), so inserting or reordering a row silently re-points
+        # every later ordinal at a trait it does not describe. That is how the
+        # table and its explanation drift apart without either looking wrong.
+        slicing = (TICKET_DIRECTORY / "references" / "slicing.md").read_text(
+            encoding="utf-8"
+        )
+        trait_rubric = slicing.split("## The trait rubric", 1)[1].split(
+            "## Anchor table", 1
+        )[0]
+        rows = [
+            line.split("|")[1].strip()
+            for line in trait_rubric.splitlines()
+            if line.startswith("|") and not line.startswith("|---")
+        ][1:]
+        explanation = " ".join(trait_rubric.split("|\n\n", 1)[1].split())
+
+        ordinals = {
+            "first four": 4,
+            "fifth": 5,
+            "sixth": 6,
+            "seventh": 7,
+        }
+        expected = {
+            5: "Live run inside the ticket",
+            6: "Split-path evidence",
+            7: "Lockstep copies of one fact",
+        }
+        for word, position in ordinals.items():
+            self.assertIn(
+                f"The {word}",
+                explanation,
+                f"the explanation no longer refers to the {word} trait",
+            )
+            self.assertGreaterEqual(len(rows), position)
+            if position in expected:
+                self.assertEqual(
+                    rows[position - 1],
+                    expected[position],
+                    f"the {word} trait row is no longer {expected[position]!r};"
+                    " the explanation's ordinal now describes the wrong trait",
+                )
+
     def test_surface_lifecycle_is_produced_and_consumed_across_ticket_paths(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
         start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")

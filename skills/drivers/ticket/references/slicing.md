@@ -15,7 +15,7 @@ Slice when **two or more** of these hold. One or zero: the order stays flat.
 | Multiple deliverable artifacts | More than one shippable thing: a library change plus its consumers, a workflow plus the scripts it calls, code plus a runbook |
 | Live run inside the ticket | Acceptance requires standing up and running the artifact before the pull request — real infrastructure, or a local harness the ticket must build first (a browser driver, a seeded database, an offline server) — so what the run exposes is corrected in the same session |
 | Split-path evidence | Acceptance requires proving the same behavior on more than one code path that a single run cannot both exercise — a platform or feature-flag branch, or a re-implementation in another language held identical by test — so each path costs its own harness |
-| Lockstep copies of one fact | Adding one member to a closed set obliges edits in more than two encodings that no single tool checks together: a source of truth, a hand-maintained transcription, a fixture generator, and the committed fixture it freezes |
+| Lockstep copies of one fact | One fact is obliged to appear in more than two encodings that no single tool checks together: a source of truth, a hand-maintained transcription, a fixture generator and the fixture it freezes, or one rule restated in separately installed artifacts that never see each other at run time |
 | Lifecycle-gated surface revision | A shipped user-facing surface must first lock its visual contract, then implement it and prove it through a browser evidence matrix; the lock, implementation, and evidence each consume the same ticket's context |
 | In-flight scope replacement | A new work order rejects implementation already on the ticket branch and must remove or reconcile it before building the replacement |
 
@@ -27,9 +27,10 @@ whether the ticket also has to operate it, which costs a discovery-and-fix cycle
 per surprise plus whatever the run itself takes. The sixth asks what it costs to
 prove the change: a diff of two lines can owe two harnesses when the paths it
 touches cannot both run at once, and building the second one is the work. The
-seventh asks how many places one fact is written down: a single new member of a
-closed set costs a pass per encoding, and the encodings drift because nothing
-checks them together.
+seventh asks how many places one fact is written down: every encoding of that
+fact costs its own pass, whether they are chained from a single source of truth
+or restated independently of one another, and they drift because nothing checks
+them together.
 
 ## Anchor table
 
@@ -47,6 +48,7 @@ the helper's `scan` command, not estimates.
 | 53 | Replace a rejected application route already on the ticket branch, then build a narrower shared route adapter and update its consumers | multiple artifacts, in-flight scope replacement | slice into two serial chunks: remove and reconcile the rejected implementation, then build and verify the replacement | flat revised order; peaked 245k across 5 sessions |
 | 10 | Proof-bounded I:C history across an analyzer, server projections, generated fixtures, and a lifecycle-gated Diagnose revision | multiple artifacts, live run, lockstep copies, lifecycle-gated surface revision | slice into four serial chunks: analyzer, server contract, generated projections/evidence, then surface lock and browser evidence | 3 chunks; peaked 244k |
 | 90 | One shared behavioural judgment across model view, two server projections, generated fixtures and mirrors, and browser replay | multiple artifacts, live run, lockstep copies | slice into three serial chunks: source judgment, projection contracts, then generated artifacts and live replay | 2 chunks; peaked 231k |
+| 90 (skills) | A shared graph-identity interface, its ticket-workflow consumers, and the separately installed discovery policy, with argv and response shapes discovered by probing a live external CLI | multiple artifacts, lockstep copies | slice into two serial chunks: the ensure interface with its spiked contract tests, then the workflow pages and discovery policy that consume it | flat; peaked 243k in one session |
 
 When a ticket's traits match an anchor row, take that row's shape. When it sits
 between rows, say which two and pick the more conservative one.
