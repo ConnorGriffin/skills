@@ -146,6 +146,42 @@ step is a slot:
   credentials, no access, no runnable suite), say so, open the pull request as a
   draft, and name the missing evidence.
 
+## The graph identity
+
+Before a verb reads code structurally, it binds its current checkout to exactly one
+Codebase Memory project, from that checkout's own path:
+
+```sh
+python3 <cbm-onboard-skill-directory>/scripts/cbm-lifecycle.py ensure <worktree path>
+```
+
+It prints one object, and the verb reports it verbatim:
+
+```json
+{"root_path": "<canonical physical checkout>", "project": "cbm-onboard-v1-<sha256>", "status": "ready"}
+```
+
+* `ready` or `indexed`: query the graph as exactly that `project`. Never pick the
+  graph by project name, branch-like label, list order, apparent recency, or because
+  it was the only result.
+* `unavailable` (exit 2): no usable Codebase Memory here, so say so in one line and
+  use ordinary discovery for the rest of the session.
+* Any other failure (exit 1): stop the verb and report what `ensure` printed on
+  stderr, which names the cause — a path that is not a checkout, or an installed
+  tool answering for the wrong project or root. Neither is a case where guessing a
+  graph is safe.
+
+Every session recomputes this from the checkout it just verified, never from chat
+memory or a remembered earlier run. It names one machine's paths, so it never goes
+into a work order or any other tracker comment; a chunk agent is handed its own in
+its prompt.
+
+Before Git removes a worktree this skill authored, the same directory's
+`cbm-teardown.sh` deletes that checkout's project, while the checkout still exists
+for the identity to be derived from. Teardown fails loudly on a machine with no
+Codebase Memory installed, which is expected: report it in one line and carry on
+with the removal. It never holds up the removal, and it is never retried.
+
 ## Standing decisions
 
 A project may point this skill at a knowledge base of standing decisions and

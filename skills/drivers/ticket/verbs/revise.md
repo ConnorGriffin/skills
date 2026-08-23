@@ -15,10 +15,11 @@ long ago and the pull request is one diff.
    `git -C <control checkout> worktree list`), check it is on the pull request's
    head branch: `git -C <worktree> branch --show-current` must equal the pull
    request's `headRefName`. Match: work there. Mismatch: the worktree belongs to a
-   different round or ticket state, so remove it if clean
-   (`git -C <control checkout> worktree remove <path>`, reporting and stopping if
-   `git -C <worktree> status --short` is non-empty, never forcing) and respin fresh.
-   No worktree at all: same respin.
+   different round or ticket state, so remove it if clean (run
+   `<cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <path>` while the checkout
+   still exists, then `git -C <control checkout> worktree remove <path>`, reporting
+   and stopping if `git -C <worktree> status --short` is non-empty, never forcing)
+   and respin fresh. No worktree at all: same respin.
 
    ```sh
    python3 <spin-worktree-skill-directory>/scripts/spin-worktree.py \
@@ -28,6 +29,10 @@ long ago and the pull request is one diff.
    ```
 
    Never fix review comments in the control checkout.
+
+   Bind that worktree's graph identity per the skill page's graph-identity rule
+   before step 4 reads any code, and report what it printed. Each round resolves it
+   afresh, because the worktree it runs against may be the one this step respun.
 
 3. **Read the standing decisions**, per the skill page's standing-decisions slot,
    before actioning the round. Absent, say so in one line and continue. This never
