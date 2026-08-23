@@ -41,7 +41,18 @@ directory containing several repositories.
    Linked worktrees share the control checkout's Git hooks; they cannot have
    independent hooks. Pass `--this-checkout` only to select the supplied
    checkout's `.cbmignore` and initial index. Hook installation still resolves
-   through Git's shared hooks directory.
+   through Git's shared hooks directory. When one of those shared hooks fires
+   from a linked worktree, it refreshes that worktree in fast mode under the
+   same deterministic identity used by the ephemeral lifecycle. It never falls
+   back to a path-derived project. Failed checkout classification, a missing
+   binary or detached launcher, an unsupported version, or an identity that
+   cannot be derived prints one reason and lets the Git operation continue.
+
+   Re-run onboarding from the installed skill directory to repair an enrollment
+   whose managed hook points at a stale or foreign installation. Onboarding
+   replaces both its current fenced block and the older unfenced
+   `codebase-memory-mcp: reindex` marker, preserves every line it does not own,
+   and writes one managed block pointing at the installation that invoked it.
 
 3. For an ephemeral checkout, run the complete lifecycle:
 
@@ -90,10 +101,11 @@ directory containing several repositories.
 7. Tell the user that `.cbmignore` is tracked and should be committed. The Git
    hooks are clone-local, so rerun onboarding after a fresh clone.
 
-The initial index uses full mode. Maintained-checkout post-commit/post-merge/post-checkout
-indexing uses fast mode in a detached process and always exits 0, so a broken
-index never fails a commit, merge, or checkout. Re-running onboarding is
-idempotent.
+The initial index uses full mode. Post-commit/post-merge/post-checkout indexing
+uses fast mode in a detached process and always exits 0, so a broken index never
+fails a commit, merge, or checkout. Maintained checkouts keep their derived
+project name; linked worktrees use their deterministic lifecycle identity.
+Re-running onboarding is idempotent.
 
 Repositories dominated by YAML, prose, or shell may produce a thin graph; say
 so rather than refusing to index them.

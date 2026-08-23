@@ -23,6 +23,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 CBM_SCRIPT = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-onboard.sh"
+CBM_REINDEX = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-reindex.sh"
 CBM_TEARDOWN = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-teardown.sh"
 CBM_LIFECYCLE = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-lifecycle.py"
 SPIN_SCRIPT = ROOT / "skills" / "tools" / "spin-worktree" / "scripts" / "spin-worktree.py"
@@ -382,6 +383,273 @@ raise SystemExit(exit_code)
         self.binary.chmod(0o755)
         self.environment["CBM_FAKE_REQUESTS"] = str(self.requests)
         self.environment["CBM_FAKE_DELETE_STATE"] = str(self.scratch / "deleted")
+
+    def issued(self) -> list[list[str]]:
+        if not self.requests.exists():
+            return []
+        return [
+            json.loads(line)
+            for line in self.requests.read_text(encoding="utf-8").splitlines()
+        ]
+
+    def wait_for_requests(self, count: int) -> list[list[str]]:
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            requests = self.issued()
+            if len(requests) >= count:
+                return requests
+            time.sleep(0.01)
+        return self.issued()
+
+    def seed_repository(self):
+        run(["git", "config", "user.name", "Test User"], cwd=self.repo)
+        run(["git", "config", "user.email", "test@example.invalid"], cwd=self.repo)
+        (self.repo / "README.md").write_text("fixture\n", encoding="utf-8")
+        run(["git", "add", "README.md"], cwd=self.repo)
+        result = run(["git", "commit", "-m", "fixture"], cwd=self.repo)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def add_linked_worktree(self) -> Path:
+        worktree = self.scratch / "linked worktree"
+        result = run(
+            ["git", "worktree", "add", "-b", "fixture-worktree", str(worktree)],
+            cwd=self.repo,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return worktree
+
+    def install_reindex_hooks(self, environment=None):
+        result = run(
+            [str(CBM_SCRIPT), str(self.repo)],
+            cwd=ROOT,
+            env=(environment or self.environment) | {"CBM_SKIP_INDEX": "1"},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def commit_change(self, checkout: Path, message: str, environment=None):
+        (checkout / "README.md").write_text("changed\n", encoding="utf-8")
+        run(
+            ["git", "add", "README.md"],
+            cwd=checkout,
+            env=environment or self.environment,
+        )
+        return run(
+            ["git", "commit", "-m", message],
+            cwd=checkout,
+            env=environment or self.environment,
+        )
+
+    def test_worktree_commit_reindexes_once_under_its_deterministic_identity(self):
+        self.seed_repository()
+        worktree = self.add_linked_worktree()
+        self.configure_lifecycle_binary()
+        self.install_reindex_hooks()
+
+        committed = self.commit_change(worktree, "exercise reindex hook")
+
+        self.assertEqual(committed.returncode, 0, committed.stderr)
+        canonical = str(worktree.resolve())
+        expected_name = "cbm-onboard-v1-" + hashlib.sha256(os.fsencode(canonical)).hexdigest()
+        self.assertEqual(
+            self.wait_for_requests(1),
+            [[
+                "cli",
+                "--json",
+                "index_repository",
+                "--repo-path",
+                canonical,
+                "--mode",
+                "fast",
+                "--name",
+                expected_name,
+            ]],
+        )
+
+    def test_maintained_checkout_commit_keeps_derived_name_reindexing(self):
+        self.seed_repository()
+        self.configure_lifecycle_binary()
+        self.install_reindex_hooks()
+
+        committed = self.commit_change(self.repo, "exercise reindex hook")
+
+        self.assertEqual(committed.returncode, 0, committed.stderr)
+        requests = self.wait_for_requests(1)
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(requests[0][:2], ["cli", "index_repository"])
+        self.assertEqual(
+            json.loads(requests[0][2]),
+            {"repo_path": str(self.repo.resolve()), "mode": "fast"},
+        )
+        self.assertNotIn("--name", requests[0])
+
+    def test_logical_checkout_path_is_still_classified_as_maintained(self):
+        self.seed_repository()
+        self.configure_lifecycle_binary()
+        logical_root = self.scratch / "logical checkout"
+        logical_root.symlink_to(self.repo, target_is_directory=True)
+        real_git = shutil.which("git")
+        self.assertIsNotNone(real_git)
+        shim_directory = self.scratch / "bin"
+        shim_directory.mkdir()
+        git_shim = shim_directory / "git"
+        git_shim.write_text(
+            f"""#!{sys.executable}
+import os
+import sys
+
+if "--show-toplevel" in sys.argv:
+    print({str(logical_root)!r})
+    raise SystemExit(0)
+if "--absolute-git-dir" in sys.argv:
+    print({str(self.repo.resolve() / '.git')!r})
+    raise SystemExit(0)
+if "--git-common-dir" in sys.argv:
+    print(".git")
+    raise SystemExit(0)
+os.execv({real_git!r}, [{real_git!r}, *sys.argv[1:]])
+""",
+            encoding="utf-8",
+        )
+        git_shim.chmod(0o755)
+        environment = self.environment | {
+            "PATH": f"{shim_directory}{os.pathsep}{self.environment['PATH']}",
+            "PWD": str(logical_root),
+        }
+
+        result = run([str(CBM_REINDEX)], cwd=logical_root, env=environment)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        requests = self.wait_for_requests(1)
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(requests[0][:2], ["cli", "index_repository"])
+        self.assertEqual(
+            json.loads(requests[0][2]),
+            {"repo_path": str(logical_root), "mode": "fast"},
+        )
+        self.assertNotIn("--name", requests[0])
+
+    def test_commit_lands_when_reindex_binary_is_missing_and_names_the_reason(self):
+        self.seed_repository()
+        self.configure_lifecycle_binary()
+        self.install_reindex_hooks()
+        self.binary.unlink()
+
+        committed = self.commit_change(self.repo, "exercise missing binary")
+
+        self.assertEqual(committed.returncode, 0, committed.stderr)
+        self.assertEqual(
+            committed.stderr.splitlines(),
+            ["Codebase Memory refresh skipped: binary is not executable"],
+        )
+        self.assertEqual(self.issued(), [])
+
+    def test_reindex_names_a_missing_detached_launcher(self):
+        self.seed_repository()
+        self.configure_lifecycle_binary()
+        shim_directory = self.scratch / "bin"
+        shim_directory.mkdir()
+        for command in ("dirname", "git", "python3"):
+            executable = shutil.which(command)
+            self.assertIsNotNone(executable)
+            (shim_directory / command).symlink_to(executable)
+        environment = self.environment | {"PATH": str(shim_directory)}
+
+        result = run([str(CBM_REINDEX)], cwd=self.repo, env=environment)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stderr.splitlines(),
+            ["Codebase Memory refresh skipped: detached launcher is unavailable"],
+        )
+        self.assertEqual(self.issued(), [])
+
+    def test_reindex_skips_when_checkout_classification_fails(self):
+        self.seed_repository()
+        self.configure_lifecycle_binary()
+        real_git = shutil.which("git")
+        self.assertIsNotNone(real_git)
+        shim_directory = self.scratch / "bin"
+        shim_directory.mkdir()
+        git_shim = shim_directory / "git"
+        git_shim.write_text(
+            f"""#!{sys.executable}
+import os
+import sys
+
+if "--absolute-git-dir" in sys.argv:
+    raise SystemExit(1)
+os.execv({real_git!r}, [{real_git!r}, *sys.argv[1:]])
+""",
+            encoding="utf-8",
+        )
+        git_shim.chmod(0o755)
+        environment = self.environment | {
+            "PATH": f"{shim_directory}{os.pathsep}{self.environment['PATH']}"
+        }
+
+        result = run(
+            [str(CBM_REINDEX)], cwd=self.repo, env=environment
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stderr.splitlines(),
+            ["Codebase Memory refresh skipped: checkout classification failed"],
+        )
+        self.assertEqual(self.issued(), [])
+
+    def test_worktree_commit_skips_an_unsupported_binary_without_falling_back(self):
+        self.seed_repository()
+        worktree = self.add_linked_worktree()
+        self.configure_lifecycle_binary()
+        environment = self.environment | {"CBM_FAKE_VERSION": "codebase-memory-mcp 0.10.7"}
+        self.install_reindex_hooks(environment)
+
+        committed = self.commit_change(
+            worktree, "exercise unsupported binary", environment
+        )
+
+        self.assertEqual(committed.returncode, 0, committed.stderr)
+        self.assertEqual(
+            committed.stderr.splitlines(),
+            ["Codebase Memory refresh skipped: binary version is unsupported"],
+        )
+        self.assertEqual(self.issued(), [])
+
+    def test_worktree_commit_skips_when_identity_cannot_be_derived(self):
+        self.seed_repository()
+        worktree = self.add_linked_worktree()
+        self.configure_lifecycle_binary()
+        self.install_reindex_hooks()
+        shim_directory = self.scratch / "bin"
+        shim_directory.mkdir()
+        python_shim = shim_directory / "python3"
+        python_shim.write_text(
+            f"""#!{sys.executable}
+import os
+import sys
+
+if len(sys.argv) > 2 and sys.argv[1].endswith("cbm-lifecycle.py") and sys.argv[2] == "identity":
+    raise SystemExit(1)
+os.execv({sys.executable!r}, [{sys.executable!r}, *sys.argv[1:]])
+""",
+            encoding="utf-8",
+        )
+        python_shim.chmod(0o755)
+        environment = self.environment | {
+            "PATH": f"{shim_directory}{os.pathsep}{self.environment['PATH']}"
+        }
+
+        committed = self.commit_change(
+            worktree, "exercise missing identity helper", environment
+        )
+
+        self.assertEqual(committed.returncode, 0, committed.stderr)
+        self.assertEqual(
+            committed.stderr.splitlines(),
+            ["Codebase Memory refresh skipped: worktree identity could not be derived"],
+        )
+        self.assertEqual(self.issued(), [])
 
     def test_hookless_onboarding_indexes_exact_worktree_without_touching_hooks(self):
         run(["git", "config", "user.name", "Test User"], cwd=self.repo)
@@ -746,6 +1014,77 @@ raise SystemExit(exit_code)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("refusing symlink without a regular-file target", result.stderr)
         self.assertFalse((self.scratch / "does-not-exist").exists())
+
+    def test_reonboarding_replaces_only_the_legacy_hook_block(self):
+        legacy_marker = (
+            "# codebase-memory-mcp: reindex on commit "
+            "(managed by cbm-onboard — cbm-reindex)"
+        )
+        legacy_script = self.scratch / "legacy install" / "cbm-reindex.sh"
+        unrelated_script = self.scratch / "other" / "cbm-reindex.sh"
+        cases = (
+            (f'"{legacy_script}"', (f'exec "{unrelated_script}"',)),
+            (
+                f'"{legacy_script}" --extra',
+                (f'"{legacy_script}" --extra', f'exec "{unrelated_script}"'),
+            ),
+        )
+
+        for invocation, preserved in cases:
+            with self.subTest(invocation=invocation):
+                hook = self.repo / ".git" / "hooks" / "post-commit"
+                hook.write_text(
+                    "#!/bin/sh\n"
+                    "printf 'before\\n'\n"
+                    f"{legacy_marker}\n"
+                    f"{invocation}\n"
+                    "printf 'after\\n'\n"
+                    f'exec "{unrelated_script}"\n',
+                    encoding="utf-8",
+                )
+                hook.chmod(0o755)
+
+                result = run(
+                    [str(CBM_SCRIPT), str(self.repo)],
+                    cwd=ROOT,
+                    env=self.environment | {"CBM_SKIP_INDEX": "1"},
+                )
+
+                self.assertEqual(result.returncode, 0, result.stderr)
+                contents = hook.read_text(encoding="utf-8")
+                self.assertNotIn(legacy_marker, contents)
+                self.assertEqual(contents.count(BEGIN_HOOK), 1)
+                self.assertEqual(contents.count(f'"{CBM_REINDEX}"'), 1)
+                self.assertIn("printf 'before\\n'", contents)
+                self.assertIn("printf 'after\\n'", contents)
+                for line in preserved:
+                    self.assertIn(line, contents)
+
+    def test_repaired_legacy_hook_reindexes_the_next_commit(self):
+        self.seed_repository()
+        legacy_script = self.scratch / "legacy install" / "cbm-reindex.sh"
+        hook = self.repo / ".git" / "hooks" / "post-commit"
+        hook.write_text(
+            "#!/bin/sh\n"
+            "# codebase-memory-mcp: reindex on commit "
+            "(managed by cbm-onboard — cbm-reindex)\n"
+            f'"{legacy_script}"\n',
+            encoding="utf-8",
+        )
+        hook.chmod(0o755)
+        self.configure_lifecycle_binary()
+        self.install_reindex_hooks()
+
+        committed = self.commit_change(self.repo, "exercise repaired hook")
+
+        self.assertEqual(committed.returncode, 0, committed.stderr)
+        request = self.wait_for_requests(1)
+        self.assertEqual(len(request), 1)
+        self.assertEqual(
+            json.loads(request[0][2]),
+            {"repo_path": str(self.repo.resolve()), "mode": "fast"},
+        )
+
     def test_preserves_unmatched_markers_foreign_hook_and_is_idempotent(self):
         run(
             ["git", "config", "core.hooksPath", ".custom-hooks"],
