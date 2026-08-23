@@ -213,6 +213,11 @@ for HOOK_NAME in post-commit post-merge post-checkout; do
       END {
         i = 1
         while (i <= n) {
+          if (lines[i] ~ /^# codebase-memory-mcp: reindex on .* \(managed by cbm-onboard/) {
+            i++
+            if (i <= n && lines[i] ~ /^"[^"]*\/cbm-reindex\.sh"[ \t]*$/) i++
+            continue
+          }
           if (lines[i] == begin) {
             found = 0
             for (j = i + 1; j <= n; j++) {
