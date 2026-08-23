@@ -31,9 +31,9 @@ executable without coordinator commentary. One ticket does not mix `build` and
 
 Every flat and chunked-header fence also carries `Profile:`. Use `hardening` only
 for a flat order whose target repo declares `Harden:`; use `none` otherwise,
-including every chunked order. A `QA script` follows `Done when` in flat and
-sub-order fences only when the profile is `hardening`: numbered Given/When/Then
-steps a human follows in the running app to confirm that clause.
+including every chunked order. A `QA script` follows `Done when` in the flat
+fence only when the profile is `hardening`: numbered Given/When/Then steps a
+human follows in the running app to confirm that clause.
 
 ## Two authoring checks before the draft leaves triage
 
@@ -168,13 +168,6 @@ Do
 
 Done when
 <observable acceptance for this chunk alone>
-
-QA script
-<present only when the ticket Profile is hardening: a human follows these numbered
- steps in the running app to confirm Done when.>
-1. Given <starting state and fixture>
-2. When <human action>
-3. Then <observable acceptance>
 
 Boundaries
 * Touch only <files/targets this chunk owns>. Another chunk owns <the rest>.

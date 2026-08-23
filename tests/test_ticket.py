@@ -369,7 +369,9 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertIn("Profile: <none | hardening>", flat_order)
         self.assertIn("Profile: <none | hardening>", chunked_header)
         self.assertIn("QA script", flat_order)
-        self.assertIn("QA script", sub_order)
+        # Triage stamps Profile: none on every chunked order, so a sub-order
+        # QA script section could never fire.
+        self.assertNotIn("QA script", sub_order)
         self.assertIn("Stamp the profile", triage)
         self.assertIn("Harden:", triage)
         for requirement in (
