@@ -82,6 +82,8 @@ with open(os.environ["CBM_FAKE_REQUESTS"], "a", encoding="utf-8") as handle:
     handle.write(json.dumps(sys.argv[1:]) + "\\n")
 
 indexed = os.environ["CBM_FAKE_INDEXED"]
+if os.environ.get("CBM_FAKE_EMPTY_FAIL") == "1":
+    raise SystemExit(1)
 if os.environ.get("CBM_FAKE_MALFORMED") == "1":
     print("not json")
     raise SystemExit(0)
@@ -242,6 +244,23 @@ raise SystemExit(9)
                 self.assertEqual(json.loads(result.stdout), {"status": "unavailable"})
                 self.environment["CODEBASE_MEMORY_BIN"] = str(self.binary)
                 self.environment.pop("CBM_FAKE_VERSION", None)
+
+    def test_a_nonzero_exit_with_empty_stdout_is_the_unavailable_outcome(self):
+        """A binary that can't operate here (e.g. a sandbox blocking its daemon
+        endpoint) fails with a nonzero exit and no stdout at all. That is the
+        same degraded mode as a missing or too-old binary, not a protocol
+        violation: ensure must report unavailable, not fail hard."""
+
+        self.environment["CBM_FAKE_EMPTY_FAIL"] = "1"
+
+        result = self.ensure()
+
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(json.loads(result.stdout), {"status": "unavailable"})
+        self.assertEqual(
+            self.issued(),
+            [["cli", "--json", "index_status", "--project", self.project_for(self.repo)]],
+        )
 
     def test_a_response_for_another_project_root_or_state_stops_the_binding(self):
         self.indexed.touch()

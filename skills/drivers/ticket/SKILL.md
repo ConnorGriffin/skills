@@ -173,6 +173,10 @@ It prints one object, and the verb reports it verbatim:
   stderr, which names the cause — a path that is not a checkout, or an installed
   tool answering for the wrong project or root. Neither is a case where guessing a
   graph is safe.
+* The command never ran at all, no exit code, because the harness or sandbox
+  refused it (a permission classifier declining the Bash call, for example): say so
+  in one line and use ordinary discovery for the rest of the session, the same as
+  `unavailable`.
 
 Every session recomputes this from the checkout it just verified, never from chat
 memory or a remembered earlier run. It names one machine's paths, so it never goes
