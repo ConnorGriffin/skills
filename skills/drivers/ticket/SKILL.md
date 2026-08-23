@@ -166,9 +166,10 @@ It prints one object, and the verb reports it verbatim:
   it was the only result.
 * `unavailable` (exit 2): no usable Codebase Memory here, so say so in one line and
   use ordinary discovery for the rest of the session.
-* Any other failure (exit 1): stop the verb and report what `ensure` said. The tool
-  is installed and answered wrongly, which is the one case where continuing risks
-  reading another repository's graph.
+* Any other failure (exit 1): stop the verb and report what `ensure` printed on
+  stderr, which names the cause — a path that is not a checkout, or an installed
+  tool answering for the wrong project or root. Neither is a case where guessing a
+  graph is safe.
 
 Every session recomputes this from the checkout it just verified, never from chat
 memory or a remembered earlier run. It names one machine's paths, so it never goes
