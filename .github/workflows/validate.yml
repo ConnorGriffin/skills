@@ -29,6 +29,7 @@ jobs:
           tests.test_pr_body_bench
           tests.test_ticket
           tests.test_codebase_memory_install
+          tests.test_check_dco
       - name: Check DCO
         if: github.event_name == 'pull_request'
         run: >-

@@ -33,7 +33,9 @@ def main() -> int:
         return 2
     base, head = sys.argv[1:]
     try:
-        commits = git("rev-list", "--reverse", f"{base}..{head}").splitlines()
+        commits = git(
+            "rev-list", "--reverse", "--no-merges", f"{base}..{head}"
+        ).splitlines()
         missing = [
             revision
             for revision in commits
