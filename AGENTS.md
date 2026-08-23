@@ -14,8 +14,8 @@ ui-surfaces: none
   plus `npx playwright install chromium`).
 - Test: `python3 scripts/validate.py && python3 -m unittest tests.test_behavior
   tests.test_pr_body tests.test_pr_body_gate tests.test_pr_body_bench
-  tests.test_ticket tests.test_codebase_memory_install && python3 -m py_compile
-  skills/tools/codebase-memory/scripts/install.py`
+  tests.test_ticket tests.test_codebase_memory_install tests.test_check_dco &&
+  python3 -m py_compile skills/tools/codebase-memory/scripts/install.py`
 - Dev: no app to run. To exercise a skill, install the pack into a scratch
   directory with `npx skills add . --skill '<name>' --copy --yes`.
 - Source: `skills/<category>/<name>/` (SKILL.md plus its own `references/`,
