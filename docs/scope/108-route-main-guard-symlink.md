@@ -51,3 +51,18 @@
 ## Spawned tasks
 
 - none
+
+## Spike — the guard predicate, executed
+
+Run in the session scratchpad (not on the branch: triage writes no shipping code).
+A four-case harness over the proposed `isMainModule(moduleUrl)` — realpath compare
+with a `pathToFileURL` fallback and an `argv[1]` absent guard:
+
+| Case | Result |
+|---|---|
+| invoked by its real path | runs |
+| invoked through a symlinked skill directory | runs |
+| imported by another module, not the entry point | does not run |
+| no `process.argv[1]` (`node --input-type=module -e`) | returns false, no throw |
+
+All four passed. The literal the order carries is that predicate, not prose.
