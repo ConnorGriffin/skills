@@ -467,10 +467,10 @@ class TicketTelemetryTests(unittest.TestCase):
     def tearDown(self):
         self.temporary.cleanup()
 
-    def ticket(self, *arguments: str, environment: Optional[dict] = None):
+    def ticket(self, *arguments: str, environment: Optional[dict] = None, cwd: Optional[Path] = None):
         return run(
             ["python3", str(TICKET_SCRIPT), *arguments],
-            cwd=ROOT,
+            cwd=cwd or ROOT,
             env=environment or self.environment,
         )
 
@@ -588,7 +588,30 @@ class TicketTelemetryTests(unittest.TestCase):
         (directory / f"agent-{worker_id}-near-collision.jsonl").write_text(
             assistant_line(260_000, subagent=True) + "\n", encoding="utf-8"
         )
-        worker_project = "/tmp/synthetic-chunk-worktree"
+        # A synthetic chunk worktree of *this* repository: same origin as the
+        # real checkout, read at test time rather than hardcoded, so its
+        # resolved repository identity collides with the one `scan` (running
+        # with cwd=ROOT) resolves for itself. A bare `/tmp` path, or a
+        # toplevel-only fixture with no origin, resolves to a repository
+        # identity that can never collide with ROOT's — the claim then lands
+        # in `excluded_claims` instead of `sessions`, and this test would pass
+        # while measuring nothing.
+        origin = subprocess.run(
+            ["git", "-C", str(ROOT), "remote", "get-url", "origin"],
+            stdout=subprocess.PIPE,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        worker_project = self.scratch / "synthetic-chunk-worktree"
+        worker_project.mkdir()
+        subprocess.run(
+            ["git", "init"], cwd=worker_project, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, check=True,
+        )
+        subprocess.run(
+            ["git", "remote", "add", "origin", origin], cwd=worker_project, check=True,
+        )
+        worker_project = str(worker_project)
         claim = self.ticket(
             "claim",
             "TICKET-20",
@@ -852,6 +875,102 @@ class TicketTelemetryTests(unittest.TestCase):
         claimed = self.claims.read_text(encoding="utf-8")
         self.assertNotIn("unrealistic", claimed)
         self.assertNotIn(secret_prose, claimed)
+
+    def make_repo_checkout(self, name: str, origin_url: str) -> Path:
+        checkout = self.scratch / name
+        checkout.mkdir()
+        subprocess.run(
+            ["git", "init"], cwd=checkout, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, check=True,
+        )
+        subprocess.run(
+            ["git", "remote", "add", "origin", origin_url], cwd=checkout, check=True,
+        )
+        return checkout
+
+    def test_scan_partitions_claims_by_repository(self):
+        # Two repositories sharing one ticket id: each one's own scan must see
+        # only its own session, and count the other repository's claim
+        # without folding it in. A plain temp directory with no `git init`
+        # cannot stand in for either side here, because two origin-less
+        # checkouts both resolve to `None` and would be indistinguishable.
+        repo_a = self.make_repo_checkout("repo-a", "https://example.com/org/repo-a.git")
+        repo_b = self.make_repo_checkout("repo-b", "https://example.com/org/repo-b.git")
+
+        self.write_session("proj-a", "session-a", [assistant_line(40_000)])
+        self.write_session("proj-b", "session-b", [assistant_line(70_000)])
+
+        claim_a = self.ticket(
+            "claim", "TICKET-21", "--session", "session-a", "--agent", "claude",
+            "--project", str(repo_a),
+        )
+        self.assertEqual(claim_a.returncode, 0, claim_a.stderr)
+        claim_b = self.ticket(
+            "claim", "TICKET-21", "--session", "session-b", "--agent", "claude",
+            "--project", str(repo_b),
+        )
+        self.assertEqual(claim_b.returncode, 0, claim_b.stderr)
+
+        scan_a = self.ticket("scan", "TICKET-21", cwd=repo_a)
+        scan_b = self.ticket("scan", "TICKET-21", cwd=repo_b)
+
+        self.assertEqual(scan_a.returncode, 0, scan_a.stderr)
+        self.assertEqual(scan_b.returncode, 0, scan_b.stderr)
+        payload_a = json.loads(scan_a.stdout)
+        payload_b = json.loads(scan_b.stdout)
+
+        self.assertEqual([s["session_id"] for s in payload_a["sessions"]], ["session-a"])
+        self.assertEqual(payload_a["peak_context"], 40_000)
+        self.assertEqual(payload_a["excluded_claims"], 1)
+        self.assertEqual(payload_a["unattributable"], [])
+
+        self.assertEqual([s["session_id"] for s in payload_b["sessions"]], ["session-b"])
+        self.assertEqual(payload_b["peak_context"], 70_000)
+        self.assertEqual(payload_b["excluded_claims"], 1)
+        self.assertEqual(payload_b["unattributable"], [])
+
+    def test_unlabelled_legacy_claim_is_unattributable_not_counted(self):
+        # A claim written before `repo` existed carries no such key at all.
+        # It must be named, not folded into either "nothing claimed this" or
+        # a real session count.
+        self.claims.parent.mkdir(parents=True, exist_ok=True)
+        legacy_claim = {
+            "ticket_id": "TICKET-22",
+            "session_id": "legacy-session",
+            "agent": "claude",
+            "project": "/some/old/path",
+            "claimed_at": "2026-01-01T00:00:00+00:00",
+        }
+        with self.claims.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(legacy_claim) + "\n")
+
+        scan_result = self.ticket("scan", "TICKET-22")
+        self.assertEqual(scan_result.returncode, 0, scan_result.stderr)
+        payload = json.loads(scan_result.stdout)
+        self.assertEqual(payload["session_count"], 0)
+        self.assertEqual(payload["claim_count"], 0)
+        self.assertEqual(payload["unattributable"], ["legacy-session"])
+
+        # `verdict` returns `no-data` for an unlabelled claim alone, and
+        # `command_record` never persists a `no-data` record — so a second,
+        # ordinary same-repository claim is needed for `record` to persist
+        # anything the `unattributable` field can be asserted against.
+        self.worked("TICKET-22", "proj-a", "session-real", [assistant_line(55_000)])
+
+        record_result = self.ticket(
+            "record", "TICKET-22", "--verb", "start", "--trait", "any", "--depth", "light"
+        )
+        self.assertEqual(record_result.returncode, 0, record_result.stderr)
+        payload = json.loads(record_result.stdout)
+        self.assertNotEqual(payload["verdict"], "no-data")
+        self.assertEqual(payload["unattributable"], ["legacy-session"])
+        self.assertEqual(payload["session_count"], 1)
+        self.assertEqual(payload["peak_context"], 55_000)
+
+        persisted = self.telemetry_records()[0]
+        self.assertEqual(persisted["unattributable"], ["legacy-session"])
+        self.assertEqual(persisted["session_count"], 1)
+        self.assertEqual(persisted["peak_context"], 55_000)
 
 
 if __name__ == "__main__":
