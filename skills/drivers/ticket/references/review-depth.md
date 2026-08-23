@@ -49,6 +49,9 @@ contract; reviewer taste is not.
 
 ## Who reviews
 
+Under `Profile: hardening`, Targeted and Focused orders get no reviewer; Full-depth
+orders keep one review round after hardening.
+
 * Reviewer tier matches the chunk's builder tier, with Sonnet as the floor: Haiku
   never reviews, so a Haiku chunk is reviewed by Sonnet.
 * A Full-depth or correctness-critical review escalates per

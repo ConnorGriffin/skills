@@ -27,7 +27,8 @@ four.
   none, implements it on a branch in an isolated worktree (or, on a sliced order,
   coordinates one agent per chunk), iterates the verification step until the
   result matches the order's expectation, passes an adversarial review at the
-  order's stamped depth ([references/review-depth.md](references/review-depth.md)),
+  order's stamped depth ([references/review-depth.md](references/review-depth.md))
+  unless `Profile: hardening` replaces it below Full depth,
   opens the pull request, and stops. Agents never merge.
 * `revise` actions one review round on the open pull request: reload the ticket
   and the order, fix, re-verify, push.
@@ -52,7 +53,9 @@ directly. A verb that cannot reach the contract stops and names what is missing.
 
 `start` and `revise` reach code review as `/review` on the changed code, which
 routes to `code-review`. Neither verb calls a reviewer any other way, and neither
-substitutes a lighter check for the depth the order stamped.
+substitutes a lighter check for the depth the order stamped. Below Full depth under
+`Profile: hardening`, [start](verbs/start.md) and [revise](verbs/revise.md) use its
+exception instead.
 
 ## Shared rules (every verb)
 
@@ -181,6 +184,14 @@ Before Git removes a worktree this skill authored, the same directory's
 for the identity to be derived from. Teardown fails loudly on a machine with no
 Codebase Memory installed, which is expected: report it in one line and carry on
 with the removal. It never holds up the removal, and it is never retried.
+
+## The hardening profile
+
+The target repo declares `Harden: <command>` beside its test command in repo facts.
+Triage stamps `Profile: hardening` only when that line exists.
+It replaces the review rounds as [start](verbs/start.md) and [revise](verbs/revise.md) specify.
+A hardening command that cannot run is an error, never a pass.
+The profile order's QA script lives in its pull request body.
 
 ## Standing decisions
 

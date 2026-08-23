@@ -60,8 +60,11 @@ long ago and the pull request is one diff.
    changes and rebase, same rules as `start`: the output must match the order's
    expectation. Re-read the repo's `AGENTS.md` or `CLAUDE.md` and audit the changes
    you are about to push against it, including any completion checklist it defines.
-   Fix violations, then run `/review` at the order's stamped review depth. Fix
-   confirmed findings and repeat verification if code changed.
+   Fix violations. Under `Profile: hardening`, re-run the repo's `Harden:` command
+   with the same stop rule and three-pass cap as `start`, and run `/review` only
+   when the stamped depth is Full. Under `Profile: none`, run `/review` at the
+   order's stamped review depth. Fix confirmed findings and repeat verification if
+   code changed.
 
 8. **Push and respond.** Push to the same branch. Reply to each addressed comment on
    the pull request, resolving or answering it. Update the repo's change record if
