@@ -79,15 +79,19 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    `/ui-craft revise` against the named shipped behavior ledger and replay through
    the repo-declared safe dev-server entrypoint and fixture source. `Surface
    lifecycle: none` skips UI Craft. A new module or interface loads
-   `/codebase-design` vocabulary before the seam is cut. New behavior with testable
-   acceptance criteria goes test-first through `/tdd`. CI or workflow-file changes
-   read `/ci-design` first.
+   `/codebase-design` vocabulary before the seam is cut. With `Profile: none`, new
+   behavior with testable acceptance criteria goes test-first through `/tdd`. With
+   `Profile: hardening`, write tests through the public interface without `/tdd`.
+   CI or workflow-file changes read `/ci-design` first.
 
 9. **Verification loop.** Run the order's `Verification:` command locally and
    iterate until its output matches the order's `Expectation:` line exactly, per the
    skill page's verification-step rule. Never fabricate the output.
 
-10. **Repo-rules audit and adversarial review, before the pull request.** Re-read the
+10. **Repo-rules audit and adversarial review, before the pull request.** An order
+    with no `Profile:` line is `Profile: none`.
+
+    **Profile: none.** Re-read the
    repo's `AGENTS.md` or `CLAUDE.md`, which has decayed from context by now, and
    audit the full diff against it rule by rule, including any completion checklist
    it defines. Fix violations, then hand off to `/review` on the branch's changes
@@ -100,6 +104,16 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    findings, re-run the verification loop if code changed, then review once more.
    Two rounds maximum; findings still open after round two go into the pull request
    body as known issues, never silently dropped.
+
+    **Profile: hardening.** Run `/clean` on the branch diff, then run the repo's
+    `Harden:` command. Fix uncovered lines, surviving mutants, and high-CRAP
+    functions, re-running until the command exits 0 and every survivor is killed by
+    a public-interface test or listed as equivalent with a one-line reason in the
+    pull request body. Stop after at most three passes and open the pull request as
+    a draft naming the residue. A `Harden:` command that cannot run (tool missing,
+    parse failure, wrong runtime) is an error: open a draft pull request, name the
+    missing evidence, and never a pass. Targeted and Focused orders run no
+    `/review`; Full orders run one `/review` round after hardening.
 
 11. **Fold the change record into the baseline in the order's last pull request.**
     When the pull request being opened is the order's final one (single-pull-request
@@ -120,7 +134,9 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
     template because it seems unsuitable: open the pull request with it filled as
     best as possible, and raise the mismatch to the user. Only when no template
     exists anywhere, write the body free-form. Either way the body carries what
-    changed, the verification output in a fence, and a link to the ticket. When
+    changed, the verification output in a fence, and a link to the ticket. Under
+    `Profile: hardening`, it also carries the `Harden:` output in a fence, the
+    survivor list with dispositions, and the QA script verbatim. When
     `/pr-body` is installed, score the body with it before opening. Then move the
     ticket to pending review and comment on it (attribution first) with the pull
     request link and a one-line status.

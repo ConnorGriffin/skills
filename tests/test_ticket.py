@@ -346,6 +346,44 @@ class TicketSkillContractTests(unittest.TestCase):
             1,
         )
 
+    def test_hardening_profile_is_produced_and_consumed_across_ticket_paths(self):
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
+            encoding="utf-8"
+        )
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(
+            encoding="utf-8"
+        )
+        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(
+            encoding="utf-8"
+        )
+        revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(
+            encoding="utf-8"
+        )
+        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+
+        flat_order = template.split("## Flat", 1)[1].split("## Chunked", 1)[0]
+        chunked_header = template.split("## Chunked", 1)[1].split(
+            "SUB-ORDER 1/<n>", 1
+        )[0]
+        sub_order = template.split("SUB-ORDER 1/<n>", 1)[1].split("```", 1)[0]
+        self.assertIn("Profile: <none | hardening>", flat_order)
+        self.assertIn("Profile: <none | hardening>", chunked_header)
+        self.assertIn("QA script", flat_order)
+        self.assertIn("QA script", sub_order)
+        self.assertIn("Stamp the profile", triage)
+        self.assertIn("Harden:", triage)
+        for requirement in (
+            "/clean",
+            "Harden:",
+            "three passes",
+            "never a pass",
+            "no `Profile:` line",
+        ):
+            self.assertIn(requirement, start)
+        self.assertIn("Harden:", revise)
+        self.assertIn("Harden:", shared)
+        self.assertIn("Profile: hardening", shared)
+
     def test_start_opens_with_summary_and_claim_before_fetching_the_order(self):
         shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
         start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")

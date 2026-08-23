@@ -148,7 +148,14 @@ scope and spec documents committed in that worktree.
    its sensitivity floor first; the floor overrides any judgment about how small
    the change looks.
 
-10. **Draft the work order.** Apply
+10. **Stamp the profile.** Read the target repo's `CLAUDE.md` or `AGENTS.md` repo
+    facts for a `Harden:` line. When the user or ticket asks for the hardening
+    profile and that line exists, stamp `Profile: hardening` and write the QA script
+    from the acceptance criteria. When the line is absent, stamp `Profile: none`,
+    say so in the order's Context, and continue with the default workflow. Stamp
+    `Profile: none` on every chunked order: the profile is flat-only.
+
+11. **Draft the work order.** Apply
     [references/brief-quality.md](../references/brief-quality.md), then fill
     [templates/work-order.md](../templates/work-order.md), the flat shape or the
     chunked shape per step 8, and run that page's two authoring checks before the
@@ -162,13 +169,16 @@ scope and spec documents committed in that worktree.
     or depend on private capability. Check that every fence's `Surface lifecycle:`
     value matches the route and contract artifacts settled in step 7.
 
-11. **Adversarial review, mandatory.** Every draft order gets reviewed before it is
-    shown to the user or posted; there is no unreviewed path to step 12. Run
+12. **Adversarial review, mandatory.** Every draft order gets reviewed before it is
+    shown to the user or posted; there is no unreviewed path to step 13. Run
     `/plan-review` against the draft: it spawns cold reviewer agents with the
     five-axis rubric (grounding, acceptance, interface shape, scope, cost) and
     returns objections and a verdict. Review depth follows that skill's stakes
     tiering: an ordinary order gets one panel, and a load-bearing one ends only
     when a fresh cold pass returns no blocking objections.
+
+    When the stamped profile is hardening, run `/plan-review` only on Full-depth
+    orders. Default-workflow orders keep this review unconditionally.
 
     Triage-specific additions on top of that skill:
 
@@ -210,12 +220,12 @@ scope and spec documents committed in that worktree.
     themselves introduced. Stop earlier when a round yields only wording polish,
     because the executing agent grounds in the same repo and resolves polish itself.
 
-12. **Confirm, then post.** Show the user the draft. On approval, post it as one
+13. **Confirm, then post.** Show the user the draft. On approval, post it as one
     ticket comment through the contract's post operation: attribution quote block
     first, then the human summary, then the fenced order or sub-orders. One comment
     carries the whole order, chunked or not.
 
-13. **Move the status** to triaged. Report a failed move; do not retry.
+14. **Move the status** to triaged. Report a failed move; do not retry.
 
 ## Refusals
 

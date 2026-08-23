@@ -29,6 +29,12 @@ chunks say `none`); each sub-order names its own route so the fence remains
 executable without coordinator commentary. One ticket does not mix `build` and
 `revise`: split those into separate tickets rather than inventing a fourth state.
 
+Every flat and chunked-header fence also carries `Profile:`. Use `hardening` only
+for a flat order whose target repo declares `Harden:`; use `none` otherwise,
+including every chunked order. A `QA script` follows `Done when` in flat and
+sub-order fences only when the profile is `hardening`: numbered Given/When/Then
+steps a human follows in the running app to confirm that clause.
+
 ## Two authoring checks before the draft leaves triage
 
 * **Wiring table.** Every value the order names (an environment variable, an input,
@@ -75,6 +81,7 @@ Repo(s): <org/repo> (branch from the default branch)
 Verification: <the command that verifies this change>
 Expectation: <what that command must report before the pull request opens>
 Review depth: <focused | targeted | full> (<one-line reason>)
+Profile: <none | hardening>
 
 Context
 <2-5 bullets: what exists today, what constrains this change, decisions already made
@@ -86,6 +93,13 @@ Do
 
 Done when
 <observable acceptance: verification output, CI green, specific behavior. Not "works".>
+
+QA script
+<present only when Profile is hardening: a human follows these numbered steps in the
+ running app to confirm Done when.>
+1. Given <starting state and fixture>
+2. When <human action>
+3. Then <observable acceptance>
 
 Boundaries
 * Iterate the verification step locally; open the pull request when it matches the expectation.
@@ -116,6 +130,7 @@ Repo(s): <org/repo> (one ticket branch, one pull request)
 Verification: <the command that verifies the merged branch>
 Expectation: <what that command must report before the pull request opens>
 Review depth (whole diff): <targeted | full> (<one-line reason>)
+Profile: <none | hardening>
 
 Why sliced
 <the rubric traits that fired, one line each, and the anchor row this matches>
@@ -153,6 +168,13 @@ Do
 
 Done when
 <observable acceptance for this chunk alone>
+
+QA script
+<present only when the ticket Profile is hardening: a human follows these numbered
+ steps in the running app to confirm Done when.>
+1. Given <starting state and fixture>
+2. When <human action>
+3. Then <observable acceptance>
 
 Boundaries
 * Touch only <files/targets this chunk owns>. Another chunk owns <the rest>.
