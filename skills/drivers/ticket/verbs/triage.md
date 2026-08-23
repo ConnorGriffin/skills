@@ -50,6 +50,11 @@ scope and spec documents committed in that worktree.
    The helper still refuses an existing target path; surface that refusal to the
    user rather than forcing past it.
 
+   f. Bind that worktree's graph identity before grounding, per the skill page's
+   graph-identity rule, and report what it printed. A reused worktree gets the same
+   check: the identity is recomputed here every session, never remembered from the
+   run that cut it.
+
 3. **Identify the repo or repos.** From the ticket text, its parent, and its links.
    If the target repo does not exist yet, stop: repo scaffolding happens outside
    this skill. Post nothing, and tell the user which ticket has to land first.

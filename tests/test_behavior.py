@@ -24,6 +24,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 CBM_SCRIPT = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-onboard.sh"
 CBM_TEARDOWN = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-teardown.sh"
+CBM_LIFECYCLE = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-lifecycle.py"
 SPIN_SCRIPT = ROOT / "skills" / "tools" / "spin-worktree" / "scripts" / "spin-worktree.py"
 CODEX_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "codex-worker.py"
 UI_CRAFT_AUDIT = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "audit.md"
@@ -52,6 +53,230 @@ def run(
         stderr=subprocess.PIPE,
         check=False,
     )
+
+
+class CbmEnsureTests(unittest.TestCase):
+    """The machine interface a workflow uses to bind one checkout to one project."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.scratch = Path(self.temporary.name)
+        self.repo = self.scratch / "repo"
+        self.repo.mkdir()
+        self.assertEqual(run(["git", "init", "-b", "main"], cwd=self.repo).returncode, 0)
+        (self.repo / "module.py").write_text("def hello():\n    return 1\n", encoding="utf-8")
+        self.requests = self.scratch / "requests.jsonl"
+        self.indexed = self.scratch / "indexed"
+        self.binary = self.scratch / "codebase-memory-mcp"
+        self.binary.write_text(
+            """#!/usr/bin/env python3
+import json
+import os
+import sys
+
+if sys.argv[1:] == ["--version"]:
+    print(os.environ.get("CBM_FAKE_VERSION", "codebase-memory-mcp 0.10.8"))
+    raise SystemExit(0)
+
+with open(os.environ["CBM_FAKE_REQUESTS"], "a", encoding="utf-8") as handle:
+    handle.write(json.dumps(sys.argv[1:]) + "\\n")
+
+indexed = os.environ["CBM_FAKE_INDEXED"]
+if os.environ.get("CBM_FAKE_MALFORMED") == "1":
+    print("not json")
+    raise SystemExit(0)
+
+if "index_repository" in sys.argv:
+    if os.environ.get("CBM_FAKE_RECHECK_MISSING") != "1":
+        open(indexed, "w", encoding="utf-8").close()
+    print(json.dumps({
+        "structuredContent": {
+            "project": sys.argv[sys.argv.index("--name") + 1],
+            "status": "indexed",
+        },
+        "isError": False,
+    }))
+    raise SystemExit(0)
+
+if "index_status" in sys.argv:
+    project = sys.argv[sys.argv.index("--project") + 1]
+    if not os.path.exists(indexed):
+        print(json.dumps({
+            "structuredContent": {"error": "project not found or not indexed"},
+            "isError": True,
+        }))
+        raise SystemExit(1)
+    print(json.dumps({
+        "structuredContent": {
+            "project": os.environ.get("CBM_FAKE_PROJECT", project),
+            "status": os.environ.get("CBM_FAKE_STATUS", "ready"),
+            "root_path": os.environ.get("CBM_FAKE_ROOT", os.environ["CBM_FAKE_REAL_ROOT"]),
+        },
+        "isError": False,
+    }))
+    raise SystemExit(0)
+
+raise SystemExit(9)
+""",
+            encoding="utf-8",
+        )
+        self.binary.chmod(0o755)
+        self.environment = os.environ.copy()
+        self.environment["CODEBASE_MEMORY_BIN"] = str(self.binary)
+        self.environment["CBM_FAKE_REQUESTS"] = str(self.requests)
+        self.environment["CBM_FAKE_INDEXED"] = str(self.indexed)
+        self.environment["CBM_FAKE_REAL_ROOT"] = str(self.repo.resolve())
+        self.environment["GIT_CONFIG_GLOBAL"] = os.devnull
+        self.environment["GIT_CONFIG_SYSTEM"] = os.devnull
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def ensure(self, target=None):
+        return run(
+            ["python3", str(CBM_LIFECYCLE), "ensure", str(target or self.repo)],
+            cwd=ROOT,
+            env=self.environment,
+        )
+
+    def project_for(self, checkout: Path) -> str:
+        return "cbm-onboard-v1-" + hashlib.sha256(os.fsencode(checkout.resolve())).hexdigest()
+
+    def issued(self) -> list[list[str]]:
+        if not self.requests.exists():
+            return []
+        return [json.loads(line) for line in self.requests.read_text(encoding="utf-8").splitlines()]
+
+    def test_a_missing_project_is_indexed_under_its_own_name_and_rechecked(self):
+        result = self.ensure()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        project = self.project_for(self.repo)
+        self.assertEqual(
+            json.loads(result.stdout),
+            {"root_path": str(self.repo.resolve()), "project": project, "status": "indexed"},
+        )
+        self.assertEqual(
+            self.issued(),
+            [
+                ["cli", "--json", "index_status", "--project", project],
+                [
+                    "cli",
+                    "--json",
+                    "index_repository",
+                    "--repo-path",
+                    str(self.repo.resolve()),
+                    "--mode",
+                    "full",
+                    "--name",
+                    project,
+                ],
+                ["cli", "--json", "index_status", "--project", project],
+            ],
+        )
+
+    def test_an_existing_project_is_reported_ready_without_reindexing(self):
+        self.indexed.touch()
+
+        result = self.ensure()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["status"], "ready")
+        self.assertEqual(
+            self.issued(),
+            [["cli", "--json", "index_status", "--project", self.project_for(self.repo)]],
+        )
+
+    def test_the_checkout_its_git_configuration_and_hooks_are_left_alone(self):
+        hook = self.repo / ".git" / "hooks" / "post-commit"
+        hook.write_bytes(b"#!/bin/sh\nprintf 'sentinel\\n'\n")
+        before = {
+            "tracked": run(["git", "status", "--porcelain"], cwd=self.repo).stdout,
+            "config": (self.repo / ".git" / "config").read_bytes(),
+            "hook": hook.read_bytes(),
+        }
+
+        self.assertEqual(self.ensure().returncode, 0)
+
+        self.assertFalse((self.repo / ".cbmignore").exists())
+        self.assertEqual(run(["git", "status", "--porcelain"], cwd=self.repo).stdout, before["tracked"])
+        self.assertEqual((self.repo / ".git" / "config").read_bytes(), before["config"])
+        self.assertEqual(hook.read_bytes(), before["hook"])
+
+    def test_identity_is_physical_and_per_checkout_never_chosen_from_an_inventory(self):
+        run(["git", "config", "user.name", "Test User"], cwd=self.repo)
+        run(["git", "config", "user.email", "test@example.invalid"], cwd=self.repo)
+        run(["git", "add", "module.py"], cwd=self.repo)
+        self.assertEqual(run(["git", "commit", "-m", "fixture"], cwd=self.repo).returncode, 0)
+        worktree = self.scratch / "linked"
+        self.assertEqual(
+            run(["git", "worktree", "add", "-b", "fixture", str(worktree)], cwd=self.repo).returncode,
+            0,
+        )
+        spelling = self.scratch / "spelled"
+        spelling.symlink_to(self.repo)
+        self.indexed.touch()
+
+        projects = []
+        for target, root in ((self.repo, self.repo), (spelling, self.repo), (worktree, worktree)):
+            self.environment["CBM_FAKE_REAL_ROOT"] = str(root.resolve())
+            result = self.ensure(target)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            projects.append(json.loads(result.stdout)["project"])
+
+        self.assertEqual(projects[0], projects[1])
+        self.assertNotEqual(projects[0], projects[2])
+        self.assertEqual(projects[2], self.project_for(worktree))
+        self.assertNotIn("list_projects", json.dumps(self.issued()))
+
+    def test_a_missing_or_too_old_binary_is_one_visible_unavailable_outcome(self):
+        for label, override in (
+            ("missing", {"CODEBASE_MEMORY_BIN": str(self.scratch / "absent")}),
+            ("too old", {"CBM_FAKE_VERSION": "codebase-memory-mcp 0.10.7"}),
+            ("unparseable", {"CBM_FAKE_VERSION": "some other tool 1.0"}),
+        ):
+            with self.subTest(label):
+                self.environment.update(override)
+                result = self.ensure()
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertEqual(json.loads(result.stdout), {"status": "unavailable"})
+                self.environment["CODEBASE_MEMORY_BIN"] = str(self.binary)
+                self.environment.pop("CBM_FAKE_VERSION", None)
+
+    def test_a_response_for_another_project_root_or_state_stops_the_binding(self):
+        self.indexed.touch()
+        for label, override in (
+            ("another project", {"CBM_FAKE_PROJECT": "cbm-onboard-v1-somebody-else"}),
+            ("another root", {"CBM_FAKE_ROOT": str(self.scratch / "elsewhere")}),
+            ("not ready", {"CBM_FAKE_STATUS": "indexing"}),
+            ("malformed", {"CBM_FAKE_MALFORMED": "1"}),
+        ):
+            with self.subTest(label):
+                self.environment.update(override)
+                result = self.ensure()
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertEqual(result.stdout, "")
+                self.assertNotIn("index_repository", json.dumps(self.issued()))
+                self.assertNotIn("delete_project", json.dumps(self.issued()))
+                for key in override:
+                    self.environment.pop(key)
+
+    def test_an_index_that_cannot_be_confirmed_at_the_requested_root_fails(self):
+        self.environment["CBM_FAKE_RECHECK_MISSING"] = "1"
+
+        result = self.ensure()
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("after indexing", result.stderr)
+        self.assertEqual([request[2] for request in self.issued()], ["index_status", "index_repository", "index_status"])
+
+    def test_a_path_that_is_not_a_checkout_is_refused_before_any_tool_call(self):
+        result = self.ensure(self.scratch / "not-a-repo")
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(self.issued(), [])
 
 
 class CbmOnboardTests(unittest.TestCase):

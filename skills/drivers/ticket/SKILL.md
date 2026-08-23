@@ -146,6 +146,38 @@ step is a slot:
   credentials, no access, no runnable suite), say so, open the pull request as a
   draft, and name the missing evidence.
 
+## The graph identity
+
+Before a verb reads code structurally, it binds its current checkout to exactly one
+Codebase Memory project, from that checkout's own path:
+
+```sh
+python3 <cbm-onboard-skill-directory>/scripts/cbm-lifecycle.py ensure <worktree path>
+```
+
+It prints one object, and the verb reports it verbatim:
+
+```json
+{"root_path": "<canonical physical checkout>", "project": "cbm-onboard-v1-<sha256>", "status": "ready"}
+```
+
+* `ready` or `indexed`: query the graph as exactly that `project`. Never choose one
+  by basename, branch, recency, list order, or because it was the only result.
+* `unavailable` (exit 2): no usable Codebase Memory here, so say so in one line and
+  use ordinary discovery for the rest of the session.
+* Any other failure (exit 1): stop at that boundary rather than reading a different
+  repository's graph.
+
+Every session recomputes this from the checkout it just verified, never from chat
+memory or a remembered earlier run. It names one machine's paths, so it never goes
+into a work order or any other tracker comment; a chunk agent is handed its own in
+its prompt.
+
+Before Git removes a worktree this skill authored, the same directory's
+`cbm-teardown.sh` deletes that checkout's project, while the checkout still exists
+for the identity to be derived from. A teardown failure is reported in one line and
+does not hold up the removal.
+
 ## Standing decisions
 
 A project may point this skill at a knowledge base of standing decisions and

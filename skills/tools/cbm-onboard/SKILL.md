@@ -63,10 +63,31 @@ directory containing several repositories.
    removes hooks or worktrees. Both a successful deletion and an exact
    already-missing response are success, so teardown is safe to repeat.
 
-4. Verify the project through the available Codebase Memory MCP interface with
+4. For an automated workflow that must bind one checkout to its exact project
+   without touching that checkout, run:
+
+   ```sh
+   python3 <cbm-onboard-skill-directory>/scripts/cbm-lifecycle.py ensure <checkout-path>
+   ```
+
+   `ensure` is the machine interface: it resolves the supplied checkout as given,
+   canonicalizes it physically, derives the same deterministic name the rest of the
+   lifecycle uses, and makes exactly that project ready. It asks `index_status` for
+   the computed name only, indexes solely on the exact not-found response, and
+   re-asks `index_status` afterwards because `index_repository` does not echo the
+   root it indexed. It never chooses among `list_projects`, and it writes nothing to
+   the repository, its `.cbmignore`, its Git configuration, or its hooks.
+
+   It prints one object on success, `{"root_path", "project", "status"}`, where
+   status is `ready` for a project that was already indexed and `indexed` for one it
+   just built. A missing or too-old binary prints `{"status": "unavailable"}` and
+   exits 2, which is a visible degraded mode rather than permission to use some
+   other project. Every other failure exits 1 with nothing on stdout.
+
+5. Verify the project through the available Codebase Memory MCP interface with
    `index_status` or `list_projects`.
-5. Report node and edge counts when available.
-6. Tell the user that `.cbmignore` is tracked and should be committed. The Git
+6. Report node and edge counts when available.
+7. Tell the user that `.cbmignore` is tracked and should be committed. The Git
    hooks are clone-local, so rerun onboarding after a fresh clone.
 
 The initial index uses full mode. Maintained-checkout post-commit/post-merge/post-checkout

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -186,6 +187,84 @@ class TicketSkillContractTests(unittest.TestCase):
             "[reference/web-implementation.md](reference/web-implementation.md)",
             ui_craft,
         )
+
+    def test_every_verb_binds_its_own_checkout_graph_before_it_reads_code(self):
+        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
+        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")
+        revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")
+        rule = shared.split("## The graph identity", 1)[1].split("## Standing decisions", 1)[0]
+
+        self.assertIn("cbm-lifecycle.py ensure", rule)
+        for state in ("`ready`", "`indexed`", "`unavailable`"):
+            self.assertIn(state, rule)
+        normalized = " ".join(rule.lower().split())
+        for guess in ("basename", "branch", "recency", "list order", "only result"):
+            self.assertIn(guess, normalized)
+        self.assertIn("recomputes", normalized)
+        self.assertIn("ordinary discovery", normalized)
+
+        for page, worktree, code in (
+            (triage, "Cut or reuse the worktree", "5. **Ground.**"),
+            (start, "Worktree and branch", "Sufficiency check"),
+            (revise, "2. **Worktree.**", "4. **Collect the round.**"),
+        ):
+            binding = page.index("graph-identity rule")
+            self.assertLess(page.index(worktree), binding)
+            self.assertLess(binding, page.index(code))
+
+    def test_the_graph_identity_never_travels_in_a_tracker_artifact(self):
+        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("never goes into a work order", " ".join(shared.split()))
+        for machine_local in ("cbm-onboard-v1-", "root_path", "cbm-lifecycle.py"):
+            self.assertNotIn(machine_local, template)
+
+    def test_a_chunk_agent_is_handed_its_own_graph_identity_and_no_other(self):
+        coordinator = (
+            TICKET_DIRECTORY / "references" / "coordinator-mode.md"
+        ).read_text(encoding="utf-8")
+        dispatch = coordinator.split("3. **Dispatch one agent per chunk", 1)[1].split(
+            "\n4. **", 1
+        )[0]
+
+        self.assertIn("graph-identity rule", dispatch)
+        self.assertIn("`root_path`", dispatch)
+        self.assertIn("`project`", dispatch)
+        normalized = " ".join(dispatch.lower().split())
+        self.assertIn("uses as given", normalized)
+        self.assertIn("never receives the ticket worktree's identity or a sibling's", normalized)
+
+    def test_every_ticket_authored_worktree_removal_tears_the_graph_down_first(self):
+        pages = {
+            name: (TICKET_DIRECTORY / relative).read_text(encoding="utf-8")
+            for name, relative in (
+                ("revise", Path("verbs") / "revise.md"),
+                ("finalize", Path("verbs") / "finalize.md"),
+                ("coordinator", Path("references") / "coordinator-mode.md"),
+            )
+        }
+
+        for name, page in pages.items():
+            removals = [match.start() for match in re.finditer(r"worktree remove", page)]
+            self.assertTrue(removals, name)
+            for removal in removals:
+                self.assertIn("cbm-teardown.sh", page[max(0, removal - 400) : removal], name)
+
+    def test_discovery_uses_a_supplied_project_and_otherwise_resolves_the_checkout(self):
+        reminder = (
+            ROOT / "skills" / "tools" / "codebase-memory" / "reminder.md"
+        ).read_text(encoding="utf-8")
+        normalized = " ".join(reminder.split())
+
+        self.assertIn("use exactly that name as given", normalized)
+        self.assertIn("cbm-lifecycle.py ensure", normalized)
+        self.assertIn("Activating this skill never indexes a project.", normalized)
+        for guess in ("branch-like label", "list order", "apparent recency", "only result"):
+            self.assertIn(guess, normalized)
 
     def test_start_opens_with_summary_and_claim_before_fetching_the_order(self):
         shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")

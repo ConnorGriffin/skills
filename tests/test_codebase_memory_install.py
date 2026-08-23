@@ -481,7 +481,7 @@ class CodebaseMemoryInstallTests(unittest.TestCase):
 
         normalized_reminder = " ".join(reminder.split())
         for phrase in (
-            "exact project is indexed",
+            "against exactly one project",
             "configuration, non-code files, and unindexed projects",
             "Activating this skill never indexes a project",
         ):

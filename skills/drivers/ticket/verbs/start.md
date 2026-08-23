@@ -34,7 +34,10 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    ([verbs/triage.md](triage.md), step 2). The helper refuses if the control
    checkout is dirty or the target path exists; surface that, and do not force it.
    Use the worktree path the helper printed as the working directory for every step
-   below. Move the ticket to in progress.
+   below. Move the ticket to in progress. Then bind that worktree's graph identity
+   per the skill page's graph-identity rule, before step 5 reads any code, and
+   report what it printed: a fresh session resolves this from the checkout it just
+   verified rather than inheriting triage's.
 
 5. **Sufficiency check.** From the ticket worktree, read the order against the
    actual repo. If the repo has drifted since triage (files moved, the constraint

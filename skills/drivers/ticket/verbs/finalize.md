@@ -29,6 +29,7 @@ the code host back to the tracker; this verb is that sync.
    f. Tear the worktree and branch down:
 
    ```sh
+   <cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <worktree path>
    git -C <control checkout> worktree remove <worktree path>
    git -C <control checkout> branch -D <ticket branch>
    git -C <control checkout> worktree prune

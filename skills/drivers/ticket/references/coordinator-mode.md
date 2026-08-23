@@ -31,10 +31,14 @@ What follows is what this skill adds on top. It replaces `start` steps 8 through
    the ticket branch, because a serial chunk cut early misses the work it depends on.
 
 3. **Dispatch one agent per chunk** at the tier its `Agent:` line names, with the
-   working directory set to that chunk's worktree. The prompt is the sub-order fence
-   verbatim, plus the worktree path and the branch name. Nothing else: a sub-order
-   that needs coordinator commentary to be executable is a triage defect, and the fix
-   is to say so, not to patch it in the prompt.
+   working directory set to that chunk's worktree. Bind that chunk worktree's own
+   graph identity first, per the skill page's graph-identity rule. The prompt is the
+   sub-order fence verbatim, plus the worktree path, the branch name, and that
+   chunk's `root_path` and `project`, which the worker uses as given rather than
+   resolving its own. Nothing else: a sub-order that needs coordinator commentary to
+   be executable is a triage defect, and the fix is to say so, not to patch it in the
+   prompt. A chunk never receives the ticket worktree's identity or a sibling's, and
+   an `unavailable` result is passed on as such.
 
    `Surface lifecycle:` is part of that executable interface. Before dispatch,
    confirm every UI-affecting sub-order says `build` or `revise` and names the lock
@@ -74,8 +78,9 @@ What follows is what this skill adds on top. It replaces `start` steps 8 through
    with `--no-ff`. A conflict between two chunks that declared disjoint ownership
    means the slice was wrong: resolve it yourself only when it is mechanical, and say
    so in the report; anything else goes back to the user as a slicing defect. After a
-   chunk merges, remove its worktree and delete its branch
-   (`git -C <control checkout> worktree remove <path>` then
+   chunk merges, remove its worktree and delete its branch (run
+   `<cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <path>` while that checkout
+   still exists, then `git -C <control checkout> worktree remove <path>` and
    `git -C <control checkout> branch -D <chunk branch>`). Chunk branches are never
    pushed, so there is no remote branch to delete.
 
