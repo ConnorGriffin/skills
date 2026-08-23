@@ -44,6 +44,7 @@ the helper's `scan` command, not estimates.
 | E | CI previewing every deployment target | multiple targets, multiple artifacts | slice | 359k plus a 313k resume |
 | F | One new member of a closed behavioural taxonomy, wired through its server projection, a JS mirror, three fixture generators and a browser gate | multiple artifacts, live run, lockstep copies | slice: detector and its tests, then the surface and its fixtures | flat; peaked 503k over 4 sessions |
 | 10 | Proof-bounded I:C history across an analyzer, server projections, generated fixtures, and a lifecycle-gated Diagnose revision | multiple artifacts, live run, lockstep copies, lifecycle-gated surface revision | slice into four serial chunks: analyzer, server contract, generated projections/evidence, then surface lock and browser evidence | 3 chunks; peaked 244k |
+| 90 | One shared behavioural judgment across model view, two server projections, generated fixtures and mirrors, and browser replay | multiple artifacts, live run, lockstep copies | slice into three serial chunks: source judgment, projection contracts, then generated artifacts and live replay | 2 chunks; peaked 231k |
 
 When a ticket's traits match an anchor row, take that row's shape. When it sits
 between rows, say which two and pick the more conservative one.
@@ -103,6 +104,11 @@ chunk 1".
   builds and tests the artifact against a stub, and a `serial after` chunk runs it
   with the operator and folds what the run exposes back into the code and the
   runbook.
+* When **multiple deliverable artifacts**, **live run inside the ticket**, and
+  **lockstep copies of one fact** all fire across multiple server projections,
+  keep projection integration separate from generated-artifact and browser
+  evidence: source judgment, projection contracts, then generated artifacts and
+  live replay.
 
 ## Orchestrator tier
 
