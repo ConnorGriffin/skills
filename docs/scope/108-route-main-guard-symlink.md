@@ -22,6 +22,13 @@
 - Profile: none. No `Harden:` line in the repo's `CLAUDE.md` repo facts. `inline`
 - Surface lifecycle: none. CLI script; `CLAUDE.md` declares `ui-surfaces: none`. `inline`
 
+- Q1 fix shape settled by the user: **A** — extract one shared predicate into
+  `skills/drivers/ui-craft/scripts/lib/main-guard.mjs` and migrate all four call
+  sites (`route.mjs`, `critique-storage.mjs`, `context-signals.mjs`,
+  `context.mjs`). Why: three copies of one predicate already exist in that
+  directory and the fourth has drifted into a broken variant, which is the
+  divergence the charter's reuse rule names. `inline`
+
 ### Risk contract
 
 - **Must prevent:** a CLI in this pack exiting 0 with no output when it was asked
@@ -39,7 +46,7 @@
 
 ## Open questions
 
-- Q1 fix shape (below), pending user.
+- none. Q1 settled (see Decisions).
 
 ## Spawned tasks
 
