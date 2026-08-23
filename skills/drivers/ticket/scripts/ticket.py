@@ -14,6 +14,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -72,6 +74,63 @@ def validate_session_id(value: str) -> str:
     if forbidden & set(value):
         raise TelemetryError("session id must not contain glob or path characters")
     return value
+
+
+def _normalize_remote(url: str) -> str:
+    """Collide an ssh and an https remote for one repository to one string.
+
+    `git@github.com:owner/repo.git` and `https://github.com/owner/repo` name
+    the same repository; both fold to `github.com/owner/repo` so a claim made
+    through either form resolves to the same identity.
+    """
+    url = url.strip()
+    if url.endswith(".git"):
+        url = url[: -len(".git")]
+    scp_match = re.match(r"^[^/@]+@([^:]+):(.+)$", url)
+    if scp_match:
+        return f"{scp_match.group(1)}/{scp_match.group(2)}"
+    url_match = re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://(?:[^/@]+@)?([^/]+)/(.+)$", url)
+    if url_match:
+        return f"{url_match.group(1)}/{url_match.group(2)}"
+    return url
+
+
+def resolve_repo(path: Path) -> Optional[str]:
+    """Name the repository a checkout path belongs to, derived from disk.
+
+    Never raises: a missing `git`, a path outside any checkout, or a checkout
+    with no origin remote all fall through to the next step rather than
+    blocking whichever claim, scan, or record call needs this. Tried in order:
+    the origin remote (normalized so ssh and https collide), then the
+    checkout's own toplevel path, then `None`.
+    """
+    try:
+        remote = subprocess.run(
+            ["git", "-C", str(path), "remote", "get-url", "origin"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        remote = None
+    if remote is not None and remote.returncode == 0 and remote.stdout.strip():
+        return _normalize_remote(remote.stdout.strip())
+
+    try:
+        toplevel = subprocess.run(
+            ["git", "-C", str(path), "rev-parse", "--show-toplevel"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        toplevel = None
+    if toplevel is not None and toplevel.returncode == 0 and toplevel.stdout.strip():
+        return toplevel.stdout.strip()
+
+    return None
 
 
 def context_size(usage: dict) -> int:
@@ -244,17 +303,43 @@ def session_cost(claim: dict, projects_dir: Path) -> dict:
     }
 
 
-def scan(ticket_id: str, projects_dir: Path) -> dict:
-    sessions = [session_cost(claim, projects_dir) for claim in read_claims(ticket_id)]
+def scan(ticket_id: str, projects_dir: Path, current_repo: Optional[str]) -> dict:
+    """Report peak context for this ticket id, scoped to one repository.
+
+    A claim's `repo` was resolved once, at claim time, from the checkout it
+    ran in. Reading it back here keeps two repositories' same-numbered
+    tickets from merging into one measurement: a claim from another
+    repository is counted but never folded in, and a claim with no
+    resolvable repository (a pre-existing claim written before this field
+    existed, or a resolution failure) is named rather than silently dropped
+    or silently counted.
+    """
+    own_claims = []
+    excluded = 0
+    unattributable = []
+    for claim in read_claims(ticket_id):
+        repo = claim.get("repo")
+        if repo:
+            if repo == current_repo:
+                own_claims.append(claim)
+            else:
+                excluded += 1
+        else:
+            unattributable.append(claim["session_id"])
+
+    sessions = [session_cost(claim, projects_dir) for claim in own_claims]
     sessions.sort(key=lambda session: session["started"] or "")
     measured = [session for session in sessions if session["transcripts"]]
     return {
         "ticket_id": ticket_id,
+        "repo": current_repo,
         "session_count": len(measured),
         "claim_count": len(sessions),
         "unreadable": [
             session["session_id"] for session in sessions if not session["transcripts"]
         ],
+        "excluded_claims": excluded,
+        "unattributable": unattributable,
         "peak_context": max((session["peak_context"] for session in measured), default=0),
         "subagent_peak": max((session["subagent_peak"] for session in measured), default=0),
         "sessions": sessions,
@@ -276,6 +361,20 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
                 "no-data",
                 f"{actual['claim_count']} session(s) claimed this ticket and their "
                 "transcripts are gone, so nothing could be measured",
+            )
+        excluded = actual.get("excluded_claims") or 0
+        unattributable = actual.get("unattributable") or []
+        if excluded or unattributable:
+            parts = []
+            if excluded:
+                parts.append(f"{excluded} claim(s) from another repository")
+            if unattributable:
+                parts.append(f"{len(unattributable)} claim(s) with no resolvable repository")
+            repo_name = actual.get("repo") or "this repository"
+            return (
+                "no-data",
+                "this ticket had claims, but " + " and ".join(parts)
+                + f", none of them from {repo_name}, so nothing measured it here",
             )
         return "no-data", "no session claimed this ticket, so nothing measured it"
     own = max(session["peak_context"] for session in actual["sessions"])
@@ -311,14 +410,16 @@ def append_record(record: dict) -> Path:
 
 def command_scan(arguments: argparse.Namespace) -> int:
     ticket_id = validate_ticket_id(arguments.ticket_id)
-    result = scan(ticket_id, arguments.projects_dir)
+    current_repo = resolve_repo(Path.cwd())
+    result = scan(ticket_id, arguments.projects_dir, current_repo)
     print(json.dumps(result, indent=2))
     return 0
 
 
 def command_record(arguments: argparse.Namespace) -> int:
     ticket_id = validate_ticket_id(arguments.ticket_id)
-    actual = scan(ticket_id, arguments.projects_dir)
+    current_repo = resolve_repo(Path.cwd())
+    actual = scan(ticket_id, arguments.projects_dir, current_repo)
     call, reason = verdict(actual, arguments.chunked, arguments.chunks)
     record = {
         "ticket_id": ticket_id,
@@ -327,9 +428,12 @@ def command_record(arguments: argparse.Namespace) -> int:
         "depth": arguments.depth,
         "chunked": arguments.chunked,
         "chunks": arguments.chunks,
+        "repo": actual["repo"],
         "session_count": actual["session_count"],
         "claim_count": actual["claim_count"],
         "unreadable": actual["unreadable"],
+        "excluded_claims": actual["excluded_claims"],
+        "unattributable": actual["unattributable"],
         "peak_context": actual["peak_context"],
         "subagent_peak": actual["subagent_peak"],
         "session_peaks": [
@@ -351,11 +455,13 @@ def command_claim(arguments: argparse.Namespace) -> int:
         validate_session_id(arguments.session) if arguments.session else None,
         arguments.agent,
     )
+    project = arguments.project or str(Path.cwd())
     claim = {
         "ticket_id": ticket_id,
         "session_id": session_id,
         "agent": agent,
-        "project": arguments.project or str(Path.cwd()),
+        "project": project,
+        "repo": resolve_repo(Path(project)),
         "claimed_at": datetime.now(timezone.utc).isoformat(),
     }
     written = append_claim(claim)
