@@ -13,6 +13,17 @@ from typing import Optional
 ROOT = Path(__file__).resolve().parents[1]
 TICKET_SCRIPT = ROOT / "skills" / "drivers" / "ticket" / "scripts" / "ticket.py"
 TICKET_DIRECTORY = ROOT / "skills" / "drivers" / "ticket"
+DISCOVERY_POLICY = ROOT / "skills" / "tools" / "codebase-memory" / "reminder.md"
+# Both installed artifacts state this rule independently, because an agent may hold
+# either one without the other. Pinning one vocabulary is what keeps them from
+# drifting into two different rules.
+GRAPH_SELECTION_TRAPS = (
+    "project name",
+    "branch-like label",
+    "list order",
+    "apparent recency",
+    "only result",
+)
 
 
 def run(command: list[str], *, cwd: Path, env: Optional[dict[str, str]] = None):
@@ -199,8 +210,8 @@ class TicketSkillContractTests(unittest.TestCase):
         for state in ("`ready`", "`indexed`", "`unavailable`"):
             self.assertIn(state, rule)
         normalized = " ".join(rule.lower().split())
-        for guess in ("basename", "branch", "recency", "list order", "only result"):
-            self.assertIn(guess, normalized)
+        for trap in GRAPH_SELECTION_TRAPS:
+            self.assertIn(trap, normalized)
         self.assertIn("recomputes", normalized)
         self.assertIn("ordinary discovery", normalized)
 
@@ -255,16 +266,41 @@ class TicketSkillContractTests(unittest.TestCase):
                 self.assertIn("cbm-teardown.sh", page[max(0, removal - 400) : removal], name)
 
     def test_discovery_uses_a_supplied_project_and_otherwise_resolves_the_checkout(self):
-        reminder = (
-            ROOT / "skills" / "tools" / "codebase-memory" / "reminder.md"
-        ).read_text(encoding="utf-8")
+        reminder = DISCOVERY_POLICY.read_text(encoding="utf-8")
         normalized = " ".join(reminder.split())
 
         self.assertIn("use exactly that name as given", normalized)
         self.assertIn("cbm-lifecycle.py ensure", normalized)
         self.assertIn("Activating this skill never indexes a project.", normalized)
-        for guess in ("branch-like label", "list order", "apparent recency", "only result"):
-            self.assertIn(guess, normalized)
+        for trap in GRAPH_SELECTION_TRAPS:
+            self.assertIn(trap, normalized.lower())
+
+    def test_a_failed_graph_teardown_is_said_once_and_never_stops_the_removal(self):
+        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+        rule = " ".join(
+            shared.split("## The graph identity", 1)[1]
+            .split("## Standing decisions", 1)[0]
+            .split()
+        )
+        pages = [
+            (TICKET_DIRECTORY / relative).read_text(encoding="utf-8")
+            for relative in (
+                Path("verbs") / "revise.md",
+                Path("verbs") / "finalize.md",
+                Path("references") / "coordinator-mode.md",
+            )
+        ]
+
+        self.assertIn("report it in one line and carry on with the removal", rule)
+        self.assertIn("never holds up the removal", rule)
+        self.assertIn("never retried", rule)
+        self.assertIn("no Codebase Memory installed", rule)
+        # One authority for the disposition; the call sites carry only the command,
+        # so a teardown that fails cannot be handled two ways in one lifecycle.
+        self.assertEqual(
+            sum(page.count("holds up the removal") for page in pages) + rule.count("holds up the removal"),
+            1,
+        )
 
     def test_start_opens_with_summary_and_claim_before_fetching_the_order(self):
         shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")

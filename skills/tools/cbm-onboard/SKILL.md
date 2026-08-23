@@ -1,6 +1,6 @@
 ---
 name: cbm-onboard
-description: Register maintained or ephemeral Git checkouts with codebase-memory-mcp, keep long-lived indexes current through non-clobbering Git hooks, and tear down ephemeral indexes by exact deterministic identity. Use when asked to index, onboard, register, remove, or keep a repository current in Codebase Memory.
+description: Register maintained or ephemeral Git checkouts with codebase-memory-mcp, keep long-lived indexes current through non-clobbering Git hooks, and tear down ephemeral indexes by exact deterministic identity. Use when asked to index, onboard, register, remove, or keep a repository current in Codebase Memory, or to resolve which Codebase Memory project belongs to a checkout and make it ready.
 ---
 
 # Onboard a repository to Codebase Memory

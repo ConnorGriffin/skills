@@ -161,12 +161,14 @@ It prints one object, and the verb reports it verbatim:
 {"root_path": "<canonical physical checkout>", "project": "cbm-onboard-v1-<sha256>", "status": "ready"}
 ```
 
-* `ready` or `indexed`: query the graph as exactly that `project`. Never choose one
-  by basename, branch, recency, list order, or because it was the only result.
+* `ready` or `indexed`: query the graph as exactly that `project`. Never pick the
+  graph by project name, branch-like label, list order, apparent recency, or because
+  it was the only result.
 * `unavailable` (exit 2): no usable Codebase Memory here, so say so in one line and
   use ordinary discovery for the rest of the session.
-* Any other failure (exit 1): stop at that boundary rather than reading a different
-  repository's graph.
+* Any other failure (exit 1): stop the verb and report what `ensure` said. The tool
+  is installed and answered wrongly, which is the one case where continuing risks
+  reading another repository's graph.
 
 Every session recomputes this from the checkout it just verified, never from chat
 memory or a remembered earlier run. It names one machine's paths, so it never goes
@@ -175,8 +177,9 @@ its prompt.
 
 Before Git removes a worktree this skill authored, the same directory's
 `cbm-teardown.sh` deletes that checkout's project, while the checkout still exists
-for the identity to be derived from. A teardown failure is reported in one line and
-does not hold up the removal.
+for the identity to be derived from. Teardown fails loudly on a machine with no
+Codebase Memory installed, which is expected: report it in one line and carry on
+with the removal. It never holds up the removal, and it is never retried.
 
 ## Standing decisions
 
