@@ -973,5 +973,37 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(persisted["peak_context"], 55_000)
 
 
+    def test_ssh_and_https_remotes_for_one_repository_collide_to_the_same_identity(self):
+        # An ssh remote and an https remote naming the same repository must
+        # resolve to one identity, or a claim made through one form and a
+        # scan run from a checkout using the other form would wrongly land
+        # in excluded_claims instead of being recognised as the same
+        # repository. Exercised through claim/scan (the public interface),
+        # not by calling _normalize_remote directly.
+        ssh_checkout = self.make_repo_checkout(
+            "ssh-checkout", "git@github.com:fixture/repo.git"
+        )
+        https_checkout = self.make_repo_checkout(
+            "https-checkout", "https://github.com/fixture/repo.git"
+        )
+
+        self.write_session("proj-a", "session-ssh", [assistant_line(45_000)])
+
+        claimed = self.ticket(
+            "claim", "TICKET-23", "--session", "session-ssh", "--agent", "claude",
+            "--project", str(ssh_checkout),
+        )
+        self.assertEqual(claimed.returncode, 0, claimed.stderr)
+
+        scanned = self.ticket("scan", "TICKET-23", cwd=https_checkout)
+
+        self.assertEqual(scanned.returncode, 0, scanned.stderr)
+        payload = json.loads(scanned.stdout)
+        self.assertEqual([s["session_id"] for s in payload["sessions"]], ["session-ssh"])
+        self.assertEqual(payload["peak_context"], 45_000)
+        self.assertEqual(payload["excluded_claims"], 0)
+        self.assertEqual(payload["unattributable"], [])
+
+
 if __name__ == "__main__":
     unittest.main()
