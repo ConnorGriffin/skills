@@ -17,6 +17,7 @@ Slice when **two or more** of these hold. One or zero: the order stays flat.
 | Split-path evidence | Acceptance requires proving the same behavior on more than one code path that a single run cannot both exercise — a platform or feature-flag branch, or a re-implementation in another language held identical by test — so each path costs its own harness |
 | Lockstep copies of one fact | Adding one member to a closed set obliges edits in more than two encodings that no single tool checks together: a source of truth, a hand-maintained transcription, a fixture generator, and the committed fixture it freezes |
 | Lifecycle-gated surface revision | A shipped user-facing surface must first lock its visual contract, then implement it and prove it through a browser evidence matrix; the lock, implementation, and evidence each consume the same ticket's context |
+| In-flight scope replacement | A new work order rejects implementation already on the ticket branch and must remove or reconcile it before building the replacement |
 
 The traits are proxies for context load, not for effort. A long-but-uniform change
 (twenty near-identical grants in one target) fires nothing and stays flat, while a
@@ -43,6 +44,7 @@ the helper's `scan` command, not estimates.
 | D | Port live networking into the repo's own tooling, with imports | multiple targets, import | slice; was not | 574k in one session |
 | E | CI previewing every deployment target | multiple targets, multiple artifacts | slice | 359k plus a 313k resume |
 | F | One new member of a closed behavioural taxonomy, wired through its server projection, a JS mirror, three fixture generators and a browser gate | multiple artifacts, live run, lockstep copies | slice: detector and its tests, then the surface and its fixtures | flat; peaked 503k over 4 sessions |
+| 53 | Replace a rejected application route already on the ticket branch, then build a narrower shared route adapter and update its consumers | multiple artifacts, in-flight scope replacement | slice into two serial chunks: remove and reconcile the rejected implementation, then build and verify the replacement | flat revised order; peaked 245k across 5 sessions |
 | 10 | Proof-bounded I:C history across an analyzer, server projections, generated fixtures, and a lifecycle-gated Diagnose revision | multiple artifacts, live run, lockstep copies, lifecycle-gated surface revision | slice into four serial chunks: analyzer, server contract, generated projections/evidence, then surface lock and browser evidence | 3 chunks; peaked 244k |
 | 90 | One shared behavioural judgment across model view, two server projections, generated fixtures and mirrors, and browser replay | multiple artifacts, live run, lockstep copies | slice into three serial chunks: source judgment, projection contracts, then generated artifacts and live replay | 2 chunks; peaked 231k |
 
