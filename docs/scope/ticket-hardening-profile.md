@@ -45,7 +45,7 @@ _(none)_
 
 - No profile mechanism exists in `skills/drivers/ticket/` today; `Review depth:`
   and `Surface lifecycle:` are the only per-order switches.
-- `/clean` landed as #104 (skills/tools/clean).
+- `/clean` now exists (#104, `skills/tools/clean`).
 - This repo declares no `Harden:` line; it is a markdown pack with a Python
   validator and unittest suite.
 - `profile:` and `ui-surfaces:` in `AGENTS.md` are declared but consumed by no
@@ -53,7 +53,8 @@ _(none)_
 - ADR 97 keeps the current `/ticket` workflow authoritative and defers adapters
   until a compatibility spike; issue 103 stays inside that boundary by using a
   raw command line instead of adapters.
-- Issues 87, 88, 89, 91, 92, 93, 94, 95, 96 are all closed.
+- Siblings 89, 92, 94, and 95 are closed; issues 87, 88, 91, 93, and 96 are
+  also closed.
 
 ## Review ledger
 
