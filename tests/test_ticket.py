@@ -258,6 +258,14 @@ class TicketSkillContractTests(unittest.TestCase):
             self.assertIn(trap, normalized)
         self.assertIn("recomputes", normalized)
         self.assertIn("ordinary discovery", normalized)
+        self.assertIn("no exit code", normalized)
+        self.assertIn("harness or sandbox", normalized)
+        self.assertIn("refused it", normalized)
+        self.assertEqual(
+            normalized.count("ordinary discovery"),
+            2,
+            "the never-ran outcome must reuse the unavailable outcome's rule, not restate it",
+        )
 
         for page, worktree, code in (
             (triage, "Cut or reuse the worktree", "5. **Ground.**"),

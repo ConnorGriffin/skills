@@ -115,6 +115,23 @@ def unavailable() -> "NoReturn":
     raise SystemExit(2)
 
 
+def envelope_or_unavailable(code: int, raw: str) -> tuple[dict, object]:
+    """Read one tool response, distinguishing "produced nothing" from "answered wrongly".
+
+    A nonzero exit paired with empty stdout means the binary could not operate
+    at all here (for example a sandbox that blocks the daemon endpoint it
+    needs) — the same degraded mode as a missing or too-old binary, reported
+    as `unavailable`. A zero exit with empty stdout is still a protocol
+    violation: the tool claimed success and said nothing, which is not a case
+    where "no graph is available" is a safe conclusion. Non-empty stdout that
+    fails to parse is always a protocol violation regardless of exit code.
+    """
+
+    if code != 0 and raw == "":
+        unavailable()
+    return read_envelope(raw)
+
+
 def usable_binary() -> str:
     configured = os.environ.get("CODEBASE_MEMORY_BIN") or shutil.which("codebase-memory-mcp")
     if not configured or not os.access(configured, os.X_OK):
@@ -157,7 +174,7 @@ def ensure(target: str) -> None:
     root, project = physical_identity(target)
 
     code, raw = call_tool(binary, ["index_status", "--project", project])
-    structured, reported_error = read_envelope(raw)
+    structured, reported_error = envelope_or_unavailable(code, raw)
     if code == 0:
         if not ready_for(structured, reported_error, project, root):
             fail(f"Codebase Memory did not report {project} ready for {root}")
@@ -171,7 +188,7 @@ def ensure(target: str) -> None:
         binary,
         ["index_repository", "--repo-path", root, "--mode", "full", "--name", project],
     )
-    structured, reported_error = read_envelope(raw)
+    structured, reported_error = envelope_or_unavailable(code, raw)
     if (
         code != 0
         or reported_error is not False
@@ -183,7 +200,7 @@ def ensure(target: str) -> None:
     # index_repository never echoes the root it indexed, so the binding is only
     # proven by asking for the project's own root afterwards.
     code, raw = call_tool(binary, ["index_status", "--project", project])
-    structured, reported_error = read_envelope(raw)
+    structured, reported_error = envelope_or_unavailable(code, raw)
     if code != 0 or not ready_for(structured, reported_error, project, root):
         fail(f"Codebase Memory did not report {project} ready for {root} after indexing")
     json.dump({"root_path": root, "project": project, "status": "indexed"}, sys.stdout)
