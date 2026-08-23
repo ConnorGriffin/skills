@@ -34,6 +34,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 | [`cbm-onboard`](skills/tools/cbm-onboard/SKILL.md) | Keep a maintained checkout indexed, or onboard and tear down a hookless ephemeral worktree | `codebase-memory-mcp` on `PATH`; v0.10.8+ for ephemeral lifecycle |
 | [`codebase-memory`](skills/tools/codebase-memory/SKILL.md) | Explore indexed code through the graph and activate portable Claude Code discovery hooks | `codebase-memory-mcp` for graph queries; activation fails open without it |
 | [`ci-design`](skills/tools/ci-design/SKILL.md) | Vocabulary and principles for well-designed CI | — |
+| [`clean`](skills/tools/clean/SKILL.md) | Clean a branch's diff in one pass — naming, dead code, duplication, and the charter's deep-module rules — without changing behavior, ending in a ledger rather than a verdict | `codebase-design` from this pack; `domain-modeling` optional |
 | [`code-review`](skills/tools/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | Parallel-agent support recommended; GitHub CLI to fetch an originating issue; see [docs/review-round-mining.md](docs/review-round-mining.md) for the mined evidence behind the fix protocol and the round cap |
 | [`codebase-design`](skills/tools/codebase-design/SKILL.md) | Shared vocabulary for designing deep modules | — |
 | [`domain-modeling`](skills/tools/domain-modeling/SKILL.md) | Build and sharpen a project's domain model | — |
