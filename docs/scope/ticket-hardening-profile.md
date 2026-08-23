@@ -16,6 +16,11 @@ hardening command plus a human QA script.
   the residue named. Why: mirrors the two-review-round cap. inline
 - Q5 QA script: profile orders only. Why: it replaces the review round; the
   default template and its tests stay unchanged. inline
+- Q7 Chunked orders: profile is flat-only; triage stamps `Profile: none` on any
+  sliced order. Why: coordinator-mode has its own review path; no consumer for
+  a hardening branch there yet. inline
+- Q8 Plan-review at triage runs only on Full-depth profile orders (ticket change 3);
+  default-workflow orders keep the unconditional review. inline
 - Q1 Sequencing: `/clean` landed as #104; no dependency remains. inline
 - Q6 Siblings 89, 92, 94, 95 are closed; nothing to dispose. inline
 
@@ -27,7 +32,7 @@ hardening command plus a human QA script.
 - Accepted failure: hardening cap reached → draft PR naming residue, manual follow-up.
 - Unsupported: repos without a `Harden:` line (they get the default workflow).
 - Evidence owed: tests pinning that triage, start, revise, and the template carry
-  the profile contract (`Profile: hardening`, `Harden:`, `QA script:`, cap of 3,
+  the profile contract (`Profile: hardening`, `Harden:`, `QA script` section, cap of 3,
   error-not-pass).
 - Why: documentation-only change in a markdown pack; the failure surface is a
   misread rule, not runtime damage. Disposition: inline.
@@ -40,7 +45,7 @@ _(none)_
 
 - No profile mechanism exists in `skills/drivers/ticket/` today; `Review depth:`
   and `Surface lifecycle:` are the only per-order switches.
-- `/clean` does not exist in the pack; issue 102 is open and unbuilt.
+- `/clean` landed as #104 (skills/tools/clean).
 - This repo declares no `Harden:` line; it is a markdown pack with a Python
   validator and unittest suite.
 - `profile:` and `ui-surfaces:` in `AGENTS.md` are declared but consumed by no
@@ -48,8 +53,12 @@ _(none)_
 - ADR 97 keeps the current `/ticket` workflow authoritative and defers adapters
   until a compatibility spike; issue 103 stays inside that boundary by using a
   raw command line instead of adapters.
-- Issues 87, 88, 91, 93, 96 are already closed; 89, 92, 94, 95 are open and
-  overlap issue 103's substance.
+- Issues 87, 88, 89, 91, 92, 93, 94, 95, 96 are all closed.
+
+## Review ledger
+
+- Panel 1: 3 blockers (plan-review exemption unstated; legacy test not fail-first;
+  chunked Profile: unconsumed), all `authoring`; 3 notes. Fixed in draft.
 
 ## Spawned tasks
 
