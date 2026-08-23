@@ -108,12 +108,15 @@ Disposition: inline in the work order.
   ```sh
   gd="$(git rev-parse --absolute-git-dir)"
   cd_="$(git rev-parse --git-common-dir)"
-  case "$cd_" in /*) : ;; *) cd_="$(cd "$cd_" && pwd)" ;; esac
+  case "$cd_" in /*) : ;; *) cd_="$(cd "$cd_" && pwd -P)" ;; esac
   [ "$gd" = "$cd_" ] && echo maintained || echo linked
   ```
 
   Resolving a relative `--git-common-dir` against the toplevel instead of `$PWD`
   misclassified `main/sub` as linked, so the relative case is resolved against `$PWD`.
+  Full implementation review also reproduced a maintained checkout reached through a
+  logical symlink whose absolute Git directory used the physical spelling; `pwd -P`
+  keeps both sides of the classification in the same physical namespace.
 - Legacy-block recognition, run against a hook holding a user line, the dotfiles
   marker comment, its invocation, and a trailing user line, left both user lines and
   removed exactly the two managed lines:

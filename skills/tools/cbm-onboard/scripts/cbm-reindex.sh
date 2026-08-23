@@ -1,11 +1,16 @@
 #!/bin/sh
-# Reindex one maintained checkout in fast mode after a commit.
+# Reindex the checkout that fired a managed Git hook.
 
 set -u
 
 BIN="${CODEBASE_MEMORY_BIN:-$(command -v codebase-memory-mcp 2>/dev/null || true)}"
 [ -n "$BIN" ] && [ -x "$BIN" ] || {
   printf '%s\n' "Codebase Memory refresh skipped: binary is not executable" >&2
+  exit 0
+}
+LAUNCHER="$(command -v nohup 2>/dev/null || true)"
+[ -n "$LAUNCHER" ] && [ -x "$LAUNCHER" ] || {
+  printf '%s\n' "Codebase Memory refresh skipped: detached launcher is unavailable" >&2
   exit 0
 }
 
@@ -19,10 +24,14 @@ GIT_DIR_ABS="$(unset GIT_DIR GIT_WORK_TREE; cd "$PWD" && git rev-parse --absolut
 COMMON_DIR="$(unset GIT_DIR GIT_WORK_TREE; cd "$PWD" && git rev-parse --git-common-dir 2>/dev/null || true)"
 case "$COMMON_DIR" in
   /*) : ;;
-  *) COMMON_DIR="$(unset GIT_DIR GIT_WORK_TREE; cd "$PWD/$COMMON_DIR" 2>/dev/null && pwd || true)" ;;
+  *) COMMON_DIR="$(unset GIT_DIR GIT_WORK_TREE; cd "$PWD/$COMMON_DIR" 2>/dev/null && pwd -P || true)" ;;
 esac
+[ -n "$GIT_DIR_ABS" ] && [ -n "$COMMON_DIR" ] || {
+  printf '%s\n' "Codebase Memory refresh skipped: checkout classification failed" >&2
+  exit 0
+}
 
-if [ -n "$GIT_DIR_ABS" ] && [ -n "$COMMON_DIR" ] && [ "$GIT_DIR_ABS" != "$COMMON_DIR" ]; then
+if [ "$GIT_DIR_ABS" != "$COMMON_DIR" ]; then
   VERSION_TMP="$(mktemp 2>/dev/null || true)"
   if [ -z "$VERSION_TMP" ] ||
     ! "$BIN" --version >"$VERSION_TMP" 2>/dev/null ||
@@ -39,7 +48,7 @@ if [ -n "$GIT_DIR_ABS" ] && [ -n "$COMMON_DIR" ] && [ "$GIT_DIR_ABS" != "$COMMON
     printf '%s\n' "Codebase Memory refresh skipped: worktree identity could not be derived" >&2
     exit 0
   }
-  nohup "$BIN" cli --json index_repository \
+  "$LAUNCHER" "$BIN" cli --json index_repository \
     --repo-path "$ROOT" --mode fast --name "$PROJECT" \
     >/dev/null 2>&1 </dev/null &
   exit 0
@@ -49,7 +58,7 @@ PAYLOAD="$(python3 -c \
   'import json,sys; print(json.dumps({"repo_path": sys.argv[1], "mode": "fast"}))' \
   "$ROOT")" || exit 0
 
-nohup "$BIN" cli index_repository "$PAYLOAD" \
+"$LAUNCHER" "$BIN" cli index_repository "$PAYLOAD" \
   >/dev/null 2>&1 </dev/null &
 
 exit 0

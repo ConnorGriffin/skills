@@ -44,9 +44,9 @@ directory containing several repositories.
    through Git's shared hooks directory. When one of those shared hooks fires
    from a linked worktree, it refreshes that worktree in fast mode under the
    same deterministic identity used by the ephemeral lifecycle. It never falls
-   back to a path-derived project. A missing binary, an unsupported version, or
-   an identity that cannot be derived prints one reason and lets the Git
-   operation continue.
+   back to a path-derived project. Failed checkout classification, a missing
+   binary or detached launcher, an unsupported version, or an identity that
+   cannot be derived prints one reason and lets the Git operation continue.
 
    Re-run onboarding from the installed skill directory to repair an enrollment
    whose managed hook points at a stale or foreign installation. Onboarding

@@ -482,6 +482,52 @@ raise SystemExit(exit_code)
         )
         self.assertNotIn("--name", requests[0])
 
+    def test_logical_checkout_path_is_still_classified_as_maintained(self):
+        self.seed_repository()
+        self.configure_lifecycle_binary()
+        logical_root = self.scratch / "logical checkout"
+        logical_root.symlink_to(self.repo, target_is_directory=True)
+        real_git = shutil.which("git")
+        self.assertIsNotNone(real_git)
+        shim_directory = self.scratch / "bin"
+        shim_directory.mkdir()
+        git_shim = shim_directory / "git"
+        git_shim.write_text(
+            f"""#!{sys.executable}
+import os
+import sys
+
+if "--show-toplevel" in sys.argv:
+    print({str(logical_root)!r})
+    raise SystemExit(0)
+if "--absolute-git-dir" in sys.argv:
+    print({str(self.repo.resolve() / '.git')!r})
+    raise SystemExit(0)
+if "--git-common-dir" in sys.argv:
+    print(".git")
+    raise SystemExit(0)
+os.execv({real_git!r}, [{real_git!r}, *sys.argv[1:]])
+""",
+            encoding="utf-8",
+        )
+        git_shim.chmod(0o755)
+        environment = self.environment | {
+            "PATH": f"{shim_directory}{os.pathsep}{self.environment['PATH']}",
+            "PWD": str(logical_root),
+        }
+
+        result = run([str(CBM_REINDEX)], cwd=logical_root, env=environment)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        requests = self.wait_for_requests(1)
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(requests[0][:2], ["cli", "index_repository"])
+        self.assertEqual(
+            json.loads(requests[0][2]),
+            {"repo_path": str(logical_root), "mode": "fast"},
+        )
+        self.assertNotIn("--name", requests[0])
+
     def test_commit_lands_when_reindex_binary_is_missing_and_names_the_reason(self):
         self.seed_repository()
         self.configure_lifecycle_binary()
@@ -494,6 +540,61 @@ raise SystemExit(exit_code)
         self.assertEqual(
             committed.stderr.splitlines(),
             ["Codebase Memory refresh skipped: binary is not executable"],
+        )
+        self.assertEqual(self.issued(), [])
+
+    def test_reindex_names_a_missing_detached_launcher(self):
+        self.seed_repository()
+        self.configure_lifecycle_binary()
+        shim_directory = self.scratch / "bin"
+        shim_directory.mkdir()
+        for command in ("dirname", "git", "python3"):
+            executable = shutil.which(command)
+            self.assertIsNotNone(executable)
+            (shim_directory / command).symlink_to(executable)
+        environment = self.environment | {"PATH": str(shim_directory)}
+
+        result = run([str(CBM_REINDEX)], cwd=self.repo, env=environment)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stderr.splitlines(),
+            ["Codebase Memory refresh skipped: detached launcher is unavailable"],
+        )
+        self.assertEqual(self.issued(), [])
+
+    def test_reindex_skips_when_checkout_classification_fails(self):
+        self.seed_repository()
+        self.configure_lifecycle_binary()
+        real_git = shutil.which("git")
+        self.assertIsNotNone(real_git)
+        shim_directory = self.scratch / "bin"
+        shim_directory.mkdir()
+        git_shim = shim_directory / "git"
+        git_shim.write_text(
+            f"""#!{sys.executable}
+import os
+import sys
+
+if "--absolute-git-dir" in sys.argv:
+    raise SystemExit(1)
+os.execv({real_git!r}, [{real_git!r}, *sys.argv[1:]])
+""",
+            encoding="utf-8",
+        )
+        git_shim.chmod(0o755)
+        environment = self.environment | {
+            "PATH": f"{shim_directory}{os.pathsep}{self.environment['PATH']}"
+        }
+
+        result = run(
+            [str(CBM_REINDEX)], cwd=self.repo, env=environment
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stderr.splitlines(),
+            ["Codebase Memory refresh skipped: checkout classification failed"],
         )
         self.assertEqual(self.issued(), [])
 

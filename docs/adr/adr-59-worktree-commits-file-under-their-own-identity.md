@@ -21,19 +21,21 @@ so it appended a second block instead of repairing the owned legacy one.
 
 ## Decision
 
-The reindex command classifies the checkout that fired the hook by comparing
-Git's absolute Git directory with its common Git directory. A maintained
-checkout keeps the established behavior: detached fast indexing with only its
-repository path, allowing Codebase Memory to derive the project name.
+The reindex command classifies the checkout that fired the hook by physically
+comparing Git's absolute Git directory with its common Git directory. A failed
+classification stops before either indexing path. A maintained checkout keeps
+the established behavior: detached fast indexing with only its repository path,
+allowing Codebase Memory to derive the project name.
 
 A linked worktree instead derives the deterministic
 `cbm-onboard-v1-<sha256>` identity through the existing lifecycle command and
 requests one detached fast index under that exact name. Classification and
 identity derivation ignore hook-provided `GIT_DIR` and `GIT_WORK_TREE` values so
 the firing checkout remains authoritative. The hook never falls back to a
-path-derived name. If the binary is missing, its version cannot support the
-identity lifecycle, or identity derivation fails, the hook prints one reason
-and exits successfully so the Git operation continues.
+path-derived name. If classification fails, the binary or detached launcher is
+missing, the binary version cannot support the identity lifecycle, or identity
+derivation fails, the hook prints one reason and exits successfully so the Git
+operation continues.
 
 Onboarding recognizes both its fenced managed block and the older unfenced
 marker. It removes the legacy marker and only an immediately following exact,
