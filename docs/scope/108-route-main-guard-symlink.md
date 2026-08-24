@@ -92,3 +92,42 @@ the draft.
   sent back for attack on the scope and cost axes.
 
 Order rewritten clean rather than patched.
+
+Round 2 — same reviewer, re-checking only round 1's deltas as fresh attack surface.
+
+* Blockers: 2, both tagged `injected` — each was introduced by a round-1 fix, not
+  present in the original draft.
+  * The differential-parity idiom that replaced the golden literals (the reviewer's
+    own round-1 recommendation) is satisfied by two silent runs: if the migrated
+    guard never fires, both halves produce empty stdout and exit 0, so the test
+    passes green while four of the five CLIs are dead. Fixed by asserting the
+    real-path run's stdout is non-empty before comparing the pair — which pins that
+    the CLI ran, not what it printed, so it still invents no baseline.
+  * Folding in the fifth call site would have deleted
+    `detect-antipatterns.mjs:49`, the trailing-separator spelling
+    (`...endsWith('detect-antipatterns.mjs/')`), with nothing naming the invocation
+    shape it exists for. `node <path>/detect-antipatterns.mjs/ --help` works today.
+    `realpath` of `file/` resolves on darwin but raises `ENOTDIR` on some platforms,
+    where the fallback would compare `file:///…mjs/` against `file:///…mjs` and
+    reintroduce this ticket's defect at a new site. Fixed in the helper rather than
+    only in a test: strip a trailing separator before comparing. Spiked and executed
+    — all four shapes (real path and symlink, each with and without the trailing
+    separator) fire, and the fallback compare holds once stripped.
+* Notes: 1, `injected`. The `--help` justification cited
+  `detector/cli/main.mjs:137`, which only computes the flag; handling is at 164, and
+  lines 149 and 155 read from `process.cwd()` first, so the invocation is
+  cwd-sensitive and the same-cwd requirement is load-bearing rather than incidental.
+  Corrected, with the writes-nothing claim re-grounded (no write call exists
+  anywhere in the detector tree).
+* One reviewer claim was checked and did not reproduce on first run — that all four
+  pinned invocations emit output today. Re-run without the quoting artifact in the
+  probe, all four do. Claim upheld, not forwarded on the strength of the first
+  reading.
+* The fifth call site was attacked on the scope and cost axes as asked and cleared:
+  a genuine fifth copy of the same predicate, one constant plus one test pair of
+  marginal diff, and `detect.mjs` reaches `detectCli` by dynamic import with
+  `argv[1]` pointing at `detect.mjs`, which is false under both the old and new
+  predicates.
+
+Injected blockers by round: 0, then 2. The climb is the rewrite-clean signal, and
+round 2's fixes are confined to the two steps that produced them.
