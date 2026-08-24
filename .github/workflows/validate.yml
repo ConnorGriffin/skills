@@ -55,7 +55,7 @@ jobs:
       - name: Verify installed skills
         run: |
           for skill in drive-local-webapp cbm-onboard spin-worktree research \
-            codebase-memory implement tdd review prototype scope wayfinder plan-review \
+            codebase-memory implement tdd review prototype scope epic plan-review \
             ui-craft orchestrate; do
             test -f ".agents/skills/$skill/SKILL.md"
           done

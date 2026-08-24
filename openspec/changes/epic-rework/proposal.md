@@ -65,7 +65,11 @@ passes. This rework is itself the first epic (see Sequencing).
 * A spike answers a question and closes with a resolution comment. Flavors:
   research, interview, mockup, and human prerequisite (work only the operator
   can do that unblocks a decision).
-* A build ticket is implementable work driven through `/ticket`.
+* A build ticket is implementable work driven through `/ticket`. Type labels
+  are machine-applied: the tracker binding ensures `build` at triage (created
+  on demand, like the `ticket:*` labels), and the epic skill labels what it
+  files (`epic`, `spike`, `deferred`). The operator never types a type label
+  by hand.
 * `deferred` marks a child of an epic issue as outside that epic's current
   scope: a deferred follow-up is filed as a native child of the epic that
   surfaced it, carrying the label. It is not blocking: blocked-in-scope work
@@ -446,7 +450,8 @@ spec since the epic skill doesn't exist yet. Children, in dependency order:
      record, a child's record is its work order and PR; one sentence in the
      epic skill that an epic change folder substitutes tracker children for
      `tasks.md` and carries `ledger.md`; `review-actions.md`'s under-an-epic
-     labeling clause; scope routing note; the validate workflow gains a
+     labeling clause; the github-issues binding's triage operation gains an
+     ensure-`build`-label step; scope routing note; the validate workflow gains a
      changed-paths condition on its expensive steps so the required `skills`
      check still reports green on ledger and docs-only PRs (a bare
      `paths-ignore` would leave the required check pending and make those
@@ -497,3 +502,30 @@ serial build tickets, per the conjunctive promotion rule.
 * Store paths `~/.config/agent-calibration/{models,assessments}.jsonl`.
 * Nudge threshold 5 tickets; edit threshold 3 supporting rows, both streams.
 * Renderer script name `epic_status.py`; Mermaid + text output.
+
+## Risk contract
+
+- **Must prevent:** secret exposure; irreversible loss of authoritative data —
+  in this epic, tracker state: no label carrying claim or disposition state is
+  deleted without its issues surfaced and acknowledged first; silent incorrect
+  success — a calibration row or telemetry record that misattributes work;
+  breaking agentflow's per-file pins unknowingly (the pin check gate runs
+  before the rename merges).
+- **Must recover:** nothing automatically. Every failure stops visibly for the
+  operator; the migration script is idempotent so a half-applied run re-runs.
+- **Accepted failure:** a build session dying mid-run (recover from the work
+  order and worktree); ledger staleness against the tracker (renderer marks
+  it; manual sync); a missed nudge if the calibration store write is denied
+  (reported in one line, never blocking).
+- **Unsupported:** repos outside the spike's approved list; concurrent epics
+  sharing one change directory; trackers other than GitHub issues.
+- **Evidence owed:** validator, full suite, and post-install check green on
+  the renamed tree; migration acceptance quantified over the approved list;
+  the purge gate shown red before and green after each enumerated target; the
+  renderer's completion gate against the pinned fixture; a finalize staging
+  rows without prompting.
+
+**Why:** process machinery for one operator; the worst credible losses are
+tracker label state and pinned-consumer breakage, and both sit behind gates.
+**Disposition:** admitted; children copy the relevant lines into their work
+orders at stamping time.

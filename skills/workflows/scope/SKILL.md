@@ -14,7 +14,7 @@ correct route with no other output is a complete session.
 Classify the **dominant** uncertainty — the one that, if resolved, makes the others
 tractable — and route to exactly one of:
 
-- **Big and foggy, many interlocking decisions that block each other** → `wayfinder`.
+- **Big and foggy, many interlocking decisions that block each other** → `epic`.
 - **A concrete plan or design exists in someone's head, untested** → interview mode
   ([references/interview.md](references/interview.md), in this skill).
 - **A written plan, work order, spec, or brief exists and needs stress-testing
@@ -32,8 +32,8 @@ tractable — and route to exactly one of:
   unconditionally, and "nothing to scope" is a correct, complete answer.
 
 If the request already names a specialist by trigger phrase (a `grill`-style trigger
-names interview mode; `stress-test this plan` names `plan-review`; a wayfinder map
-names `wayfinder`), route there directly without re-diagnosing.
+names interview mode; `stress-test this plan` names `plan-review`; an epic map
+names `epic`), route there directly without re-diagnosing.
 
 ## Ledger — required
 
@@ -52,7 +52,7 @@ At the moment routing happens, open a ledger before invoking the specialist:
 ## Risk contract
 
 For interview-mode work, and for any other bounded plan being declared ready to
-build, settle a risk contract before admission. A Wayfinder map whose work is not yet
+build, settle a risk contract before admission. An epic map whose work is not yet
 bounded does not need one.
 
 Keep one `### Risk contract` block under the ledger's `Decisions` section:

@@ -17,7 +17,7 @@ CATEGORIES = {"workflows", "drivers", "tools"}
 EXPECTED = {
     "workflows/scope",
     "workflows/review",
-    "drivers/wayfinder",
+    "drivers/epic",
     "drivers/implement",
     "drivers/openspec-adopt",
     "drivers/ui-craft",
