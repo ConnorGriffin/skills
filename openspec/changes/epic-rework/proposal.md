@@ -65,7 +65,11 @@ passes. This rework is itself the first epic (see Sequencing).
 * A spike answers a question and closes with a resolution comment. Flavors:
   research, interview, mockup, and human prerequisite (work only the operator
   can do that unblocks a decision).
-* A build ticket is implementable work driven through `/ticket`.
+* A build ticket is implementable work driven through `/ticket`. Type labels
+  are machine-applied: the tracker binding ensures `build` at triage (created
+  on demand, like the `ticket:*` labels), and the epic skill labels what it
+  files (`epic`, `spike`, `deferred`). The operator never types a type label
+  by hand.
 * `deferred` marks a child of an epic issue as outside that epic's current
   scope: a deferred follow-up is filed as a native child of the epic that
   surfaced it, carrying the label. It is not blocking: blocked-in-scope work
@@ -446,7 +450,8 @@ spec since the epic skill doesn't exist yet. Children, in dependency order:
      record, a child's record is its work order and PR; one sentence in the
      epic skill that an epic change folder substitutes tracker children for
      `tasks.md` and carries `ledger.md`; `review-actions.md`'s under-an-epic
-     labeling clause; scope routing note; the validate workflow gains a
+     labeling clause; the github-issues binding's triage operation gains an
+     ensure-`build`-label step; scope routing note; the validate workflow gains a
      changed-paths condition on its expensive steps so the required `skills`
      check still reports green on ledger and docs-only PRs (a bare
      `paths-ignore` would leave the required check pending and make those
