@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: /ticket triage #142 (3a) in a fresh session; #143 (3b) after 3a merges; operator rules on #140 findings
+next: /ticket triage #142 (3a) in a fresh session; #143 (3b) after 3a merges; then #144-#146
 updated: 2026-08-24
 
 ## Notes
@@ -13,21 +13,26 @@ updated: 2026-08-24
 - none
 
 ## Decisions
+- #140 Review routing — direct routing-table reads in both review skills; Codex reviewers from a Claude parent behind the presence+headroom gate (Luna routine / Opus load-bearing, Claude-only fallback); skill-mandated spawns pre-authorized, task-level refusal still stops the run
 - #135 Label inventory — 7-repo approved list; 7 workflow labels stand; all agentflow:*, wayfinder:*, ready-for-agent, ciq experiments, ticket:done deleted; type labels machine-applied
 
 ## Spikes
-- #140 Review sub-agents through orchestrate routing (Codex included) — findings posted, awaiting operator ruling
+- #140 Review sub-agents through orchestrate routing (Codex included) — resolved — ruling approved, builds #144 #145 #146
 - #135 Target-repo list and label inventory with dispositions — resolved — approved list plus amendment
 
 ## Builds
 - #138 Mechanical rename wayfinder to epic — done (PR #141 merged, finalized)
 - #142 Epic skill content (3a) — filed
 - #143 Cross-skill amendments and machinery (3b) — filed
+- #144 Route review skills through routing table — filed (queued behind 3a/3b)
+- #145 Claude-parent Codex reviewer dispatch reference — filed (queued behind 3a/3b)
+- #146 Pre-authorize required review delegation — filed (queued behind 3a/3b)
 - #139 Triage stamps session-fit preamble into work orders — filed
 
 ## Deferred
 
 ## Rounds
+- 2026-08-24 #140 — ruling approved; builds #144 #145 #146 filed, queued behind 3a/3b for file overlap
 - 2026-08-24 #140 — Terra findings posted: direct routing-table reads for both review skills; Codex reviewers from Claude parent behind the presence+headroom gate; skill-mandated spawns pre-authorized
 - 2026-08-24 #142 #143 — filed 3a/3b per sequencing; #138 finalized; operator gate before children 4–7: test -L ~/.claude/skills/epic after dotfiles reinstall
 - 2026-08-24 #138 — build merged as PR #141; #140 re-dispatched per orchestrate routing (Terra, read-only)
