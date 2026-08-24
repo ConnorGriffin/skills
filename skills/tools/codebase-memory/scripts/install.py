@@ -38,6 +38,15 @@ def arguments() -> argparse.Namespace:
         default=Path.home() / ".claude",
         help="Claude Code home directory (default: $HOME/.claude)",
     )
+    parser.add_argument(
+        "--settings-file",
+        type=Path,
+        default=None,
+        help=(
+            "settings file to merge registrations into "
+            "(default: <claude-home>/settings.json)"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -127,12 +136,23 @@ def merge_settings(existing: dict, canonical: dict) -> dict:
 
 
 def main() -> int:
-    claude_home = arguments().claude_home.expanduser().absolute()
+    options = arguments()
+    claude_home = options.claude_home.expanduser().absolute()
     hooks_directory = claude_home / "hooks"
-    settings_path = claude_home / "settings.json"
+    if options.settings_file is None:
+        settings_path = claude_home / "settings.json"
+        settings_label = "settings.json"
+    else:
+        settings_path = options.settings_file.expanduser().absolute()
+        settings_label = str(settings_path)
+        container = settings_path.parent
+        if not container.is_dir() or not os.access(container, os.W_OK | os.X_OK):
+            raise SystemExit(
+                f"settings file needs an existing writable directory: {container}"
+            )
     settings_stat = lstat_or_none(settings_path)
     if settings_stat is not None and not stat.S_ISREG(settings_stat.st_mode):
-        raise SystemExit("settings.json must be a regular non-symlink file")
+        raise SystemExit(f"{settings_label} must be a regular non-symlink file")
     hooks_stat = lstat_or_none(hooks_directory)
     if hooks_stat is not None and not stat.S_ISDIR(hooks_stat.st_mode):
         raise SystemExit("hooks must be a real non-symlink directory")
@@ -174,7 +194,7 @@ def main() -> int:
             settings = json.loads(settings_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as error:
             raise SystemExit(
-                f"settings.json is not valid JSON: {error.msg}"
+                f"{settings_label} is not valid JSON: {error.msg}"
             ) from error
         settings_mode = stat.S_IMODE(settings_stat.st_mode)
     else:

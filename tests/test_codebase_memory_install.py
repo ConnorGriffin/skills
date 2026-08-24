@@ -48,14 +48,21 @@ class CodebaseMemoryInstallTests(unittest.TestCase):
     def tearDown(self):
         self.temporary.cleanup()
 
-    def install(self, claude_home: Path | None = None) -> subprocess.CompletedProcess[str]:
+    def install(
+        self,
+        claude_home: Path | None = None,
+        settings_file: Path | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        command = [
+            "python3",
+            str(INSTALLER),
+            "--claude-home",
+            str(claude_home or self.claude_home),
+        ]
+        if settings_file is not None:
+            command += ["--settings-file", str(settings_file)]
         return subprocess.run(
-            [
-                "python3",
-                str(INSTALLER),
-                "--claude-home",
-                str(claude_home or self.claude_home),
-            ],
+            command,
             cwd=ROOT,
             text=True,
             stdout=subprocess.PIPE,
@@ -139,6 +146,114 @@ class CodebaseMemoryInstallTests(unittest.TestCase):
             for path in [settings_path, *sorted((self.claude_home / "hooks").iterdir())]
         }
         self.assertEqual(second_bytes, first_bytes)
+
+    def test_explicit_settings_target_takes_the_registrations_alone(self):
+        versioned = self.scratch / "dotfiles"
+        versioned.mkdir()
+        settings_path = versioned / "settings.json"
+
+        result = self.install(settings_file=settings_path)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        hooks = self.claude_home / "hooks"
+        for name in (
+            "cbm-code-discovery-gate",
+            "cbm-session-reminder",
+            "cbm-code-discovery-reminder.md",
+        ):
+            self.assertTrue((hooks / name).is_file(), name)
+        self.assertFalse((self.claude_home / "settings.json").exists())
+
+        settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        commands = [
+            hook["command"]
+            for entries in settings["hooks"].values()
+            for entry in entries
+            for hook in entry["hooks"]
+        ]
+        self.assertTrue(commands)
+        for command in commands:
+            self.assertTrue(command.startswith(f"{hooks}/"), command)
+        self.assertEqual(settings_path.stat().st_mode & 0o777, 0o600)
+
+    def test_explicit_settings_target_is_merged_and_reruns_are_byte_stable(self):
+        versioned = self.scratch / "dotfiles"
+        versioned.mkdir()
+        settings_path = versioned / "settings.json"
+        original = {
+            "model": "opus",
+            "hooks": {"Stop": [{"hooks": [{"type": "command", "command": "stop-hook"}]}]},
+        }
+        settings_path.write_text(json.dumps(original), encoding="utf-8")
+
+        first = self.install(settings_file=settings_path)
+
+        self.assertEqual(first.returncode, 0, first.stderr)
+        merged = json.loads(settings_path.read_text(encoding="utf-8"))
+        self.assertEqual(merged["model"], "opus")
+        self.assertEqual(merged["hooks"]["Stop"], original["hooks"]["Stop"])
+        self.assertIn("SessionStart", merged["hooks"])
+        first_bytes = settings_path.read_bytes()
+
+        second = self.install(settings_file=settings_path)
+
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertEqual(settings_path.read_bytes(), first_bytes)
+
+    def test_explicit_settings_target_installs_through_a_symlinked_directory(self):
+        real = self.scratch / "checkout"
+        real.mkdir()
+        link = self.scratch / "linked-checkout"
+        link.symlink_to(real, target_is_directory=True)
+
+        result = self.install(settings_file=link / "settings.json")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        settings = json.loads((real / "settings.json").read_text(encoding="utf-8"))
+        self.assertIn("SessionStart", settings["hooks"])
+
+    def test_symlinked_explicit_settings_target_fails_before_any_write(self):
+        versioned = self.scratch / "dotfiles"
+        versioned.mkdir()
+        external = self.scratch / "external-settings.json"
+        original = b'{"external": true}\n'
+        external.write_bytes(original)
+        settings_path = versioned / "settings.json"
+        settings_path.symlink_to(external)
+
+        result = self.install(settings_file=settings_path)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("must be a regular non-symlink file", result.stderr)
+        self.assertIn(str(settings_path), result.stderr)
+        self.assertTrue(settings_path.is_symlink())
+        self.assertEqual(external.read_bytes(), original)
+        self.assertFalse((self.claude_home / "hooks").exists())
+
+    def test_an_unusable_explicit_parent_is_a_no_write_failure(self):
+        cases = ["missing", "regular-file", "mode-500", "mode-600"]
+        for name in cases:
+            with self.subTest(parent=name):
+                claude_home = self.scratch / f"claude-home-{name}"
+                container = self.scratch / f"container-{name}"
+                if name == "regular-file":
+                    container.write_text("not a directory", encoding="utf-8")
+                elif name != "missing":
+                    container.mkdir()
+                    container.chmod(0o500 if name == "mode-500" else 0o600)
+                settings_path = container / "settings.json"
+
+                try:
+                    result = self.install(claude_home, settings_file=settings_path)
+                finally:
+                    if name in ("mode-500", "mode-600"):
+                        container.chmod(0o700)
+
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn(str(container), result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertFalse((claude_home / "hooks").exists())
+                self.assertFalse(settings_path.exists())
 
     def test_malformed_settings_fail_before_any_write(self):
         self.claude_home.mkdir()
@@ -491,6 +606,7 @@ class CodebaseMemoryInstallTests(unittest.TestCase):
         self.assertNotIn("Use `index_repository` only", skill)
         self.assertIn("~/.claude/skills/codebase-memory/reminder.md", profile)
         self.assertIn("python3 ~/.claude/skills/codebase-memory/scripts/install.py", readme)
+        self.assertIn("--settings-file", skill)
         self.assertIn("portable skill-owned hooks", overlay.lower())
         self.assertIn('"tools/codebase-memory"', validator)
         self.assertIn("tests.test_codebase_memory_install", workflow)
