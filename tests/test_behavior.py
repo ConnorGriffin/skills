@@ -3157,7 +3157,7 @@ export const chromium = {
         self.assertNotIn("HEADLESS-SANDBOX-BLOCKED", result.stdout + result.stderr)
 
 
-class EpicResearchDispatchHandshakeTests(unittest.TestCase):
+class EpicProtocolContractTests(unittest.TestCase):
     RESEARCH = (ROOT / "skills" / "tools" / "research" / "SKILL.md").read_text(encoding="utf-8")
     EPIC = (ROOT / "skills" / "drivers" / "epic" / "SKILL.md").read_text(
         encoding="utf-8"
@@ -3178,84 +3178,76 @@ class EpicResearchDispatchHandshakeTests(unittest.TestCase):
             r"(never|do not) spawn (a |another )?(nested|background )?(agent|worker)",
         )
 
-    def test_epic_supervises_launched_workers_to_a_terminal_outcome(self):
-        self.require(
-            self.EPIC, r"(supervise|wait for).*(terminal|completion|complete)"
-        )
+    def test_epic_names_proposal_and_design_as_authority(self):
+        self.require(self.EPIC, r"proposal\.md.*design\.md.*authoritative")
 
-    def test_epic_releases_a_failed_workers_claim(self):
-        self.require(
-            self.EPIC,
-            r"if a worker fails or is interrupted,\s+release its `wayfinder:resolving` claim",
-        )
+    def test_epic_ledger_template_has_all_normative_sections(self):
+        for heading in ("Status", "Notes", "Fog", "Decisions", "Spikes", "Builds", "Deferred", "Rounds"):
+            self.assertIn(f"## {heading}", self.EPIC)
 
-    def test_tracker_excludes_awaiting_disposition_from_the_frontier(self):
-        self.require(
-            self.TRACKER,
-            r"wayfinder:awaiting-disposition.*excluded from the frontier",
-        )
+    def test_epic_ledger_preserves_pointer_only_notes_and_derived_decisions(self):
+        self.require(self.EPIC, r"Notes.*pointers?.*never.*rules")
+        self.require(self.EPIC, r"Decisions.*derived")
 
-    def test_epic_reconciles_every_awaiting_disposition_child(self):
-        self.require(
-            self.EPIC,
-            r"reconcile every one carrying `wayfinder:awaiting-disposition`",
-        )
+    def test_home_session_is_the_sole_ledger_writer_and_tracker_wins(self):
+        self.require(self.EPIC, r"home session.*only.*ledger writer")
+        self.require(self.EPIC, r"live GitHub.*truth.*ledger")
 
-    def test_tracker_map_index_is_not_the_authoritative_pending_queue(self):
-        self.require(
-            self.TRACKER,
-            r"durable queue; `Awaiting disposition` is its map index",
-        )
+    def test_epic_uses_one_draft_planning_pr_and_signed_off_pushes(self):
+        self.require(self.EPIC, r"one standing draft planning pull request")
+        self.require(self.EPIC, r"signed-off.*push")
 
-    def test_epic_defines_structured_candidate_envelope(self):
-        self.require(self.EPIC, r"wayfinder_findings:")
+    def test_build_admission_refuses_open_spikes_or_fog(self):
+        self.require(self.EPIC, r"refuse.*build.*open spike.*Fog")
+        self.require(self.EPIC, r"Fog.*Decisions.*spike")
 
-    def test_epic_candidate_identity_is_stable_replay_identity(self):
-        self.require(
-            self.EPIC, r"not titles or list position, are the replay identity"
-        )
+    def test_build_admission_requires_adrs_and_locked_surface_spec(self):
+        self.require(self.EPIC, r"load-bearing.*ADR")
+        self.require(self.EPIC, r"user-facing.*locked.*ui-craft")
 
-    def test_epic_map_only_link_does_not_count_as_durable_handoff(self):
-        self.require(
-            self.EPIC,
-            r"map (link|Handoffs entry) alone.*(never|does not).*count",
-        )
+    def test_research_handoff_uses_exact_findings_heading_and_temporary_worktree(self):
+        self.assertIn("## Findings", self.EPIC)
+        self.require(self.EPIC, r"temporary per-spike worktree")
+        self.require(self.EPIC, r"verif.*Findings.*close")
+        self.require(self.EPIC, r"removes.*temporary.*unshipped.*only then closes")
 
-    def test_epic_must_not_close_with_undisposed_candidates(self):
-        self.require(
-            self.EPIC,
-            r"close.*only after every.*candidate.*(disposed|disposition)",
-        )
+    def test_failed_ledger_push_reports_staleness_and_recovers_from_tracker_truth(self):
+        self.require(self.EPIC, r"ledger push fails.*visible ledger staleness.*recover.*live GitHub")
 
-    def test_epic_build_issue_carries_candidate_identity_marker(self):
-        self.require(self.EPIC, r"Wayfinder candidate:")
+    def test_research_close_updates_tracker_before_derived_ledger(self):
+        self.require(self.EPIC, r"close.*spike.*only after.*verification")
+        self.require(self.EPIC, r"Only then derive.*Spikes.*Decisions.*Status.*DCO sign-off.*push")
 
-    def test_tracker_candidate_identity_is_copied_into_handoff_or_disposition(self):
-        self.require(
-            self.TRACKER,
-            r"exact candidate identity copied into each Build Issue or disposition",
-        )
+    def test_deferred_children_have_explicit_close_out_dispositions(self):
+        self.require(self.EPIC, r"promote.*remove.*deferred")
+        self.require(self.EPIC, r"reparent.*future epic.*retaining.*deferred")
+        self.require(self.EPIC, r"NOT_PLANNED.*remove.*deferred")
+        self.require(self.EPIC, r"refuse.*archive.*open.*deferred")
 
-    def test_tracker_validates_a_disposition_before_treating_it_complete(self):
-        self.require(
-            self.TRACKER,
-            r"disposition comment as complete only when.*candidate",
-        )
+    def test_tracker_bootstraps_the_four_protocol_labels_without_touching_ticket_axis(self):
+        self.require(self.TRACKER, r"epic.*spike.*build.*deferred")
+        self.require(self.TRACKER, r"ticket:\*.*independent")
 
-    def test_tracker_complete_disposition_retains_its_trigger(self):
-        self.require(self.TRACKER, r"required observable trigger")
+    def test_tracker_uses_native_children_and_blocked_by_edges(self):
+        self.require(self.TRACKER, r"--add-sub-issue")
+        self.require(self.TRACKER, r"--add-blocked-by")
 
-    def test_tracker_complete_disposition_retains_its_verification_condition(self):
-        self.require(self.TRACKER, r"verification condition")
+    def test_tracker_reads_child_completion_fields_and_merged_at(self):
+        self.require(self.TRACKER, r"subIssues\.nodes")
+        self.require(self.TRACKER, r"stateReason")
+        self.require(self.TRACKER, r"closedByPullRequestsReferences")
+        self.require(self.TRACKER, r"mergedAt")
 
-    def test_tracker_documents_in_place_repair_edit(self):
-        self.require(self.TRACKER, r"issues/comments/COMMENT_ID")
+    def test_completion_checks_are_direct_and_merged_or_not_planned(self):
+        self.require(self.TRACKER, r"no open spike child")
+        self.require(self.TRACKER, r"merged.*NOT_PLANNED")
+        self.require(self.TRACKER, r"no open deferred child")
 
-    def test_epic_workers_must_not_unconditionally_close_tickets(self):
-        self.assertNotRegex(
-            self.EPIC,
-            re.compile(r"claims, researches, comments, closes", re.IGNORECASE),
-        )
+    def test_epic_close_waits_for_final_push_human_merge_and_verification(self):
+        self.require(self.EPIC, r"final ledger.*archive.*push")
+        self.require(self.EPIC, r"planning pull request.*human-merged")
+        self.require(self.EPIC, r"verify.*merge")
+        self.require(self.EPIC, r"then close.*epic.*tear down")
 
 
 class ReviewRouteResolverTests(unittest.TestCase):
