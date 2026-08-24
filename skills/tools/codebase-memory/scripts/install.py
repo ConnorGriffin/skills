@@ -38,13 +38,25 @@ def arguments() -> argparse.Namespace:
         default=Path.home() / ".claude",
         help="Claude Code home directory (default: $HOME/.claude)",
     )
-    parser.add_argument(
+    settings_target = parser.add_mutually_exclusive_group()
+    settings_target.add_argument(
         "--settings-file",
         type=Path,
         default=None,
         help=(
             "settings file to merge registrations into "
             "(default: <claude-home>/settings.json)"
+        ),
+    )
+    settings_target.add_argument(
+        "--skip-settings",
+        action="store_true",
+        help=(
+            "Install the managed hook files only; do not read, parse, validate, "
+            "merge, or write settings.json. For a consumer that owns its own "
+            "hook registrations. Not allowed together with --settings-file: a "
+            "named settings target is meaningless when no settings file is "
+            "touched at all."
         ),
     )
     return parser.parse_args()
@@ -80,7 +92,30 @@ def command_target(command: object) -> str | None:
         return None
     if not words:
         return None
-    return os.path.abspath(os.path.expanduser(words[0]))
+    return os.path.abspath(os.path.expandvars(os.path.expanduser(words[0])))
+
+
+def unresolved_managed_reference(command: object) -> str | None:
+    """Detect a registration whose target still contains an unresolved
+    variable (an unset one, since $HOME/${HOME} now resolve above) but whose
+    final path component names a managed file. Such a registration cannot be
+    matched to a resolved target, so it must fail closed as a conflict rather
+    than silently pass the merge as an unrelated command.
+    """
+    if not isinstance(command, str):
+        return None
+    try:
+        words = shlex.split(command)
+    except ValueError:
+        return None
+    if not words:
+        return None
+    expanded = os.path.expandvars(os.path.expanduser(words[0]))
+    if "$" not in expanded:
+        return None
+    if os.path.basename(expanded) not in MANAGED_FILES:
+        return None
+    return command
 
 
 def merge_settings(existing: dict, canonical: dict) -> dict:
@@ -108,6 +143,14 @@ def merge_settings(existing: dict, canonical: dict) -> dict:
             entry_hooks = entry.get("hooks", [])
             if not isinstance(entry_hooks, list):
                 raise ValueError(f"settings hooks.{event} entry hooks must be an array")
+            for hook in entry_hooks:
+                if not isinstance(hook, dict):
+                    continue
+                unresolved = unresolved_managed_reference(hook.get("command"))
+                if unresolved is not None:
+                    raise ValueError(
+                        f"conflicting managed hook registration for {unresolved}"
+                    )
             managed_targets = {
                 command_target(hook.get("command"))
                 for hook in entry_hooks
@@ -138,21 +181,26 @@ def merge_settings(existing: dict, canonical: dict) -> dict:
 def main() -> int:
     options = arguments()
     claude_home = options.claude_home.expanduser().absolute()
+    skip_settings = options.skip_settings
     hooks_directory = claude_home / "hooks"
-    if options.settings_file is None:
-        settings_path = claude_home / "settings.json"
-        settings_label = "settings.json"
-    else:
-        settings_path = options.settings_file.expanduser().absolute()
-        settings_label = str(settings_path)
-        container = settings_path.parent
-        if not container.is_dir() or not os.access(container, os.W_OK | os.X_OK):
-            raise SystemExit(
-                f"settings file needs an existing writable directory: {container}"
-            )
-    settings_stat = lstat_or_none(settings_path)
-    if settings_stat is not None and not stat.S_ISREG(settings_stat.st_mode):
-        raise SystemExit(f"{settings_label} must be a regular non-symlink file")
+    settings_path = None
+    settings_label = None
+    settings_stat = None
+    if not skip_settings:
+        if options.settings_file is None:
+            settings_path = claude_home / "settings.json"
+            settings_label = "settings.json"
+        else:
+            settings_path = options.settings_file.expanduser().absolute()
+            settings_label = str(settings_path)
+            container = settings_path.parent
+            if not container.is_dir() or not os.access(container, os.W_OK | os.X_OK):
+                raise SystemExit(
+                    f"settings file needs an existing writable directory: {container}"
+                )
+        settings_stat = lstat_or_none(settings_path)
+        if settings_stat is not None and not stat.S_ISREG(settings_stat.st_mode):
+            raise SystemExit(f"{settings_label} must be a regular non-symlink file")
     hooks_stat = lstat_or_none(hooks_directory)
     if hooks_stat is not None and not stat.S_ISDIR(hooks_stat.st_mode):
         raise SystemExit("hooks must be a real non-symlink directory")
@@ -174,7 +222,23 @@ def main() -> int:
                     f"managed target must be a regular non-symlink file: {destination}"
                 )
             if OWNERSHIP.encode() not in destination.read_bytes():
-                raise SystemExit(f"managed target is not owned: {destination}")
+                raise SystemExit(
+                    f"managed target is not owned: {destination} "
+                    "(codebase-memory-mcp is known to install its own hooks at "
+                    "this name; move its files out of the hooks directory, "
+                    "remove its registrations from settings.json, then rerun)"
+                )
+
+    if skip_settings:
+        claude_home.mkdir(parents=True, exist_ok=True)
+        hooks_directory.mkdir(exist_ok=True)
+        for name, (planned_content, mode) in planned_files.items():
+            atomic_write(hooks_directory / name, planned_content, mode)
+        print(
+            f"Installed codebase-memory discovery hook files in {claude_home}; "
+            "no settings.json registrations were written."
+        )
+        return 0
 
     template = json.loads(
         (SKILL_DIRECTORY / "config" / "claude-settings.json").read_text(
