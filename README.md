@@ -91,29 +91,25 @@ globally. Review skill instructions and scripts before running them; several
 skills intentionally start processes, modify repositories, or install Git
 hooks.
 
-## Optional upstream skills
+## Optional integrations
 
-Optional integrations are enhancements, not hidden runtime requirements:
+Optional integrations are enhancements, not hidden runtime requirements. Only
+Codebase Memory is external; the other three ship in this pack and are optional
+because a partial install can leave them out:
 
 - **`codebase-memory-mcp`:** the external executable/server used by the included
   `codebase-memory` skill for graph queries. Without the server, the discovery
   augmentation hook fails open and ordinary repository search and file reads remain
   available; installing or activating the skill does not install the server.
-- **`codebase-design`:** referenced by `tdd`; helps shape non-trivial module
-  interfaces. Without it, keep the shipping module shape and preserve locality.
-- **`domain-modeling`:** referenced by `scope`'s interview mode and `wayfinder`; maintains a
-  project's domain vocabulary. Without it, ground terms in the repo's own docs.
-- **`impeccable`:** adds a final visual-quality audit. Without it, run the
-  explicit contrast, focus, overflow, and target-size checks.
-- **`persona-review`:** referenced by `plan-review` for load-bearing plans; convenes
-  a panel of persistent reviewer personas. Without it, `plan-review` proceeds on its
-  own fresh-cold-pass termination alone.
-
-Install Matt Pocock's optional skills from their repository:
-
-```sh
-npx skills add mattpocock/skills --skill codebase-design --skill domain-modeling
-```
+- **`codebase-design`:** ships in this pack; referenced by `tdd`; helps shape
+  non-trivial module interfaces. Without it, keep the shipping module shape and
+  preserve locality.
+- **`domain-modeling`:** ships in this pack; referenced by `scope`'s interview mode
+  and `wayfinder`; maintains a project's domain vocabulary. Without it, ground terms
+  in the repo's own docs.
+- **`persona-review`:** ships in this pack; referenced by `plan-review` for
+  load-bearing plans; convenes a panel of persistent reviewer personas. Without it,
+  `plan-review` proceeds on its own fresh-cold-pass termination alone.
 
 ## Attribution
 

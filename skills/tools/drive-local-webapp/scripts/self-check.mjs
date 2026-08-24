@@ -69,4 +69,44 @@ if (
   process.exit(1);
 }
 
+const clickTarget =
+  "data:text/html," +
+  encodeURIComponent(
+    '<div id="ready" style="position:fixed;inset:0" onclick="window.hit=event.clientX+\',\'+event.clientY"></div>',
+  );
+const coordinate = await runDriver([
+  `nav ${clickTarget}`,
+  "wait-for #ready",
+  "mouse-click 120,80",
+  "eval window.hit",
+]);
+if (
+  coordinate.status !== 0 ||
+  !coordinate.output.includes("OK mouse-click 120,80") ||
+  !coordinate.output.includes('OK eval -> "120,80"')
+) {
+  console.error("SELF_CHECK_MOUSE_CLICK_FAILED");
+  process.exit(1);
+}
+
+const rejection = await runDriver([
+  `nav ${clickTarget}`,
+  "mouse-click 640,",
+  "mouse-click ,360",
+  "mouse-click 1,2,3",
+]);
+const refused = [
+  "FAIL mouse-click 640, ::",
+  "FAIL mouse-click ,360 ::",
+  "FAIL mouse-click 1,2,3 ::",
+];
+if (
+  rejection.status === 0 ||
+  rejection.output.includes("OK mouse-click") ||
+  refused.some((line) => !rejection.output.includes(line))
+) {
+  console.error("SELF_CHECK_MOUSE_CLICK_REJECTION_FAILED");
+  process.exit(1);
+}
+
 console.log("SELF_CHECK_OK");

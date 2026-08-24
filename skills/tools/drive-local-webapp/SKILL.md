@@ -67,6 +67,7 @@ Do not use this driver as a general-purpose browser for untrusted sites.
 nav <url>
 wait-for <selector>
 click <selector>
+mouse-click <x>,<y>
 fill <selector> :: <value>
 set <selector> :: <value>
 press <key>
@@ -78,6 +79,10 @@ console --errors
 
 Use `:text-is("Label")` for exact text. Playwright's `:has-text()` is
 case-insensitive substring matching and can silently click the wrong control.
+
+Use `mouse-click` for a target with no addressable element, such as a canvas, an
+embedded map, or a region inside a chart. Prefer a selector wherever one exists;
+coordinates go stale as soon as the layout moves.
 
 Keep screenshots outside the target repository. The driver defaults to the
 system temporary directory, or use `DRIVER_SCREENSHOT_DIR`. It refuses to
@@ -94,3 +99,8 @@ overwrite an existing screenshot path.
   chart.
 - A client-side token gate may leave the screen loading without a console
   error. Inspect the application's setup UI and use a demo token.
+- `screenshot` captures the full page, but `mouse-click` addresses the visible
+  viewport. On a page taller than the viewport, a point measured off a screenshot
+  is not the point that gets clicked, and a point past the viewport still reports
+  `OK` while hitting nothing. Scroll the target into view first, and assert on the
+  effect rather than on the `OK` line.

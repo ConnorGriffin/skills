@@ -51,3 +51,22 @@ Route: interview mode (one concrete either/or about how far the README fix reach
 ## Spawned tasks
 
 - none
+
+## Outcome
+
+- Shipped `mouse-click <x>,<y>` in `skills/tools/drive-local-webapp/scripts/driver.mjs`,
+  one branch in the existing chain calling `page.mouse.click` after rejecting any
+  argument that is not exactly two non-empty, finite, non-negative parts. The command
+  list is carried in the two encodings the order named and both now read the same
+  eleven commands in the same order: the `// Commands:` header comment in `driver.mjs`
+  and the `## Commands` block in `SKILL.md`. `scripts/self-check.mjs` gained one phase
+  pinning it — a valid-only run asserting the click lands at exactly 120,80, and a
+  rejection-only run asserting the `640,`, `,360` and `1,2,3` refusals by their exact
+  `FAIL mouse-click ... ::` prefixes. `SKILL.md` says what coordinate clicking is for
+  and warns that `screenshot` is full-page while `mouse-click` is viewport-relative.
+- `README.md`'s "Optional upstream skills" section is now "Optional integrations":
+  the `impeccable` bullet is gone, `codebase-design`, `domain-modeling` and
+  `persona-review` are marked as shipping in this pack with their degradation guidance
+  intact, `codebase-memory-mcp` remains the one external entry (which is what keeps
+  `CONTRIBUTING.md:16` satisfied), and the `npx skills add mattpocock/skills` command
+  block is deleted. `NOTICE` is unchanged.
