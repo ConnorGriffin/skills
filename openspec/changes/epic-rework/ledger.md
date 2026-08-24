@@ -27,11 +27,13 @@ updated: 2026-08-24
 - #144 Route review skills through routing table — filed (queued behind 3a/3b)
 - #145 Claude-parent Codex reviewer dispatch reference — filed (queued behind 3a/3b)
 - #146 Pre-authorize required review delegation — filed (queued behind 3a/3b)
-- #139 Triage stamps session-fit preamble into work orders — filed
+- #139 Triage stamps session-fit preamble into work orders — in triage; rescoped to flat orders plus start.md no-re-ask line, chunked residue deferred to #147
 
 ## Deferred
+- #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-24 #139 #147 — triage found scope couldn't meet acceptance; rescoped to flat orders (option 2 + start.md no-re-ask), chunked half filed deferred as #147
 - 2026-08-24 gate — dotfiles PUBLISHED_SKILLS updated to drivers/epic, reinstall run, test -L ~/.claude/skills/epic passes; children 4–7 unblocked on this gate (dotfiles commit unpushed)
 - 2026-08-24 #140 — ruling approved; builds #144 #145 #146 filed, queued behind 3a/3b for file overlap
 - 2026-08-24 #140 — Terra findings posted: direct routing-table reads for both review skills; Codex reviewers from Claude parent behind the presence+headroom gate; skill-mandated spawns pre-authorized
