@@ -558,6 +558,30 @@ class TicketTelemetryTests(unittest.TestCase):
         lines = self.claims.read_text(encoding="utf-8").splitlines()
         self.assertEqual(len([line for line in lines if line.strip()]), 1)
 
+    def test_claim_write_denied_by_sandbox_reports_and_exits_zero(self):
+        # A Codex workspace-write sandbox cannot reach ~/.config/ticket. The
+        # denial must not crash the verb, and the claim JSON must not lie
+        # about a claim being on record.
+        denied_root = self.scratch / "no-write"
+        denied_root.mkdir()
+        denied_root.chmod(0o500)
+        denied_path = denied_root / "claims" / "claims.jsonl"
+        environment = self.environment.copy()
+        environment["TICKET_CLAIMS"] = str(denied_path)
+
+        result = self.ticket(
+            "claim", "TICKET-40", "--session", "session-1", "--agent", "claude",
+            environment=environment,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["session_id"], "session-1")
+        self.assertFalse(payload["already_claimed"])
+        self.assertIn(str(denied_path), result.stderr)
+        self.assertIn("escalated", result.stderr)
+        self.assertFalse((denied_root / "claims").exists())
+
     def test_claim_without_a_session_id_anywhere_says_how_to_supply_one(self):
         result = self.ticket("claim", "TICKET-3")
 
@@ -1007,6 +1031,27 @@ class TicketTelemetryTests(unittest.TestCase):
 
         self.assertNotEqual(invented.returncode, 0)
         self.assertIn("--role", invented.stderr)
+
+    def test_record_write_denied_by_sandbox_reports_and_exits_zero(self):
+        self.worked("TICKET-41", "proj-a", "session-1", [assistant_line(50_000)])
+        denied_root = self.scratch / "no-write-telemetry"
+        denied_root.mkdir()
+        denied_root.chmod(0o500)
+        denied_path = denied_root / "telemetry" / "telemetry.jsonl"
+        environment = self.environment.copy()
+        environment["TICKET_TELEMETRY"] = str(denied_path)
+
+        result = self.ticket(
+            "record", "TICKET-41", "--verb", "start", "--trait", "small-diff",
+            "--depth", "light", environment=environment,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "ok")
+        self.assertIn(str(denied_path), result.stderr)
+        self.assertIn("escalated", result.stderr)
+        self.assertFalse((denied_root / "telemetry").exists())
 
     def test_record_with_no_claim_is_no_data_and_writes_nothing(self):
         result = self.ticket(

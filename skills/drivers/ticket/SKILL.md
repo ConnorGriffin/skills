@@ -77,7 +77,11 @@ exception instead.
    chunk), or `reviewer` (a session that only reviews). The role decides which
    costs are evidence about how big the work was, so a session claimed under the
    wrong one is a measurement error. A claim that fails is said in one
-   line and never blocks the verb: telemetry is a measurement, not a gate.
+   line and never blocks the verb: telemetry is a measurement, not a gate. A
+   sandboxed session (a Codex `workspace-write` sandbox, for one) that cannot
+   write the claims file under `~/.config/ticket/` sees that one-line denial
+   name the path and the fix: rerun the same claim command outside the sandbox
+   or with escalated permissions.
 
 3. **Attribution first.** Every comment this skill posts opens with a one-line
    quote block. With an operator name configured:
