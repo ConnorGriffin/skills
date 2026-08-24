@@ -50,10 +50,25 @@ Disposition: admitted into issue #142's work order.
 
 ## Open questions
 
-- None.
+- When a deferred `build` child is closed as won't-do, must it also leave the
+  closing epic's native child set, or does the completion predicate admit a
+  closed won't-do build without a merged pull request?
+- How does a research spike produce the authoritative `## Findings` GitHub
+  comment while the existing `$research` interface requires a Markdown file in
+  the repository and only the epic ledger may ride the standing planning pull
+  request?
+- Must the first epic normalize its declared child relationships and standing
+  ledger before issue #142 executes? Live grounding found issues #143 through
+  #147 declare themselves children of #133 but have no native parent; the
+  standing ledger uses non-normative Build states and puts instructions in
+  Notes.
 
 ## Spawned tasks
 
 - Cold executor, rule-corpus, and ceremony-skeptic review passes completed in
   this triage session; their verified blocking conditions are folded into the
   revised work order.
+- Three review panels reached the mandatory cap. The final panel's remaining
+  blockers are the three decisions above plus an executable spike for the
+  direct GitHub completion predicates; drafting is stopped until `/scope`
+  resolves them.
