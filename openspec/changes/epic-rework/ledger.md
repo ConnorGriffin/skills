@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: /ticket start #138 in a fresh attended session
+next: operator runs /ticket finalize #138; #140 findings pending (Terra worker)
 updated: 2026-08-24
 
 ## Notes
@@ -16,16 +16,17 @@ updated: 2026-08-24
 - #135 Label inventory — 7-repo approved list; 7 workflow labels stand; all agentflow:*, wayfinder:*, ready-for-agent, ciq experiments, ticket:done deleted; type labels machine-applied
 
 ## Spikes
-- #140 Review sub-agents through orchestrate routing (Codex included) — filed
+- #140 Review sub-agents through orchestrate routing (Codex included) — dispatched (Terra via codex-worker, headroom 84%)
 - #135 Target-repo list and label inventory with dispositions — resolved — approved list plus amendment
 
 ## Builds
-- #138 Mechanical rename wayfinder to epic — triaged (single agent, work order stamped)
+- #138 Mechanical rename wayfinder to epic — merged (PR #141, issue closed; finalize pending)
 - #139 Triage stamps session-fit preamble into work orders — filed
 
 ## Deferred
 
 ## Rounds
+- 2026-08-24 #138 — build merged as PR #141; #140 re-dispatched per orchestrate routing (Terra, read-only)
 - 2026-08-24 #140 — filed: review skills never route to Codex; skill-mandated spawns blocked by session instructions (observed on #138 start)
 - 2026-08-24 #139 — filed: start sessions ask about model fit; fix is a fit preamble stamped at triage
 - 2026-08-24 #138 — triaged in fresh session; work order stamped, no spec amendment needed
