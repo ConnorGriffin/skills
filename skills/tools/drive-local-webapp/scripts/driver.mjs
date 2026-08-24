@@ -5,6 +5,7 @@
 //   nav <url>
 //   wait-for <selector>
 //   click <selector>
+//   mouse-click <x>,<y>
 //   fill <selector> :: <value>
 //   set <selector> :: <value>
 //   press <key>
@@ -96,6 +97,18 @@ async function main() {
       } else if (command === "click") {
         await page.click(selector(argument), { timeout: 15000 });
         console.log(`OK click ${argument}`);
+      } else if (command === "mouse-click") {
+        const parts = argument.split(",");
+        if (parts.length !== 2 || parts.some((part) => !part.trim())) {
+          throw new Error('mouse-click needs "<x>,<y>"');
+        }
+        const x = Number(parts[0]);
+        const y = Number(parts[1]);
+        if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0) {
+          throw new Error("mouse-click needs non-negative numbers");
+        }
+        await page.mouse.click(x, y);
+        console.log(`OK mouse-click ${x},${y}`);
       } else if (command === "fill" || command === "set") {
         const separator = argument.indexOf(" :: ");
         if (separator === -1) {
