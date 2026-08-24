@@ -1,5 +1,5 @@
 ---
-name: wayfinder
+name: epic
 description: Chart and resolve a large, foggy effort as a GitHub map of decision tickets, then hand clear independent subtrees to your implementation workflow as ordinary build issues. Use when an idea is too large or uncertain for one session, when the user invokes wayfinder or supplies a wayfinder map, or when planning must settle research, UI, domain, and scope decisions before implementation begins.
 ---
 
