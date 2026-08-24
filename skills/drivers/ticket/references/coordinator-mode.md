@@ -49,9 +49,11 @@ What follows is what this skill adds on top. It replaces `start` steps 8 through
 
    Once the dispatcher exposes a stable transcript id, claim each unique
    implementation-worker session through the shared claim rule, passing
-   `--session <id>`, `--agent <agent>`, and `--project <chunk-worktree>`. The agent
-   and project name the worker that did the work and its actual working directory,
-   not the coordinator's. Keep identifiers in coordinator bookkeeping; they never
+   `--role worker`, `--session <id>`, `--agent <agent>`, and
+   `--project <chunk-worktree>`. The role, agent and project name what the worker
+   did, which agent did it, and its actual working directory, not the
+   coordinator's. `--role worker` is what makes a chunk's cost evidence about
+   chunk size; a worker claimed without it is read as coordinator overhead. Keep identifiers in coordinator bookkeeping; they never
    enter sub-order prompts or published comments. If the dispatcher exposes no
    stable transcript id, report the omitted claim in one line and continue. Claim
    failures use the shared visible, non-blocking rule.
@@ -63,16 +65,19 @@ What follows is what this skill adds on top. It replaces `start` steps 8 through
    [review-depth.md](review-depth.md) sets for that chunk, on the chunk's branch
    against the ticket branch. A chunk built by Sonnet is reviewed by Sonnet, a Haiku
    chunk by Sonnet, a Full-depth chunk by Opus. Findings go back to the chunk's own
-   agent to fix.
+   agent to fix. Claim each dispatched reviewer session through the shared claim
+   rule with `--role reviewer`, plus the same `--session <id>`, `--agent <agent>`
+   and `--project` it ran in, so review overhead is measured as overhead and never
+   as chunk size. A reviewer with no stable transcript id is reported in one line
+   like an unclaimable worker, and a claim failure follows the same shared
+   non-blocking rule: neither ever holds up dispatching the review.
 
    b. Verify the result yourself, as `/orchestrate` requires of every delegated
    result: read the diff, run the verification command, check the chunk's Done when
    clause. A failed verification retries once in the chunk's agent with the specific
    finding, then escalates one tier per the routing table. Same-session retries are
    not re-claimed; claim every fresh implementation escalation once, using the
-   escalation's stable transcript id, agent, and chunk worktree. Review-only
-   sessions are not claimed in this issue; role-aware review attribution belongs to
-   ticket 77.
+   escalation's stable transcript id, agent, and chunk worktree.
 
 5. **Merge into the ticket branch** in the ticket's worktree, one chunk at a time,
    with `--no-ff`. A conflict between two chunks that declared disjoint ownership

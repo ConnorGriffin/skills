@@ -2,7 +2,8 @@
 """Context telemetry for the ticket workflow: measure what a ticket cost.
 
 Each verb claims its own session against the ticket it is working, so the set
-of sessions that worked a ticket is recorded rather than inferred. Reports
+of sessions that worked a ticket is recorded rather than inferred, each with the
+role it played, so a coordinator's context is never read as chunk size. Reports
 peak context per claimed session, then records the actuals so the slicing
 rubric can be retuned against real numbers. Every record carries counts and labels
 supplied on the command line: never a transcript excerpt, a prompt, or any
@@ -43,6 +44,13 @@ CODEX_SESSIONS_DIR = Path(
 # Which environment variable carries the running session id, per agent. A verb
 # that cannot read one passes --session instead.
 SESSION_VARIABLES = (("claude", "CLAUDE_CODE_SESSION_ID"), ("codex", "CODEX_SESSION_ID"))
+
+# What a claimed session was doing, so cost is attributed to the work that spent
+# it. The coordinator drives the ticket, a worker builds one chunk, a reviewer
+# only reviews. A claim written before roles existed is read back as `legacy`,
+# which is not a guess about which of the three it was.
+ROLES = ("coordinator", "worker", "reviewer")
+LEGACY_ROLE = "legacy"
 
 # A session past this peaked into the degradation band: it should have been
 # sliced below this line.
@@ -295,6 +303,7 @@ def session_cost(claim: dict, projects_dir: Path) -> dict:
     return {
         "session_id": claim["session_id"],
         "agent": claim.get("agent"),
+        "role": claim.get("role") or LEGACY_ROLE,
         "project": claim.get("project"),
         "started": started or claim.get("claimed_at"),
         "peak_context": peak,
@@ -330,6 +339,10 @@ def scan(ticket_id: str, projects_dir: Path, current_repo: Optional[str]) -> dic
     sessions = [session_cost(claim, projects_dir) for claim in own_claims]
     sessions.sort(key=lambda session: session["started"] or "")
     measured = [session for session in sessions if session["transcripts"]]
+
+    def peaks_for(role: str) -> list[int]:
+        return [session["peak_context"] for session in measured if session["role"] == role]
+
     return {
         "ticket_id": ticket_id,
         "repo": current_repo,
@@ -342,6 +355,11 @@ def scan(ticket_id: str, projects_dir: Path, current_repo: Optional[str]) -> dic
         "unattributable": unattributable,
         "peak_context": max((session["peak_context"] for session in measured), default=0),
         "subagent_peak": max((session["subagent_peak"] for session in measured), default=0),
+        "coordinator_peak": max(peaks_for("coordinator"), default=0),
+        "worker_peaks": peaks_for("worker"),
+        "reviewer_peak": max(peaks_for("reviewer"), default=0),
+        "legacy_peak": max(peaks_for(LEGACY_ROLE), default=0),
+        "claimed_workers": len([session for session in sessions if session["role"] == "worker"]),
         "sessions": sessions,
     }
 
@@ -349,11 +367,19 @@ def scan(ticket_id: str, projects_dir: Path, current_repo: Optional[str]) -> dic
 def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
     """Compare the shape triage stamped against what the work actually cost.
 
-    A flat order is judged on its own sessions only: sub-agents run on most
-    tickets (review panels), so counting their context against a flat order
-    would misread ordinary review overhead as work that needed slicing. On a
-    chunked order the chunk builders are themselves sub-agents, so their peak
-    is the work and counts.
+    Only the sessions that built the work are evidence about how big the work
+    was. Review-only sessions are overhead on every order, so their peaks are
+    reported and never judged. A flat order is judged on its own peak.
+
+    A chunked order is judged on its implementation workers' peaks alone.
+    A coordinator's context grows with dispatches, returned results, review
+    rounds and merges, so slicing the same work more finely can raise it while
+    lowering every chunk's peak: reading it as chunk size inverts the answer.
+    `subagent_peak` cannot stand in either, because a coordinator dispatches
+    review panels as sub-agents too and the transcript cannot tell the two
+    apart — and per ADR 70 attribution comes from explicit claims, never from
+    transcript shape. With no measured worker there is therefore no measurement
+    of chunk size, which is `coordinator-only` rather than a guess.
     """
     if actual["session_count"] == 0:
         if actual["claim_count"]:
@@ -377,7 +403,8 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
                 + f", none of them from {repo_name}, so nothing measured it here",
             )
         return "no-data", "no session claimed this ticket, so nothing measured it"
-    own = max(session["peak_context"] for session in actual["sessions"])
+    judged = [session for session in actual["sessions"] if session["role"] != "reviewer"]
+    own = max((session["peak_context"] for session in judged), default=0)
     if not chunked:
         if own >= DEGRADE_PEAK:
             return (
@@ -385,19 +412,47 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
                 f"flat order peaked at {own:,} tokens, past the {DEGRADE_PEAK:,} degradation band",
             )
         return "ok", f"peaked at {own:,} tokens across {actual['session_count']} session(s)"
-    peak = max(own, actual["subagent_peak"])
+
+    worker_peaks = actual["worker_peaks"]
+    if not worker_peaks:
+        measured_roles = {
+            session["role"] for session in actual["sessions"] if session["transcripts"]
+        }
+        if measured_roles and measured_roles <= {"reviewer"}:
+            shape = "only review-only sessions were measured"
+        else:
+            shape = f"the sessions that were measured peaked at {own:,} tokens"
+        return (
+            "coordinator-only",
+            f"{chunks} chunk(s), but chunk size was not measured: "
+            f"{actual['claimed_workers']} claim(s) carried an implementation-worker role "
+            f"and 0 of them were measurable; {shape}",
+        )
+
+    peak = max(worker_peaks)
     if peak >= DEGRADE_PEAK:
         return (
             "still-degraded",
-            f"{chunks} chunk(s) and it still peaked at {peak:,} tokens, past the "
-            f"{DEGRADE_PEAK:,} degradation band; the chunks were too big",
+            f"{chunks} chunk(s) and the largest implementation worker still peaked at "
+            f"{peak:,} tokens, past the {DEGRADE_PEAK:,} degradation band; the chunks were too big",
         )
     if chunks > 1 and peak < FLOOR_PEAK:
+        # over-sliced says no chunk was big enough to need its own agent, which
+        # only one worker per chunk can establish. An unreadable or never-claimed
+        # worker leaves a chunk whose cost is unknown, and an unknown chunk
+        # cannot be the small one.
+        if len(worker_peaks) == chunks:
+            return (
+                "over-sliced",
+                f"{chunks} chunks but no implementation worker exceeded {peak:,} tokens; "
+                "one agent would have held it",
+            )
         return (
-            "over-sliced",
-            f"{chunks} chunks but nothing exceeded {peak:,} tokens; one agent would have held it",
+            "ok",
+            f"{len(worker_peaks)} of {chunks} chunk(s) measured an implementation worker, "
+            f"peaking at {peak:,} tokens; too few to call it over-sliced",
         )
-    return "ok", f"peaked at {peak:,} tokens across {chunks} chunk(s)"
+    return "ok", f"implementation workers peaked at {peak:,} tokens across {chunks} chunk(s)"
 
 
 def append_record(record: dict) -> Path:
@@ -436,6 +491,11 @@ def command_record(arguments: argparse.Namespace) -> int:
         "unattributable": actual["unattributable"],
         "peak_context": actual["peak_context"],
         "subagent_peak": actual["subagent_peak"],
+        "coordinator_peak": actual["coordinator_peak"],
+        "worker_peaks": actual["worker_peaks"],
+        "reviewer_peak": actual["reviewer_peak"],
+        "legacy_peak": actual["legacy_peak"],
+        "claimed_workers": actual["claimed_workers"],
         "session_peaks": [
             session["peak_context"] for session in actual["sessions"] if session["transcripts"]
         ],
@@ -460,6 +520,7 @@ def command_claim(arguments: argparse.Namespace) -> int:
         "ticket_id": ticket_id,
         "session_id": session_id,
         "agent": agent,
+        "role": arguments.role,
         "project": project,
         "repo": resolve_repo(Path(project)),
         "claimed_at": datetime.now(timezone.utc).isoformat(),
@@ -495,6 +556,12 @@ def parse_arguments() -> argparse.Namespace:
         choices=[name for name, _ in SESSION_VARIABLES],
         default=None,
         help="which agent wrote the session; needed with --session outside a known agent",
+    )
+    claim_parser.add_argument(
+        "--role",
+        choices=ROLES,
+        default="coordinator",
+        help="what this session is doing on the ticket (default: coordinator)",
     )
     claim_parser.add_argument(
         "--project", default=None, help="working directory to record (default: this one)"

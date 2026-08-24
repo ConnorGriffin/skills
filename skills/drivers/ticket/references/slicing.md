@@ -48,16 +48,28 @@ the helper's `scan` command, not estimates.
 | 53 | Replace a rejected application route already on the ticket branch, then build a narrower shared route adapter and update its consumers | multiple artifacts, in-flight scope replacement | slice into two serial chunks: remove and reconcile the rejected implementation, then build and verify the replacement | flat revised order; peaked 245k across 5 sessions |
 | 10 | Proof-bounded I:C history across an analyzer, server projections, generated fixtures, and a lifecycle-gated Diagnose revision | multiple artifacts, live run, lockstep copies, lifecycle-gated surface revision | slice into four serial chunks: analyzer, server contract, generated projections/evidence, then surface lock and browser evidence | 3 chunks; peaked 244k |
 | 90 | One shared behavioural judgment across model view, two server projections, generated fixtures and mirrors, and browser replay | multiple artifacts, live run, lockstep copies | slice into three serial chunks: source judgment, projection contracts, then generated artifacts and live replay | 2 chunks; peaked 231k |
+| 62 (external) | Four pull-request-sized chunks delegated from one coordinator | multiple artifacts, lockstep copies | slice into four chunks | 4 chunks; coordinator peaked 387k, chunk workers unmeasured |
 | 90 (skills) | A shared graph-identity interface, its ticket-workflow consumers, and the separately installed discovery policy, with argv and response shapes discovered by probing a live external CLI | multiple artifacts, lockstep copies | slice into two serial chunks: the ensure interface with its spiked contract tests, then the workflow pages and discovery policy that consume it | flat; peaked 243k in one session |
 
 When a ticket's traits match an anchor row, take that row's shape. When it sits
 between rows, say which two and pick the more conservative one.
+
+Row `62 (external)` is a shape anchor only. Its four chunks each landed as a
+correct pull-request-sized piece, so the slice is worth copying, but no chunk
+worker's peak was measured: the 387k belongs to the coordinator, whose context
+grows with dispatches, returned results, review rounds and merges. Coordinator
+cost never tunes the thresholds below, in either direction, and this row is
+unusable for that.
 
 ## Sizing
 
 Ground truth from mining 134 past sessions: 31 peaked above 180k, and every
 execution session carries roughly 90k of fixed overhead (skill load, grounding,
 review) before it touches the work.
+
+These numbers describe what one agent building one piece of work costs, so only a
+session claimed `--role worker` measures them. A coordinator's peak and a
+reviewer's are recorded separately and tune nothing here.
 
 * Target each chunk at a projected peak under 180k.
 * Never slice below one pull-request-sized piece of work. A chunk that would peak
