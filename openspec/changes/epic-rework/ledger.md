@@ -33,6 +33,7 @@ updated: 2026-08-24
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-24 #133 — all children attached as native sub-issues; PR #136 body now names the epic; won't-do rule: close as not-planned, labels off, stays attached; research spikes: worker writes body, home session posts under ## Findings
 - 2026-08-24 #139 #147 — triage found scope couldn't meet acceptance; rescoped to flat orders (option 2 + start.md no-re-ask), chunked half filed deferred as #147
 - 2026-08-24 gate — dotfiles PUBLISHED_SKILLS updated to drivers/epic, reinstall run, test -L ~/.claude/skills/epic passes; children 4–7 unblocked on this gate (dotfiles commit unpushed)
 - 2026-08-24 #140 — ruling approved; builds #144 #145 #146 filed, queued behind 3a/3b for file overlap
