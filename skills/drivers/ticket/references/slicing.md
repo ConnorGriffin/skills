@@ -49,6 +49,7 @@ the helper's `scan` command, not estimates.
 | 10 | Proof-bounded I:C history across an analyzer, server projections, generated fixtures, and a lifecycle-gated Diagnose revision | multiple artifacts, live run, lockstep copies, lifecycle-gated surface revision | slice into four serial chunks: analyzer, server contract, generated projections/evidence, then surface lock and browser evidence | 3 chunks; peaked 244k |
 | 90 | One shared behavioural judgment across model view, two server projections, generated fixtures and mirrors, and browser replay | multiple artifacts, live run, lockstep copies | slice into three serial chunks: source judgment, projection contracts, then generated artifacts and live replay | 2 chunks; peaked 231k |
 | 90 (skills) | A shared graph-identity interface, its ticket-workflow consumers, and the separately installed discovery policy, with argv and response shapes discovered by probing a live external CLI | multiple artifacts, lockstep copies | slice into two serial chunks: the ensure interface with its spiked contract tests, then the workflow pages and discovery policy that consume it | flat; peaked 243k in one session |
+| 79 (harmonic) | A server projection with identity and association semantics, a bounded registry/concurrency/cache-lifetime/HTTP contract, a shipped browser consumer, generated mirrors, and a closed recovery matrix run against an offline server | multiple artifacts, live run, lockstep copies | slice into four: projection core; registry/HTTP lifecycle; browser consumer; generated evidence and live replay | 2 chunks; server and surface chunks peaked 237k/242k, lifecycle peak 244k |
 
 When a ticket's traits match an anchor row, take that row's shape. When it sits
 between rows, say which two and pick the more conservative one.
@@ -109,10 +110,14 @@ chunk 1".
   with the operator and folds what the run exposes back into the code and the
   runbook.
 * When **multiple deliverable artifacts**, **live run inside the ticket**, and
-  **lockstep copies of one fact** all fire across multiple server projections,
-  keep projection integration separate from generated-artifact and browser
-  evidence: source judgment, projection contracts, then generated artifacts and
-  live replay.
+  **lockstep copies of one fact** all fire together, a server sub-order must not
+  own both domain projection/association semantics and registry, concurrency, or
+  cache-lifetime behavior, and a surface sub-order must not own both the shipped
+  consumer state machine and its generated fixture/mirror/recovery-matrix
+  evidence: slice into four — source/projection semantics, registry and
+  lifecycle contract, shipped consumer, then generated evidence and live
+  replay — folding a piece back into its neighbour only when it would fall
+  below the 120k floor.
 
 ## Orchestrator tier
 
