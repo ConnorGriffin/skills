@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: merge the proposal PR, then resolve spike #135 (inventory needs operator approval)
+next: operator approves spike #135's proposed resolution and merges the proposal PR
 updated: 2026-08-24
 
 ## Notes
@@ -21,3 +21,4 @@ updated: 2026-08-24
 ## Deferred
 
 ## Rounds
+- 2026-08-24 #135 — home session generated inventory across 7 repos; proposed resolution posted, one stale claim surfaced (home#18)
