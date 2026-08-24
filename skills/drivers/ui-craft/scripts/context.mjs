@@ -21,6 +21,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseTargetOptions } from './lib/target-args.mjs';
+import { isMainModule } from './lib/main-guard.mjs';
 
 const PRODUCT_NAMES = ['PRODUCT.md', 'Product.md', 'product.md'];
 const DESIGN_NAMES = ['DESIGN.md', 'Design.md', 'design.md'];
@@ -942,20 +943,6 @@ function buildTargetSelectionDirective(selection) {
   );
 }
 
-// Run cli() only when this module is the entry point. Compare realpaths
-// rather than endsWith(): a loose suffix match also fires for unrelated
-// scripts like `load-context.mjs`, and realpath tolerates symlinked
-// invocation (the test harness symlinks the skill dir).
-function invokedAsScript() {
-  const arg = process.argv[1];
-  if (!arg) return false;
-  try {
-    return fs.realpathSync(arg) === fs.realpathSync(fileURLToPath(import.meta.url));
-  } catch {
-    return false;
-  }
-}
-
-if (invokedAsScript()) {
+if (isMainModule(import.meta.url)) {
   cli();
 }

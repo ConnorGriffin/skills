@@ -19,10 +19,10 @@
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { loadContext, extractRegister } from './context.mjs';
 import { getCritiqueDir } from './lib/impeccable-paths.mjs';
+import { isMainModule } from './lib/main-guard.mjs';
 
 /** Is there code here at all, or just context files / an empty repo? */
 function hasCode(cwd) {
@@ -210,16 +210,6 @@ async function cli() {
   process.stdout.write(`${JSON.stringify(signals, null, 2)}\n`);
 }
 
-function invokedAsScript() {
-  const arg = process.argv[1];
-  if (!arg) return false;
-  try {
-    return fs.realpathSync(arg) === fs.realpathSync(fileURLToPath(import.meta.url));
-  } catch {
-    return false;
-  }
-}
-
-if (invokedAsScript()) {
+if (isMainModule(import.meta.url)) {
   cli();
 }
