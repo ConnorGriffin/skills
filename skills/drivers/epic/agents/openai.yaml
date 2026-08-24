@@ -1,0 +1,4 @@
+interface:
+  display_name: "Epic"
+  short_description: "Ship a triaged ticket batch as one integration branch and one PR"
+  default_prompt: "Use $epic to coordinate this ticket batch into one integration branch ending in one pull request."

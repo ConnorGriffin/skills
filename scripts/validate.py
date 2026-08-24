@@ -22,6 +22,7 @@ EXPECTED = {
     "drivers/openspec-adopt",
     "drivers/ui-craft",
     "drivers/orchestrate",
+    "drivers/epic",
     "drivers/ticket",
     "tools/cbm-onboard",
     "tools/codebase-memory",
