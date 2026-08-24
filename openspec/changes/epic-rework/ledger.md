@@ -7,6 +7,7 @@ updated: 2026-08-24
 ## Notes
 - proposal and risk contract: openspec/changes/epic-rework/proposal.md
 - invoke /ticket for every build child; operator gates are acceptance lines on their tickets
+- until #139 lands, the home session posts a session-fit comment on each triaged ticket (ladder from orchestrate routing-table) so /ticket start stays a single bare command
 
 ## Fog
 - none
@@ -19,10 +20,12 @@ updated: 2026-08-24
 
 ## Builds
 - #138 Mechanical rename wayfinder to epic — triaged (single agent, work order stamped)
+- #139 Triage stamps session-fit preamble into work orders — filed
 
 ## Deferred
 
 ## Rounds
+- 2026-08-24 #139 — filed: start sessions ask about model fit; fix is a fit preamble stamped at triage
 - 2026-08-24 #138 — triaged in fresh session; work order stamped, no spec amendment needed
 - 2026-08-24 #138 — filed rename build; spike resolved
 - 2026-08-24 #135 — home session generated inventory across 7 repos; proposed resolution posted, one stale claim surfaced (home#18)
