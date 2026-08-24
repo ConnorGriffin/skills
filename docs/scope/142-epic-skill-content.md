@@ -22,6 +22,28 @@
   signed, pushed commit; only then does the planning pull request leave draft;
   a human merges it; the home session verifies the merge, closes the epic issue,
   and tears down the planning worktree. — `inline`
+- A deferred build closed as won't-do stays a native child of its epic and
+  keeps its `build` type so the epic retains the history of work it declined.
+  The closing session posts the specific reason, closes the issue with GitHub's
+  `NOT_PLANNED` state reason, and removes `deferred`. The build completion
+  predicate therefore accepts either a merged closing pull request or a closed
+  `NOT_PLANNED` build. — `inline`
+- A research worker uses `$research` unchanged in a temporary per-spike
+  worktree and returns its Markdown findings file. The home session posts that
+  content to the spike under the exact `## Findings` heading, verifies the
+  comment, then removes the temporary worktree and its unshipped file. The
+  standing planning pull request still carries only the epic ledger. — `inline`
+- The first epic adopts the native tracker and normative-ledger contract before
+  issue #142 executes. Live verification on 2026-08-24 found every declared
+  child attached to #133 and PR #136 at `43cad55`, with pointer-only Notes and
+  the closed Builds grammar. — `inline`
+- The direct completion-read spike is grounded in GitHub CLI 2.97.0's actual
+  shapes: `subIssues.nodes` enumerates children; each child's labels, state,
+  state reason, and closing pull-request references determine its branch; each
+  referenced pull request's `mergedAt` determines merge truth. Its fixtures pass
+  merged and `NOT_PLANNED` builds and reject open spikes, incomplete builds, and
+  open deferred children. Against live #133 it correctly fails on #140, builds
+  #139/#142–#147, and deferred #147. — `inline`
 
 ### Risk contract
 
@@ -50,18 +72,7 @@ Disposition: admitted into issue #142's work order.
 
 ## Open questions
 
-- When a deferred `build` child is closed as won't-do, must it also leave the
-  closing epic's native child set, or does the completion predicate admit a
-  closed won't-do build without a merged pull request?
-- How does a research spike produce the authoritative `## Findings` GitHub
-  comment while the existing `$research` interface requires a Markdown file in
-  the repository and only the epic ledger may ride the standing planning pull
-  request?
-- Must the first epic normalize its declared child relationships and standing
-  ledger before issue #142 executes? Live grounding found issues #143 through
-  #147 declare themselves children of #133 but have no native parent; the
-  standing ledger uses non-normative Build states and puts instructions in
-  Notes.
+- None.
 
 ## Spawned tasks
 
@@ -69,6 +80,7 @@ Disposition: admitted into issue #142's work order.
   this triage session; their verified blocking conditions are folded into the
   revised work order.
 - Three review panels reached the mandatory cap. The final panel's remaining
-  blockers are the three decisions above plus an executable spike for the
-  direct GitHub completion predicates; drafting is stopped until `/scope`
-  resolves them.
+  blockers were routed through `/scope`. The user settled all three decisions,
+  the epic home session normalized live tracker and ledger state, and the direct
+  GitHub completion predicates passed their fixture spike and failed on the
+  expected live open work.
