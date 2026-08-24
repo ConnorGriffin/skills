@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: /ticket triage #138 in a fresh session
+next: /ticket start #138 in a fresh attended session
 updated: 2026-08-24
 
 ## Notes
@@ -18,10 +18,11 @@ updated: 2026-08-24
 - #135 Target-repo list and label inventory with dispositions — resolved — approved list plus amendment
 
 ## Builds
-- #138 Mechanical rename wayfinder to epic — filed
+- #138 Mechanical rename wayfinder to epic — triaged (single agent, work order stamped)
 
 ## Deferred
 
 ## Rounds
+- 2026-08-24 #138 — triaged in fresh session; work order stamped, no spec amendment needed
 - 2026-08-24 #138 — filed rename build; spike resolved
 - 2026-08-24 #135 — home session generated inventory across 7 repos; proposed resolution posted, one stale claim surfaced (home#18)
