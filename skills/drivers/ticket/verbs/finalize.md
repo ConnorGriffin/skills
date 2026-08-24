@@ -68,7 +68,9 @@ the code host back to the tracker; this verb is that sync.
    has been deleted appears under `unreadable`: report it rather than treating it
    as a session that cost nothing.
 
-   **Roles decide what counts.** A chunked order's verdict comes from the peaks of
+   **Roles decide what counts.** This verb's own session claims itself under the
+   shared rule's default, `--role coordinator`, like every session that drives a
+   ticket rather than building or reviewing one chunk of it. A chunked order's verdict comes from the peaks of
    the sessions claimed `--role worker` and from nothing else. The coordinator's
    own peak and the reviewers' are recorded beside them, as `coordinator_peak` and
    `reviewer_peak`, and neither can make a chunked order read as under-sliced:

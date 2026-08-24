@@ -975,6 +975,26 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(json.loads(second.stdout)["verdict"], "ok")
         self.assertIn("too few to call it over-sliced", json.loads(second.stdout)["reason"])
 
+    def test_a_chunk_that_escalated_a_tier_still_reads_as_over_sliced(self):
+        # A chunk whose first agent failed verification escalates, and the
+        # escalation is claimed as its own worker session. Two chunks can
+        # therefore measure three workers, which is coverage of every chunk,
+        # not evidence that a chunk went unmeasured.
+        self.worked("TICKET-34", "proj-a", "coordinator-1", [assistant_line(40_000)])
+        for chunk, peak in enumerate((50_000, 45_000, 60_000), start=1):
+            self.worked(
+                "TICKET-34", "proj-a", f"worker-{chunk}", [assistant_line(peak)], role="worker"
+            )
+
+        result = self.ticket(
+            "record", "TICKET-34", "--verb", "start", "--trait", "any", "--depth", "light",
+            "--chunked", "--chunks", "2",
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "over-sliced")
+        self.assertIn("60,000", payload["reason"])
+
     def test_claim_defaults_to_the_coordinator_role_and_rejects_an_invented_one(self):
         claimed = self.claim("TICKET-33", "session-1")
 

@@ -438,10 +438,12 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
         )
     if chunks > 1 and peak < FLOOR_PEAK:
         # over-sliced says no chunk was big enough to need its own agent, which
-        # only one worker per chunk can establish. An unreadable or never-claimed
+        # takes a measured worker for every chunk. An unreadable or never-claimed
         # worker leaves a chunk whose cost is unknown, and an unknown chunk
-        # cannot be the small one.
-        if len(worker_peaks) == chunks:
+        # cannot be the small one. More workers than chunks is ordinary rather
+        # than suspicious: a chunk that escalates a tier claims the escalation as
+        # a second worker session, so the test is coverage, not equality.
+        if len(worker_peaks) >= chunks:
             return (
                 "over-sliced",
                 f"{chunks} chunks but no implementation worker exceeded {peak:,} tokens; "
