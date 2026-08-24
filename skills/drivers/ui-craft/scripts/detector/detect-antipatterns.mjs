@@ -9,6 +9,7 @@
  */
 
 import { detectCli } from './cli/main.mjs';
+import { isMainModule } from '../lib/main-guard.mjs';
 
 export { ANTIPATTERNS, RULE_ENGINE_SUPPORT, getAntipattern, getRulesForCategory, getRuleEngineSupport } from './registry/antipatterns.mjs';
 export { SAFE_TAGS, BORDER_SAFE_TAGS, OVERUSED_FONTS, GENERIC_FONTS, KNOWN_SERIF_FONTS } from './shared/constants.mjs';
@@ -45,6 +46,4 @@ export {
 } from './node/file-system.mjs';
 export { formatFindings, detectCli } from './cli/main.mjs';
 
-const isMainModule = process.argv[1]?.endsWith('detect-antipatterns.mjs') ||
-  process.argv[1]?.endsWith('detect-antipatterns.mjs/');
-if (isMainModule) detectCli();
+if (isMainModule(import.meta.url)) detectCli();

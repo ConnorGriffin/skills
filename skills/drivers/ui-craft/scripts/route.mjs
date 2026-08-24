@@ -1,3 +1,5 @@
+import { isMainModule } from './lib/main-guard.mjs';
+
 const VALID_EMBODIMENTS = new Set(['greenfield', 'shipped']);
 const VALID_DECLARATIONS = new Set(['absent', 'complete', 'incomplete', 'ambiguous']);
 const VALID_RUNNABILITY = new Set(['runnable', 'unavailable']);
@@ -64,7 +66,7 @@ function parseArgs(argv) {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   try {
     const result = routeSurface(parseArgs(process.argv.slice(2)));
     process.stdout.write(`${JSON.stringify(result)}\n`);

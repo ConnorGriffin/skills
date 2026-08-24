@@ -3439,5 +3439,89 @@ class ReviewRouteResolverTests(unittest.TestCase):
             self.assertTrue(row["for"].strip())
 
 
+class UiCraftCliMainGuardTests(unittest.TestCase):
+    """Every ui-craft CLI runs the same way through a symlinked skill directory.
+
+    Skill packs are installed by symlink, so a CLI whose main guard compares raw
+    path strings exits 0 without running. `route.mjs` is pinned against its own
+    documented output; the other four are pinned differentially, against
+    themselves, so no baseline is invented for output this repo never recorded.
+    """
+
+    UI_CRAFT = ROOT / "skills" / "drivers" / "ui-craft"
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.workdir = Path(self.temporary.name)
+        self.linked = self.workdir / "ui-craft-link"
+        self.linked.symlink_to(self.UI_CRAFT, target_is_directory=True)
+
+    def script(self, *parts: str) -> tuple[Path, Path]:
+        """The same script by its real path and through the symlinked directory."""
+        relative = Path("scripts").joinpath(*parts)
+        return self.UI_CRAFT / relative, self.linked / relative
+
+    def test_route_prints_its_decision_through_a_symlinked_skill_directory(self):
+        cases = (
+            (("greenfield", "runnable", "complete", "manufactured"), 0, "lock"),
+            (("shipped", "unavailable", "complete", "synthetic"), 2, "refuse"),
+        )
+        _, linked_route = self.script("route.mjs")
+        for arguments, exit_code, mode in cases:
+            with self.subTest(arguments=arguments):
+                result = run(
+                    [
+                        "node",
+                        str(linked_route),
+                        "--embodiment",
+                        arguments[0],
+                        "--runnability",
+                        arguments[1],
+                        "--declaration",
+                        arguments[2],
+                        "--data-source",
+                        arguments[3],
+                    ],
+                    cwd=self.workdir,
+                )
+                self.assertEqual(result.returncode, exit_code, result.stderr)
+                self.assertEqual(json.loads(result.stdout)["mode"], mode)
+
+    def assert_symlink_parity(self, parts: tuple[str, ...], arguments: list[str]):
+        """One read-only invocation run twice: by real path, then through the link.
+
+        Non-emptiness is load-bearing. Bare parity is satisfied by two silent
+        runs, so a guard that never fires would pass this test green — the very
+        defect being repaired.
+        """
+        real, linked = self.script(*parts)
+        real_run = run(["node", str(real), *arguments], cwd=self.workdir)
+        linked_run = run(["node", str(linked), *arguments], cwd=self.workdir)
+        self.assertTrue(real_run.stdout.strip(), real_run.stderr)
+        self.assertEqual(linked_run.stdout, real_run.stdout, linked_run.stderr)
+        self.assertEqual(linked_run.returncode, real_run.returncode, linked_run.stderr)
+
+    def test_migrated_clis_behave_identically_through_a_symlinked_directory(self):
+        cases = (
+            (("context-signals.mjs",), []),
+            (("context.mjs",), []),
+            (("critique-storage.mjs",), ["trend", "no-such-target"]),
+            (("detector", "detect-antipatterns.mjs"), ["--help"]),
+        )
+        for parts, arguments in cases:
+            with self.subTest(script=parts[-1]):
+                self.assert_symlink_parity(parts, arguments)
+
+    def test_detector_entry_path_arrives_normalized_with_a_trailing_separator(self):
+        """Pins the invariant that let the `endsWith('...mjs/')` clause be deleted.
+
+        Node normalizes the entry path before the module sees it, so
+        `process.argv[1]` never carries a trailing separator. If a future runtime
+        stops normalizing, this fails loudly instead of exiting 0 in silence.
+        """
+        self.assert_symlink_parity(("detector", "detect-antipatterns.mjs/"), ["--help"])
+
+
 if __name__ == "__main__":
     unittest.main()
