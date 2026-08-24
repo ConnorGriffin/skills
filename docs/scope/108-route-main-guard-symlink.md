@@ -163,3 +163,17 @@ the helper's semantics rather than only a test.
 Injected blockers by round: 0, 2, 1 — and round 3's retracted round 2's. Reviewing
 stopped at the cap with the order rewritten to the simpler shape rather than the
 accommodating one.
+
+## Implementation notes (added by `/ticket start`)
+
+* Correction to the Decisions entry above: `route.mjs` was **not** the only raw
+  string comparison left in that scripts directory. `detect-csp.mjs:195` is a sixth
+  main guard, spelled as the same loose suffix match plus trailing-separator clause
+  that this ticket deleted from `detect-antipatterns.mjs`. It is outside this
+  order's enumerated five sites, so it was left alone rather than migrated in
+  flight; it is carried in the pull request body as a known issue and wants its own
+  ticket. Recorded here so the next reader does not conclude the directory is
+  single-sourced.
+* The trailing-separator test pair needed the separator appended as a string, after
+  pathlib: `Path(...).joinpath('x.mjs/')` strips it, which had quietly made the pair
+  a byte-identical rerun of the plain case and left the invariant unpinned.

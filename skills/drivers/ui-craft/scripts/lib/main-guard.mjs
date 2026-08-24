@@ -8,8 +8,8 @@
  * and the CLI exits 0 without ever running — a silent no-op, not an error.
  *
  * Why realpath rather than `endsWith()`: a loose suffix match also fires for an
- * unrelated script whose filename ends the same way (`load-context.mjs` for
- * `context.mjs`), running the wrong CLI.
+ * unrelated script whose filename ends the same way (any `*-context.mjs` would
+ * satisfy an `endsWith('context.mjs')` test), running the wrong CLI.
  */
 
 import fs from 'node:fs';

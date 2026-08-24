@@ -3488,16 +3488,22 @@ class UiCraftCliMainGuardTests(unittest.TestCase):
                 self.assertEqual(result.returncode, exit_code, result.stderr)
                 self.assertEqual(json.loads(result.stdout)["mode"], mode)
 
-    def assert_symlink_parity(self, parts: tuple[str, ...], arguments: list[str]):
+    def assert_symlink_parity(
+        self, parts: tuple[str, ...], arguments: list[str], suffix: str = ""
+    ):
         """One read-only invocation run twice: by real path, then through the link.
 
         Non-emptiness is load-bearing. Bare parity is satisfied by two silent
         runs, so a guard that never fires would pass this test green — the very
         defect being repaired.
+
+        `suffix` is appended to the path as a string, after pathlib is done with
+        it: pathlib strips a trailing separator, which would silently turn the
+        trailing-separator case into a rerun of the plain one.
         """
         real, linked = self.script(*parts)
-        real_run = run(["node", str(real), *arguments], cwd=self.workdir)
-        linked_run = run(["node", str(linked), *arguments], cwd=self.workdir)
+        real_run = run(["node", f"{real}{suffix}", *arguments], cwd=self.workdir)
+        linked_run = run(["node", f"{linked}{suffix}", *arguments], cwd=self.workdir)
         self.assertTrue(real_run.stdout.strip(), real_run.stderr)
         self.assertEqual(linked_run.stdout, real_run.stdout, linked_run.stderr)
         self.assertEqual(linked_run.returncode, real_run.returncode, linked_run.stderr)
@@ -3520,7 +3526,9 @@ class UiCraftCliMainGuardTests(unittest.TestCase):
         `process.argv[1]` never carries a trailing separator. If a future runtime
         stops normalizing, this fails loudly instead of exiting 0 in silence.
         """
-        self.assert_symlink_parity(("detector", "detect-antipatterns.mjs/"), ["--help"])
+        self.assert_symlink_parity(
+            ("detector", "detect-antipatterns.mjs"), ["--help"], suffix="/"
+        )
 
 
 if __name__ == "__main__":
