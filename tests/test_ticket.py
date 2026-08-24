@@ -861,7 +861,7 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(self.telemetry_records()[0]["verdict"], "coordinator-only")
         self.assertEqual(self.telemetry_records()[0]["coordinator_peak"], 387_156)
 
-    def test_a_coordinator_over_the_band_cannot_make_small_chunks_read_as_too_big(self):
+    def test_a_coordinator_over_the_band_degrades_an_otherwise_held_slice(self):
         self.worked("TICKET-25", "proj-a", "coordinator-1", [assistant_line(300_000)])
         for chunk, peak in enumerate((150_000, 140_000), start=1):
             self.worked(
@@ -875,10 +875,87 @@ class TicketTelemetryTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
-        self.assertEqual(payload["verdict"], "ok")
-        self.assertIn("150,000", payload["reason"])
+        self.assertEqual(payload["verdict"], "coordination-degraded")
+        self.assertIn("300,000", payload["reason"])
+        self.assertIn("180,000", payload["reason"])
+        self.assertIn("slice was right", payload["reason"])
         self.assertEqual(payload["coordinator_peak"], 300_000)
         self.assertEqual(payload["worker_peaks"], [150_000, 140_000])
+
+    def test_degraded_worker_wins_over_degraded_coordinator(self):
+        self.worked("TICKET-125B", "proj-a", "coordinator-1", [assistant_line(299_000)])
+        for chunk, peak in enumerate((190_000, 138_000), start=1):
+            self.worked(
+                "TICKET-125B", "proj-a", f"worker-{chunk}", [assistant_line(peak)], role="worker"
+            )
+
+        result = self.ticket(
+            "record", "TICKET-125B", "--verb", "start", "--trait", "wide-scope",
+            "--depth", "deep", "--chunked", "--chunks", "2",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["verdict"], "still-degraded")
+
+    def test_over_sliced_workers_win_over_degraded_coordinator(self):
+        self.worked("TICKET-125C", "proj-a", "coordinator-1", [assistant_line(299_000)])
+        for chunk, peak in enumerate((50_000, 60_000), start=1):
+            self.worked(
+                "TICKET-125C", "proj-a", f"worker-{chunk}", [assistant_line(peak)], role="worker"
+            )
+
+        result = self.ticket(
+            "record", "TICKET-125C", "--verb", "start", "--trait", "narrow-scope",
+            "--depth", "light", "--chunked", "--chunks", "2",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["verdict"], "over-sliced")
+
+    def test_chunked_order_with_held_workers_and_coordinator_is_ok(self):
+        self.worked("TICKET-125D", "proj-a", "coordinator-1", [assistant_line(150_000)])
+        for chunk, peak in enumerate((162_000, 138_000), start=1):
+            self.worked(
+                "TICKET-125D", "proj-a", f"worker-{chunk}", [assistant_line(peak)], role="worker"
+            )
+
+        result = self.ticket(
+            "record", "TICKET-125D", "--verb", "start", "--trait", "wide-scope",
+            "--depth", "deep", "--chunked", "--chunks", "2",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["verdict"], "ok")
+
+    def test_chunked_order_with_held_workers_and_no_coordinator_is_ok(self):
+        for chunk, peak in enumerate((162_000, 138_000), start=1):
+            self.worked(
+                "TICKET-125E", "proj-a", f"worker-{chunk}", [assistant_line(peak)], role="worker"
+            )
+
+        result = self.ticket(
+            "record", "TICKET-125E", "--verb", "start", "--trait", "wide-scope",
+            "--depth", "deep", "--chunked", "--chunks", "2",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "ok")
+        self.assertEqual(payload["coordinator_peak"], 0)
+
+    def test_partial_worker_coverage_with_degraded_coordinator_is_ok(self):
+        self.worked("TICKET-125F", "proj-a", "coordinator-1", [assistant_line(299_000)])
+        self.worked(
+            "TICKET-125F", "proj-a", "worker-1", [assistant_line(162_000)], role="worker"
+        )
+
+        result = self.ticket(
+            "record", "TICKET-125F", "--verb", "start", "--trait", "wide-scope",
+            "--depth", "deep", "--chunked", "--chunks", "2",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["verdict"], "ok")
 
     def test_one_worker_over_the_band_is_still_degraded_under_a_small_coordinator(self):
         self.worked("TICKET-26", "proj-a", "coordinator-1", [assistant_line(60_000)])
