@@ -49,6 +49,7 @@ the helper's `scan` command, not estimates.
 | 10 | Proof-bounded I:C history across an analyzer, server projections, generated fixtures, and a lifecycle-gated Diagnose revision | multiple artifacts, live run, lockstep copies, lifecycle-gated surface revision | slice into four serial chunks: analyzer, server contract, generated projections/evidence, then surface lock and browser evidence | 3 chunks; peaked 244k |
 | 90 | One shared behavioural judgment across model view, two server projections, generated fixtures and mirrors, and browser replay | multiple artifacts, live run, lockstep copies | slice into three serial chunks: source judgment, projection contracts, then generated artifacts and live replay | 2 chunks; peaked 231k |
 | 62 (external) | Four pull-request-sized chunks delegated from one coordinator | multiple artifacts, lockstep copies | slice into four chunks | 4 chunks; coordinator peaked 387k, chunk workers unmeasured |
+| 109 (harmonic) | Two admission bars for candidate I:C estimators (a synthetic truth/placebo generator with its entry bar, a stable-era replay harness) plus a live read-only calibration run against a real snapshot | multiple artifacts, live run | three serial chunks | 3 chunks; chunk workers peaked 162k and 138k, coordination peaked 299k |
 | 90 (skills) | A shared graph-identity interface, its ticket-workflow consumers, and the separately installed discovery policy, with argv and response shapes discovered by probing a live external CLI | multiple artifacts, lockstep copies | slice into two serial chunks: the ensure interface with its spiked contract tests, then the workflow pages and discovery policy that consume it | flat; peaked 243k in one session |
 | 79 (harmonic) | A server projection with identity and association semantics, a bounded registry/concurrency/cache-lifetime/HTTP contract, a shipped browser consumer, generated mirrors, and a closed recovery matrix run against an offline server | multiple artifacts, live run, lockstep copies | slice into four: projection core; registry/HTTP lifecycle; browser consumer; generated evidence and live replay | 2 chunks; server and surface chunks peaked 237k/242k, lifecycle peak 244k |
 
@@ -62,6 +63,10 @@ grows with dispatches, returned results, review rounds and merges. Coordinator
 cost never tunes the thresholds below, in either direction, and this row is
 unusable for that.
 
+Row `109 (harmonic)` is also a shape anchor: its 299k is coordinator cost, not
+chunk cost. It was attributed by joining pre-role claims to their chunk worktrees,
+rather than read from role-tagged records. It tunes no threshold.
+
 ## Sizing
 
 Ground truth from mining 134 past sessions: 31 peaked above 180k, and every
@@ -70,7 +75,9 @@ review) before it touches the work.
 
 These numbers describe what one agent building one piece of work costs, so only a
 session claimed `--role worker` measures them. A coordinator's peak and a
-reviewer's are recorded separately and tune nothing here.
+reviewer's are recorded separately and tune nothing here. A coordinator over the
+band on an otherwise-held slice is `coordination-degraded`; carry less in that
+session, never cut more chunks.
 
 * Target each chunk at a projected peak under 180k.
 * Never slice below one pull-request-sized piece of work. A chunk that would peak

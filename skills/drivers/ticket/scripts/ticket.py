@@ -375,6 +375,11 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
     A coordinator's context grows with dispatches, returned results, review
     rounds and merges, so slicing the same work more finely can raise it while
     lowering every chunk's peak: reading it as chunk size inverts the answer.
+    When every chunk worker held under the band but the coordinator did not,
+    `coordination-degraded` reports that the slice was right and coordination
+    was not. Incomplete worker coverage never yields `coordination-degraded`;
+    it falls through to `ok` only when no earlier branch fired, because an
+    unmeasured chunk could itself have crossed the band.
     `subagent_peak` cannot stand in either, because a coordinator dispatches
     review panels as sub-agents too and the transcript cannot tell the two
     apart — and per ADR 70 attribution comes from explicit claims, never from
@@ -453,6 +458,14 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
             "ok",
             f"{len(worker_peaks)} of {chunks} chunk(s) measured an implementation worker, "
             f"peaking at {peak:,} tokens; too few to call it over-sliced",
+        )
+    if len(worker_peaks) >= chunks and actual["coordinator_peak"] >= DEGRADE_PEAK:
+        return (
+            "coordination-degraded",
+            f"{chunks} chunk(s) and every measured implementation worker held under the "
+            f"{DEGRADE_PEAK:,} degradation band, but the coordinator peaked at "
+            f"{actual['coordinator_peak']:,} tokens; the slice was right while the "
+            "coordinating session was not",
         )
     return "ok", f"implementation workers peaked at {peak:,} tokens across {chunks} chunk(s)"
 
