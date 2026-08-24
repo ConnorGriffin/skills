@@ -53,7 +53,10 @@ the code host back to the tracker; this verb is that sync.
      [--chunked --chunks <n>]
    ```
 
-   The helper appends one record under `~/.config/ticket/` and returns one verdict:
+   The helper appends one record under `~/.config/ticket/` and returns one verdict.
+   A sandboxed session that cannot write that record sees the same one-line
+   denial as the claim step, naming the path and the fix: rerun the same
+   record command outside the sandbox or with escalated permissions.
 
    * `ok`: the shape matched what the ticket cost.
    * `under-sliced`: a flat order that peaked past the degradation band.

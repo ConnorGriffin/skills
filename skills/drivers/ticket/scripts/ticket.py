@@ -457,6 +457,21 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
     return "ok", f"implementation workers peaked at {peak:,} tokens across {chunks} chunk(s)"
 
 
+def report_write_denial(path: Path, error: OSError) -> None:
+    """Tell a sandboxed session its telemetry write was denied and how to fix it.
+
+    A sandbox permission denial is not a workflow failure: telemetry is a
+    measurement, never a gate. One line to stderr names the denied path and
+    the remedy, so a rerun of the same command outside the sandbox (or with
+    escalated permissions) succeeds.
+    """
+    print(
+        f"ticket: could not write {path} ({error.strerror or error}); "
+        "rerun this command outside the sandbox or with escalated permissions",
+        file=sys.stderr,
+    )
+
+
 def append_record(record: dict) -> Path:
     TELEMETRY_PATH.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     with TELEMETRY_PATH.open("a", encoding="utf-8") as handle:
@@ -506,7 +521,10 @@ def command_record(arguments: argparse.Namespace) -> int:
         "recorded_at": datetime.now(timezone.utc).isoformat(),
     }
     if call != "no-data":
-        append_record(record)
+        try:
+            append_record(record)
+        except OSError as error:
+            report_write_denial(TELEMETRY_PATH, error)
     print(json.dumps(record, indent=2))
     return 0
 
@@ -527,8 +545,13 @@ def command_claim(arguments: argparse.Namespace) -> int:
         "repo": resolve_repo(Path(project)),
         "claimed_at": datetime.now(timezone.utc).isoformat(),
     }
-    written = append_claim(claim)
-    print(json.dumps({**claim, "already_claimed": written is None}, indent=2))
+    try:
+        written = append_claim(claim)
+        already_claimed = written is None
+    except OSError as error:
+        report_write_denial(CLAIMS_PATH, error)
+        already_claimed = False
+    print(json.dumps({**claim, "already_claimed": already_claimed}, indent=2))
     return 0
 
 
