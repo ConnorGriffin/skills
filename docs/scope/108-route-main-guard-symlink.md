@@ -131,3 +131,35 @@ Round 2 — same reviewer, re-checking only round 1's deltas as fresh attack sur
 
 Injected blockers by round: 0, then 2. The climb is the rewrite-clean signal, and
 round 2's fixes are confined to the two steps that produced them.
+
+Round 3 — the cap. Spent on round 2's deltas, because round 2's fixes had changed
+the helper's semantics rather than only a test.
+
+* Blockers: 1, `injected`, and it retracted round 2's own second blocker. The
+  trailing-separator normalization guards a state that cannot occur: Node resolves
+  and normalizes the entry path before the module sees it, so `process.argv[1]`
+  never carries a trailing separator. Reproduced independently on this machine's
+  Node 26.7.0 — `node probe.mjs`, `node probe.mjs/`, and `node probe.mjs//` all
+  report the same normalized path. `detect-antipatterns.mjs:49` is therefore dead
+  code, and round 2's fix accommodated a clause that should have been deleted.
+* Resolution taken, rather than a fourth round: delete the normalization, and delete
+  line 49 as dead code while naming the invariant that makes its state unreachable,
+  which is what this repo's charter requires of a guard removal. The trailing-
+  separator test pair is kept and reframed — it no longer claims to prove a
+  normalization the helper does not perform; it pins the invariant the deletion
+  rests on, and fails loudly if a future runtime stops normalizing. The order also
+  gained a boundary forbidding the guard from being re-added.
+* Supporting evidence gathered here, not from the reviewer: line 49 arrived in a
+  bulk categorization commit (`3bc9c25`, #56) with no recorded rationale, and the
+  repo's CI pins no Node version.
+* Residual, stated rather than hidden: the invariant was measured on Node 26.7.0
+  and no Node 20 runtime was available on this machine. The step 5 pair is what
+  converts that gap from an assumption into a test.
+* Notes: 0 new. Deltas B and D were confirmed clean.
+* The reviewer also closed the false-TRUE question I could not settle by
+  construction: `argv[1]` is the path Node resolved for the entry it loaded, so a
+  realpath match implies the module is the entry at all five call sites.
+
+Injected blockers by round: 0, 2, 1 — and round 3's retracted round 2's. Reviewing
+stopped at the cap with the order rewritten to the simpler shape rather than the
+accommodating one.
