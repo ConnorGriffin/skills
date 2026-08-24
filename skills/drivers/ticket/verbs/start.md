@@ -6,8 +6,10 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
 
 1. **Complete the shared opening.** Complete shared rules 1–2: read and summarize
    the ticket, then claim the session before locating the work order or reaching
-   any later refusal. Use the shared claim command and its visible, non-blocking
-   failure semantics; do not duplicate them here.
+   any later refusal. This session drives the ticket, so it claims itself with
+   `--role coordinator` (the default) on a flat and a chunked order alike. Use the
+   shared claim command and its visible, non-blocking failure semantics; do not
+   duplicate them here.
 
 2. **Fetch the order.** Use the contract's locate operation. None found: refuse,
    say "no work order on `<ticket-id>`; run /ticket triage `<ticket-id>`", and stop.

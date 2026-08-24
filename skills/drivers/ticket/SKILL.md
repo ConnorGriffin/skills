@@ -71,7 +71,12 @@ exception instead.
    sessions that worked this ticket are recorded as they work it rather than
    guessed from prose afterwards. Pass `--session` and `--agent` whenever the
    environment cannot answer on its own: no session id in it, or more than one,
-   which is what a worker launched from another agent's session sees. A claim that fails is said in one
+   which is what a worker launched from another agent's session sees. Pass
+   `--role` to say what the session is doing on the ticket: `coordinator` (the
+   session driving the ticket, and the default), `worker` (an agent building one
+   chunk), or `reviewer` (a session that only reviews). The role decides which
+   costs are evidence about how big the work was, so a session claimed under the
+   wrong one is a measurement error. A claim that fails is said in one
    line and never blocks the verb: telemetry is a measurement, not a gate.
 
 3. **Attribution first.** Every comment this skill posts opens with a one-line

@@ -405,7 +405,7 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertLess(start.index("Worktree and branch"), start.index("Sufficiency check"))
         self.assertIn("never blocks the verb", shared)
 
-    def test_coordinator_claims_unique_implementation_workers_not_reviewers(self):
+    def test_coordinator_claims_workers_and_reviewers_under_their_own_roles(self):
         coordinator = (TICKET_DIRECTORY / "references" / "coordinator-mode.md").read_text(
             encoding="utf-8"
         )
@@ -413,16 +413,21 @@ class TicketSkillContractTests(unittest.TestCase):
 
         for requirement in (
             "each unique implementation-worker session",
+            "`--role worker`",
             "`--session <id>`",
             "`--agent <agent>`",
             "`--project <chunk-worktree>`",
             "Same-session retries are not re-claimed",
             "fresh implementation escalation",
-            "Review-only sessions are not claimed",
+            "Claim each dispatched reviewer session",
+            "`--role reviewer`",
             "stable transcript id",
             "one line and continue",
         ):
             self.assertIn(requirement, contract)
+        # The deferral this ticket closed: review-only sessions are claimed now.
+        self.assertNotIn("Review-only sessions are not claimed", contract)
+        self.assertNotIn("belongs to ticket 77", contract)
 
     def test_triage_requires_the_brief_quality_checklist(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
@@ -496,17 +501,31 @@ class TicketTelemetryTests(unittest.TestCase):
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         return path
 
-    def claim(self, ticket_id: str, session_id: str, agent: str = "claude"):
+    def claim(
+        self,
+        ticket_id: str,
+        session_id: str,
+        agent: str = "claude",
+        role: Optional[str] = None,
+    ):
         result = self.ticket(
-            "claim", ticket_id, "--session", session_id, "--agent", agent
+            "claim", ticket_id, "--session", session_id, "--agent", agent,
+            *(("--role", role) if role else ()),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
-    def worked(self, ticket_id: str, project: str, session_id: str, lines: list[str]):
+    def worked(
+        self,
+        ticket_id: str,
+        project: str,
+        session_id: str,
+        lines: list[str],
+        role: Optional[str] = None,
+    ):
         """The ordinary case: a session ran the ticket, so it claimed it."""
         self.write_session(project, session_id, lines)
-        self.claim(ticket_id, session_id)
+        self.claim(ticket_id, session_id, role=role)
 
     def telemetry_records(self) -> list[dict]:
         if not self.telemetry.exists():
@@ -764,11 +783,12 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(self.telemetry_records()[0]["verdict"], "ok")
 
     def test_record_chunked_order_still_degraded_when_a_chunk_peaks_high(self):
+        # The chunk's cost is its own claimed worker session, not a sidechain
+        # turn in the coordinator's transcript: only an explicit worker claim
+        # says a peak belongs to chunk-building work.
+        self.worked("TICKET-9", "proj-a", "coordinator-1", [assistant_line(30_000)])
         self.worked(
-            "TICKET-9",
-            "proj-a",
-            "session-1",
-            [assistant_line(30_000), assistant_line(190_000, subagent=True)],
+            "TICKET-9", "proj-a", "worker-1", [assistant_line(190_000)], role="worker"
         )
 
         result = self.ticket(
@@ -780,12 +800,11 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(json.loads(result.stdout)["verdict"], "still-degraded")
 
     def test_record_chunked_order_over_sliced_when_every_chunk_is_small(self):
-        self.worked(
-            "TICKET-10",
-            "proj-a",
-            "session-1",
-            [assistant_line(40_000), assistant_line(50_000, subagent=True)],
-        )
+        self.worked("TICKET-10", "proj-a", "coordinator-1", [assistant_line(40_000)])
+        for chunk, peak in enumerate((50_000, 45_000, 60_000), start=1):
+            self.worked(
+                "TICKET-10", "proj-a", f"worker-{chunk}", [assistant_line(peak)], role="worker"
+            )
 
         result = self.ticket(
             "record", "TICKET-10", "--verb", "start", "--trait", "narrow-scope",
@@ -794,6 +813,200 @@ class TicketTelemetryTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)["verdict"], "over-sliced")
+
+    def test_record_chunked_order_with_no_measured_worker_is_coordinator_only(self):
+        # The calibration case: a coordinator measured at 387k with no chunk
+        # worker measured at all. Reading its peak as chunk size returned
+        # still-degraded and drafted a rubric amendment against work that was
+        # sliced correctly.
+        self.worked("TICKET-24", "proj-a", "coordinator-1", [assistant_line(387_156)])
+
+        result = self.ticket(
+            "record", "TICKET-24", "--verb", "start", "--trait", "wide-scope",
+            "--depth", "deep", "--chunked", "--chunks", "4",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "coordinator-only")
+        self.assertIn("chunk size was not measured", payload["reason"])
+        self.assertIn("0 claim(s) carried an implementation-worker role", payload["reason"])
+        self.assertEqual(payload["coordinator_peak"], 387_156)
+        self.assertEqual(payload["worker_peaks"], [])
+        # Unlike no-data, the cost is real and is kept.
+        self.assertEqual(self.telemetry_records()[0]["verdict"], "coordinator-only")
+        self.assertEqual(self.telemetry_records()[0]["coordinator_peak"], 387_156)
+
+    def test_a_coordinator_over_the_band_cannot_make_small_chunks_read_as_too_big(self):
+        self.worked("TICKET-25", "proj-a", "coordinator-1", [assistant_line(300_000)])
+        for chunk, peak in enumerate((150_000, 140_000), start=1):
+            self.worked(
+                "TICKET-25", "proj-a", f"worker-{chunk}", [assistant_line(peak)], role="worker"
+            )
+
+        result = self.ticket(
+            "record", "TICKET-25", "--verb", "start", "--trait", "wide-scope",
+            "--depth", "deep", "--chunked", "--chunks", "2",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "ok")
+        self.assertIn("150,000", payload["reason"])
+        self.assertEqual(payload["coordinator_peak"], 300_000)
+        self.assertEqual(payload["worker_peaks"], [150_000, 140_000])
+
+    def test_one_worker_over_the_band_is_still_degraded_under_a_small_coordinator(self):
+        self.worked("TICKET-26", "proj-a", "coordinator-1", [assistant_line(60_000)])
+        for chunk, peak in enumerate((200_000, 130_000), start=1):
+            self.worked(
+                "TICKET-26", "proj-a", f"worker-{chunk}", [assistant_line(peak)], role="worker"
+            )
+
+        result = self.ticket(
+            "record", "TICKET-26", "--verb", "start", "--trait", "wide-scope",
+            "--depth", "deep", "--chunked", "--chunks", "2",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "still-degraded")
+        self.assertIn("200,000", payload["reason"])
+
+    def test_a_reviewer_peak_changes_no_verdict_on_either_branch(self):
+        # Review overhead runs on nearly every ticket and says nothing about
+        # how big the work was.
+        self.worked("TICKET-27", "proj-a", "flat-1", [assistant_line(90_000)])
+        self.worked(
+            "TICKET-27", "proj-a", "reviewer-1", [assistant_line(250_000)], role="reviewer"
+        )
+        self.worked("TICKET-28", "proj-a", "coordinator-1", [assistant_line(70_000)])
+        self.worked(
+            "TICKET-28", "proj-a", "worker-1", [assistant_line(150_000)], role="worker"
+        )
+        self.worked(
+            "TICKET-28", "proj-a", "reviewer-2", [assistant_line(250_000)], role="reviewer"
+        )
+
+        flat = self.ticket(
+            "record", "TICKET-27", "--verb", "start", "--trait", "any", "--depth", "light"
+        )
+        chunked = self.ticket(
+            "record", "TICKET-28", "--verb", "start", "--trait", "any", "--depth", "light",
+            "--chunked", "--chunks", "2",
+        )
+
+        self.assertEqual(json.loads(flat.stdout)["verdict"], "ok")
+        self.assertEqual(json.loads(flat.stdout)["reviewer_peak"], 250_000)
+        self.assertEqual(json.loads(chunked.stdout)["verdict"], "ok")
+        self.assertEqual(json.loads(chunked.stdout)["reviewer_peak"], 250_000)
+
+    def test_a_chunked_order_measuring_only_reviewers_names_that_in_its_reason(self):
+        self.worked(
+            "TICKET-29", "proj-a", "reviewer-1", [assistant_line(60_000)], role="reviewer"
+        )
+
+        result = self.ticket(
+            "record", "TICKET-29", "--verb", "start", "--trait", "any", "--depth", "light",
+            "--chunked", "--chunks", "2",
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "coordinator-only")
+        self.assertIn("only review-only sessions were measured", payload["reason"])
+
+    def test_chunked_claims_written_before_roles_existed_are_coordinator_only(self):
+        # A pre-role claim cannot be told apart from a coordinator's, so it is
+        # read as `legacy` and never guessed into a worker role.
+        self.worked("TICKET-30", "proj-a", "legacy-1", [assistant_line(200_000)])
+        # Strip the field back out, which is exactly what a claim written
+        # before this field existed looks like on disk.
+        self.claims.write_text(
+            "\n".join(
+                json.dumps({k: v for k, v in json.loads(line).items() if k != "role"})
+                for line in self.claims.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        result = self.ticket(
+            "record", "TICKET-30", "--verb", "start", "--trait", "any", "--depth", "deep",
+            "--chunked", "--chunks", "3",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "coordinator-only")
+        self.assertEqual(payload["legacy_peak"], 200_000)
+        self.assertEqual(payload["worker_peaks"], [])
+
+    def test_over_sliced_needs_one_measured_worker_per_chunk(self):
+        # An unreadable or never-claimed worker leaves a chunk whose cost is
+        # unknown, and an unknown chunk cannot be one of the small ones.
+        self.worked("TICKET-31", "proj-a", "coordinator-1", [assistant_line(40_000)])
+        self.worked(
+            "TICKET-31", "proj-a", "worker-1", [assistant_line(50_000)], role="worker"
+        )
+        self.claim("TICKET-31", "worker-gone", role="worker")
+
+        result = self.ticket(
+            "record", "TICKET-31", "--verb", "start", "--trait", "any", "--depth", "light",
+            "--chunked", "--chunks", "3",
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "ok")
+        self.assertIn("1 of 3 chunk(s)", payload["reason"])
+        self.assertEqual(payload["unreadable"], ["worker-gone"])
+
+        # Same shortfall, no unreadable claim at all: two chunks simply never
+        # claimed a worker.
+        self.worked("TICKET-32", "proj-a", "coordinator-2", [assistant_line(40_000)])
+        self.worked(
+            "TICKET-32", "proj-a", "worker-2", [assistant_line(50_000)], role="worker"
+        )
+        second = self.ticket(
+            "record", "TICKET-32", "--verb", "start", "--trait", "any", "--depth", "light",
+            "--chunked", "--chunks", "3",
+        )
+
+        self.assertEqual(json.loads(second.stdout)["verdict"], "ok")
+        self.assertIn("too few to call it over-sliced", json.loads(second.stdout)["reason"])
+
+    def test_a_chunk_that_escalated_a_tier_still_reads_as_over_sliced(self):
+        # A chunk whose first agent failed verification escalates, and the
+        # escalation is claimed as its own worker session. Two chunks can
+        # therefore measure three workers, which is coverage of every chunk,
+        # not evidence that a chunk went unmeasured.
+        self.worked("TICKET-34", "proj-a", "coordinator-1", [assistant_line(40_000)])
+        for chunk, peak in enumerate((50_000, 45_000, 60_000), start=1):
+            self.worked(
+                "TICKET-34", "proj-a", f"worker-{chunk}", [assistant_line(peak)], role="worker"
+            )
+
+        result = self.ticket(
+            "record", "TICKET-34", "--verb", "start", "--trait", "any", "--depth", "light",
+            "--chunked", "--chunks", "2",
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "over-sliced")
+        self.assertIn("60,000", payload["reason"])
+
+    def test_claim_defaults_to_the_coordinator_role_and_rejects_an_invented_one(self):
+        claimed = self.claim("TICKET-33", "session-1")
+
+        self.assertEqual(claimed["role"], "coordinator")
+
+        invented = self.ticket(
+            "claim", "TICKET-33", "--session", "session-2", "--agent", "claude",
+            "--role", "supervisor",
+        )
+
+        self.assertNotEqual(invented.returncode, 0)
+        self.assertIn("--role", invented.stderr)
 
     def test_record_with_no_claim_is_no_data_and_writes_nothing(self):
         result = self.ticket(

@@ -59,12 +59,26 @@ the code host back to the tracker; this verb is that sync.
    * `under-sliced`: a flat order that peaked past the degradation band.
    * `still-degraded`: a chunked order whose chunks were themselves too big.
    * `over-sliced`: chunks that no single agent would have struggled with.
+   * `coordinator-only`: a chunked order where no implementation worker was
+     measured, so its cost was recorded but chunk size was not measured.
    * `no-data`: no session claimed this ticket, so nothing measured it.
 
    The helper reads the sessions that claimed this ticket, so nothing is inferred
    from prose and there is nothing to narrow. A claimed session whose transcript
    has been deleted appears under `unreadable`: report it rather than treating it
    as a session that cost nothing.
+
+   **Roles decide what counts.** This verb's own session claims itself under the
+   shared rule's default, `--role coordinator`, like every session that drives a
+   ticket rather than building or reviewing one chunk of it. A chunked order's verdict comes from the peaks of
+   the sessions claimed `--role worker` and from nothing else. The coordinator's
+   own peak and the reviewers' are recorded beside them, as `coordinator_peak` and
+   `reviewer_peak`, and neither can make a chunked order read as under-sliced:
+   coordinating more chunks costs the coordinator more, not less. A flat order is
+   judged on its own execution peak, with review-only sessions excluded there too.
+   Claims written before roles existed read back as `legacy` and are never guessed
+   into a role, which is why a chunked ticket claimed entirely under legacy claims
+   returns `coordinator-only`.
    `python3 <ticket-skill-directory>/scripts/ticket.py scan <ticket-id>` reports peak
    context per claimed session without recording anything, which is the way to look
    before committing a record.
@@ -79,10 +93,14 @@ the code host back to the tracker; this verb is that sync.
    pull request they approve. The skill never amends its own rubric, and never edits
    `references/slicing.md` itself.
 
-   `no-data` is not a misprediction, and it has two readings the report keeps
-   apart: no session claimed the ticket, so it ran outside this machine's
-   transcripts, or sessions claimed it and their transcripts are gone. Draft
-   nothing either way.
+   `no-data` and `coordinator-only` are not mispredictions, and neither drafts an
+   amendment. `no-data` has two readings the report keeps apart: no session claimed
+   the ticket, so it ran outside this machine's transcripts, or sessions claimed it
+   and their transcripts are gone. `coordinator-only` means the ticket's cost was
+   recorded but its chunk size was not measured, so say that plainly — the reason
+   names how many worker claims existed and how many were readable, which is the
+   difference between a forgotten `--role worker` and a lost transcript. Never
+   report it as evidence that the chunks were the wrong size in either direction.
 
 4. **Abandoned path** (pull request closed unmerged, or the work cancelled): comment
    why, then on explicit user confirmation run the same teardown as step 2f. Never
