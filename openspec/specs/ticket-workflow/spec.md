@@ -1,0 +1,42 @@
+# Ticket workflow
+
+How one tracked ticket moves from arrival to resolution.
+
+## Behavior
+
+* Four verbs, one at a time: `triage` reads the ticket and repo and posts a
+  locked work order as a ticket comment (interviewing through `/scope` when
+  scope is thin); `start` executes the order in a fresh session on an
+  isolated worktree and opens the PR; `revise` actions one review round;
+  `finalize` runs after a human merges — closes the ticket, tears the
+  worktree down, and records what the ticket cost.
+* Work orders too big for one context are sliced at triage into sub-orders in
+  the same comment. Chunks are never issues. The slicing rubric targets a
+  projected peak under 180k tokens per chunk, folds chunks that would peak
+  under 120k into a neighbour, and treats more than four chunks as a sign the
+  ticket is really a larger effort. On a chunked order, `start` coordinates
+  one agent per chunk per the coordinator-mode reference, which binds
+  `/orchestrate`'s delegation rules.
+* Status moves through `ticket:<state>` labels via the GitHub issues binding;
+  agents never merge.
+* Telemetry: sessions claim tickets as they work (`ticket.py claim`), and
+  `finalize` runs `ticket.py record`, appending verdict, role-tagged peaks,
+  chunk count, rubric traits, and repo to `~/.config/ticket/telemetry.jsonl`.
+  Every record carries counts and labels supplied on the command line, never
+  prose from a session. A `no-data` verdict appends nothing. A denied write
+  is reported in one visible line and never blocks the verb.
+* On a misprediction verdict, `finalize` drafts an amendment against the
+  slicing rubric and shows it to the user; prose and the helper's constants
+  move together.
+
+## Invariants
+
+* No work order, no `start`: the verb refuses rather than inventing scope.
+* A session never runs an order stamped for a stronger model tier than its
+  own, and never re-slices in flight.
+
+## Dependents
+
+The review workflow's depth stamps and the slicing rubric's calibration both
+read this telemetry; the pending epic-rework change re-homes the amendment
+path.
