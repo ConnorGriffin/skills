@@ -550,6 +550,268 @@ class CodebaseMemoryInstallTests(unittest.TestCase):
         self.assertTrue(all(item.stdout == expected_reminder for item in outputs[1:]))
         self.assertFalse((self.scratch / "SHOULD_NOT_EXIST").exists())
 
+    def test_skip_settings_with_settings_file_is_a_clean_argparse_error(self):
+        before = filesystem_snapshot(self.scratch)
+
+        result = subprocess.run(
+            [
+                "python3",
+                str(INSTALLER),
+                "--claude-home",
+                str(self.claude_home),
+                "--settings-file",
+                str(self.scratch / "elsewhere-settings.json"),
+                "--skip-settings",
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("not allowed with argument", result.stderr)
+        self.assertEqual(filesystem_snapshot(self.scratch), before)
+
+    def test_skip_settings_installs_hooks_without_touching_absent_settings(self):
+        result = subprocess.run(
+            [
+                "python3",
+                str(INSTALLER),
+                "--claude-home",
+                str(self.claude_home),
+                "--skip-settings",
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        hooks = self.claude_home / "hooks"
+        gate = hooks / "cbm-code-discovery-gate"
+        session = hooks / "cbm-session-reminder"
+        reminder = hooks / "cbm-code-discovery-reminder.md"
+        for path in (gate, session, reminder):
+            self.assertTrue(path.is_file(), path)
+            self.assertIn(OWNERSHIP, path.read_text(encoding="utf-8"))
+        self.assertTrue(os.access(gate, os.X_OK))
+        self.assertTrue(os.access(session, os.X_OK))
+        self.assertFalse((self.claude_home / "settings.json").exists())
+
+    def test_skip_settings_leaves_an_existing_settings_file_byte_identical(self):
+        self.claude_home.mkdir()
+        settings_path = self.claude_home / "settings.json"
+        original = (
+            json.dumps(
+                {
+                    "model": "opus",
+                    "hooks": {
+                        "PreToolUse": [
+                            {
+                                "matcher": "Write|Edit",
+                                "hooks": [{"type": "command", "command": "unrelated-hook"}],
+                            }
+                        ]
+                    },
+                }
+            )
+            + "\n"
+        ).encode()
+        settings_path.write_bytes(original)
+        settings_path.chmod(0o640)
+
+        result = subprocess.run(
+            [
+                "python3",
+                str(INSTALLER),
+                "--claude-home",
+                str(self.claude_home),
+                "--skip-settings",
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(settings_path.read_bytes(), original)
+        self.assertEqual(settings_path.stat().st_mode & 0o777, 0o640)
+        hooks = self.claude_home / "hooks"
+        for name in (
+            "cbm-code-discovery-gate",
+            "cbm-session-reminder",
+            "cbm-code-discovery-reminder.md",
+        ):
+            self.assertTrue((hooks / name).is_file())
+
+    def test_skip_settings_still_fails_without_writes_on_an_unowned_hook_file(self):
+        self.claude_home.mkdir()
+        hooks = self.claude_home / "hooks"
+        hooks.mkdir()
+        foreign = hooks / "cbm-code-discovery-gate"
+        foreign.write_text("not managed", encoding="utf-8")
+        before = filesystem_snapshot(self.claude_home)
+
+        result = subprocess.run(
+            [
+                "python3",
+                str(INSTALLER),
+                "--claude-home",
+                str(self.claude_home),
+                "--skip-settings",
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("managed target is not owned", result.stderr)
+        self.assertFalse((self.claude_home / "settings.json").exists())
+        self.assertEqual(filesystem_snapshot(self.claude_home), before)
+
+    def test_dollar_home_registration_target_is_a_conflict(self):
+        home = self.scratch / "home"
+        claude_home = home / ".claude"
+        claude_home.mkdir(parents=True)
+        settings_path = claude_home / "settings.json"
+        dollar_home = {
+            "hooks": {
+                "PreToolUse": [
+                    {
+                        "matcher": "Grep|Glob",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": '"$HOME/.claude/hooks/cbm-code-discovery-gate"',
+                                "timeout": 5,
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+        original = (json.dumps(dollar_home) + "\n").encode()
+        settings_path.write_bytes(original)
+        environment = os.environ.copy()
+        environment["HOME"] = str(home)
+
+        result = subprocess.run(
+            ["python3", str(INSTALLER), "--claude-home", str(claude_home)],
+            cwd=ROOT,
+            env=environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("conflicting managed hook registration", result.stderr)
+        self.assertEqual(settings_path.read_bytes(), original)
+        self.assertFalse((claude_home / "hooks").exists())
+
+    def test_braced_dollar_home_registration_target_is_a_conflict(self):
+        home = self.scratch / "home"
+        claude_home = home / ".claude"
+        claude_home.mkdir(parents=True)
+        settings_path = claude_home / "settings.json"
+        braced_home = {
+            "hooks": {
+                "PreToolUse": [
+                    {
+                        "matcher": "Grep|Glob",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": "${HOME}/.claude/hooks/cbm-code-discovery-gate",
+                                "timeout": 5,
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+        original = (json.dumps(braced_home) + "\n").encode()
+        settings_path.write_bytes(original)
+        environment = os.environ.copy()
+        environment["HOME"] = str(home)
+
+        result = subprocess.run(
+            ["python3", str(INSTALLER), "--claude-home", str(claude_home)],
+            cwd=ROOT,
+            env=environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("conflicting managed hook registration", result.stderr)
+        self.assertEqual(settings_path.read_bytes(), original)
+        self.assertFalse((claude_home / "hooks").exists())
+
+    def test_unresolvable_variable_registration_at_a_managed_name_is_a_conflict(self):
+        self.claude_home.mkdir()
+        settings_path = self.claude_home / "settings.json"
+        unresolvable = {
+            "hooks": {
+                "PreToolUse": [
+                    {
+                        "matcher": "Grep|Glob",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": '"$SOME_UNSET_VARIABLE/.claude/hooks/cbm-code-discovery-gate"',
+                                "timeout": 5,
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+        original = (json.dumps(unresolvable) + "\n").encode()
+        settings_path.write_bytes(original)
+        environment = os.environ.copy()
+        environment.pop("SOME_UNSET_VARIABLE", None)
+
+        result = subprocess.run(
+            ["python3", str(INSTALLER), "--claude-home", str(self.claude_home)],
+            cwd=ROOT,
+            env=environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("conflicting managed hook registration", result.stderr)
+        self.assertEqual(settings_path.read_bytes(), original)
+        self.assertFalse((self.claude_home / "hooks").exists())
+
+    def test_not_owned_failure_names_the_offending_path_and_the_likely_owner(self):
+        self.claude_home.mkdir()
+        hooks = self.claude_home / "hooks"
+        hooks.mkdir()
+        foreign = hooks / "cbm-code-discovery-gate"
+        foreign.write_text("not managed", encoding="utf-8")
+
+        result = self.install()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(str(foreign), result.stderr)
+        self.assertIn("codebase-memory-mcp", result.stderr)
+
     def test_copied_skill_uses_home_for_the_default_claude_home(self):
         home = self.scratch / "home"
         installed_skill = home / ".claude" / "skills" / "codebase-memory"

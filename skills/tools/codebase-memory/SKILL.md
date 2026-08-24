@@ -44,6 +44,27 @@ exist, be a directory, and be writable and searchable; a symlinked target or an
 unusable parent is a no-write failure. A parent reached through a symlinked
 directory is fine, which is how a versioned checkout is usually wired.
 
+For a consumer that manages its own `settings.json` hook registrations, add
+`--skip-settings`:
+
+```sh
+python3 <installed-skill>/scripts/install.py --claude-home PATH --skip-settings
+```
+
+This installs the three managed hook files and stops there: it does not read,
+parse, validate, merge, or write `settings.json` at all. The consumer owns
+registering the installed hooks in its own settings. All the other guards
+still run: source ownership, the hooks-directory symlink check, and the
+unowned-managed-file check. `--skip-settings` and `--settings-file` name two
+different settings targets, so the installer refuses both together at the
+command-line level rather than picking one.
+
+The external tool `codebase-memory-mcp` installs its own hooks at two of the
+same names (`cbm-code-discovery-gate`, `cbm-session-reminder`). Activation does
+not reclaim a name another tool already owns; it stops and names the likely
+owner and the repair (move the foreign files out of `hooks/`, remove that
+tool's registrations from `settings.json`, then rerun).
+
 ## Graph-query vocabulary
 
 - `list_projects` and `index_status` report indexed-project inventory and health.
