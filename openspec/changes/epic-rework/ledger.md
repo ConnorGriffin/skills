@@ -6,8 +6,8 @@ updated: 2026-08-24
 
 ## Notes
 - proposal and risk contract: openspec/changes/epic-rework/proposal.md
-- invoke /ticket for every build child; operator gates are acceptance lines on their tickets
-- until #139 lands, the home session posts a session-fit comment on each triaged ticket (ladder from orchestrate routing-table) so /ticket start stays a single bare command
+- build children: the /ticket skill; operator gates: acceptance lines on their tickets
+- interim session-fit rule until #139 lands: see #138's session-fit comment for the pattern
 
 ## Fog
 - none
@@ -21,13 +21,13 @@ updated: 2026-08-24
 - #135 Target-repo list and label inventory with dispositions — resolved — approved list plus amendment
 
 ## Builds
-- #138 Mechanical rename wayfinder to epic — done (PR #141 merged, finalized)
+- #138 Mechanical rename wayfinder to epic — merged
 - #142 Epic skill content (3a) — filed
 - #143 Cross-skill amendments and machinery (3b) — filed
-- #144 Route review skills through routing table — filed (queued behind 3a/3b)
-- #145 Claude-parent Codex reviewer dispatch reference — filed (queued behind 3a/3b)
-- #146 Pre-authorize required review delegation — filed (queued behind 3a/3b)
-- #139 Triage stamps session-fit preamble into work orders — in triage; rescoped to flat orders plus start.md no-re-ask line, chunked residue deferred to #147
+- #144 Route review skills through routing table — filed
+- #145 Claude-parent Codex reviewer dispatch reference — filed
+- #146 Pre-authorize required review delegation — filed
+- #139 Triage stamps session-fit preamble into work orders — triaged
 
 ## Deferred
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
