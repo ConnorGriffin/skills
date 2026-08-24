@@ -20,7 +20,7 @@ the UI workflow uses the bundled browser driver for rendered evidence.
 
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
-| [`wayfinder`](skills/drivers/wayfinder/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `scope`'s interview mode, `ui-craft` |
+| [`epic`](skills/drivers/epic/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `scope`'s interview mode, `ui-craft` |
 | [`implement`](skills/drivers/implement/SKILL.md) | Implement a PRD or issue set via `tdd`, then `code-review`, then commit | `tdd` and `code-review` from this pack |
 | [`openspec-adopt`](skills/drivers/openspec-adopt/SKILL.md) | Scaffold OpenSpec layout and baseline specs describing the system today, delivered as a documentation-only PR | GitHub CLI; `npx openspec init` optional |
 | [`ui-craft`](skills/drivers/ui-craft/SKILL.md) | Full surface lifecycle: revise shipped UI in the running app, lock greenfield specs, build, critique, audit, polish, re-settle | `drive-local-webapp` for rendered review; `spin-worktree` for live base comparison; parallel-agent support is recommended |
@@ -105,7 +105,7 @@ because a partial install can leave them out:
   non-trivial module interfaces. Without it, keep the shipping module shape and
   preserve locality.
 - **`domain-modeling`:** ships in this pack; referenced by `scope`'s interview mode
-  and `wayfinder`; maintains a project's domain vocabulary. Without it, ground terms
+  and `epic`; maintains a project's domain vocabulary. Without it, ground terms
   in the repo's own docs.
 - **`persona-review`:** ships in this pack; referenced by `plan-review` for
   load-bearing plans; convenes a panel of persistent reviewer personas. Without it,

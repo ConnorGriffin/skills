@@ -3157,13 +3157,13 @@ export const chromium = {
         self.assertNotIn("HEADLESS-SANDBOX-BLOCKED", result.stdout + result.stderr)
 
 
-class WayfinderResearchDispatchHandshakeTests(unittest.TestCase):
+class EpicResearchDispatchHandshakeTests(unittest.TestCase):
     RESEARCH = (ROOT / "skills" / "tools" / "research" / "SKILL.md").read_text(encoding="utf-8")
-    WAYFINDER = (ROOT / "skills" / "drivers" / "wayfinder" / "SKILL.md").read_text(
+    EPIC = (ROOT / "skills" / "drivers" / "epic" / "SKILL.md").read_text(
         encoding="utf-8"
     )
     TRACKER = (
-        ROOT / "skills" / "drivers" / "wayfinder" / "references" / "github-tracker.md"
+        ROOT / "skills" / "drivers" / "epic" / "references" / "github-tracker.md"
     ).read_text(encoding="utf-8")
 
     def require(self, text, pattern):
@@ -3178,14 +3178,14 @@ class WayfinderResearchDispatchHandshakeTests(unittest.TestCase):
             r"(never|do not) spawn (a |another )?(nested|background )?(agent|worker)",
         )
 
-    def test_wayfinder_supervises_launched_workers_to_a_terminal_outcome(self):
+    def test_epic_supervises_launched_workers_to_a_terminal_outcome(self):
         self.require(
-            self.WAYFINDER, r"(supervise|wait for).*(terminal|completion|complete)"
+            self.EPIC, r"(supervise|wait for).*(terminal|completion|complete)"
         )
 
-    def test_wayfinder_releases_a_failed_workers_claim(self):
+    def test_epic_releases_a_failed_workers_claim(self):
         self.require(
-            self.WAYFINDER,
+            self.EPIC,
             r"if a worker fails or is interrupted,\s+release its `wayfinder:resolving` claim",
         )
 
@@ -3195,9 +3195,9 @@ class WayfinderResearchDispatchHandshakeTests(unittest.TestCase):
             r"wayfinder:awaiting-disposition.*excluded from the frontier",
         )
 
-    def test_wayfinder_reconciles_every_awaiting_disposition_child(self):
+    def test_epic_reconciles_every_awaiting_disposition_child(self):
         self.require(
-            self.WAYFINDER,
+            self.EPIC,
             r"reconcile every one carrying `wayfinder:awaiting-disposition`",
         )
 
@@ -3207,28 +3207,28 @@ class WayfinderResearchDispatchHandshakeTests(unittest.TestCase):
             r"durable queue; `Awaiting disposition` is its map index",
         )
 
-    def test_wayfinder_defines_structured_candidate_envelope(self):
-        self.require(self.WAYFINDER, r"wayfinder_findings:")
+    def test_epic_defines_structured_candidate_envelope(self):
+        self.require(self.EPIC, r"wayfinder_findings:")
 
-    def test_wayfinder_candidate_identity_is_stable_replay_identity(self):
+    def test_epic_candidate_identity_is_stable_replay_identity(self):
         self.require(
-            self.WAYFINDER, r"not titles or list position, are the replay identity"
+            self.EPIC, r"not titles or list position, are the replay identity"
         )
 
-    def test_wayfinder_map_only_link_does_not_count_as_durable_handoff(self):
+    def test_epic_map_only_link_does_not_count_as_durable_handoff(self):
         self.require(
-            self.WAYFINDER,
+            self.EPIC,
             r"map (link|Handoffs entry) alone.*(never|does not).*count",
         )
 
-    def test_wayfinder_must_not_close_with_undisposed_candidates(self):
+    def test_epic_must_not_close_with_undisposed_candidates(self):
         self.require(
-            self.WAYFINDER,
+            self.EPIC,
             r"close.*only after every.*candidate.*(disposed|disposition)",
         )
 
-    def test_wayfinder_build_issue_carries_candidate_identity_marker(self):
-        self.require(self.WAYFINDER, r"Wayfinder candidate:")
+    def test_epic_build_issue_carries_candidate_identity_marker(self):
+        self.require(self.EPIC, r"Wayfinder candidate:")
 
     def test_tracker_candidate_identity_is_copied_into_handoff_or_disposition(self):
         self.require(
@@ -3251,9 +3251,9 @@ class WayfinderResearchDispatchHandshakeTests(unittest.TestCase):
     def test_tracker_documents_in_place_repair_edit(self):
         self.require(self.TRACKER, r"issues/comments/COMMENT_ID")
 
-    def test_wayfinder_workers_must_not_unconditionally_close_tickets(self):
+    def test_epic_workers_must_not_unconditionally_close_tickets(self):
         self.assertNotRegex(
-            self.WAYFINDER,
+            self.EPIC,
             re.compile(r"claims, researches, comments, closes", re.IGNORECASE),
         )
 
