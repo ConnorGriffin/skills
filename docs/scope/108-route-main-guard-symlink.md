@@ -66,3 +66,29 @@ with a `pathToFileURL` fallback and an `argv[1]` absent guard:
 | no `process.argv[1]` (`node --input-type=module -e`) | returns false, no throw |
 
 All four passed. The literal the order carries is that predicate, not prose.
+
+## Review rounds
+
+Round 1 — one cold panel (`/plan-review`, ordinary stakes), reviewer had no hand in
+the draft.
+
+* Grounding: clean. Every cited line number, path, module list, quoted command, and
+  pinned output literal was independently reproduced, including the bug itself.
+* Blockers: 1, tagged `authoring`. Step 5 demanded the three migrated CLIs "still
+  produce existing output" when no baseline exists for any of them — zero test
+  coverage outside `route.mjs` — so the executing agent would have had to invent
+  golden literals for three previously untested commands, one of which emits
+  absolute paths. Fixed by making step 5 differential: same invocation, real path
+  versus symlink, assert equality. No goldens.
+* Notes: 2, both `authoring`. The Done-when `import.meta.url` grep was not
+  mechanically satisfiable (10 hits before and after the fix, 6 of them legitimate
+  directory resolution) — replaced with two greps that genuinely flip. And step 1's
+  comment spec dropped the why-not-`endsWith` rationale that step 3 told the agent
+  to delete from `context.mjs:945-947`.
+* Injected blockers: 0.
+* Found by the reviewer, outside the original scope: a fifth copy of the predicate
+  at `detector/detect-antipatterns.mjs:48`, using the loose suffix match
+  `context.mjs` warns against. Not symlink-broken. Folded into the migration and
+  sent back for attack on the scope and cost axes.
+
+Order rewritten clean rather than patched.
