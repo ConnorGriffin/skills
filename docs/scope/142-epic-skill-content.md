@@ -13,6 +13,15 @@
   spike resolved. GitHub remains authoritative; the epic ledger records only the
   derived one-line state and never the comment URL. This standardizes the
   convention after issue #140 used `## Spike findings`. — `inline`
+- Durable close ordering follows tracker truth. For a research spike: the
+  `## Findings` comment lands; the home session verifies it; the spike issue
+  closes; then the home session derives its `Spikes` and `Decisions` ledger
+  lines, updates Status, commits with DCO sign-off, and pushes the standing
+  planning branch. For the epic: the direct tracker completion checks pass;
+  the home session syncs the final ledger and archives the OpenSpec change in a
+  signed, pushed commit; only then does the planning pull request leave draft;
+  a human merges it; the home session verifies the merge, closes the epic issue,
+  and tears down the planning worktree. — `inline`
 
 ### Risk contract
 
@@ -30,9 +39,9 @@
 - **Evidence owed:** validator and the full enumerated suite green; behavior pins
   for the normative epic ledger, planning-PR lifecycle, bounded filing rules,
   exact `## Findings` verification, deferred close-out mutations, four-label
-  bootstrap, native child issues, native blocked-by edges, and direct tracker
-  completion checks; bounded zero-hit checks for the three gate terms and the
-  enumerated superseded protocol identifiers.
+  bootstrap, native child issues, native blocked-by edges, direct tracker
+  completion checks, and both durable close sequences; bounded zero-hit checks
+  for the three gate terms and the enumerated superseded protocol identifiers.
 
 Why: this skill is inherited process machinery whose tracker instructions can
 mutate durable issue state.
