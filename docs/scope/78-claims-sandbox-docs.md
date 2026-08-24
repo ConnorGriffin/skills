@@ -29,6 +29,16 @@
 
 (none — Q1, Q2 settled)
 
+## Review rounds
+
+- Round 1 (cold panel): 3 blocking + 2 notes, all tagged `authoring`
+  (verification command missing test_check_dco; no-Markdown claim contradicted
+  by this ledger; stdout fate unspecified; finalize.md anchor missing; wrong
+  file named in doc sentence). All reproduced, all fixed.
+- Round 2 (same reviewer, delta check): 1 blocking, tagged `injected` by the
+  round-1 stdout fix (already_claimed would report true on a denied write).
+  Fixed by requiring already_claimed: false on denial.
+
 ## Spawned tasks
 
 (none)
