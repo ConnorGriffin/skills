@@ -16,6 +16,7 @@ updated: 2026-08-24
 - #135 Label inventory — 7-repo approved list; 7 workflow labels stand; all agentflow:*, wayfinder:*, ready-for-agent, ciq experiments, ticket:done deleted; type labels machine-applied
 
 ## Spikes
+- #140 Review sub-agents through orchestrate routing (Codex included) — filed
 - #135 Target-repo list and label inventory with dispositions — resolved — approved list plus amendment
 
 ## Builds
@@ -25,6 +26,7 @@ updated: 2026-08-24
 ## Deferred
 
 ## Rounds
+- 2026-08-24 #140 — filed: review skills never route to Codex; skill-mandated spawns blocked by session instructions (observed on #138 start)
 - 2026-08-24 #139 — filed: start sessions ask about model fit; fix is a fit preamble stamped at triage
 - 2026-08-24 #138 — triaged in fresh session; work order stamped, no spec amendment needed
 - 2026-08-24 #138 — filed rename build; spike resolved
