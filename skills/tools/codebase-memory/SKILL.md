@@ -29,6 +29,21 @@ unrelated settings and hook registrations. Malformed settings, conflicting
 registrations, symlinks, and unowned managed-path files are no-write failures.
 Its scope is the bundled files and registrations.
 
+To merge the registrations into a settings file kept outside the Claude home, for
+example one versioned in a dotfiles checkout:
+
+```sh
+python3 <installed-skill>/scripts/install.py --claude-home PATH \
+  --settings-file PATH/TO/settings.json
+```
+
+`--settings-file` moves only the settings file. The three hook files, and the
+paths rendered into the registrations, still follow `--claude-home`. The named
+target must be a regular non-symlink file, and its parent directory must already
+exist, be a directory, and be writable and searchable; a symlinked target or an
+unusable parent is a no-write failure. A parent reached through a symlinked
+directory is fine, which is how a versioned checkout is usually wired.
+
 ## Graph-query vocabulary
 
 - `list_projects` and `index_status` report indexed-project inventory and health.
