@@ -3,9 +3,11 @@
 ## Decisions
 
 - A deferred child receives its `spike` or `build` type label when it is filed,
-  then also receives `deferred`. The parent proposal's orphan-control section
-  already requires "a type label plus `deferred`"; this is clarification of the
-  existing rule, not a proposal amendment. — `inline`
+  then also receives `deferred`. This is the narrow exception for a deferred
+  child the epic files: ordinary build tickets still receive `build` from ticket
+  triage. The parent proposal's orphan-control section already requires "a type
+  label plus `deferred`"; this is clarification of the existing rule, not a
+  proposal amendment. — `inline`
 - A research spike's terminal result comment starts with the exact heading
   `## Findings`. The home session verifies that mechanically before marking the
   spike resolved. GitHub remains authoritative; the epic ledger records only the
