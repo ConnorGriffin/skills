@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: #144 building (Sol, order stamped); then #139 re-triage; #153-#157 JIT; #163-#165 per queue notes
+next: resume #144 build — partial work UNCOMMITTED in ~/worktrees/skills/144, state comment on the issue lists what exists and what is still owed; read the working tree before redoing anything. Then #139 re-triage; #153-#157 JIT; #163-#165 per queue notes
 updated: 2026-08-25
 
 ## Notes
@@ -27,7 +27,7 @@ updated: 2026-08-25
 - #138 Mechanical rename wayfinder to epic — merged
 - #142 Epic skill content (3a) — merged
 - #143 Cross-skill amendments and machinery (3b) — merged
-- #144 Route review skills through routing table — triaged (Opus/high, Full depth, flat); order stamped, building
+- #144 Route review skills through routing table — triaged and stamped (Opus/high, Full depth, flat); build started then stopped at operator stand-down, partial work uncommitted in the worktree
 - #149 Universal effort dial and Claude CLI worker adapter — merged
 - #150 Extract shared worker lifecycle into one module — merged
 - #151 Dispatch code-review reviewers through pack adapters — merged
@@ -49,6 +49,7 @@ updated: 2026-08-25
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 stand-down — operator ended the session during #144's build. Sol worker stopped mid-run; its partial work is uncommitted in ~/worktrees/skills/144 (new review-routing.md plus 6 modified files, 161/42) with no commits and no PR, and a state comment on #144 enumerates what exists and what is still owed. review-routing.md, routing-table.md, coordinator-mode.md, review-depth.md, slicing.md, resolve_route.py and tests are started; both review SKILL.md files, review/SKILL.md, README.md, orchestrate/SKILL.md and the two dispatch references are untouched. Coordinator note for the resumer: the first build dispatch silently failed because codex-worker.py requires --control-checkout under workspace-write, and it was reported as running before its output was checked — check worker output before reporting a dispatch
 - 2026-08-25 #144 — triaged and stamped (Opus/high, Full depth, flat) after 3 cold panels, the cap. Rounds 1 and 2 returned BLOCK and the order was rewritten clean rather than patched; 10 findings reproduced against the tree before any was acted on. Round 3's three were fixed in place: two self-contradictions in the order's own overview, and a real gap — the orchestrate dependency gate was wired to resolve_route.py but /review's Process never ran it, and implement/SKILL.md:16, preflight/SKILL.md:76, and scope/SKILL.md:25 reach the review skills without touching the front door at all. Fix enforces at the consumer boundary (both skills fail closed) rather than patching each caller. Order and session-fit comment posted; ticket:triaged applied
 - 2026-08-25 #144 — triage round 2 on the clean rewrite: Sol cold review BLOCK on 4, all reproduced. Two are coordinator rulings now made: the review front door's resolver (skills/workflows/review/scripts/resolve_route.py) green-lights a partial install because PACK_SHIPPED_SKILLS and INSTALL_COMMAND only ever name the selected review skill, so making orchestrate required means amending the resolver and its tests; and reviewer ELIGIBILITY ("Haiku never reviews", review-depth.md:55, repeated at slicing.md:146) must move to review-routing.md or "sole authority" is unsatisfiable. Two are unsettled decisions routed to the operator per the cap rule: the bare-subject rule's candidate definitions miss file-backed PRDs and design docs, which plan-review/SKILL.md:12 admits as ordinary subjects; and the matrix's Claude-only Sonnet/Opus route for plan-review has no source in the Plan/spec row (Terra -> Sol -> none), whose own note warns against routing specs to Claude without a fail-safe review
 - 2026-08-25 #144 — triage round 1: Sol drafted, Sol cold review returned BLOCK on 6 findings, all reproduced against the tree. Two changed the design: plan-review's stakes tier is a different axis from reviewer-model routing and must not be collapsed into it (its panel/termination contract is broader than review-depth's four sensitivity categories), and the classifier cannot live in ticket/review-depth.md because README declares no ticket dependency for either review skill and forbids hidden runtime requirements. Coordinator rulings: classifier homes in orchestrate beside routing-table.md (a dependency #140 already forces), plan-review stakes untouched, review-depth keeps depth and the floor but loses all reviewer-selection claims. Also caught: the verification chain in flight was stale, missing worker_lifecycle.py from AGENTS.md's Test line since #150. Order rewritten clean rather than patched
