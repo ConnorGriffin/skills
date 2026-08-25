@@ -2497,6 +2497,369 @@ class OrchestrateAdapterDispatchTests(unittest.TestCase):
         self.assertIn("defaulting to medium", table)
 
 
+class CodeReviewAdapterProtocolTests(unittest.TestCase):
+    """Execute the coordinator contract through the public adapter CLIs."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name)
+        self.worktree = self.root / "worktree"
+        self.worktree.mkdir()
+        self.events = self.root / "events.log"
+        self.release = self.root / "release"
+        self.binary = self.root / "fake-reviewer"
+        self.binary.write_text(
+            """#!/usr/bin/env python3
+import json, os, pathlib, sys, time
+
+arguments = sys.argv[1:]
+is_claude = arguments[:1] == ["-p"]
+prompt = sys.stdin.read() if is_claude else arguments[-1]
+if "axis=" not in prompt:
+    raise SystemExit("missing axis prompt")
+axis = prompt.split("axis=", 1)[1].split()[0].rstrip(";")
+if is_claude:
+    required = {"--model", "--effort", "--permission-mode", "--settings", "--session-id", "--output-format"}
+    if not required.issubset(arguments) or arguments[arguments.index("--output-format") + 1] != "json":
+        raise SystemExit("unexpected Claude adapter argv")
+    if prompt in arguments:
+        raise SystemExit("Claude prompt leaked into argv")
+else:
+    required = {"exec", "-m", "-c", "--sandbox", "--skip-git-repo-check", "-C", "--json"}
+    if not required.issubset(arguments) or arguments[-1] != prompt:
+        raise SystemExit("unexpected Codex adapter argv")
+
+events = pathlib.Path(os.environ["REVIEW_EVENTS"])
+with events.open("a", encoding="utf-8") as handle:
+    handle.write(f"start {axis}\\n")
+if axis == os.environ.get("REVIEW_HOLD_AXIS"):
+    pathlib.Path(os.environ["REVIEW_HELD"]).touch()
+    while not pathlib.Path(os.environ["REVIEW_RELEASE"]).exists():
+        time.sleep(0.01)
+if axis == os.environ.get("REVIEW_FAIL_AXIS"):
+    raise SystemExit(17)
+with events.open("a", encoding="utf-8") as handle:
+    handle.write(f"end {axis}\\n")
+if is_claude:
+    print(json.dumps({"session_id": axis, "result": f"answer-{axis}", "is_error": False}))
+else:
+    print(json.dumps({"type": "thread.started", "thread_id": axis}))
+    print(json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": f"answer-{axis}"}}))
+""",
+            encoding="utf-8",
+        )
+        self.binary.chmod(0o755)
+        self.portable_launcher = self.root / "force-portable.py"
+        self.portable_launcher.write_text(
+            """#!/usr/bin/env python3
+import importlib.util, pathlib, sys
+
+worker = pathlib.Path(sys.argv.pop(1))
+spec = importlib.util.spec_from_file_location("forced_portable_worker", worker)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.lifecycle._libproc = lambda: None
+arguments = module.parser().parse_args()
+if arguments.command in {"start", "resume"} and not arguments.prompt:
+    raise SystemExit(module.fail("prompt is required"))
+raise SystemExit(arguments.handler(arguments))
+""",
+            encoding="utf-8",
+        )
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def coordinate(self, adapter, admitted, *, hold_axis=None, fail_axis=None, launch_fail_axis=None, force_portable=False, broken=None):
+        state_dir = self.root / f"state-{adapter}-{broken or 'correct'}-{len(list(self.root.glob('state-*')))}"
+        state_dir.mkdir()
+        self.events.unlink(missing_ok=True)
+        self.release.unlink(missing_ok=True)
+        (self.root / "held").unlink(missing_ok=True)
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "CODEX_HOME": str(self.root / "codex-home"),
+                "REVIEW_EVENTS": str(self.events),
+                "REVIEW_HELD": str(self.root / "held"),
+                "REVIEW_RELEASE": str(self.release),
+                "REVIEW_HOLD_AXIS": hold_axis or "",
+                "REVIEW_FAIL_AXIS": fail_axis or "",
+            }
+        )
+        force_portable = force_portable or os.environ.get("CODE_REVIEW_TEST_FORCE_PORTABLE") == "1"
+        worker = CODEX_WORKER if adapter == "codex" else CLAUDE_WORKER
+        worker_module = WORKER_MODULE if adapter == "codex" else CLAUDE_WORKER_MODULE
+        native_family = not force_portable and LIFECYCLE_MODULE._libproc() is not None
+        option = "--codex" if adapter == "codex" else "--claude"
+        model = "Terra" if adapter == "codex" else "sonnet"
+        axes = (*admitted, "spec") if broken == "launch-unadmitted-spec" else admitted
+        launches = {}
+        launch_errors = {}
+        artifacts = {}
+        actions = []
+
+        def wait_for_recovery(claim):
+            deadline = time.monotonic() + 3
+            portable_terminal = False
+            while time.monotonic() < deadline:
+                if claim["state"].exists():
+                    candidate = json.loads(claim["state"].read_text(encoding="utf-8"))
+                    if LIFECYCLE_MODULE.valid_family_schema(
+                        candidate, effort_levels=worker_module.EFFORT_LEVELS
+                    ):
+                        return candidate, "family-state", False
+                    portable_terminal = LIFECYCLE_MODULE.valid_portable_schema(
+                        candidate, effort_levels=worker_module.EFFORT_LEVELS
+                    )
+                if claim["process"].poll() is not None:
+                    return None, "helper-exit", portable_terminal
+                time.sleep(0.01)
+            return None, None, portable_terminal
+
+        for axis in axes:
+            if broken == "serial" and launches:
+                self.release.touch()
+                launches[next(reversed(launches))]["process"].wait(timeout=3)
+            state = state_dir / f"{axis}.json"
+            stdout = state_dir / f"{axis}.stdout"
+            stderr = state_dir / f"{axis}.stderr"
+            axis_worker = self.root / "unlaunchable-adapter" if axis == launch_fail_axis else worker
+            launcher = [sys.executable, str(self.portable_launcher), str(axis_worker)] if force_portable else [sys.executable, str(axis_worker)]
+            command = [
+                *( [str(axis_worker)] if axis == launch_fail_axis else launcher ),
+                "start", option, str(self.binary), "--state", str(state),
+                "--model", model, "--sandbox", "read-only", "--effort", "high", "--cwd", str(self.worktree),
+                f"axis={axis}; do not modify, patch, or stash",
+            ]
+            out = stdout.open("w", encoding="utf-8")
+            err = stderr.open("w", encoding="utf-8")
+            artifacts[axis] = (stdout, stderr)
+            try:
+                launches[axis] = {"process": subprocess.Popen(command, cwd=ROOT, env=environment, stdin=subprocess.DEVNULL, stdout=out, stderr=err), "state": state, "out": out, "err": err}
+            except OSError as error:
+                out.close()
+                err.close()
+                launch_errors[axis] = str(error)
+                break
+        deadline = time.monotonic() + 3
+        expected_starts = {f"start {axis}" for axis in launches}
+        while time.monotonic() < deadline:
+            started_before_release = self.events.read_text(encoding="utf-8").splitlines() if self.events.exists() else []
+            if expected_starts.issubset(started_before_release):
+                break
+            time.sleep(0.01)
+        if hold_axis and not launch_errors:
+            self.release.touch()
+
+        result = {"artifacts": artifacts, "actions": actions, "answers": {}, "launch_errors": launch_errors, "launched": {axis: claim["process"].pid for axis, claim in launches.items()}, "returncodes": {}, "started_before_release": started_before_release, "joined": [], "unlaunched_actions": []}
+        if launch_errors:
+            failed_axis = next(iter(launch_errors))
+            survivor, claim = next(iter(launches.items()))
+            if not native_family:
+                self.release.touch()
+            recovery_state, recovery_ready, portable_terminal = wait_for_recovery(claim)
+            result["recoverable"] = recovery_state is not None
+            result["recovery_ready"] = recovery_ready
+            result["portable_terminal"] = portable_terminal
+            if broken == "touch-unlaunched":
+                for operation in ("stop", "verify"):
+                    cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(state_dir / f"{failed_axis}.json"), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
+                    result["unlaunched_actions"].append((operation, failed_axis, cleanup.returncode))
+            if result["recoverable"]:
+                for operation in ("stop", "verify"):
+                    cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(claim["state"]), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
+                    self.assertEqual(cleanup.returncode, 0, cleanup.stderr)
+                    actions.append((operation, survivor))
+            else:
+                self.release.touch()
+            result["error"] = f"{failed_axis} failed to launch"
+        if fail_axis and fail_axis in launches:
+            failure = launches[fail_axis]["process"]
+            result["returncodes"][fail_axis] = failure.wait(timeout=3)
+            result["joined"].append(fail_axis)
+            if result["returncodes"][fail_axis] and broken != "ignore-nonzero":
+                survivor = next(axis for axis in admitted if axis != fail_axis)
+                claim = launches[survivor]
+                recovery_state, _, _ = wait_for_recovery(claim)
+                result["recoverable"] = recovery_state is not None
+                if result["recoverable"]:
+                    for operation in ("stop", "verify"):
+                        cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(claim["state"]), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
+                        self.assertEqual(cleanup.returncode, 0, cleanup.stderr)
+                        actions.append((operation, survivor))
+                result["error"] = f"{fail_axis} exited {result['returncodes'][fail_axis]}"
+        for axis, claim in launches.items():
+            if axis in result["returncodes"]:
+                continue
+            result["returncodes"][axis] = claim["process"].wait(timeout=3)
+            result["joined"].append(axis)
+            if result["returncodes"][axis] and broken != "ignore-nonzero" and "error" not in result:
+                result["error"] = f"{axis} exited {result['returncodes'][axis]}"
+            elif not result["returncodes"][axis] and broken != "state-answer":
+                result["answers"][axis] = json.loads(artifacts[axis][0].read_text(encoding="utf-8"))["final_message"]
+        for claim in launches.values():
+            claim["out"].close()
+            claim["err"].close()
+        result["events"] = self.events.read_text(encoding="utf-8").splitlines()
+        return result
+
+    def assert_broken_then_correct(self, broken, assertion, **arguments):
+        with self.assertRaises(AssertionError):
+            assertion(self.coordinate(broken=broken, **arguments))
+        assertion(self.coordinate(**arguments))
+
+    def test_portable_path_starts_second_axis_before_the_held_first_axis_finishes(self):
+        for adapter in ("codex", "claude"):
+            with self.subTest(adapter=adapter):
+                def concurrent(result):
+                    self.assertIn("start standards", result["started_before_release"])
+                    self.assertIn("start spec", result["started_before_release"])
+                    self.assertLess(result["events"].index("start spec"), result["events"].index("end standards"))
+                    self.assertEqual(result["joined"], ["standards", "spec"])
+
+                self.assert_broken_then_correct(
+                    "serial", concurrent, adapter=adapter, admitted=("standards", "spec"), hold_axis="standards"
+                )
+
+    def test_spec_unavailable_launches_only_standards(self):
+        for adapter in ("codex", "claude"):
+            with self.subTest(adapter=adapter):
+                def standards_only(result):
+                    self.assertEqual(result["joined"], ["standards"])
+                    self.assertEqual(set(result["artifacts"]), {"standards"})
+                    self.assertEqual(result["answers"], {"standards": "answer-standards"})
+
+                self.assert_broken_then_correct(
+                    "launch-unadmitted-spec", standards_only, adapter=adapter, admitted=("standards",)
+                )
+
+    def test_stdout_artifacts_supply_answers_and_nonzero_exits_are_rejected(self):
+        for adapter in ("codex", "claude"):
+            with self.subTest(adapter=adapter):
+                def successful(result):
+                    self.assertEqual(result["answers"], {"standards": "answer-standards", "spec": "answer-spec"})
+                    self.assertTrue(all(path.exists() for pair in result["artifacts"].values() for path in pair))
+                    self.assertNotIn("error", result)
+
+                self.assert_broken_then_correct(
+                    "state-answer", successful, adapter=adapter, admitted=("standards", "spec")
+                )
+                rejected = self.coordinate(adapter, ("standards", "spec"), fail_axis="spec")
+                self.assertEqual(rejected["error"], "spec exited 17")
+                with self.assertRaises(AssertionError):
+                    self.assertIn("error", self.coordinate(adapter, ("standards", "spec"), fail_axis="spec", broken="ignore-nonzero"))
+
+    def test_partial_launch_failure_waits_then_scoped_stop_and_verify_only_for_survivor(self):
+        for adapter in ("codex", "claude"):
+            force_portable_only = os.environ.get("CODE_REVIEW_TEST_FORCE_PORTABLE") == "1"
+            family_modes = (("native", False), ("portable", True)) if sys.platform == "darwin" and not force_portable_only else (("portable", True),)
+            for family_mode, force_portable in family_modes:
+                with self.subTest(adapter=adapter, family_mode=family_mode):
+                    def recovered(result):
+                        self.assertEqual(result["launched"].keys(), {"standards"})
+                        self.assertNotIn("spec", result["joined"])
+                        if family_mode == "native":
+                            self.assertTrue(result["recoverable"])
+                            self.assertEqual(result["recovery_ready"], "family-state")
+                            self.assertFalse(result["portable_terminal"])
+                            self.assertEqual(result["actions"], [("stop", "standards"), ("verify", "standards")])
+                        else:
+                            self.assertFalse(result["recoverable"])
+                            self.assertEqual(result["recovery_ready"], "helper-exit")
+                            self.assertTrue(result["portable_terminal"])
+                            self.assertEqual(result["actions"], [])
+                        self.assertEqual(result["unlaunched_actions"], [])
+                        self.assertEqual(result["joined"], ["standards"])
+                        self.assertEqual(result["error"], "spec failed to launch")
+
+                    self.assert_broken_then_correct(
+                        "touch-unlaunched", recovered, adapter=adapter, admitted=("standards", "spec"),
+                        hold_axis="standards", launch_fail_axis="spec", force_portable=force_portable,
+                    )
+
+
+class CodeReviewAdapterDispatchTests(unittest.TestCase):
+    SKILL = ROOT / "skills" / "tools" / "code-review" / "SKILL.md"
+    AUTHORIZATION = (
+        "Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, "
+        "including a mandatory nested review skill. Do not ask again solely because a session-level "
+        'preference says "do not spawn agents"; apply that preference to discretionary delegation only. '
+        "An explicit task-level refusal of this required review or revocation of delegation overrides this "
+        "authorization: stop and state that the requested workflow cannot run without its required "
+        "independent review."
+    )
+
+    def setUp(self):
+        self.text = self.SKILL.read_text(encoding="utf-8")
+        self.dispatch = " ".join(
+            self.text.split("### 4. Run both axes in parallel", 1)[1]
+            .split("### 5. Aggregate and report", 1)[0]
+            .split()
+        )
+
+    def test_delegation_authority_is_byte_identical(self):
+        authority = self.text.split("## Delegation authority\n\n", 1)[1].split("\n\n## Modes", 1)[0]
+        self.assertEqual(authority, self.AUTHORIZATION)
+
+    def test_dispatch_uses_only_pack_adapters_with_explicit_unselected_inputs(self):
+        self.assertIn("adapter appropriate to the coordinator's existing parent policy", self.dispatch)
+        self.assertIn("reviewer model", self.dispatch)
+        self.assertIn("reviewer effort", self.dispatch)
+        self.assertIn("Pass model and effort through unchanged", self.dispatch)
+        self.assertIn("codex-worker.py", self.dispatch)
+        self.assertIn("claude-worker.py", self.dispatch)
+        self.assertNotIn("general-purpose", self.dispatch)
+        self.assertNotIn("Agent tool", self.dispatch)
+        self.assertNotIn("Workflow tool", self.dispatch)
+        self.assertNotIn("background agent", self.dispatch)
+        self.assertNotIn("routing-table.md", self.dispatch)
+        self.assertNotIn("routine", self.dispatch)
+        self.assertNotIn("load-bearing", self.dispatch)
+
+    def test_admitted_axes_have_deterministic_files_concurrent_launch_and_individual_joins(self):
+        for path in ("<review-state-dir>/standards.json", "<review-state-dir>/spec.json"):
+            self.assertIn(path, self.dispatch)
+        for artifact in ("standards.stdout", "standards.stderr", "spec.stdout", "spec.stderr"):
+            self.assertIn(artifact, self.dispatch)
+        self.assertIn("start all admitted helper invocations as background processes before waiting", self.dispatch)
+        self.assertIn("Retain each axis-specific launcher PID", self.dispatch)
+        self.assertIn("waiting on its retained PID individually", self.dispatch)
+        self.assertLess(
+            self.dispatch.index("start all admitted helper invocations"),
+            self.dispatch.index("waiting on its retained PID individually"),
+        )
+        self.assertIn("second admitted axis starts while the first remains active", self.dispatch)
+
+    def test_answers_come_from_successful_stdout_and_retries_reuse_state(self):
+        self.assertIn("Reject every nonzero exit", self.dispatch)
+        self.assertIn("parse `final_message` from its stdout artifact", self.dispatch)
+        self.assertIn("State files carry lifecycle metadata only and never the reviewer answer", self.dispatch)
+        self.assertIn("resume` command against the same axis state file", self.dispatch)
+
+    def test_readonly_prompt_transport_contract_is_explicit(self):
+        self.assertIn("`--sandbox read-only`", self.dispatch)
+        self.assertIn("explicit coordinator-supplied `--model` and `--effort`", self.dispatch)
+        self.assertIn("must not modify, patch, or stash", self.dispatch)
+        self.assertIn("Codex receives the positional prompt with inherited stdin closed", self.dispatch)
+        self.assertIn("Claude adapter receives the positional prompt and delivers it to the child on stdin", self.dispatch)
+
+    def test_spec_unavailable_runs_standards_alone_and_reports_it(self):
+        self.assertIn("When Spec is unavailable, launch Standards only", self.dispatch)
+        self.assertIn("do not launch Spec", self.dispatch)
+        self.assertIn("report Spec unavailable", self.dispatch)
+
+    def test_partial_launch_recovery_is_scoped_to_the_surviving_launched_worker(self):
+        self.assertIn("If a later launch fails after another worker launched", self.dispatch)
+        self.assertIn("wait for the surviving helper to reach valid readable state or exit", self.dispatch)
+        self.assertIn("Only when recoverable state exists", self.dispatch)
+        self.assertIn("scoped `stop --state ... --cwd ...`", self.dispatch)
+        self.assertIn("scoped `verify --state ... --cwd ...`", self.dispatch)
+        self.assertIn("Then join that worker's retained PID", self.dispatch)
+        self.assertIn("Do not discover, stop, verify, or join an unlaunched worker", self.dispatch)
+        self.assertLess(self.dispatch.index("scoped `stop"), self.dispatch.index("scoped `verify"))
+
+
 class WorkerLifecycleContractTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

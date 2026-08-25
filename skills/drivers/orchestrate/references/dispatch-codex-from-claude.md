@@ -47,5 +47,5 @@ successor touches the worktree.
 
 ## Boundary
 
-This document does not cover dispatching a **Claude** worker; there is no
-`dispatch-claude.md` on this base to name.
+This document does not cover dispatching a **Claude** worker; use
+[`dispatch-claude.md`](dispatch-claude.md) for that adapter.
