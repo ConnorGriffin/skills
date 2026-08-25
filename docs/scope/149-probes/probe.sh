@@ -49,8 +49,10 @@ d="$scratch/session"; rm -rf "$d"; mkdir -p "$d"
 u=$(python3 -c 'import uuid;print(uuid.uuid4())')
 ( cd "$d" && printf 'Reply with exactly: FIRST' | claude -p --model haiku --effort medium \
     --session-id "$u" --output-format json > first.json 2> first.err ) || true
+# --effort is passed again on resume: the adapter replays the captured effort, so the
+# flag has to be accepted alongside --resume.
 ( cd "$d" && printf 'What did you reply a moment ago? One word.' | claude -p --model haiku \
-    --resume "$u" --output-format json > second.json 2> second.err ) || true
+    --effort high --resume "$u" --output-format json > second.json 2> second.err ) || true
 python3 - "$d" "$u" <<'PY'
 import json, sys
 d, u = sys.argv[1], sys.argv[2]
@@ -58,6 +60,7 @@ first = json.load(open(f"{d}/first.json"))
 second = json.load(open(f"{d}/second.json"))
 print("session: id_honored=%s resume_carries_context=%s" % (
     first.get("session_id") == u, "FIRST" in str(second.get("result", "")).upper()))
+print("session: resume_accepts_effort=%s" % (not second.get("is_error")))
 print("session: parsed_fields=%s" % sorted(
     k for k in ("session_id", "result", "is_error", "total_cost_usd", "permission_denials")
     if k in first))
