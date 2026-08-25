@@ -35,7 +35,7 @@ updated: 2026-08-24
 - #156 Dispatch research's background agent through pack adapters — filed
 - #157 Dispatch codebase-design's parallel design agents through pack adapters — filed
 - #159 Delegated-execution mode for the epic home session — filed (behind #155)
-- #145 Claude-parent Codex reviewer dispatch reference — pr:#161
+- #145 Claude-parent Codex reviewer dispatch reference — merged
 - #146 Pre-authorize required review delegation — merged
 - #139 Triage stamps session-fit preamble into work orders — in-progress
 
@@ -43,6 +43,7 @@ updated: 2026-08-24
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-24 #145 — PR #161 merged on green CI after base update; #144's blockers now down to #149 #151 #152
 - 2026-08-24 #146 — PR #160 merged on green CI; #161 awaiting re-run after base update; #149 chunk 2 rerunning Claude-side live cases post-auth-fix
 - 2026-08-24 routing — operator directive: Codex-only for new dispatches (opus rung → Sol, sonnet rung → Terra, escalate Terra → Sol; Claude only if Sol fails); in-flight work untouched
 - 2026-08-24 #145 #146 — both built (Sonnet, Terra), Full-depth reviews converged SHIP with zero blocking findings; PRs #161 #160 opened, merge on green CI
