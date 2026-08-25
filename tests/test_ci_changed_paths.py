@@ -184,6 +184,21 @@ class ChangedPathsCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output.read_text(encoding="utf-8").strip(), "run_expensive=true")
 
+    def test_malformed_input_recovers_equals_form_github_output(self):
+        output = Path(self.temporary.name) / "github-output"
+        result = run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "--bogus",
+                f"--github-output={output}",
+            ],
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output.read_text(encoding="utf-8").strip(), "run_expensive=true")
+
     def test_output_transport_failure_is_visible(self):
         output = Path(self.temporary.name) / "missing" / "github-output"
 

@@ -20,11 +20,12 @@ another tracker, or a guess at the ticket's contents.
 ## 1. Read a ticket
 
 ```sh
-gh issue view <id> --repo <org/repo> --json number,title,body,state,comments
+gh issue view <id> --repo <org/repo> --json number,title,body,state,parent,comments
 ```
 
-`comments` arrives oldest-first, each with `body` and `createdAt`. Sort by
-`createdAt` when a verb wants newest-first.
+`parent` lets triage select the epic-child lifecycle. `comments` arrives
+oldest-first, each with `body` and `createdAt`. Sort by `createdAt` when a verb
+wants newest-first.
 
 A missing issue exits non-zero with `Could not resolve to an issue`. That is the
 absent-ticket failure: stop, naming the id.

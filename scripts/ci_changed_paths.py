@@ -56,9 +56,11 @@ def write_output(output, run_expensive):
 
 
 def github_output_argument(arguments):
-    for index, argument in enumerate(arguments[:-1]):
+    for index, argument in enumerate(arguments):
         if argument == "--github-output":
-            return arguments[index + 1]
+            return arguments[index + 1] if index + 1 < len(arguments) else None
+        if argument.startswith("--github-output="):
+            return argument.partition("=")[2] or None
     return None
 
 
