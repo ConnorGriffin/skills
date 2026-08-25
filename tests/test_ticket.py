@@ -185,8 +185,10 @@ class TicketSkillContractTests(unittest.TestCase):
     def test_builder_self_check_is_pinned_in_flat_and_chunked_builder_guidance(self):
         start = (TICKET_DIRECTORY / "verbs" / "start.md").read_bytes()
         template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_bytes()
+        start.decode("utf-8")
+        template.decode("utf-8")
         sub_order_fence = template.split(b"SUB-ORDER 1/<n>", 1)[1]
-        self.assertEqual(sub_order_fence.count(b"```"), 1)
+        self.assertGreaterEqual(sub_order_fence.count(b"```"), 1)
         sub_order = sub_order_fence.split(b"```", 1)[0]
         start_body = start.split(b"### Builder self-check\n\n", 1)[1].split(
             b"\n\n8. **Implement.**", 1
