@@ -45,9 +45,22 @@ temp path at launch — it never reads a settings shape out of `docs/`, because
   `dangerouslyDisableSandbox` retry, so a command the sandbox blocked cannot
   be re-run outside it.
 - **`workspace-write`**: `sandbox.enabled: true`, `allowUnsandboxedCommands:
-  false`, no filesystem deny-list (the cwd stays writable), and
+  false`, `filesystem.allowWrite: [<the worker's own --cwd>]`, and
   `permissions.allow: ["Write", "Edit", "NotebookEdit"]` (the edit tools
-  allowed).
+  allowed). `allowWrite` is what does the confining, and it must stand alone:
+  a real run of #149 launched with no `filesystem` block wrote straight
+  through to `$HOME/.cache`, and pairing `allowWrite` with a `denyWrite` was
+  rejected on disk twice because `deny` beats `allow` for the same path,
+  silently re-blocking the very cwd `allowWrite` exists to carve out.
+
+  The real boundary is **cwd plus the session temp directory**, which the
+  sandbox documents as writable. A write under `$TMPDIR` is therefore expected
+  and is not a confinement failure; a write into the operator's home directory
+  or into the control checkout is. `start` additionally refuses a
+  `workspace-write` `--cwd` that sits inside `--control-checkout` before any
+  worker launches. Do not describe this mode as "the worktree and nowhere
+  else" — that phrasing was measured false. The captured runs are in
+  `docs/scope/149-probes/run-log.md`.
 
 ## Effort
 

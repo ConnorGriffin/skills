@@ -76,6 +76,14 @@ successfully and had its bash write refused with "operation not permitted":
  "permissions": {"deny": ["Write", "Edit", "NotebookEdit"]}}
 ```
 
+> **Superseded 2026-08-25 — the write half of this section was refuted by a real run.**
+> The shape below (sandbox on, *no* `filesystem` block) does **not** confine writes: a real
+> `workspace-write` worker launched with it wrote straight through to `$HOME/.cache`. See
+> the `write` case in `149-probes/run-log.md` and the correction in
+> `docs/adr/adr-149-pack-owned-model-dispatch.md`. What confines it is
+> `filesystem.allowWrite: [cwd]` alone, which `claude-worker.py` now generates. The
+> paragraph below is kept as the record of what was believed at scoping time.
+
 Write worker (same permission mode, sandbox on, no denyWrite) wrote inside its cwd and was
 refused a write into `$HOME`, matching Codex `workspace-write`. Its writable region is the
 cwd plus the session temp directory: an escape probe aimed at a path under `/private/tmp`
@@ -110,8 +118,12 @@ changed the order rather than its wording:
 * "Prompt on stdin" is a claude-worker fact; `codex-worker.py` takes its prompt
   positionally (`:584`) and no chunk changes that.
 * The two CLIs do not share an effort enum. Captured in `149-probes/effort-enums.md`.
-* Write confinement was asserted, not measured. Measuring it refuted the claim as written
-  (see above) and corrected both the ADR and this ledger.
+* Write confinement was asserted, not measured. Measuring it at scoping time refuted the
+  claim as first written and corrected both the ADR and this ledger — but only partway:
+  the corrected claim still said the committed `write.settings.json` shape confined writes.
+  Running that shape for real during the build (2026-08-25) refuted it again, this time
+  conclusively — a worker wrote through to `$HOME/.cache`. `filesystem.allowWrite: [cwd]`
+  is what confines it. See `149-probes/run-log.md` and the ADR's correction section.
 * The ban stranded `research` and `codebase-design`, which dispatch through banned paths
   today and were on no convert-later list.
 * Agent-tool coupling survives outside Routing step 5, at `SKILL.md:63` and `:103`.

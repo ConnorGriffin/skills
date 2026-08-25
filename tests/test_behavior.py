@@ -2382,6 +2382,13 @@ class OrchestrateAdapterDispatchTests(unittest.TestCase):
         self.assertIn("liveness", dispatch.lower())
         self.assertIn("permission_denials", dispatch)
         self.assertIn("command -v claude", dispatch)
+        # The workspace-write shape is the one a real run of #149 corrected: with
+        # no filesystem block, a worker wrote through to $HOME/.cache. Pin the
+        # corrected shape so this reference cannot drift back to describing the
+        # pre-fix sandbox while the adapter generates the fixed one — nothing
+        # else asserts what this document claims the shape is.
+        self.assertIn("filesystem.allowWrite", dispatch)
+        self.assertNotIn("no filesystem deny-list", dispatch)
 
     def test_routing_table_effort_notes_name_both_enums(self):
         table = (

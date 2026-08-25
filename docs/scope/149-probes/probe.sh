@@ -6,8 +6,13 @@
 #
 # Cases:
 #   readonly  - a read-only worker keeps a shell and cannot write anywhere
-#   write     - a write worker writes in its cwd and is refused outside it
-#               (outside = a home-directory path, not a temp path)
+#   write     - exercises the committed write.settings.json shape. NOTE (2026-08-25):
+#               that shape carries no `filesystem` block and does NOT confine writes -- a
+#               real worker launched with it wrote through to $HOME/.cache. This case
+#               measures the shape as committed, not a confinement guarantee. What
+#               confines is filesystem.allowWrite: [cwd], which claude-worker.py
+#               generates; see run-log.md. Writable region is cwd plus the session
+#               temp dir, never the home directory or the control checkout.
 #   session   - a caller-supplied --session-id is honored, --resume carries context,
 #               --output-format json exposes the fields the adapter parses
 #   resumed   - a RESUMED read-only worker is still sandboxed (the settings file is

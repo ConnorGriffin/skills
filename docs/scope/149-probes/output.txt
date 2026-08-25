@@ -1,3 +1,8 @@
+# SUPERSEDED (2026-08-25) for the `write` case: this capture predates the build.
+# The `write` settings shape exercised here carries no `filesystem` block and does NOT
+# confine writes -- a real workspace-write worker later wrote through to $HOME/.cache.
+# See run-log.md for the post-fix capture; claude-worker.py now generates
+# filesystem.allowWrite: [cwd]. The readonly/session/resumed cases below still hold.
 # probe run 1a9f37c
 # claude 2.1.228 (Claude Code)
 readonly: wrote_in_cwd=no escaped_cwd=no
