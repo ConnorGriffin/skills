@@ -24,15 +24,25 @@ updated: 2026-08-24
 - #138 Mechanical rename wayfinder to epic — merged
 - #142 Epic skill content (3a) — merged
 - #143 Cross-skill amendments and machinery (3b) — merged
-- #144 Route review skills through routing table — filed
+- #144 Route review skills through routing table — filed (reframed: final integration after #145 #149 #151 #152)
+- #149 Universal effort dial and Claude CLI worker adapter — triaged
+- #150 Extract shared worker lifecycle into one module — filed
+- #151 Dispatch code-review's reviewers through pack adapters — filed
+- #152 Dispatch plan-review's cold reviewers through pack adapters — filed
+- #153 Dispatch persona-review's panel through pack adapters — filed
+- #154 Dispatch ticket's chunk agents through pack adapters — filed
+- #155 Dispatch epic's workers through pack adapters — filed
+- #156 Dispatch research's background agent through pack adapters — filed
+- #157 Dispatch codebase-design's parallel design agents through pack adapters — filed
 - #145 Claude-parent Codex reviewer dispatch reference — filed
 - #146 Pre-authorize required review delegation — filed
-- #139 Triage stamps session-fit preamble into work orders — filed (order stale: base drift from #158, re-triage)
+- #139 Triage stamps session-fit preamble into work orders — in-progress
 
 ## Deferred
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-24 #144 #149-#157 — dispatch subtree surfaced; #144 reframed as final integration behind #145 #149 #151 #152; nine new builds attached to #133
 - 2026-08-24 #139 — start blocked: work order predates #158's rewrite of the same files; re-triage required
 - 2026-08-24 #143 — built and merged as PR #158 (Opus / medium); finalize in progress; #139 and #144-#146 unblocked
 - 2026-08-24 #143 — triaged (Opus / medium); session-fit comment posted per interim rule
