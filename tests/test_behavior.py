@@ -3581,5 +3581,61 @@ class UiCraftCliMainGuardTests(unittest.TestCase):
         )
 
 
+class DelegationAuthorityContractTests(unittest.TestCase):
+    CODE_REVIEW = (ROOT / "skills" / "tools" / "code-review" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    PLAN_REVIEW = (ROOT / "skills" / "tools" / "plan-review" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    TICKET = (ROOT / "skills" / "drivers" / "ticket" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    TRIAGE = (ROOT / "skills" / "drivers" / "ticket" / "verbs" / "triage.md").read_text(
+        encoding="utf-8"
+    )
+    PERSONA_REVIEW = (
+        ROOT / "skills" / "tools" / "persona-review" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
+    ENTRY_POINTS = (CODE_REVIEW, PLAN_REVIEW, TICKET)
+    AUTHORIZATION = "authorizes every sub-agent dispatch that this procedure marks mandatory"
+    DISCRETIONARY_ONLY = (
+        'Do not ask again solely because a session-level preference says "do not spawn '
+        'agents"; apply that preference to discretionary delegation only.'
+    )
+    REFUSAL_STOPS_WORKFLOW = (
+        "An explicit task-level refusal of this required review or revocation of "
+        "delegation overrides this authorization: stop and state that the requested "
+        "workflow cannot run without its required independent review."
+    )
+
+    def test_all_required_review_entry_points_authorize_mandatory_dispatch(self):
+        for skill in self.ENTRY_POINTS:
+            self.assertIn(self.AUTHORIZATION, skill)
+
+    def test_session_preference_leaves_required_dispatch_authorized(self):
+        for skill in self.ENTRY_POINTS:
+            self.assertIn(self.DISCRETIONARY_ONLY, skill)
+
+    def test_explicit_refusal_or_revocation_stops_required_review_workflow(self):
+        for skill in self.ENTRY_POINTS:
+            self.assertIn(self.REFUSAL_STOPS_WORKFLOW, skill)
+
+    def test_persona_review_keeps_conditional_serial_fallback_without_authority(self):
+        self.assertNotIn(self.AUTHORIZATION, self.PERSONA_REVIEW)
+        self.assertIn(
+            "Where subagents aren't available, review personas serially in the main session",
+            self.PERSONA_REVIEW,
+        )
+
+    def test_ticket_authority_covers_triage_plan_review(self):
+        self.assertIn("triage's mandatory `/plan-review`", self.TICKET)
+
+    def test_triage_points_to_ticket_authority_without_repeating_it(self):
+        self.assertIn("ticket skill page's `## Delegation authority` section", self.TRIAGE)
+        self.assertNotIn(self.AUTHORIZATION, self.TRIAGE)
+
+
 if __name__ == "__main__":
     unittest.main()

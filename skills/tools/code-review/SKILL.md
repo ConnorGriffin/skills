@@ -29,6 +29,10 @@ forgotten:
    `unverified` or is dropped. A plausible-sounding finding nobody traced is how
    a fix gets written for a defect that was never there.
 
+## Delegation authority
+
+Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, including a mandatory nested review skill. Do not ask again solely because a session-level preference says "do not spawn agents"; apply that preference to discretionary delegation only. An explicit task-level refusal of this required review or revocation of delegation overrides this authorization: stop and state that the requested workflow cannot run without its required independent review.
+
 ## Modes
 
 **First review** — the full process below.
