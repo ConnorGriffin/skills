@@ -87,7 +87,10 @@ confident false positives. Keep both files out of this public pack.
 3. Dispatch: Codex via `codex exec -m <model> -c model_reasoning_effort=medium
    --sandbox read-only|workspace-write --skip-git-repo-check -C <dir>`; Claude
    via the Agent tool with a `model` override. Effort stays medium for scored
-   runs so results are comparable.
+   runs so results are comparable. (This records how the 2026-08-03 runs were
+   dispatched, not how dispatch works now — see ADR 149 and
+   `references/dispatch-claude.md` / `references/dispatch-codex.md` for
+   current routing.)
 4. Judge against ground truth, not eloquence: grep-verify citations, run the
    tests, apply the review answer key mechanically.
 5. Interview the model first (self-assessment across the 7 areas) as a
