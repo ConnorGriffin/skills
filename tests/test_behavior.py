@@ -2562,7 +2562,7 @@ class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
     def test_orchestrate_pack_wide_reach_is_byte_identical(self):
         skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
         body = skill.split(b"## Pack-wide reach\n\n", 1)[1].split(
-            b"\n\n## Collect child results", 1
+            b"\n\n## Collect child results\n", 1
         )[0]
 
         self.assertEqual(body, ORCHESTRATE_PACK_WIDE_REACH.encode("utf-8"))
@@ -2570,7 +2570,7 @@ class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
     def test_orchestrate_collect_child_results_is_byte_identical(self):
         skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
         body = skill.split(b"## Collect child results\n\n", 1)[1].split(
-            b"\n\n## Maintenance", 1
+            b"\n\n## Maintenance\n", 1
         )[0]
 
         self.assertEqual(body, ORCHESTRATE_COLLECT_CHILD_RESULTS.encode("utf-8"))
@@ -2579,7 +2579,7 @@ class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
         skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
 
         self.assertIn(b"## Pack-wide reach", skill)
-        self.assertIn(b"## Maintenance", skill)
+        self.assertEqual(skill.count(b"\n## Maintenance\n"), 1)
         self.assertIn(
             b"A future skill that dispatches a model converts behind its\n"
             b"own issue before the ban binds it.",
