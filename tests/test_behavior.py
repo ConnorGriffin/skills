@@ -28,6 +28,7 @@ CBM_TEARDOWN = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-tear
 CBM_LIFECYCLE = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-lifecycle.py"
 SPIN_SCRIPT = ROOT / "skills" / "tools" / "spin-worktree" / "scripts" / "spin-worktree.py"
 CODEX_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "codex-worker.py"
+CLAUDE_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "claude-worker.py"
 UI_CRAFT_AUDIT = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "audit.md"
 UI_CRAFT_CRITIQUE = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "critique.md"
 UI_CRAFT_SWEEP = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "behavior-sweep.md"
@@ -40,6 +41,11 @@ WORKER_SPEC = importlib.util.spec_from_file_location("orchestrate_worker", CODEX
 assert WORKER_SPEC and WORKER_SPEC.loader
 WORKER_MODULE = importlib.util.module_from_spec(WORKER_SPEC)
 WORKER_SPEC.loader.exec_module(WORKER_MODULE)
+
+CLAUDE_WORKER_SPEC = importlib.util.spec_from_file_location("orchestrate_claude_worker", CLAUDE_WORKER)
+assert CLAUDE_WORKER_SPEC and CLAUDE_WORKER_SPEC.loader
+CLAUDE_WORKER_MODULE = importlib.util.module_from_spec(CLAUDE_WORKER_SPEC)
+CLAUDE_WORKER_SPEC.loader.exec_module(CLAUDE_WORKER_MODULE)
 
 
 def run(
@@ -1621,6 +1627,8 @@ class CodexWorkerTests(unittest.TestCase):
                 "Terra",
                 "-c",
                 'sandbox_mode="workspace-write"',
+                "-c",
+                "model_reasoning_effort=medium",
                 "--json",
                 "continue with the failing test",
             ],
@@ -2073,6 +2081,247 @@ class OrchestrateCodexPolicyTests(unittest.TestCase):
         self.assertIn("rollout-*.jsonl", dispatch)
 
 
+class WorkerEffortDialTests(unittest.TestCase):
+    """Sub-order 1/2 149: the effort dial on both adapters and the STATE_VERSION
+    choice (effort is optional-with-default, not added to BASE_STATE_FIELDS,
+    so STATE_VERSION stays 2 and pre-existing state files remain valid)."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.scratch = Path(self.temporary.name)
+        self.control = self.scratch / "control"
+        self.worktree = self.scratch / "worktree"
+        self.control.mkdir()
+        self.worktree.mkdir()
+        self.state = self.scratch / "worker-state.json"
+        self.arguments = self.scratch / "arguments.json"
+        self.stdin_capture = self.scratch / "stdin.txt"
+
+        self.codex_binary = self.scratch / "fake-codex"
+        self.codex_binary.write_text(
+            "#!/usr/bin/env python3\n"
+            "import json, os, pathlib, sys\n"
+            "pathlib.Path(os.environ['FAKE_ARGUMENTS']).write_text(json.dumps(sys.argv[1:]))\n"
+            "sys.stdout.write(os.environ.get('FAKE_OUTPUT', ''))\n"
+            "sys.exit(int(os.environ.get('FAKE_EXIT', '0')))\n",
+            encoding="utf-8",
+        )
+        self.codex_binary.chmod(0o755)
+
+        self.claude_binary = self.scratch / "fake-claude"
+        self.claude_binary.write_text(
+            "#!/usr/bin/env python3\n"
+            "import json, os, pathlib, sys\n"
+            "pathlib.Path(os.environ['FAKE_ARGUMENTS']).write_text(json.dumps(sys.argv[1:]))\n"
+            "pathlib.Path(os.environ['FAKE_STDIN']).write_text(sys.stdin.read())\n"
+            "sys.stdout.write(os.environ.get('FAKE_OUTPUT', ''))\n"
+            "sys.exit(int(os.environ.get('FAKE_EXIT', '0')))\n",
+            encoding="utf-8",
+        )
+        self.claude_binary.chmod(0o755)
+
+        self.environment = os.environ.copy()
+        self.environment["FAKE_ARGUMENTS"] = str(self.arguments)
+        self.environment["FAKE_STDIN"] = str(self.stdin_capture)
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def run_codex(self, *arguments: str):
+        return run(["python3", str(CODEX_WORKER), *arguments], cwd=ROOT, env=self.environment)
+
+    def run_claude(self, *arguments: str):
+        return run(["python3", str(CLAUDE_WORKER), *arguments], cwd=ROOT, env=self.environment)
+
+    # --- codex-worker.py -------------------------------------------------
+
+    def test_codex_start_defaults_to_medium_effort_in_argv(self):
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+        result = self.run_codex(
+            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--model", "Terra", "--sandbox", "read-only", "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn("model_reasoning_effort=medium", argv)
+        self.assertNotIn("effort", json.loads(self.state.read_text(encoding="utf-8")))
+
+    def test_codex_start_carries_a_custom_effort_and_persists_it(self):
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+        result = self.run_codex(
+            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--model", "Terra", "--sandbox", "read-only", "--effort", "high",
+            "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn("model_reasoning_effort=high", argv)
+        self.assertEqual(json.loads(self.state.read_text(encoding="utf-8"))["effort"], "high")
+
+    def test_codex_rejects_an_effort_outside_its_own_enum(self):
+        result = self.run_codex(
+            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--model", "Terra", "--sandbox", "read-only", "--effort", "max",
+            "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--effort", result.stderr)
+        self.assertFalse(self.state.exists())
+
+    def test_codex_replays_persisted_effort_on_resume(self):
+        legacy = {
+            "version": WORKER_MODULE.STATE_VERSION, "lifecycle": "exited",
+            "session_id": "worker-1", "model": "Terra", "sandbox": "read-only",
+            "cwd": str(self.worktree.resolve()), "effort": "high",
+            "family_semantics": "unsupported", "generation": 1,
+        }
+        self.state.write_text(json.dumps(legacy), encoding="utf-8")
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+        result = self.run_codex("resume", "--codex", str(self.codex_binary), "--state", str(self.state), "continue")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn("model_reasoning_effort=high", argv)
+        self.assertEqual(json.loads(result.stdout)["effort"], "high")
+
+    # --- claude-worker.py -------------------------------------------------
+
+    def test_claude_start_puts_prompt_on_stdin_not_argv(self):
+        self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "s1", "result": "ok", "is_error": False})
+        result = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--cwd", str(self.worktree), "the actual prompt text",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertNotIn("the actual prompt text", argv)
+        self.assertEqual(self.stdin_capture.read_text(encoding="utf-8"), "the actual prompt text")
+
+    def test_claude_start_defaults_to_medium_effort_in_argv(self):
+        self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "s1", "result": "ok", "is_error": False})
+        result = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn("--effort", argv)
+        self.assertEqual(argv[argv.index("--effort") + 1], "medium")
+        self.assertNotIn("effort", json.loads(self.state.read_text(encoding="utf-8")))
+        self.assertEqual(json.loads(result.stdout)["effort"], "medium")
+
+    def test_claude_start_carries_a_custom_effort_and_persists_it(self):
+        self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "s1", "result": "ok", "is_error": False})
+        result = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--effort", "xhigh",
+            "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertEqual(argv[argv.index("--effort") + 1], "xhigh")
+        self.assertEqual(json.loads(self.state.read_text(encoding="utf-8"))["effort"], "xhigh")
+        self.assertEqual(json.loads(result.stdout)["effort"], "xhigh")
+
+    def test_claude_rejects_an_effort_outside_its_own_enum(self):
+        # "minimal" is valid for codex but not claude — the two adapters do not
+        # share one enum.
+        result = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--effort", "minimal",
+            "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--effort", result.stderr)
+        self.assertFalse(self.state.exists())
+
+    def test_claude_replays_persisted_effort_on_resume(self):
+        legacy = {
+            "version": CLAUDE_WORKER_MODULE.STATE_VERSION, "lifecycle": "exited",
+            "session_id": "worker-1", "model": "sonnet", "sandbox": "read-only",
+            "cwd": str(self.worktree.resolve()), "effort": "high",
+            "family_semantics": "unsupported", "generation": 1,
+        }
+        self.state.write_text(json.dumps(legacy), encoding="utf-8")
+        self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "worker-1", "result": "ok", "is_error": False})
+        result = self.run_claude("resume", "--claude", str(self.claude_binary), "--state", str(self.state), "continue")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertEqual(argv[argv.index("--effort") + 1], "high")
+        self.assertEqual(json.loads(result.stdout)["effort"], "high")
+
+    def test_claude_workspace_write_rejects_the_control_checkout(self):
+        result = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "workspace-write",
+            "--cwd", str(self.control), "--control-checkout", str(self.control),
+            "do the work",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("control checkout", result.stderr)
+        self.assertFalse(self.state.exists())
+
+    def test_claude_generated_readonly_settings_deny_writes_and_disable_unsandboxed_retry(self):
+        settings = CLAUDE_WORKER_MODULE.sandbox_settings("read-only")
+        self.assertEqual(settings["sandbox"]["allowUnsandboxedCommands"], False)
+        self.assertIn("/", settings["sandbox"]["filesystem"]["denyWrite"])
+        self.assertIn("Write", settings["permissions"]["deny"])
+        self.assertIn("Edit", settings["permissions"]["deny"])
+
+    def test_claude_generated_write_settings_allow_edit_tools_and_keep_unsandboxed_retry_disabled(self):
+        settings = CLAUDE_WORKER_MODULE.sandbox_settings("workspace-write")
+        self.assertEqual(settings["sandbox"]["allowUnsandboxedCommands"], False)
+        self.assertNotIn("filesystem", settings["sandbox"])
+        self.assertIn("Write", settings["permissions"]["allow"])
+        self.assertIn("Edit", settings["permissions"]["allow"])
+
+    def test_missing_effort_defaults_to_medium_without_a_version_bump(self):
+        # STATE_VERSION decision: effort lives only in each command's `allowed`
+        # schema superset, never in BASE_STATE_FIELDS, so a pre-existing state
+        # file with no "effort" key stays valid at STATE_VERSION 2 and reads
+        # back as the medium default on both adapters.
+        self.assertEqual(WORKER_MODULE.STATE_VERSION, 2)
+        self.assertEqual(CLAUDE_WORKER_MODULE.STATE_VERSION, 2)
+        state = {
+            "version": 2, "lifecycle": "running", "session_id": "s",
+            "model": "Terra", "sandbox": "read-only", "cwd": str(self.worktree.resolve()),
+            "pid": 1, "pgid": 1, "sid": 1, "birth": {"seconds": 1, "microseconds": 0},
+        }
+        self.assertTrue(WORKER_MODULE.valid_family_schema(state))
+        self.assertEqual(WORKER_MODULE.effort_of(state), "medium")
+        state["model"] = "sonnet"
+        self.assertTrue(CLAUDE_WORKER_MODULE.valid_family_schema(state))
+        self.assertEqual(CLAUDE_WORKER_MODULE.effort_of(state), "medium")
+
+
+class OrchestrateAdapterDispatchTests(unittest.TestCase):
+    def test_skill_bans_agent_tool_workflow_tool_and_background_agents_for_dispatch(self):
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("never through the Agent tool, the Workflow tool, or a\n  background agent", skill)
+        self.assertIn("claude-worker.py", skill)
+        self.assertIn("claude-worker.py resume", skill)
+        self.assertNotIn("via the Agent tool with a `model` override", skill)
+        self.assertIn("defaulting to medium", skill)
+
+    def test_dispatch_claude_reference_exists_and_names_both_sandbox_modes(self):
+        dispatch = (
+            ROOT / "skills" / "drivers" / "orchestrate" / "references" / "dispatch-claude.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("read-only", dispatch)
+        self.assertIn("workspace-write", dispatch)
+        self.assertIn("prompt to the worker's stdin", dispatch)
+        self.assertIn("liveness", dispatch.lower())
+        self.assertIn("permission_denials", dispatch)
+        self.assertIn("command -v claude", dispatch)
+
+    def test_routing_table_effort_notes_name_both_enums(self):
+        table = (
+            ROOT / "skills" / "drivers" / "orchestrate" / "references" / "routing-table.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("low|medium|high|xhigh|max", table)
+        self.assertIn("minimal|low|medium|high|xhigh", table)
+        self.assertIn("defaulting to medium", table)
+
+
 class WorkerLifecycleContractTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -2521,6 +2770,19 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         self.assertNotIn("proc_listchildpids", source)
         self.assertNotIn("proc_name", source)
         self.assertIn("Successors never discover or clean", instructions)
+
+    def test_claude_worker_process_family_constants_and_no_global_cleanup_authority(self):
+        # The Darwin-constant guard covers both adapters: claude-worker.py
+        # carries its own copy of the same identity-probe constants, not an
+        # import of codex-worker.py's.
+        self.assertEqual(CLAUDE_WORKER_MODULE.BSD_SIZE, 136)
+        self.assertEqual(CLAUDE_WORKER_MODULE.VNODE_SIZE, 2352)
+        self.assertEqual(CLAUDE_WORKER_MODULE.PROC_PIDTBSDINFO, 3)
+        self.assertEqual(CLAUDE_WORKER_MODULE.PROC_PIDVNODEPATHINFO, 9)
+        source = CLAUDE_WORKER.read_text(encoding="utf-8")
+        self.assertNotIn("pkill", source)
+        self.assertNotIn("proc_listchildpids", source)
+        self.assertNotIn("proc_name", source)
 
     @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
     def test_darwin_probe_contract(self):
