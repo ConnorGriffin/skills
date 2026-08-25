@@ -1,15 +1,20 @@
 # /ticket triage `<ticket-id>`
 
 Turn a ticket into a locked work order, or establish why it cannot be one yet.
-Runs entirely in the ticket's worktree, and writes only to the tracker and to
-scope and spec documents committed in that worktree.
+Runs in the ticket's worktree. Outside an epic it writes the tracker and the
+applicable scope and spec documents there. An **epic child** writes only its work
+order to the tracker; its review instrumentation is untracked session scratch outside
+the branch, and its change record already belongs to the parent epic.
 
 ## Procedure
 
 1. **Read the ticket.** Use the contract's read operation for the description and
    every comment. Note the parent, the links, and any prior work order comment. If
    an order already exists, say so and ask whether to supersede it; a new order
-   posted later wins.
+   posted later wins. A non-null parent is only an epic-child candidate: read that
+   parent through the tracker contract and select the epic-child lifecycle only
+   when its labels include the `epic` label. A missing parent or a parent without
+   `epic` leaves this as an ordinary ticket.
 
 2. **Cut or reuse the worktree.** Before any grounding or repo read, derive a short
    kebab slug from the ticket title, then:
@@ -111,7 +116,12 @@ scope and spec documents committed in that worktree.
    instead. A single missing fact with no judgment attached (a hostname, a version)
    is the only exception. When nothing is genuinely uncertain, scope says so and
    returns without asking anything; that outcome is the pass signal, not a wasted
-   step. Resolved answers go into the order.
+   step. Resolved answers go into the order. For an epic child, every `/scope`
+   specialist keeps its instrumentation in untracked session scratch outside the branch, discards it
+   after the final order, and creates no scope ledger or docs/scope state. `/epic` alone owns the
+   proposal, design, and ledger. If triage discovers a required spec amendment,
+   land it first as a separate docs-only pull request to main, then stamp the
+   order; the child branch never writes that amendment or any other spec state.
 
    **Resolve the surface lifecycle.** Every order and sub-order gets one closed
    `Surface lifecycle:` value:
@@ -192,10 +202,12 @@ scope and spec documents committed in that worktree.
     measured review forwarded a single unverified reviewer claim; it got baked into
     the order and cost a full round to retract.
 
-    b. Instrument every round in the scope ledger: blockers found, each tagged
-    `authoring` (present since the draft) or `injected` (introduced by a prior fix
-    round). Injected blockers climbing across rounds is the rewrite-clean signal
-    firing.
+    b. Outside an epic child, instrument every round in the scope ledger:
+    blockers found, each tagged `authoring` (present since the draft) or
+    `injected` (introduced by a prior fix round). For an epic child, keep the same
+    instrumentation in untracked session scratch outside the branch and discard it after the final
+    order; create no scope ledger or docs/scope state, and do not write the epic ledger. Injected
+    blockers climbing across rounds is the rewrite-clean signal firing.
 
     c. Reviewers get the facts already verified live this session and the user's
     settled decisions, marked do-not-re-litigate.
@@ -225,7 +237,9 @@ scope and spec documents committed in that worktree.
     first, then the human summary, then the fenced order or sub-orders. One comment
     carries the whole order, chunked or not.
 
-14. **Move the status** to triaged. Report a failed move; do not retry.
+14. **Move the status** to triaged, passing the classification from step 6. Report
+    a failed move; do not retry. A failed code classification `build` creation or
+    attachment retains the posted work order but prevents `ticket:triaged`.
 
 ## Refusals
 

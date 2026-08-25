@@ -451,6 +451,147 @@ class TicketSkillContractTests(unittest.TestCase):
         ):
             self.assertIn(disposition, actions)
 
+    def test_under_epic_followups_use_the_epic_tracker_creation_interface(self):
+        actions = (TICKET_DIRECTORY / "references" / "review-actions.md").read_text(
+            encoding="utf-8"
+        )
+        tracker_path = (
+            ROOT / "skills" / "drivers" / "epic" / "references" / "github-tracker.md"
+        )
+        tracker = tracker_path.read_text(encoding="utf-8")
+
+        self.assertIn("../../epic/references/github-tracker.md", actions)
+        self.assertIn("Necessary follow-up", actions)
+        self.assertRegex(
+            tracker,
+            r"gh issue create .*--repo OWNER/REPO.*--title .*--body-file .*--label (spike|build).*--parent EPIC_NUMBER",
+        )
+
+    def test_every_epic_child_change_record_consumer_uses_the_epic_record(self):
+        consumers = {
+            "shared": TICKET_DIRECTORY / "SKILL.md",
+            "triage": TICKET_DIRECTORY / "verbs" / "triage.md",
+            "start": TICKET_DIRECTORY / "verbs" / "start.md",
+            "revise": TICKET_DIRECTORY / "verbs" / "revise.md",
+            "finalize": TICKET_DIRECTORY / "verbs" / "finalize.md",
+            "coordinator": TICKET_DIRECTORY / "references" / "coordinator-mode.md",
+        }
+
+        for name, path in consumers.items():
+            with self.subTest(consumer=name):
+                text = " ".join(path.read_text(encoding="utf-8").lower().split())
+                self.assertIn("epic child", text)
+                self.assertIn("change record", text)
+
+    def test_epic_child_scope_instrumentation_never_creates_a_scope_ledger(self):
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
+        scope = (ROOT / "skills" / "workflows" / "scope" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        contract = " ".join((triage + "\n" + scope).lower().split())
+
+        self.assertIn("epic child", contract)
+        self.assertIn("session scratch", contract)
+        self.assertIn("every specialist", contract)
+        self.assertIn("no scope ledger", contract)
+
+    def test_triaged_build_label_is_conditioned_on_code_classification(self):
+        tracker = (TICKET_DIRECTORY / "references" / "tracker-contract.md").read_text(
+            encoding="utf-8"
+        )
+        binding = (TICKET_DIRECTORY / "bindings" / "github-issues.md").read_text(
+            encoding="utf-8"
+        )
+        contract = " ".join((tracker + "\n" + binding).lower().split())
+
+        for classification in ("code", "investigation", "manual"):
+            self.assertIn(classification, contract)
+        self.assertRegex(contract, r"code classification.{0,240}build")
+        self.assertRegex(contract, r"investigation.{0,240}(does not|do not|without).{0,120}build")
+        self.assertRegex(contract, r"manual.{0,240}(does not|do not|without).{0,120}build")
+        self.assertIn("ticket:triaged", contract)
+
+    def test_ticket_read_supplies_parent_and_labels_for_epic_child_detection(self):
+        binding = (
+            TICKET_DIRECTORY / "bindings" / "github-issues.md"
+        ).read_text(encoding="utf-8")
+        triage = " ".join(
+            (TICKET_DIRECTORY / "verbs" / "triage.md")
+            .read_text(encoding="utf-8")
+            .lower()
+            .split()
+        )
+
+        self.assertIn(
+            "--json number,title,body,state,labels,parent,comments",
+            binding,
+        )
+        self.assertIn("parent is only an epic-child candidate", triage)
+        self.assertIn("read that parent through the tracker contract", triage)
+        self.assertIn("`epic` label", triage)
+        self.assertIn("ordinary ticket", triage)
+
+    def test_code_triage_stops_before_status_when_build_creation_or_attachment_fails(self):
+        binding = (TICKET_DIRECTORY / "bindings" / "github-issues.md").read_text(
+            encoding="utf-8"
+        ).lower()
+
+        self.assertIn("creation failure or attachment failure", binding)
+        self.assertIn("do not run the later", binding)
+        self.assertIn("retain the posted work order", binding)
+
+    def test_promotion_requires_both_oversize_and_an_unsettled_decision(self):
+        slicing = (TICKET_DIRECTORY / "references" / "slicing.md").read_text(
+            encoding="utf-8"
+        ).lower()
+
+        contract = " ".join(slicing.split())
+        self.assertRegex(contract, r"more than four.*decision unsettled")
+        self.assertIn("mechanical oversize", contract)
+        self.assertIn("serial `build` tickets", contract)
+
+    def test_epic_child_change_record_consumers_state_their_phase_boundary(self):
+        expected = {
+            "start.md": "creates no change record",
+            "revise.md": "revises neither a per-child change record",
+            "finalize.md": "nor incurs sweep debt",
+            "coordinator-mode.md": "creates, folds, revises, and records no per-child",
+        }
+
+        for filename, boundary in expected.items():
+            path = (
+                TICKET_DIRECTORY / "references" / filename
+                if filename == "coordinator-mode.md"
+                else TICKET_DIRECTORY / "verbs" / filename
+            )
+            with self.subTest(consumer=filename):
+                self.assertIn(boundary, path.read_text(encoding="utf-8").lower())
+
+    def test_status_binding_orders_code_prerequisites_before_triaged_and_excludes_them_otherwise(self):
+        binding = " ".join(
+            (TICKET_DIRECTORY / "bindings" / "github-issues.md")
+            .read_text(encoding="utf-8")
+            .lower()
+            .split()
+        )
+
+        triaged_command = "gh issue edit <id> --repo <org/repo> --add-label ticket:triaged"
+        self.assertLess(binding.index("gh label create build"), binding.index(triaged_command))
+        self.assertLess(binding.index("--add-label build"), binding.index(triaged_command))
+        for classification in ("investigation", "manual"):
+            self.assertIn(f"`{classification}` does not create or attach `build`", binding)
+
+    def test_epic_child_triage_keeps_spec_and_review_state_off_the_child_branch(self):
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
+        contract = " ".join(triage.lower().split())
+
+        self.assertIn("writes only its work order", contract)
+        self.assertIn("separate docs-only pull request to main", contract)
+        self.assertIn("untracked session scratch", contract)
+        self.assertIn("outside the branch", contract)
+        self.assertIn("discard it after the final order", contract)
+        self.assertIn("do not write the epic ledger", contract)
+
     def test_revise_requires_a_base_currency_and_mergeability_refresh(self):
         revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")
 

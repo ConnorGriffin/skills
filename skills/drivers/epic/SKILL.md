@@ -9,7 +9,7 @@ description: "Maintain an epic ledger and work clear child tickets through a Git
 
 ## Authority and boundaries
 
-An epic lives at `openspec/changes/<epic-slug>/`. Its `proposal.md` and `design.md` are authoritative for destination, scope, risk, and durable decisions. The epic ledger is a derived index, not another source of truth. Live GitHub is truth whenever it disagrees with the ledger.
+An epic lives at `openspec/changes/<epic-slug>/`. Its `proposal.md` and `design.md` are authoritative for destination, scope, risk, and durable decisions. Tracker children substitute for `tasks.md`; `ledger.md` rides the standing planning pull request. The epic ledger is a derived index, not another source of truth. Live GitHub is truth whenever it disagrees with the ledger.
 
 Use GitHub Issues only. Read [the tracker reference](references/github-tracker.md) before the first tracker action. A tracker, authentication, or Git failure stops the current operation visibly; do not guess or repair authoritative state from the ledger.
 
