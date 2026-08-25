@@ -46,6 +46,39 @@ MANDATORY_DELEGATION_AUTHORIZATION = (
     "independent review."
 )
 
+# The single canonical representation of the plan-review cold-reader dispatch
+# contract: adapter exclusivity, read-only surface, mechanics-only inputs, the
+# closed prompt allowlist, and worker-isolation. The skill's section is pinned
+# byte-for-byte against this constant, so any prose edit inside it — of any
+# phrasing — fails by construction rather than by pattern matching.
+PLAN_REVIEW_COLD_READER_DISPATCH = """\
+The coordinator supplies the mechanics-only interface inputs: adapter selection,
+explicit reviewer model, explicit reviewer effort, and the cold-reader prompt's
+four allowed inputs. Dispatch only through
+`skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
+adapter's read-only review surface. Never use the built-in Agent tool, Workflow
+tool, or background-agent machinery.
+
+The coordinator applies the existing parent and Codex-headroom policy when
+selecting an adapter. This interface does not classify review work. It does not
+read or consume a routing table. It does not select a model or effort. Preserve
+adapter-owned state, same-worker resume, and coordinator-owned recovery through the
+orchestrate adapter contract; do not restate its command or lifecycle mechanics
+here.
+
+The cold-reader prompt contains exactly:
+1. plan location;
+2. the five-axis rubric;
+3. stakes tier; and
+4. a context-free fresh-reviewer phase instruction.
+
+The prompt excludes earlier findings, author rationale, chat history, and all
+other author/coordinator-session material. For a chat-delivered plan, before
+dispatch the coordinator writes the exact chat-delivered plan bytes to an
+immutable session-scratch file and supplies only that file's path as the plan
+location. The worker receives no chat transcript or author-session context."""
+
 LIFECYCLE_SPEC = importlib.util.spec_from_file_location("worker_lifecycle", WORKER_LIFECYCLE)
 assert LIFECYCLE_SPEC and LIFECYCLE_SPEC.loader
 LIFECYCLE_MODULE = importlib.util.module_from_spec(LIFECYCLE_SPEC)
@@ -2865,105 +2898,12 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
 
     def setUp(self):
         self.text = self.SKILL.read_text(encoding="utf-8")
-        self.dispatch = self.text.split("## Cold-reader dispatch\n\n", 1)[1].split(
+
+    def test_cold_reader_dispatch_section_is_byte_identical(self):
+        dispatch = self.text.split("## Cold-reader dispatch\n\n", 1)[1].split(
             "\n\n## The rubric", 1
         )[0]
-        self.compact_dispatch = " ".join(self.dispatch.split())
-        self.worker_inputs = self.dispatch.split(
-            "The prompt excludes earlier findings", 1
-        )[1]
-
-    def test_dispatch_allows_only_pack_adapters(self):
-        exclusivity = (
-            "Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or "
-            "`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected "
-            "adapter's read-only review surface."
-        )
-        self.assertIn(exclusivity, self.compact_dispatch)
-        adapter_paths = re.findall(
-            r"(?<![\w.-])(/?(?:[\w.-]+/)+[\w.-]*worker\.py)",
-            self.dispatch,
-        )
-        self.assertEqual(
-            adapter_paths,
-            [
-                "skills/drivers/orchestrate/scripts/codex-worker.py",
-                "skills/drivers/orchestrate/scripts/claude-worker.py",
-            ],
-        )
-        self.assertIn("Never use the built-in Agent tool, Workflow tool, or background-agent machinery", self.compact_dispatch)
-        self.assertNotIn("built-in Agent tool, Workflow tool, or background-agent machinery may be used", self.compact_dispatch)
-
-    def test_dispatch_is_readonly(self):
-        self.assertIn("using the selected adapter's read-only review surface", self.compact_dispatch)
-        self.assertNotIn("workspace-write", self.compact_dispatch)
-
-    def test_coordinator_supplies_explicit_adapter_model_and_effort(self):
-        self.assertIn(
-            "mechanics-only interface inputs: adapter selection, explicit reviewer model, explicit reviewer effort",
-            self.compact_dispatch,
-        )
-        self.assertNotIn("adapter selection, reviewer model, reviewer effort", self.compact_dispatch)
-
-    def test_adapter_selection_applies_existing_policy_without_classifying_review_work(self):
-        self.assertIn("parent and Codex-headroom policy", self.compact_dispatch)
-        self.assertIn("does not classify review work", self.compact_dispatch)
-        self.assertNotIn("does classify review work", self.compact_dispatch)
-
-    def test_dispatch_does_not_consume_a_routing_table(self):
-        self.assertIn("does not read or consume a routing table", self.compact_dispatch)
-        self.assertNotIn("does read or consume a routing table", self.compact_dispatch)
-        self.assertNotIn("routing-table.md", self.dispatch)
-
-    def test_dispatch_does_not_select_model_or_effort(self):
-        self.assertIn("does not select a model or effort", self.compact_dispatch)
-        self.assertNotIn("does select a model or effort", self.compact_dispatch)
-
-    def test_prompt_allowlist_is_exact(self):
-        allowed = self.dispatch.split("The cold-reader prompt contains exactly:\n", 1)[1].split(
-            "\n\n", 1
-        )[0]
-        self.assertEqual(
-            allowed.splitlines(),
-            [
-                "1. plan location;",
-                "2. the five-axis rubric;",
-                "3. stakes tier; and",
-                "4. a context-free fresh-reviewer phase instruction.",
-            ],
-        )
-
-    def test_prompt_excludes_author_and_coordinator_context(self):
-        self.assertIn(
-            "The prompt excludes earlier findings, author rationale, chat history, and all other author/coordinator-session material.",
-            self.compact_dispatch,
-        )
-        self.assertNotIn("The prompt includes earlier findings", self.compact_dispatch)
-        for forbidden in (
-            "earlier findings", "author rationale", "chat history",
-            "author/coordinator-session material", "chat transcript",
-        ):
-            self.assertIn(forbidden, self.dispatch)
-        guarantee = "The worker receives no chat transcript or author-session context."
-        self.assertIn(guarantee, self.compact_dispatch)
-        worker_inputs = " ".join(self.worker_inputs.split()).lower()
-        other_worker_inputs = worker_inputs.replace(guarantee.lower(), "")
-        for forbidden_input in ("chat transcript", "author-session context"):
-            self.assertNotIn(forbidden_input, other_worker_inputs)
-
-    def test_chat_plan_materialization_is_verbatim_immutable_and_path_only(self):
-        self.assertIn(
-            "before dispatch the coordinator writes the exact chat-delivered plan bytes to an immutable session-scratch file and supplies only that file's path as the plan location.",
-            self.compact_dispatch,
-        )
-        self.assertNotIn("writes a summarized chat-delivered plan", self.compact_dispatch)
-
-    def test_adapter_contract_preserves_lifecycle_ownership(self):
-        self.assertIn(
-            "Preserve adapter-owned state, same-worker resume, and coordinator-owned recovery through the orchestrate adapter contract",
-            self.compact_dispatch,
-        )
-        self.assertNotIn("Discard adapter-owned state, same-worker resume, and coordinator-owned recovery", self.compact_dispatch)
+        self.assertEqual(dispatch, PLAN_REVIEW_COLD_READER_DISPATCH)
 
     def test_mandatory_independent_review_authority_is_preserved(self):
         authority = self.text.split("## Delegation authority\n\n", 1)[1].split(
