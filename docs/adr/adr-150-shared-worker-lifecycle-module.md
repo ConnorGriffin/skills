@@ -48,6 +48,11 @@ the [Codex stdin liveness ledger](../scope/orchestrate-codex-stdin-liveness.md) 
 shared module: Claude requires prompt-over-stdin. The Codex adapter still passes `None`,
 retains `DEVNULL`, and remains covered by the open-stdin regression guard from #62.
 
+**Correction (2026-08-25).** The initial extraction also moved a `gate_wait` helper,
+but no launch path called it: the subprocess wrapper below `gated_process` implements the
+gate directly so it can run after `setsid()` and before `exec`. The unused helper and its
+ownership-test pin were removed; the wrapper remains the single gate implementation.
+
 ## Consequences
 
 * State durability, schema validation, family ownership, liveness, cleanup, and the

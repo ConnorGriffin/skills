@@ -2420,6 +2420,46 @@ class WorkerEffortDialTests(unittest.TestCase):
         )
         self.assertEqual(CLAUDE_WORKER_MODULE.effort_of(state), "medium")
 
+    def test_claude_max_effort_runs_start_resume_stop_and_verify_through_shared_lifecycle(self):
+        self.environment["FAKE_OUTPUT"] = json.dumps(
+            {"session_id": "worker-1", "result": "started", "is_error": False}
+        )
+        started = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--effort", "max",
+            "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(started.returncode, 0, started.stderr)
+        self.assertEqual(json.loads(started.stdout)["final_message"], "started")
+
+        self.environment["FAKE_OUTPUT"] = json.dumps(
+            {"session_id": "worker-1", "result": "resumed", "is_error": False}
+        )
+        resumed = self.run_claude(
+            "resume", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "continue",
+        )
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        self.assertEqual(json.loads(resumed.stdout)["final_message"], "resumed")
+        self.assertEqual(
+            json.loads(self.state.read_text(encoding="utf-8"))["effort"], "max"
+        )
+
+        for command in ("stop", "verify"):
+            with self.subTest(command=command):
+                result = self.run_claude(
+                    command, "--state", str(self.state), "--cwd", str(self.worktree)
+                )
+                if sys.platform == "darwin":
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(
+                        result.stderr,
+                        f"claude-worker: {LIFECYCLE_MODULE.UNSUPPORTED}\n",
+                    )
+                self.assertNotIn("malformed", result.stderr)
+
 
 class OrchestrateAdapterDispatchTests(unittest.TestCase):
     def test_skill_bans_agent_tool_workflow_tool_and_background_agents_for_dispatch(self):
@@ -2514,8 +2554,8 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             "is_within", "state_lock", "atomic_write", "read_state", "transition",
             "_bounded_integer", "_canonical_path", "BASE_STATE_FIELDS",
             "_valid_common_schema", "valid_family_schema", "valid_portable_schema",
-            "_libproc", "live_identity", "group_members", "gate_wait",
-            "gated_process", "establish_family", "finish_lifecycle", "run_portable",
+            "_libproc", "live_identity", "group_members", "gated_process",
+            "establish_family", "finish_lifecycle", "run_portable",
             "run_lifecycle", "family_state", "matching_leader",
         )
         self.assertTrue(WORKER_LIFECYCLE.exists())

@@ -250,11 +250,6 @@ def group_members(pgid: int) -> list[int] | None:
     return None
 
 
-def gate_wait(fd: int) -> None:
-    if os.read(fd, 1) != b"R":
-        os._exit(125)
-
-
 def gated_process(
     command: list[str], cwd: Path, *, stdin_text: str | None
 ) -> tuple[subprocess.Popen[str], int]:
