@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "ci_changed_paths.py"
+WORKFLOW = ROOT / ".github" / "workflows" / "validate.yml"
 
 
 def run(command, *, cwd=None, check=True):
@@ -22,7 +23,7 @@ def run(command, *, cwd=None, check=True):
 
 class ChangedPathsCliTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.temporary = tempfile.TemporaryDirectory()
         self.repo = Path(self.temporary.name) / "repo"
         self.repo.mkdir()
         run(["git", "init", "-q"], cwd=self.repo)
@@ -162,6 +163,27 @@ class ChangedPathsCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output, "run_expensive=true")
 
+    def test_missing_classifier_input_fails_closed_when_output_is_writable(self):
+        output = Path(self.temporary.name) / "github-output"
+        result = run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "--repo",
+                str(self.repo),
+                "--event",
+                "pull_request",
+                "--head",
+                "HEAD",
+                "--github-output",
+                str(output),
+            ],
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output.read_text(encoding="utf-8").strip(), "run_expensive=true")
+
     def test_output_transport_failure_is_visible(self):
         output = Path(self.temporary.name) / "missing" / "github-output"
 
@@ -171,6 +193,55 @@ class ChangedPathsCliTests(unittest.TestCase):
         self.assertIsNone(written)
         self.assertIn("ci-changed-paths: cannot write GitHub output", result.stderr)
         self.assertNotIn("can't open file", result.stderr)
+
+
+class ValidateWorkflowContractTests(unittest.TestCase):
+    EXPENSIVE_STEPS = (
+        "Fresh-install through the standard skills CLI",
+        "Verify installed skills",
+        "Install pinned browser driver dependencies",
+        "Run browser driver self-check",
+    )
+    CLASSIFIER_CONDITION = "steps.changed-paths.outputs.run_expensive != 'false'"
+
+    def setUp(self):
+        self.workflow = WORKFLOW.read_text(encoding="utf-8")
+
+    def step(self, name):
+        marker = f"      - name: {name}\n"
+        start = self.workflow.index(marker)
+        end = self.workflow.find("      - name:", start + len(marker))
+        return self.workflow[start : None if end == -1 else end]
+
+    def test_required_skills_job_and_classifier_are_unconditional(self):
+        self.assertIn("  pull_request:\n", self.workflow)
+        self.assertNotIn("paths:", self.workflow)
+        self.assertNotIn("paths-ignore:", self.workflow)
+        self.assertIn("  skills:\n    runs-on:", self.workflow)
+        self.assertNotIn("\n        if:", self.step("Classify changed paths"))
+
+    def test_classifier_is_the_single_output_producer_after_unconditional_checks(self):
+        classifier = self.step("Classify changed paths")
+        self.assertEqual(self.workflow.count("id: changed-paths"), 1)
+        self.assertIn('python3 scripts/ci_changed_paths.py', classifier)
+        self.assertIn('--event "${{ github.event_name }}"', classifier)
+        self.assertIn('--base "${{ github.event.pull_request.base.sha }}"', classifier)
+        self.assertIn('--head "${{ github.event.pull_request.head.sha }}"', classifier)
+        self.assertIn('--github-output "$GITHUB_OUTPUT"', classifier)
+        self.assertLess(
+            self.workflow.index("Check Python, JavaScript, and shell syntax"),
+            self.workflow.index("Classify changed paths"),
+        )
+
+    def test_every_expensive_step_uses_the_same_classifier_condition(self):
+        conditions = []
+        for name in self.EXPENSIVE_STEPS:
+            step = self.step(name)
+            self.assertIn(f"if: {self.CLASSIFIER_CONDITION}", step)
+            conditions.append(
+                next(line.strip() for line in step.splitlines() if line.strip().startswith("if:"))
+            )
+        self.assertEqual(conditions, [f"if: {self.CLASSIFIER_CONDITION}"] * 4)
 
 
 if __name__ == "__main__":
