@@ -322,6 +322,27 @@ converted: `code-review` (issue #151), `plan-review` (issue #152),
 use the adapters. A future skill that dispatches a model converts behind its
 own issue before the ban binds it."""
 
+ORCHESTRATE_COLLECT_CHILD_RESULTS = """\
+This contract binds every model dispatch owned by this pack.
+
+Before each dispatch, the coordinator records the child's prompt file, its
+coordinator-owned state file, and its durable result locator. Write the complete
+prompt bytes to session scratch and pass that file's contents as the selected
+adapter's positional prompt. Use one state file per dispatch; state is lifecycle
+metadata only, never the child result.
+
+The result locator is the artifact that carries the child's answer: captured
+launcher stdout, a named worktree or branch for implementation changes, or a
+posted comment when the child declares that handoff. Use the adapter's start,
+resume, stop, and verify surface without restating its command mechanics.
+
+A coordinator never ends a turn solely because a child is unfinished, and it
+does not treat a completion notification as the result. After dispatching every
+child that is ready to run, if it must pause, it monitors one named launcher,
+state, stdout, worktree or branch, or posted-comment artifact. It then collects
+the result from the recorded result locator and verifies it under this skill's
+existing rules."""
+
 DISPATCH_CODEX_ADMISSION = """\
 These are the only validated initial routes in Codex-only mode:
 
@@ -2539,10 +2560,30 @@ class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
         )
 
     def test_orchestrate_pack_wide_reach_is_byte_identical(self):
-        text = self.text("skills/drivers/orchestrate/SKILL.md")
-        self.assertEqual(
-            self.block(text, "## Pack-wide reach", "## Maintenance"),
-            ORCHESTRATE_PACK_WIDE_REACH,
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
+        body = skill.split(b"## Pack-wide reach\n\n", 1)[1].split(
+            b"\n\n## Collect child results\n", 1
+        )[0]
+
+        self.assertEqual(body, ORCHESTRATE_PACK_WIDE_REACH.encode("utf-8"))
+
+    def test_orchestrate_collect_child_results_is_byte_identical(self):
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
+        body = skill.split(b"## Collect child results\n\n", 1)[1].split(
+            b"\n\n## Maintenance\n", 1
+        )[0]
+
+        self.assertEqual(body, ORCHESTRATE_COLLECT_CHILD_RESULTS.encode("utf-8"))
+
+    def test_orchestrate_pack_wide_reach_boundaries_are_preserved(self):
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
+
+        self.assertIn(b"## Pack-wide reach", skill)
+        self.assertEqual(skill.count(b"\n## Maintenance\n"), 1)
+        self.assertIn(
+            b"A future skill that dispatches a model converts behind its\n"
+            b"own issue before the ban binds it.",
+            skill,
         )
 
     def test_codex_ui_admission_block_is_byte_identical(self):
