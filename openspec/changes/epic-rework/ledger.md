@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: #159 (delegated-execution mode + wave rule; add build-dispatch freshness check to its scope at triage). #171 fully buildable (item-3 ruling adopted; extend the in-flight draft before review). #147 deferred. Every other build in the epic is merged
+next: #183 (routing-table field-derived provenance notes) — triage under the new conventions reference, build, merge; it is the epic's last open child. Then epic close-out: proposal archive decision to operator
 updated: 2026-08-25
 
 ## Notes
@@ -44,8 +44,8 @@ updated: 2026-08-25
 - #157 Dispatch codebase-design's parallel design agents through pack adapters — merged (PR #177)
 - #159 Delegated-execution mode for the epic home session — filed; unblocked (#155 merged), scope amended with wave rule
 - #163 Coordinator wait protocol: collect child results, never idle-wait — merged (PR #182)
-- #171 Review-process tuning (conventions preamble, fix-in-place rule, depth-floor qualifier) — triaged (2 rounds + 1 coordinator link fix), stamped (Opus->Sol/medium, Full); building
-- #159 Delegated-execution mode + wave rule — triaged (2 rounds; coordinator overruled the two-order split residual), stamped (Terra/medium); building (two-PR phase sequence, coordinator runs Phase A merge)
+- #171 Review-process tuning (drafting conventions, fix-in-place rule, depth-floor qualifier) — merged (PR #186)
+- #159 Delegated-execution mode + wave rule — merged (PRs #184 Phase A proposal, #185 Phase B skill)
 - #183 Routing-table field-derived provenance notes — filed
 - #145 Claude-parent Codex reviewer dispatch reference — merged
 - #146 Pre-authorize required review delegation — merged
@@ -57,6 +57,7 @@ updated: 2026-08-25
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 #159 #171 merged — #159 landed in its two-PR sequence (PR #184 proposal amendment, PR #185 skill mode; Full review's anchor-uniqueness finding fixed in place and proven red under duplicate-heading injection). #171 landed as PR #186 (drafting-conventions reference reaching fences/workers, fix-in-place rule with audit ledger, depth-floor qualifier; the order's Markdown-link literal amended to a backticked path because the validator resolves links file-relative — amendment on the issue; reviewer's stale-premise finding dispositioned, pins re-proven by coordinator in-body mutations after a first mutation landed outside the pinned region). Both issues closed, worktrees removed. Label cleanup executed across all 7 repos same day (Fog resolved). Queue: #183 only
 - 2026-08-25 #163 merged — Full review returned one real finding (closing anchors matched heading prefixes, so renaming `## Maintenance` passed the pins), fixed in place by the coordinator and proven red under the rename mutation; PR #182 merged on green CI, issue closed, worktree removed. The build queue is empty except #159 and #171
 - 2026-08-25 wave-2 merged — #164 merged (PR #179) and #165 merged (PR #180) after one fix round each: the recurring defect was read_text() newline normalization defeating raw-byte pins (third occurrence this epic — the conventions preamble must reach build prompts, folded into #171 item 1); #165 also gained a scoped closing-fence assertion and whole-file UTF-8 decodes after its convergence check found two regressions, fixed in place by the coordinator and mutation-proven. #163 went stale against #154/#178 (builder refused correctly), was regrounded by a fresh Sol drafter (old sessions died when the shared scout worktree was removed — keep scout checkouts alive until dependent sessions finish), cold-reviewed (one raw-bytes spec fix in place), restamped, rebuilt (523e3ff, chain green); Full review running
 - 2026-08-25 subtree merged — the adapter-conversion subtree is fully on main: PRs #173 (#154), #174 (#153), #175 (#155), #176 (#156), #177 (#157) merged serially on green CI with per-merge rebases (interleaved-test-class conflicts on #156/#157 resolved by the coordinator keeping both complete classes; #157 re-assembled deterministically from its original patch after a bad composition, all pins mutation-checked). Integration PR #178 merged: orchestrate's Pack-wide reach and its pinned constant now state all dispatching skills converted. All five issues closed; worktrees removed. #163 build dispatched (Sol); #164 #165 built (Terra, one triage round each under the conventions preamble — #164 SHIP round 1), Full reviews in flight
