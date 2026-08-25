@@ -95,6 +95,17 @@ directory containing several repositories.
    exits 2, which is a visible degraded mode rather than permission to use some
    other project. Every other failure exits 1 with nothing on stdout.
 
+   In a workspace-write sandbox, try `ensure` normally first. If it exits 2 with
+   `{"status": "unavailable"}`, confirm that `codebase-memory-mcp` is present and
+   reports a supported version. A usable binary can still be unavailable only
+   inside the sandbox because its local CLI must secure and write
+   `~/.cache/codebase-memory-mcp` and coordinate through a Unix socket under
+   `/private/tmp`. Retry the same `ensure` command with escalated permissions and
+   make those local-only destinations explicit in the approval rationale; state
+   that no repository data is sent to a network destination. Do not request a
+   generic permission to “index a private repository,” which hides the actual
+   boundary and can be correctly rejected when the destination is unspecified.
+
 5. Verify the project through the available Codebase Memory MCP interface with
    `index_status` or `list_projects`.
 6. Report node and edge counts when available.
