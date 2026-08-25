@@ -3299,9 +3299,18 @@ class PersonaReviewAdapterDispatchTests(unittest.TestCase):
 
 class ResearchAdapterDispatchTests(unittest.TestCase):
     SKILL = ROOT / "skills" / "tools" / "research" / "SKILL.md"
+    AGENT_METADATA = ROOT / "skills" / "tools" / "research" / "agents" / "openai.yaml"
 
     def setUp(self):
         self.text = self.SKILL.read_text(encoding="utf-8")
+        self.agent_metadata = self.AGENT_METADATA.read_text(encoding="utf-8")
+
+    def test_agent_metadata_describes_pack_adapter_dispatch(self):
+        self.assertIn(
+            'short_description: "Research primary sources through a selected pack adapter"',
+            self.agent_metadata,
+        )
+        self.assertNotIn("background agent", self.agent_metadata)
 
     def test_research_worker_dispatch_section_is_byte_identical(self):
         opening_anchor = "## Research-worker dispatch\n\n"
