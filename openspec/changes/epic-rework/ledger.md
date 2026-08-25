@@ -36,13 +36,14 @@ updated: 2026-08-24
 - #157 Dispatch codebase-design's parallel design agents through pack adapters — filed
 - #159 Delegated-execution mode for the epic home session — filed (behind #155)
 - #145 Claude-parent Codex reviewer dispatch reference — pr:#161
-- #146 Pre-authorize required review delegation — pr:#160
+- #146 Pre-authorize required review delegation — merged
 - #139 Triage stamps session-fit preamble into work orders — in-progress
 
 ## Deferred
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-24 #146 — PR #160 merged on green CI; #161 awaiting re-run after base update; #149 chunk 2 rerunning Claude-side live cases post-auth-fix
 - 2026-08-24 routing — operator directive: Codex-only for new dispatches (opus rung → Sol, sonnet rung → Terra, escalate Terra → Sol; Claude only if Sol fails); in-flight work untouched
 - 2026-08-24 #145 #146 — both built (Sonnet, Terra), Full-depth reviews converged SHIP with zero blocking findings; PRs #161 #160 opened, merge on green CI
 - 2026-08-24 #150 — triaged (opus / high, Full depth, blocked on #149); order pins base commit and mandates post-rebase re-derivation; triage caught a would-be reversal of the #62 stdin risk contract and corrected the issue body's line census (9, not 5)
