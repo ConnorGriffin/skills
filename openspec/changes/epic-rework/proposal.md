@@ -219,24 +219,30 @@ updated: <YYYY-MM-DD>
 
 * The epic session is the operator's home session. It stays at ledger
   altitude: it files issues, updates the epic ledger, and dispatches work. It
-  never reads the repo deeply and never coordinates chunks — context stays
-  light by design, not by compaction.
-* Each build runs as a fresh attended session (`/ticket start`), rehydrating
-  from the work-order comment. On a chunked order that session coordinates per
-  the existing coordinator-mode reference, with the operator sitting with it.
-* Triage runs as a fresh session per ticket. For an epic child it writes no
-  spec documents to any branch — the work order is its artifact, and a needed
-  spec amendment ships as a docs-only PR to main before the order is stamped
-  (`skills/drivers/ticket/SKILL.md`'s triage line is amended to say so).
-* Research-only spikes dispatch as background sub-agents from the home
-  session. The home session verifies the findings comment exists before
-  marking the spike resolved; a spike whose worker died stays `dispatched`.
-  This replaces wayfinder's worker-supervision rule — with claim labels gone,
-  verifying the findings comment is the whole obligation. Interview and
-  mockup spikes run as fresh attended sessions.
-* Coordinators never nest. Independent builds run in parallel, each in its own
-  session and worktree; the epic ledger tracks them all, and the only
-  serialization is the operator's attention.
+  never reads the repo deeply; the home session is the epic ledger's sole
+  writer.
+* Attended sessions are the default whenever a subtree has an open decision.
+  The operator may explicitly and revocably delegate one locked subtree to the
+  home session when its work orders are stamped or its needed rulings are
+  settled. A newly opened decision returns that subtree to attended mode.
+* Delegated triage runs through the existing `$ticket triage` interface, and
+  delegated builds run through the existing `$ticket start` interface. The home
+  session dispatches their workers through the pack adapters; ticket comments
+  carry stamped work orders, session-fit, and completed work products.
+* Before a delegated wave, the home session draws a conflict map from every
+  queued expected diff and verifies that its shared checkout equals the current
+  origin default-branch tip. A stale shared checkout refuses the wave.
+* Every read-only draft and review in a wave fans out in parallel. Only
+  write-bearing triage and build steps serialize when their expected diffs
+  overlap; builds use per-issue worktrees, tickets editing the same files run
+  in order, and pull requests merge one at a time with a rebase when a shared
+  surface is touched. Before dispatching a build or review worker, verify that
+  its target worktree is at, or descends from, the current origin default-branch
+  tip; otherwise refuse that dispatch.
+* Delegated work uses the pack dispatch adapters. The home session collects
+  children under `orchestrate`'s `## Collect child results` contract, permits a
+  human merge only after green CI and passed review, and surfaces a failure when
+  its routing ladder is exhausted. Coordinators never nest.
 
 ### Follow-ups and orphan control
 
