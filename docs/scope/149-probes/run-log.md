@@ -4,8 +4,10 @@ Executed evidence for the adapters in `skills/drivers/orchestrate/scripts/`, run
 from `<worktree>` (the ticket worktree, `codex/149-universal-effort-dial-c2`) with
 `/opt/homebrew/bin/python3.14`. A throwaway scratch worktree was created at
 `<worktree>-probe-write` (branch `scratch/149-probe-write`) for the write-mode
-runs planned in Do item 3; it went unused because those runs are blocked (see
-below) — nothing was written into it.
+runs planned in Do item 3.
+
+A bare `python3` in the command blocks below means `/opt/homebrew/bin/python3.14`.
+The machine's default `python3` is 3.9.6, which this suite does not support.
 
 ## Claude-side runs: BLOCKED
 
@@ -135,9 +137,11 @@ Output:
 ```
 
 The `--effort high` flag reached the session, the run completed, and the
-emitted `effort` field (`"high"`) matches what was passed to `start` — the
-same claim Do item 3 requires proving for the resumed Claude worker's emitted
-effort, proven here on the Codex side, which was not blocked.
+emitted `effort` field (`"high"`) matches what was passed to `start`. This
+proves the passthrough half of the effort claim — a caller-supplied effort
+reaches the session and is observable in the emitted object — on `start`
+only. It does not prove effort survives a resume: no resume was run on either
+adapter, so the resume-replay half of Do item 3 remains unverified here.
 
 ## Rejections (Do item 5) — ran, no auth required
 
