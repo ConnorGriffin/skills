@@ -32,12 +32,19 @@ binding and ships with the skill.
 ## 3. Move a ticket's status
 
 * **Input:** a ticket id and one target state from this skill's vocabulary:
-  triaged, in progress, pending review, or done.
+  triaged, in progress, pending review, or done. A move to `triaged` also receives
+  triage's classification: `code`, `investigation`, or `manual`.
 * **Output:** the ticket's state after the move.
+* **Classification rule:** for a code classification, the binding first ensures
+  the `build` label exists and is attached, then applies `ticket:triaged`. For
+  `investigation` and `manual`, it neither creates nor attaches `build`, and applies
+  only the status transition. Type labels and `ticket:*` status remain independent.
 * **Failure:** the state does not exist in the tracker's workflow, the move is not
-  permitted, or the transport fails. This is the one non-fatal operation: say so
-  in one line and continue the verb. Never retry a failed move, and never
-  substitute a different state to make the move succeed.
+  permitted, or the transport fails. A `code` path that cannot create or attach
+  `build` is this operation's one non-fatal status failure: report it in one line,
+  retain any posted work order, and do not apply the later `ticket:triaged` label.
+  Never retry a failed move, and never substitute a different state to make the move
+  succeed.
 
 ## 4. Locate the newest work order
 

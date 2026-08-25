@@ -7,7 +7,10 @@ description: Triage front door for work that isn't ready to build. Classifies th
 
 Diagnose why work isn't buildable yet, route to exactly one specialist skill, and open
 a ledger the moment routing happens. Never do the specialist's work yourself — a
-correct route with no other output is a complete session.
+correct route with no other output is a complete session. For an epic child, every
+specialist instead uses untracked session scratch outside the child branch, discarded after the final order;
+it creates no scope ledger or docs/scope ledger. `/epic` alone owns proposal/design
+and its ledger.
 
 ## Routing table
 
@@ -15,6 +18,8 @@ Classify the **dominant** uncertainty — the one that, if resolved, makes the o
 tractable — and route to exactly one of:
 
 - **Big and foggy, many interlocking decisions that block each other** → `epic`.
+  Mechanical bulk without an unsettled decision is not an epic route; hand-split it
+  into serial build tickets.
 - **A concrete plan or design exists in someone's head, untested** → interview mode
   ([references/interview.md](references/interview.md), in this skill).
 - **A written plan, work order, spec, or brief exists and needs stress-testing
@@ -37,7 +42,8 @@ names `epic`), route there directly without re-diagnosing.
 
 ## Ledger — required
 
-At the moment routing happens, open a ledger before invoking the specialist:
+Outside an epic child, at the moment routing happens, open a ledger before invoking
+the specialist:
 
 - **Path:** `docs/scope/<slug>.md` in the target project's repo when that path is
   writable; otherwise the session scratchpad. `<slug>` is a short kebab-case name for
@@ -48,6 +54,10 @@ At the moment routing happens, open a ledger before invoking the specialist:
   `→ ADR`, `→ issue`, or `inline`.
 - The ledger is the durable session state. A fresh agent resumes by reading it, not by
   re-deriving context from chat history.
+
+For an epic child, the remaining ledger, risk-contract, evidence, and exit rules are
+applied only through the stamped work order and parent epic authority; session scratch
+is never made durable.
 
 ## Risk contract
 

@@ -17,7 +17,21 @@ An epic has `epic`; each child has one of `spike` or `build`; a deferred child a
 
 ## Native structure
 
-Create issue bodies in temporary files and use `--body-file`. Capture returned URLs rather than guessing numbers. Attach every spike, build, and deferred follow-up to the epic through native child issues:
+Create issue bodies in temporary files and use `--body-file`. Capture returned URLs rather than guessing numbers. Attach every spike, build, and deferred follow-up to the epic through native child issues. For the ticket workflow's already-qualified necessary follow-up, create the native child in one command from its temporary body file, capture its returned URL, and report it on the originating ticket. Use `spike` or `build`; add `deferred` only when the epic destination does not require it:
+
+The installed CLI's `gh issue create --help` verifies that `--repo`, `--title`, `--body-file`, repeatable `--label`, and `--parent` are available together.
+
+```sh
+gh issue create --repo OWNER/REPO --title "TITLE" --body-file BODY_FILE --label build --parent EPIC_NUMBER
+```
+
+```sh
+gh issue create --repo OWNER/REPO --title "TITLE" --body-file BODY_FILE --label spike --label deferred --parent EPIC_NUMBER
+```
+
+Do not use this path for preferences or unresolved choices: those retain the ticket workflow's existing dispositions. The ticket tracker's four-operation contract does not expand.
+
+Other native relationship repair may use:
 
 ```sh
 gh issue edit EPIC_NUMBER --repo OWNER/REPO --add-sub-issue CHILD_NUMBER
