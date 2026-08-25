@@ -137,6 +137,15 @@ is the reason the review is not optional); prototyping routes straight to
    modify, patch, or stash" line (a benchmark run was invalidated by an agent
    leaving a patch applied to a shared worktree — treat this as load-bearing).
 
+## Review precedence
+
+Review dispatch is classified before the generic area routing above. Read
+`references/review-routing.md` and apply its reviewer-selection contract: review
+depth or the sensitivity floor determines routing stakes, the selected review
+skill supplies its named routing-table area, and parent policy plus the Codex
+presence/headroom gate removes unavailable candidates. Do not infer a reviewer
+from builder tier or borrow a fallback from another routing-table row.
+
 ## Verification and escalation
 
 Every delegated result is verified by the coordinator before it ships: run the
@@ -209,12 +218,11 @@ Per ADR 149 (`docs/adr/adr-149-pack-owned-model-dispatch.md`): all model
 dispatch defined by this pack goes through this pack's own adapters
 (`claude-worker.py` / `codex-worker.py`), not the built-in Agent tool, the
 Workflow tool, or background agents. That ruling covers every skill that
-dispatches a model, not only `orchestrate`. The other skills convert one at a
-time behind their own issues and keep their current dispatch mechanism until
-converted:
+dispatches a model, not only `orchestrate`. `code-review` (issue #151) and
+`plan-review` (issue #152) now use the adapters. The remaining skills convert
+one at a time behind their own issues and keep their current dispatch mechanism
+until converted:
 
-- **code-review** (issue #151)
-- **plan-review** (issue #152)
 - **persona-review** (issue #153)
 - **ticket**'s chunk agents (issue #154)
 - **epic** (issue #155)
@@ -223,7 +231,7 @@ converted:
 - **codebase-design** (issue #157) — `references/DESIGN-IT-TWICE.md:37`
   spawns sub-agents via the Agent tool today
 
-Do not convert any of the above in this ticket; the ban binds each one only
+Do not convert any remaining skill above in this ticket; the ban binds each one only
 once its own issue lands.
 
 ## Maintenance

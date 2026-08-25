@@ -52,20 +52,30 @@ MANDATORY_DELEGATION_AUTHORIZATION = (
 # byte-for-byte against this constant, so any prose edit inside it — of any
 # phrasing — fails by construction rather than by pattern matching.
 PLAN_REVIEW_COLD_READER_DISPATCH = """\
-The coordinator supplies the mechanics-only interface inputs: adapter selection,
-explicit reviewer model, explicit reviewer effort, and the cold-reader prompt's
-four allowed inputs. Dispatch only through
+At the standard skill root, when `orchestrate` is installed, read its
+`references/review-routing.md` and `references/routing-table.md` directly before
+dispatch. Use the four-row reviewer matrix and apply its Claude-parent Codex
+presence/headroom gate. For this skill, use `Plan / spec writing` as the table's
+closest validated classification, not a benchmarked plan-review verdict.
+
+When `orchestrate` or its `review-routing.md` is not installed, say so in one
+line and continue Claude-only with Opus, with no Codex attempt.
+
+Reviewer-routing stakes and this skill's plan stakes tier are independent.
+Neither derives from, overrides, or rewrites the other.
+
+The coordinator supplies the selected adapter, explicit reviewer model,
+explicit reviewer effort, and the cold-reader prompt's four allowed inputs.
+Dispatch only through
 `skills/drivers/orchestrate/scripts/codex-worker.py` or
 `skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
 adapter's read-only review surface. Never use the built-in Agent tool, Workflow
 tool, or background-agent machinery.
 
-The coordinator applies the existing parent and Codex-headroom policy when
-selecting an adapter. This interface does not classify review work. It does not
-read or consume a routing table. It does not select a model or effort. Preserve
-adapter-owned state, same-worker resume, and coordinator-owned recovery through the
-orchestrate adapter contract; do not restate its command or lifecycle mechanics
-here.
+After selection, the cold-reader interface does not reclassify review work or
+choose a model or effort. Preserve adapter-owned state, same-worker resume, and
+coordinator-owned recovery through the orchestrate adapter contract; do not
+restate its command or lifecycle mechanics here.
 
 The cold-reader prompt contains exactly:
 1. plan location;
@@ -78,6 +88,175 @@ other author/coordinator-session material. For a chat-delivered plan, before
 dispatch the coordinator writes the exact chat-delivered plan bytes to an
 immutable session-scratch file and supplies only that file's path as the plan
 location. The worker receives no chat transcript or author-session context."""
+
+REVIEW_ROUTING_CONTRACT = """\
+For a review with a work order, effective review depth is the routing input:
+Focused and Targeted are routine; Full is load-bearing. An order with no stamped
+depth retains [review-depth.md](../../ticket/references/review-depth.md)'s Targeted
+default.
+
+For every review without a work order—a bare diff, chat plan, file-backed PRD, design document, or GitHub issue—the dispatcher judges the subject against [review-depth.md](../../ticket/references/review-depth.md)'s sensitivity floor: any of its four categories makes the subject load-bearing; otherwise it is routine.
+
+Precedence is fixed: effective depth, or the judged sensitivity floor when there
+is no order, produces routine/load-bearing routing stakes; the selected review
+skill supplies its routing-table area; `routing-table.md` supplies that row's
+candidate model or ladder; parent policy and the Codex presence/headroom gate
+remove unavailable candidates. Builder tier is never an input, and a fallback is
+never borrowed from another row.
+
+Haiku never reviews.
+
+Reviewer-routing stakes and plan-review's plan stakes tier are independent.
+Neither derives from, overrides, or rewrites the other.
+
+| Review skill | Routing stakes | Initial route |
+|---|---|---|
+| code-review | routine | Run the Codex presence/headroom gate first. With usable Codex, use Luna from the Code review row. On absent, unknown, ≤5%, or rate-limited Codex, enter Claude-only mode at Sonnet from the Code review row and make no second Codex attempt for the session. |
+| code-review | load-bearing | Use Opus directly from the Code review row; select no Codex rung. |
+| plan-review | routine | Run the Codex presence/headroom gate first. With usable Codex, use Terra from the Plan / spec writing row. On absent, unknown, ≤5%, or rate-limited Codex, enter Claude-only mode at Opus from the Plan / spec writing row, which has no Sonnet rung, and make no second Codex attempt for the session. |
+| plan-review | load-bearing | Use Opus directly from the Plan / spec writing row; select no Codex rung. |
+
+The matrix assumes a Claude parent, the pack's only dispatching parent. A Codex
+parent follows its own session policy and this matrix does not route for it.
+
+Opus in the Plan / spec writing ladder is an availability rung, not a benchmarked
+plan-writing win.
+
+The matrix chooses only the initial reviewer adapter/model. Existing read-only
+sandboxing, explicit effort, same-session retry, escalation, liveness, recovery,
+and worker-state mechanics remain owned by orchestrate and the merged #145, #149,
+#150, #151, and #152 work."""
+
+ROUTING_TABLE_REVIEW_CONSUMER = """\
+Before applying their own named area row, `code-review` and `plan-review` obtain
+routine/load-bearing routing stakes and their initial route directly from
+[`review-routing.md`](review-routing.md).
+
+Opus in the Plan / spec writing ladder is an availability rung, not a benchmarked
+plan-writing win."""
+
+PLAN_SPEC_WRITING_ROW = "| Plan / spec writing | **Terra** | Terra → Sol → Opus | The Codex family owns this area: Terra 5/5 (tightest, correct fail-closed), Sol/Luna/GPT-5.4 ≈4.8. Opus wrote the prettiest spec with a load-bearing polarity error — never route specs to Claude models without a fail-safe review. |"
+
+CODE_REVIEW_DEPENDENCY_SELECTION = """\
+At the standard skill root, when `orchestrate` is installed, read its
+`references/review-routing.md` and `references/routing-table.md` directly before
+dispatch. Use the four-row reviewer matrix, classify this skill's area as
+`Code review`, and apply the matrix's Claude-parent Codex presence/headroom gate
+to select the initial reviewer adapter and model.
+
+When `orchestrate` or its `review-routing.md` is not installed, say so in one
+line and continue Claude-only: use Sonnet for routine review or Opus for
+load-bearing review, with no Codex attempt."""
+
+ORCHESTRATE_REVIEW_PRECEDENCE = """\
+Review dispatch is classified before the generic area routing above. Read
+`references/review-routing.md` and apply its reviewer-selection contract: review
+depth or the sensitivity floor determines routing stakes, the selected review
+skill supplies its named routing-table area, and parent policy plus the Codex
+presence/headroom gate removes unavailable candidates. Do not infer a reviewer
+from builder tier or borrow a fallback from another routing-table row."""
+
+ORCHESTRATE_PACK_WIDE_REACH = """\
+Per ADR 149 (`docs/adr/adr-149-pack-owned-model-dispatch.md`): all model
+dispatch defined by this pack goes through this pack's own adapters
+(`claude-worker.py` / `codex-worker.py`), not the built-in Agent tool, the
+Workflow tool, or background agents. That ruling covers every skill that
+dispatches a model, not only `orchestrate`. `code-review` (issue #151) and
+`plan-review` (issue #152) now use the adapters. The remaining skills convert
+one at a time behind their own issues and keep their current dispatch mechanism
+until converted:
+
+- **persona-review** (issue #153)
+- **ticket**'s chunk agents (issue #154)
+- **epic** (issue #155)
+- **research** (issue #156) — `skills/tools/research/SKILL.md:8` spawns a
+  background agent today
+- **codebase-design** (issue #157) — `references/DESIGN-IT-TWICE.md:37`
+  spawns sub-agents via the Agent tool today
+
+Do not convert any remaining skill above in this ticket; the ban binds each one only
+once its own issue lands."""
+
+DISPATCH_CODEX_ADMISSION = """\
+These are the only validated initial routes in Codex-only mode:
+
+| Area | Initial route |
+|---|---|
+| Bounded exploration | Luna (`gpt-5.6-luna`) |
+| Hermetic implementation | Terra (`gpt-5.6-terra`) |
+| Plan / spec writing | Terra (`gpt-5.6-terra`) |
+| Prototyping | Sol (`gpt-5.6-sol`) |
+| Default brainstorming | Terra (`gpt-5.6-terra`) |
+| Documentation | Luna (`gpt-5.6-luna`) |
+
+Full-system exploration, novelty-as-deliverable brainstorming, and
+other unlisted admissions are **NO_VALIDATED_ROUTE** until benchmarked.
+Do not invent an escalation for those admissions. Each admitted v0 route is one
+validated rung: retry once in the same worker session, then stop with
+**NO_VALIDATED_ROUTE**. Never escalate Terra, Luna, or Sol to Sonnet or Opus.
+Pass the exact parenthesized CLI model ID to the helper's `--model` argument.
+
+Review admissions are owned by [`review-routing.md`](review-routing.md). Its
+matrix assumes a Claude parent and does not route for this Codex UI parent;
+follow the Codex parent's own session policy instead of treating review as a
+generic admission above."""
+
+DISPATCH_CODEX_FROM_CLAUDE_ADMISSION = """\
+Read [`review-routing.md`](review-routing.md) and apply its four-row matrix for
+reviewer classification and initial adapter/model selection. That matrix
+composes the selected review skill's area with `routing-table.md` and the Codex
+presence/headroom gate in `SKILL.md`; this adapter reference does not duplicate
+their precedence.
+
+When the matrix selects Codex, dispatch the review read-only through
+`codex-worker.py start` and persist one state file for that worker. Retry a
+model-quality failure once through `codex-worker.py resume` against the same
+state file, carrying the specific finding; do not start a second worker for the
+retry. Review is a read task, so `workspace-write` is never correct for it."""
+
+REVIEW_DEPTH_DISPATCH_BOUNDARY = """\
+Under `Profile: hardening`, Targeted and Focused orders get no reviewer; Full-depth
+orders keep one review round after hardening.
+
+Review depth is an input to
+[review-routing.md](../../orchestrate/references/review-routing.md), which owns
+reviewer classification, eligibility, and model precedence.
+
+* A whole diff assembled from chunks is reviewed Targeted, or Full when any chunk
+  was Full."""
+
+SLICING_ORCHESTRATOR_TIER = """\
+The order's `Open as:` names the tier the coordinator session must run at: the
+**highest** tier any chunk names (haiku < sonnet < opus), and never Haiku, which
+cannot review
+([review-routing.md](../../orchestrate/references/review-routing.md)). The coordinator never launches
+an agent smarter than itself."""
+
+COORDINATOR_REVIEWER_SELECTION = """\
+4. **Review each chunk as it lands**, at that sub-order's stamped depth, before
+   merging it. Two things happen, in order, and neither substitutes for the other:
+
+   a. Run `/review` for the chunk diff, then apply the selected review skill's matrix
+   entry from
+   [review-routing.md](../../orchestrate/references/review-routing.md) using that
+   chunk's stamped depth. Builder tier is not an input. Dispatch the selected
+   reviewer on the chunk's branch against the ticket branch. Findings go back to
+   the chunk's own agent to fix. Claim each dispatched reviewer session through the
+   shared claim rule with `--role reviewer`, plus the same `--session <id>`,
+   `--agent <agent>` and `--project` it ran in, so review overhead is measured as
+   overhead and never as chunk size. A reviewer with no stable transcript id is
+   reported in one line like an unclaimable worker, and a claim failure follows the
+   same shared non-blocking rule: neither ever holds up dispatching the review.
+
+   b. Verify the result yourself, as `/orchestrate` requires of every delegated
+   result: read the diff, run the verification command, check the chunk's Done when
+   clause. A failed verification retries once in the chunk's agent with the specific
+   finding, then escalates one tier per the routing table. Same-session retries are
+   not re-claimed; claim every fresh implementation escalation once, using the
+   escalation's stable transcript id, agent, and chunk worktree."""
+
+README_CODE_REVIEW_ROW = "| [`code-review`](skills/tools/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | `orchestrate` is an optional integration used for reviewer routing when installed; parallel-agent support recommended; GitHub CLI to fetch an originating issue; see [docs/review-round-mining.md](docs/review-round-mining.md) for the mined evidence behind the fix protocol and the round cap |"
+README_PLAN_REVIEW_ROW = "| [`plan-review`](skills/tools/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | `orchestrate` is an optional integration used for reviewer routing when installed; parallel-agent support recommended; `persona-review` optional for load-bearing plans; the round-count evidence behind its rules is in [docs/review-round-mining.md](docs/review-round-mining.md) |"
 
 LIFECYCLE_SPEC = importlib.util.spec_from_file_location("worker_lifecycle", WORKER_LIFECYCLE)
 assert LIFECYCLE_SPEC and LIFECYCLE_SPEC.loader
@@ -2157,19 +2336,103 @@ class OrchestrateCodexPolicyTests(unittest.TestCase):
             "only when the interactive coordinator is a Claude Code\nparent dispatching a **Codex** worker",
             from_claude,
         )
-        self.assertIn("gpt-5.6-luna", from_claude)
         self.assertIn("read-only", from_claude)
-        self.assertIn("Retry a failed routine review once in the same worker session", from_claude)
-        self.assertIn("do not start a second worker for\n   it", from_claude)
-        self.assertIn("escalate one tier per the Code review row's", from_claude)
-        self.assertIn("Luna → Sonnet → Opus", from_claude)
-        self.assertIn(
-            "Item 3's `NO_VALIDATED_ROUTE` stop\n   and its \"never escalate Terra, Luna, or Sol to Sonnet or Opus\" ban are\n   Codex-UI-parent rules and do not apply here.",
-            from_claude,
+
+
+class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
+    @staticmethod
+    def text(path: str) -> str:
+        return (ROOT / path).read_text(encoding="utf-8")
+
+    @staticmethod
+    def block(text: str, start: str, end: str | None = None) -> str:
+        value = text.split(f"{start}\n\n", 1)[1]
+        if end is not None:
+            return value.split(f"\n\n{end}", 1)[0]
+        return value.removesuffix("\n")
+
+    def test_review_routing_contract_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/references/review-routing.md")
+        self.assertEqual(
+            self.block(text, "## Reviewer selection contract", "## Related authorities"),
+            REVIEW_ROUTING_CONTRACT,
         )
-        self.assertIn("Route load-bearing or safety review to Claude Opus directly", from_claude)
-        self.assertIn("routine review begins at Sonnet and escalates to Opus", from_claude)
-        self.assertIn("Make no second Codex attempt for the rest\n   of the session.", from_claude)
+
+    def test_routing_table_review_consumer_block_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/references/routing-table.md")
+        self.assertEqual(
+            self.block(text, "## Review-consumer classification", "## Routes (cheapest that clears the bar) and escalation ladders"),
+            ROUTING_TABLE_REVIEW_CONSUMER,
+        )
+
+    def test_plan_spec_writing_row_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/references/routing-table.md")
+        rows = [line for line in text.splitlines() if line.startswith("| Plan / spec writing |")]
+        self.assertEqual(rows, [PLAN_SPEC_WRITING_ROW])
+
+    def test_code_review_dependency_selection_is_byte_identical(self):
+        text = self.text("skills/tools/code-review/SKILL.md")
+        self.assertEqual(
+            self.block(text, "## Dependency and reviewer selection", "## Modes"),
+            CODE_REVIEW_DEPENDENCY_SELECTION,
+        )
+
+    def test_orchestrate_review_precedence_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/SKILL.md")
+        self.assertEqual(
+            self.block(text, "## Review precedence", "## Verification and escalation"),
+            ORCHESTRATE_REVIEW_PRECEDENCE,
+        )
+
+    def test_orchestrate_pack_wide_reach_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/SKILL.md")
+        self.assertEqual(
+            self.block(text, "## Pack-wide reach", "## Maintenance"),
+            ORCHESTRATE_PACK_WIDE_REACH,
+        )
+
+    def test_codex_ui_admission_block_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/references/dispatch-codex.md")
+        self.assertEqual(
+            self.block(text, "## Codex-only admission routes"),
+            DISPATCH_CODEX_ADMISSION,
+        )
+
+    def test_claude_parent_review_admission_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/references/dispatch-codex-from-claude.md")
+        self.assertEqual(
+            self.block(text, "## Review admission", "## Infrastructure failure vs. model-quality failure"),
+            DISPATCH_CODEX_FROM_CLAUDE_ADMISSION,
+        )
+
+    def test_review_depth_dispatch_boundary_is_byte_identical(self):
+        text = self.text("skills/drivers/ticket/references/review-depth.md")
+        self.assertEqual(
+            self.block(text, "## Reviewer dispatch boundary"),
+            REVIEW_DEPTH_DISPATCH_BOUNDARY,
+        )
+
+    def test_slicing_orchestrator_tier_is_byte_identical(self):
+        text = self.text("skills/drivers/ticket/references/slicing.md")
+        self.assertEqual(
+            self.block(text, "## Orchestrator tier"),
+            SLICING_ORCHESTRATOR_TIER,
+        )
+
+    def test_coordinator_reviewer_selection_is_byte_identical(self):
+        text = self.text("skills/drivers/ticket/references/coordinator-mode.md")
+        self.assertEqual(
+            self.block(text, "## Reviewer selection", "## Chunk integration"),
+            COORDINATOR_REVIEWER_SELECTION,
+        )
+
+    def test_readme_code_review_row_is_byte_identical(self):
+        rows = [line for line in README.read_text(encoding="utf-8").splitlines() if line.startswith("| [`code-review`")]
+        self.assertEqual(rows, [README_CODE_REVIEW_ROW])
+
+    def test_readme_plan_review_row_is_byte_identical(self):
+        rows = [line for line in README.read_text(encoding="utf-8").splitlines() if line.startswith("| [`plan-review`")]
+        self.assertEqual(rows, [README_PLAN_REVIEW_ROW])
 
 
 class WorkerEffortDialTests(unittest.TestCase):
@@ -2832,11 +3095,12 @@ class CodeReviewAdapterDispatchTests(unittest.TestCase):
         )
 
     def test_delegation_authority_is_byte_identical(self):
-        authority = self.text.split("## Delegation authority\n\n", 1)[1].split("\n\n## Modes", 1)[0]
+        authority = self.text.split("## Delegation authority\n\n", 1)[1].split(
+            "\n\n## Dependency and reviewer selection", 1
+        )[0]
         self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION)
 
-    def test_dispatch_uses_only_pack_adapters_with_explicit_unselected_inputs(self):
-        self.assertIn("adapter appropriate to the coordinator's existing parent policy", self.dispatch)
+    def test_dispatch_uses_only_pack_adapters_with_explicit_inputs(self):
         self.assertIn("reviewer model", self.dispatch)
         self.assertIn("reviewer effort", self.dispatch)
         self.assertIn("Pass model and effort through unchanged", self.dispatch)
@@ -2846,9 +3110,6 @@ class CodeReviewAdapterDispatchTests(unittest.TestCase):
         self.assertNotIn("Agent tool", self.dispatch)
         self.assertNotIn("Workflow tool", self.dispatch)
         self.assertNotIn("background agent", self.dispatch)
-        self.assertNotIn("routing-table.md", self.dispatch)
-        self.assertNotIn("routine", self.dispatch)
-        self.assertNotIn("load-bearing", self.dispatch)
 
     def test_admitted_axes_have_deterministic_files_concurrent_launch_and_individual_joins(self):
         for path in ("<review-state-dir>/standards.json", "<review-state-dir>/spec.json"):

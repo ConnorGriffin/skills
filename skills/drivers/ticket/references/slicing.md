@@ -144,5 +144,6 @@ chunk 1".
 
 The order's `Open as:` names the tier the coordinator session must run at: the
 **highest** tier any chunk names (haiku < sonnet < opus), and never Haiku, which
-cannot review ([review-depth.md](review-depth.md)). The coordinator never launches
+cannot review
+([review-routing.md](../../orchestrate/references/review-routing.md)). The coordinator never launches
 an agent smarter than itself.
