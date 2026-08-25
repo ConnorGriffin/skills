@@ -10,6 +10,11 @@ report. Anything larger than mechanical goes back to a delegate.
 What follows is what this skill adds on top. It replaces `start` steps 8 through
 11, and rejoins that verb at step 12 when the last chunk has merged.
 
+An epic child creates, folds, revises, and records no per-child change record.
+Coordinator work leaves the parent epic's existing change/archive flow, settled
+baseline timing, and standing planning-pull-request contents unchanged. Outside an
+epic, the ticket skill's per-ticket change-record rule still applies.
+
 1. **One branch, one pull request, still.** The ticket branch from `start` step 4 is
    the trunk. Each chunk gets its own branch cut from it and merges back. Nothing
    chunk-related reaches the default branch directly.
