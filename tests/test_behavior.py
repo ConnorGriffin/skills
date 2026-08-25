@@ -2498,7 +2498,7 @@ else:
     def tearDown(self):
         self.temporary.cleanup()
 
-    def coordinate(self, adapter, admitted, *, hold_axis=None, fail_axis=None, broken=None):
+    def coordinate(self, adapter, admitted, *, hold_axis=None, fail_axis=None, launch_fail_axis=None, broken=None):
         state_dir = self.root / f"state-{adapter}-{broken or 'correct'}-{len(list(self.root.glob('state-*')))}"
         state_dir.mkdir()
         self.events.unlink(missing_ok=True)
@@ -2520,6 +2520,7 @@ else:
         model = "Terra" if adapter == "codex" else "sonnet"
         axes = (*admitted, "spec") if broken == "launch-unadmitted-spec" else admitted
         launches = {}
+        launch_errors = {}
         artifacts = {}
         actions = []
         for axis in axes:
@@ -2529,26 +2530,53 @@ else:
             state = state_dir / f"{axis}.json"
             stdout = state_dir / f"{axis}.stdout"
             stderr = state_dir / f"{axis}.stderr"
+            axis_worker = self.root / "unlaunchable-adapter" if axis == launch_fail_axis else worker
             command = [
-                sys.executable, str(worker), "start", option, str(self.binary), "--state", str(state),
+                *( [str(axis_worker)] if axis == launch_fail_axis else [sys.executable, str(axis_worker)] ),
+                "start", option, str(self.binary), "--state", str(state),
                 "--model", model, "--sandbox", "read-only", "--effort", "high", "--cwd", str(self.worktree),
                 f"axis={axis}; do not modify, patch, or stash",
             ]
             out = stdout.open("w", encoding="utf-8")
             err = stderr.open("w", encoding="utf-8")
-            launches[axis] = {"process": subprocess.Popen(command, cwd=ROOT, env=environment, stdin=subprocess.DEVNULL, stdout=out, stderr=err), "state": state, "out": out, "err": err}
             artifacts[axis] = (stdout, stderr)
+            try:
+                launches[axis] = {"process": subprocess.Popen(command, cwd=ROOT, env=environment, stdin=subprocess.DEVNULL, stdout=out, stderr=err), "state": state, "out": out, "err": err}
+            except OSError as error:
+                out.close()
+                err.close()
+                launch_errors[axis] = str(error)
+                break
         deadline = time.monotonic() + 3
-        expected_starts = {f"start {axis}" for axis in axes}
+        expected_starts = {f"start {axis}" for axis in launches}
         while time.monotonic() < deadline:
             started_before_release = self.events.read_text(encoding="utf-8").splitlines() if self.events.exists() else []
             if expected_starts.issubset(started_before_release):
                 break
             time.sleep(0.01)
-        if hold_axis and broken != "partial-no-cleanup":
+        if hold_axis and not launch_errors:
             self.release.touch()
 
-        result = {"artifacts": artifacts, "actions": actions, "answers": {}, "returncodes": {}, "started_before_release": started_before_release, "joined": []}
+        result = {"artifacts": artifacts, "actions": actions, "answers": {}, "launch_errors": launch_errors, "launched": {axis: claim["process"].pid for axis, claim in launches.items()}, "returncodes": {}, "started_before_release": started_before_release, "joined": [], "unlaunched_actions": []}
+        if launch_errors:
+            failed_axis = next(iter(launch_errors))
+            survivor, claim = next(iter(launches.items()))
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline and claim["process"].poll() is None and not claim["state"].exists():
+                time.sleep(0.01)
+            result["recoverable"] = claim["state"].exists()
+            if broken == "touch-unlaunched":
+                for operation in ("stop", "verify"):
+                    cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(state_dir / f"{failed_axis}.json"), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
+                    result["unlaunched_actions"].append((operation, failed_axis, cleanup.returncode))
+            if result["recoverable"]:
+                for operation in ("stop", "verify"):
+                    cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(claim["state"]), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
+                    self.assertEqual(cleanup.returncode, 0, cleanup.stderr)
+                    actions.append((operation, survivor))
+            else:
+                self.release.touch()
+            result["error"] = f"{failed_axis} failed to launch"
         if fail_axis and fail_axis in launches:
             failure = launches[fail_axis]["process"]
             result["returncodes"][fail_axis] = failure.wait(timeout=3)
@@ -2560,20 +2588,18 @@ else:
                 while time.monotonic() < deadline and claim["process"].poll() is None and not claim["state"].exists():
                     time.sleep(0.01)
                 result["recoverable"] = claim["state"].exists()
-                if result["recoverable"] and broken != "partial-no-cleanup":
+                if result["recoverable"]:
                     for operation in ("stop", "verify"):
                         cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(claim["state"]), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
                         self.assertEqual(cleanup.returncode, 0, cleanup.stderr)
                         actions.append((operation, survivor))
                 result["error"] = f"{fail_axis} exited {result['returncodes'][fail_axis]}"
-                if broken == "partial-no-cleanup":
-                    self.release.touch()
         for axis, claim in launches.items():
             if axis in result["returncodes"]:
                 continue
             result["returncodes"][axis] = claim["process"].wait(timeout=3)
             result["joined"].append(axis)
-            if result["returncodes"][axis] and broken != "ignore-nonzero":
+            if result["returncodes"][axis] and broken != "ignore-nonzero" and "error" not in result:
                 result["error"] = f"{axis} exited {result['returncodes'][axis]}"
             elif not result["returncodes"][axis] and broken != "state-answer":
                 result["answers"][axis] = json.loads(artifacts[axis][0].read_text(encoding="utf-8"))["final_message"]
@@ -2634,13 +2660,16 @@ else:
             with self.subTest(adapter=adapter):
                 def recovered(result):
                     self.assertTrue(result["recoverable"])
+                    self.assertEqual(result["launched"].keys(), {"standards"})
+                    self.assertNotIn("spec", result["joined"])
                     self.assertEqual(result["actions"], [("stop", "standards"), ("verify", "standards")])
-                    self.assertEqual(result["joined"], ["spec", "standards"])
-                    self.assertEqual(result["error"], "spec exited 17")
+                    self.assertEqual(result["unlaunched_actions"], [])
+                    self.assertEqual(result["joined"], ["standards"])
+                    self.assertEqual(result["error"], "spec failed to launch")
 
                 self.assert_broken_then_correct(
-                    "partial-no-cleanup", recovered, adapter=adapter, admitted=("standards", "spec"),
-                    hold_axis="standards", fail_axis="spec",
+                    "touch-unlaunched", recovered, adapter=adapter, admitted=("standards", "spec"),
+                    hold_axis="standards", launch_fail_axis="spec",
                 )
 
 
