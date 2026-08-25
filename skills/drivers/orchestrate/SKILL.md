@@ -218,21 +218,12 @@ Per ADR 149 (`docs/adr/adr-149-pack-owned-model-dispatch.md`): all model
 dispatch defined by this pack goes through this pack's own adapters
 (`claude-worker.py` / `codex-worker.py`), not the built-in Agent tool, the
 Workflow tool, or background agents. That ruling covers every skill that
-dispatches a model, not only `orchestrate`. `code-review` (issue #151) and
-`plan-review` (issue #152) now use the adapters. The remaining skills convert
-one at a time behind their own issues and keep their current dispatch mechanism
-until converted:
-
-- **persona-review** (issue #153)
-- **ticket**'s chunk agents (issue #154)
-- **epic** (issue #155)
-- **research** (issue #156) — `skills/tools/research/SKILL.md:8` spawns a
-  background agent today
-- **codebase-design** (issue #157) — `references/DESIGN-IT-TWICE.md:37`
-  spawns sub-agents via the Agent tool today
-
-Do not convert any remaining skill above in this ticket; the ban binds each one only
-once its own issue lands.
+dispatches a model, not only `orchestrate`. Every dispatching skill is now
+converted: `code-review` (issue #151), `plan-review` (issue #152),
+`persona-review` (issue #153), `ticket`'s chunk agents (issue #154), `epic`
+(issue #155), `research` (issue #156), and `codebase-design` (issue #157) all
+use the adapters. A future skill that dispatches a model converts behind its
+own issue before the ban binds it.
 
 ## Maintenance
 
