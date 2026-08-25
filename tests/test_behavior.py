@@ -2494,11 +2494,28 @@ else:
             encoding="utf-8",
         )
         self.binary.chmod(0o755)
+        self.portable_launcher = self.root / "force-portable.py"
+        self.portable_launcher.write_text(
+            """#!/usr/bin/env python3
+import importlib.util, pathlib, sys
+
+worker = pathlib.Path(sys.argv.pop(1))
+spec = importlib.util.spec_from_file_location("forced_portable_worker", worker)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module._libproc = lambda: None
+arguments = module.parser().parse_args()
+if arguments.command in {"start", "resume"} and not arguments.prompt:
+    raise SystemExit(module.fail("prompt is required"))
+raise SystemExit(arguments.handler(arguments))
+""",
+            encoding="utf-8",
+        )
 
     def tearDown(self):
         self.temporary.cleanup()
 
-    def coordinate(self, adapter, admitted, *, hold_axis=None, fail_axis=None, launch_fail_axis=None, broken=None):
+    def coordinate(self, adapter, admitted, *, hold_axis=None, fail_axis=None, launch_fail_axis=None, force_portable=False, broken=None):
         state_dir = self.root / f"state-{adapter}-{broken or 'correct'}-{len(list(self.root.glob('state-*')))}"
         state_dir.mkdir()
         self.events.unlink(missing_ok=True)
@@ -2515,7 +2532,10 @@ else:
                 "REVIEW_FAIL_AXIS": fail_axis or "",
             }
         )
+        force_portable = force_portable or os.environ.get("CODE_REVIEW_TEST_FORCE_PORTABLE") == "1"
         worker = CODEX_WORKER if adapter == "codex" else CLAUDE_WORKER
+        worker_module = WORKER_MODULE if adapter == "codex" else CLAUDE_WORKER_MODULE
+        native_family = not force_portable and worker_module._libproc() is not None
         option = "--codex" if adapter == "codex" else "--claude"
         model = "Terra" if adapter == "codex" else "sonnet"
         axes = (*admitted, "spec") if broken == "launch-unadmitted-spec" else admitted
@@ -2523,6 +2543,21 @@ else:
         launch_errors = {}
         artifacts = {}
         actions = []
+
+        def wait_for_recovery(claim):
+            deadline = time.monotonic() + 3
+            portable_terminal = False
+            while time.monotonic() < deadline:
+                if claim["state"].exists():
+                    candidate = json.loads(claim["state"].read_text(encoding="utf-8"))
+                    if worker_module.valid_family_schema(candidate):
+                        return candidate, "family-state", False
+                    portable_terminal = worker_module.valid_portable_schema(candidate)
+                if claim["process"].poll() is not None:
+                    return None, "helper-exit", portable_terminal
+                time.sleep(0.01)
+            return None, None, portable_terminal
+
         for axis in axes:
             if broken == "serial" and launches:
                 self.release.touch()
@@ -2531,8 +2566,9 @@ else:
             stdout = state_dir / f"{axis}.stdout"
             stderr = state_dir / f"{axis}.stderr"
             axis_worker = self.root / "unlaunchable-adapter" if axis == launch_fail_axis else worker
+            launcher = [sys.executable, str(self.portable_launcher), str(axis_worker)] if force_portable else [sys.executable, str(axis_worker)]
             command = [
-                *( [str(axis_worker)] if axis == launch_fail_axis else [sys.executable, str(axis_worker)] ),
+                *( [str(axis_worker)] if axis == launch_fail_axis else launcher ),
                 "start", option, str(self.binary), "--state", str(state),
                 "--model", model, "--sandbox", "read-only", "--effort", "high", "--cwd", str(self.worktree),
                 f"axis={axis}; do not modify, patch, or stash",
@@ -2561,10 +2597,12 @@ else:
         if launch_errors:
             failed_axis = next(iter(launch_errors))
             survivor, claim = next(iter(launches.items()))
-            deadline = time.monotonic() + 3
-            while time.monotonic() < deadline and claim["process"].poll() is None and not claim["state"].exists():
-                time.sleep(0.01)
-            result["recoverable"] = claim["state"].exists()
+            if not native_family:
+                self.release.touch()
+            recovery_state, recovery_ready, portable_terminal = wait_for_recovery(claim)
+            result["recoverable"] = recovery_state is not None
+            result["recovery_ready"] = recovery_ready
+            result["portable_terminal"] = portable_terminal
             if broken == "touch-unlaunched":
                 for operation in ("stop", "verify"):
                     cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(state_dir / f"{failed_axis}.json"), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
@@ -2584,10 +2622,8 @@ else:
             if result["returncodes"][fail_axis] and broken != "ignore-nonzero":
                 survivor = next(axis for axis in admitted if axis != fail_axis)
                 claim = launches[survivor]
-                deadline = time.monotonic() + 3
-                while time.monotonic() < deadline and claim["process"].poll() is None and not claim["state"].exists():
-                    time.sleep(0.01)
-                result["recoverable"] = claim["state"].exists()
+                recovery_state, _, _ = wait_for_recovery(claim)
+                result["recoverable"] = recovery_state is not None
                 if result["recoverable"]:
                     for operation in ("stop", "verify"):
                         cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(claim["state"]), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
@@ -2657,20 +2693,31 @@ else:
 
     def test_partial_launch_failure_waits_then_scoped_stop_and_verify_only_for_survivor(self):
         for adapter in ("codex", "claude"):
-            with self.subTest(adapter=adapter):
-                def recovered(result):
-                    self.assertTrue(result["recoverable"])
-                    self.assertEqual(result["launched"].keys(), {"standards"})
-                    self.assertNotIn("spec", result["joined"])
-                    self.assertEqual(result["actions"], [("stop", "standards"), ("verify", "standards")])
-                    self.assertEqual(result["unlaunched_actions"], [])
-                    self.assertEqual(result["joined"], ["standards"])
-                    self.assertEqual(result["error"], "spec failed to launch")
+            force_portable_only = os.environ.get("CODE_REVIEW_TEST_FORCE_PORTABLE") == "1"
+            family_modes = (("native", False), ("portable", True)) if sys.platform == "darwin" and not force_portable_only else (("portable", True),)
+            for family_mode, force_portable in family_modes:
+                with self.subTest(adapter=adapter, family_mode=family_mode):
+                    def recovered(result):
+                        self.assertEqual(result["launched"].keys(), {"standards"})
+                        self.assertNotIn("spec", result["joined"])
+                        if family_mode == "native":
+                            self.assertTrue(result["recoverable"])
+                            self.assertEqual(result["recovery_ready"], "family-state")
+                            self.assertFalse(result["portable_terminal"])
+                            self.assertEqual(result["actions"], [("stop", "standards"), ("verify", "standards")])
+                        else:
+                            self.assertFalse(result["recoverable"])
+                            self.assertEqual(result["recovery_ready"], "helper-exit")
+                            self.assertTrue(result["portable_terminal"])
+                            self.assertEqual(result["actions"], [])
+                        self.assertEqual(result["unlaunched_actions"], [])
+                        self.assertEqual(result["joined"], ["standards"])
+                        self.assertEqual(result["error"], "spec failed to launch")
 
-                self.assert_broken_then_correct(
-                    "touch-unlaunched", recovered, adapter=adapter, admitted=("standards", "spec"),
-                    hold_axis="standards", launch_fail_axis="spec",
-                )
+                    self.assert_broken_then_correct(
+                        "touch-unlaunched", recovered, adapter=adapter, admitted=("standards", "spec"),
+                        hold_axis="standards", launch_fail_axis="spec", force_portable=force_portable,
+                    )
 
 
 class CodeReviewAdapterDispatchTests(unittest.TestCase):

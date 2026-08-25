@@ -220,10 +220,12 @@ artifact. Retry an axis with the selected helper's `resume` command against the 
 axis state file; a retry does not start a replacement state.
 
 If a later launch fails after another worker launched, wait for the surviving helper to
-reach valid readable state or exit. Only when recoverable state exists, run that
-launched worker's scoped `stop --state ... --cwd ...`, then scoped `verify --state ...
---cwd ...`. Then join that worker's retained PID. Do not discover, stop, verify, or
-join an unlaunched worker.
+reach valid readable state or exit. A valid process-family state is recoverable; a
+portable terminal state records an already-exited worker and is not stop/verify-capable,
+so wait for the portable helper to exit instead of treating the state file's existence
+as readiness. Only when recoverable state exists, run that launched worker's scoped
+`stop --state ... --cwd ...`, then scoped `verify --state ... --cwd ...`. Then join
+that worker's retained PID. Do not discover, stop, verify, or join an unlaunched worker.
 
 **Shared brief** — give this to both:
 
