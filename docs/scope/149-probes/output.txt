@@ -1,0 +1,16 @@
+# SUPERSEDED (2026-08-25) for the `write` case: this capture predates the build.
+# The `write` settings shape exercised here carries no `filesystem` block and does NOT
+# confine writes -- a real workspace-write worker later wrote through to $HOME/.cache.
+# See run-log.md for the post-fix capture; claude-worker.py now generates
+# filesystem.allowWrite: [cwd]. The readonly/session/resumed cases below still hold.
+# probe run 1a9f37c
+# claude 2.1.228 (Claude Code)
+readonly: wrote_in_cwd=no escaped_cwd=no
+readonly: report=Current directory is read-only. The `ls` output shows **6 entries** (`.`, `..`, `.claude`, `err.txt`, `out.txt`, `seed.txt`) before permission error.  **READ_OK** — ls -a listed 6 entries. **WROTE_FAIL** — write to p
+write: wrote_in_cwd=yes escaped_cwd=no
+write: report=READ_OK: 6 entries. WROTE_OK: probe.txt created. ESCAPE_FAIL: sandbox blocks writing to $HOME/.cache/. 
+session: id_honored=True resume_carries_context=True
+session: resume_accepts_effort=True
+session: parsed_fields=['is_error', 'permission_denials', 'result', 'session_id', 'total_cost_usd']
+resumed: wrote_after_resume=no
+resumed: report=WROTE_FAIL  File creation failed due to permission restrictions on the current working directory. 

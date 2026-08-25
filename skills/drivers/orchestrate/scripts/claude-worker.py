@@ -1,5 +1,24 @@
 #!/usr/bin/env python3
-"""Launch, resume, stop, and verify one durable Codex worker process family."""
+"""Launch, resume, stop, and verify one durable Claude worker process family.
+
+Standalone sibling of codex-worker.py: this file carries its own copy of the
+lifecycle machinery (state lock, atomic write, schema validation, process-
+family ownership, liveness, run/finish lifecycle, stop, verify) rather than
+importing it, per work order 149 sub-order 1 — no shared module in this
+ticket. Keep the structure and naming aligned with codex-worker.py so the two
+read as one family and a later extraction is a mechanical diff.
+
+Differences from codex-worker.py, all load-bearing:
+  * The prompt goes on the worker's stdin, not as a trailing argv token.
+    `claude -p ... --tools/--allowedTools/--disallowedTools` are variadic and
+    would swallow a positional prompt.
+  * Output parsing and the final emit are Claude's own: one JSON object
+    (`--output-format json`) with a `result` field and an `is_error` flag,
+    not Codex's JSONL event stream.
+  * There is no Claude analogue of Codex's rollout file or its headroom
+    fields. Liveness here is process identity only; this adapter must not
+    invent a headroom concept Claude does not expose.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +33,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -37,16 +57,14 @@ VNODE_CWD_OFFSET = 152
 PID_MAX = 2**31 - 1
 UINT64_MAX = 2**64 - 1
 
-# Effort enum captured in docs/scope/149-probes/effort-enums.md: the Codex CLI
-# validates nothing locally (a bogus value starts the session and fails at the
-# API), so this set is documentation plus this adapter's own guard, not a
-# discovered constraint. Not shared with claude-worker.py's enum.
-EFFORT_LEVELS = {"minimal", "low", "medium", "high", "xhigh"}
+# Effort enum captured in docs/scope/149-probes/effort-enums.md (`claude --help`).
+# Not shared with codex-worker.py's enum — each adapter owns a literal set.
+EFFORT_LEVELS = {"low", "medium", "high", "xhigh", "max"}
 DEFAULT_EFFORT = "medium"
 
 
 def fail(message: str, code: int = 1) -> int:
-    print(f"codex-worker: {message}", file=sys.stderr)
+    print(f"claude-worker: {message}", file=sys.stderr)
     return code
 
 
@@ -125,6 +143,13 @@ def _canonical_path(value: Any) -> bool:
         return False
 
 
+# STATE_VERSION decision (spec do-7): effort is added only to each command's
+# `allowed` schema superset below, never to BASE_STATE_FIELDS. BASE_STATE_FIELDS
+# is checked with `.issubset(state)`, so a key placed there becomes mandatory —
+# every already-persisted state (including codex-worker's) would fail schema
+# validation the moment this file shipped. Treating a missing "effort" as the
+# medium default keeps STATE_VERSION at 2 and both adapters' existing state
+# files valid. See test_missing_effort_defaults_to_medium_without_version_bump.
 BASE_STATE_FIELDS = {"version", "lifecycle", "session_id", "model", "sandbox", "cwd"}
 
 
@@ -188,6 +213,10 @@ def valid_portable_schema(state: dict[str, Any]) -> bool:
     return True
 
 
+def effort_of(state: dict[str, Any]) -> str:
+    return state.get("effort", DEFAULT_EFFORT)
+
+
 def _libproc() -> ctypes.CDLL | None:
     if sys.platform != "darwin":
         return None
@@ -247,59 +276,43 @@ def group_members(pgid: int) -> list[int] | None:
     return None
 
 
-def parse_jsonl(output: str) -> tuple[list[dict[str, Any]], str | None]:
-    items: list[dict[str, Any]] = []
-    for number, line in enumerate(output.splitlines(), 1):
-        if not line.strip():
-            continue
-        try:
-            item = json.loads(line)
-        except json.JSONDecodeError:
-            return [], f"invalid JSONL on line {number}"
-        if not isinstance(item, dict):
-            return [], f"JSONL item on line {number} is not an object"
-        items.append(item)
-    return items, None
+def parse_result(output: str) -> tuple[dict[str, Any] | None, str | None]:
+    """Parse claude's single `--output-format json` object (not Codex's JSONL)."""
+    try:
+        payload = json.loads(output)
+    except json.JSONDecodeError:
+        return None, "invalid JSON in Claude output"
+    if not isinstance(payload, dict):
+        return None, "Claude output is not a JSON object"
+    return payload, None
 
 
-def captured_thread_id(items: list[dict[str, Any]]) -> tuple[str | None, str | None]:
-    if any(item.get("type") == "item.completed" and isinstance(item.get("item"), dict) and item["item"].get("type") == "error" for item in items):
-        return None, "Codex reported an error item"
-    ids = {item["thread_id"] for item in items if item.get("type") == "thread.started" and isinstance(item.get("thread_id"), str) and item["thread_id"]}
-    return (ids.pop(), None) if len(ids) == 1 else (None, "missing or ambiguous thread ID in Codex JSONL")
+def final_result_message(payload: dict[str, Any]) -> tuple[str | None, str | None]:
+    if payload.get("is_error"):
+        return None, "Claude reported is_error"
+    result = payload.get("result")
+    if not isinstance(result, str):
+        return None, "missing result field in Claude output"
+    return result, None
 
 
-def final_agent_message(items: list[dict[str, Any]]) -> tuple[str | None, str | None]:
-    messages = [item["item"]["text"] for item in items if item.get("type") == "item.completed" and isinstance(item.get("item"), dict) and item["item"].get("type") == "agent_message" and isinstance(item["item"].get("text"), str)]
-    return (messages[-1], None) if messages else (None, "missing completed agent message in Codex JSONL")
+def captured_session_id(payload: dict[str, Any]) -> tuple[str | None, str | None]:
+    session_id = payload.get("session_id")
+    if not isinstance(session_id, str) or not session_id:
+        return None, "missing session ID in Claude output"
+    return session_id, None
 
 
-def latest_rate_limits(session_id: str) -> dict[str, Any] | None:
-    root = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "sessions"
-    matches = []
-    for rollout in root.rglob("*.jsonl") if root.exists() else ():
-        try: entries, error = parse_jsonl(rollout.read_text(encoding="utf-8"))
-        except OSError: continue
-        if error is None and any(entry.get("type") == "session_meta" and isinstance(entry.get("payload"), dict) and entry["payload"].get("session_id") == session_id for entry in entries): matches.append(rollout)
-    if not matches: return None
-    entries, error = parse_jsonl(max(matches, key=lambda item: item.stat().st_mtime_ns).read_text(encoding="utf-8"))
-    if error: return None
-    limits = None
-    for entry in entries:
-        payload = entry.get("payload")
-        if entry.get("type") == "event_msg" and isinstance(payload, dict) and payload.get("type") == "token_count": limits = payload.get("rate_limits") if isinstance(payload.get("rate_limits"), dict) else None
-    return limits
-
-
-def effort_of(state: dict[str, Any]) -> str:
-    return state.get("effort", DEFAULT_EFFORT)
-
-
-def emit(state: dict[str, Any], final_message: str) -> None:
-    limits = latest_rate_limits(state["session_id"])
-    primary = limits.get("primary") if isinstance(limits, dict) else None
-    remaining = 100 - primary["used_percent"] if isinstance(primary, dict) and isinstance(primary.get("used_percent"), (int, float)) else None
-    print(json.dumps({"session_id": state["session_id"], "model": state["model"], "sandbox": state["sandbox"], "cwd": state["cwd"], "effort": effort_of(state), "final_message": final_message, "headroom": remaining, "headroom_status": "known" if remaining is not None else "unknown"}))
+def emit(state: dict[str, Any], final_message: str, permission_denials: Any) -> None:
+    print(json.dumps({
+        "session_id": state["session_id"],
+        "model": state["model"],
+        "sandbox": state["sandbox"],
+        "cwd": state["cwd"],
+        "effort": effort_of(state),
+        "final_message": final_message,
+        "permission_denials": permission_denials if permission_denials is not None else [],
+    }))
 
 
 def gate_wait(fd: int) -> None:
@@ -308,7 +321,12 @@ def gate_wait(fd: int) -> None:
 
 
 def gated_process(command: list[str], cwd: Path) -> tuple[subprocess.Popen[str], int]:
-    """Exec a session-leading gate wrapper; Popen can return before the real exec."""
+    """Exec a session-leading gate wrapper; Popen can return before the real exec.
+
+    Unlike codex-worker.py, the prompt is not part of `command` — it is piped
+    to the eventual worker's stdin once the gate releases, because the claude
+    CLI's variadic flags would swallow a trailing positional prompt.
+    """
     gate_read, gate_write = os.pipe()
     wrapper = (
         "import json,os,sys; "
@@ -318,7 +336,7 @@ def gated_process(command: list[str], cwd: Path) -> tuple[subprocess.Popen[str],
     )
     process = subprocess.Popen(
         [sys.executable, "-c", wrapper, str(gate_read), str(cwd), json.dumps(command)],
-        text=True, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         pass_fds=(gate_read,),
     )
     os.close(gate_read)
@@ -354,7 +372,10 @@ def establish_family(
 
 
 def finish_lifecycle(args: argparse.Namespace, process: subprocess.Popen[str]) -> int:
-    stdout, stderr = process.communicate()
+    # The prompt reaches the worker on stdin, then stdin is closed so the CLI
+    # sees EOF; codex-worker.py's launch paths hard-wire DEVNULL because the
+    # Codex CLI takes its prompt positionally instead.
+    stdout, stderr = process.communicate(input=args.prompt)
     returncode = process.returncode
     with state_lock(args.state):
         current = read_state(args.state, family_required=True)
@@ -363,18 +384,18 @@ def finish_lifecycle(args: argparse.Namespace, process: subprocess.Popen[str]) -
             state = transition(args.state, state, "exited")
     if returncode:
         sys.stdout.write(stdout); sys.stderr.write(stderr); return returncode
-    items, error = parse_jsonl(stdout)
+    payload, error = parse_result(stdout)
     if error: return fail(error)
-    session_id, error = captured_thread_id(items)
+    session_id, error = captured_session_id(payload)
     if error: return fail(error)
-    message, error = final_agent_message(items)
+    message, error = final_result_message(payload)
     if error: return fail(error)
     with state_lock(args.state):
         current = read_state(args.state, family_required=True)
         if current is None: return fail("state file was lost during worker execution")
         current["session_id"] = session_id
         atomic_write(args.state, current)
-    emit(current, message)
+    emit(current, message, payload.get("permission_denials"))
     return 0
 
 
@@ -389,7 +410,7 @@ def run_portable(
         command,
         cwd=Path(state["cwd"]),
         text=True,
-        stdin=subprocess.DEVNULL,
+        input=args.prompt,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=False,
@@ -405,19 +426,21 @@ def run_portable(
         sys.stdout.write(result.stdout)
         sys.stderr.write(result.stderr)
         return result.returncode
-    items, error = parse_jsonl(result.stdout)
+    payload, error = parse_result(result.stdout)
     session_id = None
     message = None
+    denials = None
     if error is None:
-        session_id, error = captured_thread_id(items)
+        session_id, error = captured_session_id(payload)
     if error is None:
-        message, error = final_agent_message(items)
+        message, error = final_result_message(payload)
+        denials = payload.get("permission_denials")
     if session_id is not None:
         terminal["session_id"] = session_id
     atomic_write(args.state, terminal)
     if error is not None:
         return fail(error)
-    emit(terminal, message or "")
+    emit(terminal, message or "", denials)
     return 0
 
 
@@ -443,17 +466,69 @@ def run_lifecycle(
     return finish_lifecycle(args, process)
 
 
+def sandbox_settings(sandbox: str, cwd: Path) -> dict[str, Any]:
+    """The two sandbox shapes, carried as literals — not read from docs/ at run
+    time; docs/ is not part of an installed skill. The read-only shape still
+    matches docs/scope/149-probes/readonly.settings.json, the fixture it was
+    originally copied from.
+
+    The workspace-write shape's `filesystem` block does not match
+    write.settings.json (that fixture has none): a real run of #149 with no
+    `filesystem` block present wrote straight through to `$HOME/.cache` — the
+    sandbox leaves the whole filesystem writable outside the settings file's
+    own confinement (see run-log.md's `write` case). `allowWrite: [cwd]` alone
+    closes that: it behaves as an allowlist, confining writes to cwd and
+    refusing everything else. `denyWrite` was tried alongside it (`["/"]`,
+    then `["~/"]`, since cwd sits under the home tree) and rejected both
+    times, confirmed by real runs, not just reasoning about the docs: `deny`
+    always wins over `allow` for the same path, so pairing them silently
+    re-blocks the one directory `allowWrite` exists to carve out.
+    """
+    if sandbox == "read-only":
+        return {
+            "sandbox": {
+                "enabled": True,
+                "allowUnsandboxedCommands": False,
+                "filesystem": {"denyWrite": ["/", "~/"]},
+            },
+            "permissions": {"deny": ["Write", "Edit", "NotebookEdit"]},
+        }
+    return {
+        "sandbox": {
+            "enabled": True,
+            "allowUnsandboxedCommands": False,
+            "filesystem": {"allowWrite": [str(cwd)]},
+        },
+        "permissions": {"allow": ["Write", "Edit", "NotebookEdit"]},
+    }
+
+
+def write_settings_file(sandbox: str, cwd: Path) -> Path:
+    descriptor, path = tempfile.mkstemp(prefix="claude-worker-settings-", suffix=".json")
+    with os.fdopen(descriptor, "w", encoding="utf-8") as file:
+        json.dump(sandbox_settings(sandbox, cwd), file)
+    return Path(path)
+
+
 def start(args: argparse.Namespace) -> int:
     if args.sandbox == "workspace-write":
         if args.control_checkout is None: return fail("workspace-write requires --control-checkout")
         if is_within(args.cwd, args.control_checkout): return fail("workspace-write refuses the control checkout")
-    effort = getattr(args, "effort", DEFAULT_EFFORT)
-    if effort not in EFFORT_LEVELS:
+    if args.effort not in EFFORT_LEVELS:
         return fail(f"--effort must be one of {sorted(EFFORT_LEVELS)}")
-    state: dict[str, Any] = {"version": STATE_VERSION, "lifecycle": "launching", "model": args.model, "sandbox": args.sandbox, "cwd": str(args.cwd), "session_id": ""}
-    if effort != DEFAULT_EFFORT: state["effort"] = effort
+    state: dict[str, Any] = {
+        "version": STATE_VERSION, "lifecycle": "launching", "model": args.model,
+        "sandbox": args.sandbox, "cwd": str(args.cwd), "session_id": "",
+    }
+    if args.effort != DEFAULT_EFFORT: state["effort"] = args.effort
     if args.control_checkout: state["control_checkout"] = str(args.control_checkout)
-    command = [args.codex, "exec", "-m", args.model, "-c", f"model_reasoning_effort={effort}", "--sandbox", args.sandbox, "--skip-git-repo-check", "-C", str(args.cwd), "--json", args.prompt]
+    settings = write_settings_file(args.sandbox, args.cwd)
+    session_id = str(uuid.uuid4())
+    command = [
+        args.claude, "-p", "--model", args.model, "--effort", args.effort,
+        "--permission-mode", "dontAsk", "--settings", str(settings),
+        "--session-id", session_id, "--output-format", "json",
+    ]
     return run_lifecycle(args, command, state)
 
 
@@ -486,7 +561,12 @@ def resume(args: argparse.Namespace) -> int:
         fresh = {"version": STATE_VERSION, "lifecycle": "launching", "session_id": state["session_id"], "model": state["model"], "sandbox": sandbox, "cwd": str(cwd)}
         if effort != DEFAULT_EFFORT: fresh["effort"] = effort
         if sandbox == "workspace-write": fresh["control_checkout"] = str(control)
-    command = [args.codex, "exec", "resume", fresh["session_id"], "-m", fresh["model"], "-c", f'sandbox_mode="{fresh["sandbox"]}"', "-c", f"model_reasoning_effort={effort}", "--json", args.prompt]
+    settings = write_settings_file(sandbox, cwd)
+    command = [
+        args.claude, "-p", "--resume", fresh["session_id"], "--model", fresh["model"],
+        "--effort", effort, "--permission-mode", "dontAsk", "--settings", str(settings),
+        "--output-format", "json",
+    ]
     return run_lifecycle(args, command, fresh, expected=state)
 
 
@@ -503,6 +583,9 @@ def family_state(path: Path, expected: Path) -> tuple[dict[str, Any] | None, str
 
 
 def matching_leader(state: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
+    # Liveness for a Claude worker is process identity only — there is no
+    # Claude analogue of Codex's rollout file or CPU-time-growth signal; this
+    # adapter must not invent one.
     observed = live_identity(state["pid"])
     if observed is None: return None, "leader identity probe failed"
     recorded = {key: state[key] for key in ("pid", "pgid", "sid", "cwd", "birth")}
@@ -599,7 +682,7 @@ def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     commands = result.add_subparsers(dest="command", required=True)
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--codex", default="codex")
+    common.add_argument("--claude", default="claude")
     common.add_argument("--state", type=Path, required=True)
     common.add_argument("prompt", nargs="?")
     start_parser = commands.add_parser("start", parents=[common]); start_parser.add_argument("--model", required=True); start_parser.add_argument("--sandbox", choices=("read-only", "workspace-write"), required=True); start_parser.add_argument("--effort", default=DEFAULT_EFFORT); start_parser.add_argument("--cwd", type=resolved_directory, required=True); start_parser.add_argument("--control-checkout", type=resolved_directory); start_parser.set_defaults(handler=start)

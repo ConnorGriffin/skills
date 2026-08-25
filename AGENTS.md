@@ -16,7 +16,10 @@ ui-surfaces: none
   tests.test_pr_body tests.test_pr_body_gate tests.test_pr_body_bench
   tests.test_ticket tests.test_codebase_memory_install tests.test_check_dco
   tests.test_ci_changed_paths && python3 -m py_compile
-  skills/tools/codebase-memory/scripts/install.py scripts/ci_changed_paths.py`
+  skills/tools/codebase-memory/scripts/install.py scripts/ci_changed_paths.py
+  skills/drivers/orchestrate/scripts/codex-worker.py
+  skills/drivers/orchestrate/scripts/claude-worker.py`. Requires Python 3.10
+  or newer (the worker scripts use `X | None` union syntax).
 - Dev: no app to run. To exercise a skill, install the pack into a scratch
   directory with `npx skills add . --skill '<name>' --copy --yes`.
 - Source: `skills/<category>/<name>/` (SKILL.md plus its own `references/`,

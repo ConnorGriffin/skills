@@ -32,7 +32,19 @@ surface both failed attempts to the operator.
 | Code review | **Luna** for routine PRs; **Opus** for load-bearing/safety review | Luna → Sonnet → Opus; Opus route: none (top of ladder) | Opus was the only model to catch all 3 planted defects (incl. a silently weakened test). Luna caught 2/3 with zero false positives at the lowest cost. GPT-5.5 confidently reported a nonexistent syntax error; GPT-5.4-Mini missed a blatant inverted guard — avoid both for review. |
 
 ## Effort notes (coarse, per spec decision 8)
-- All scored runs used Codex medium effort, and it was sufficient everywhere tested. Effort stays medium in normal routing; escalation changes the model tier, not the effort dial.
+- Every delegation carries an effort dial (per ADR 149,
+  `docs/adr/adr-149-pack-owned-model-dispatch.md`), defaulting to medium for
+  every model — overridable per delegation, never left implicit. The default
+  is uniform because no effort benchmarking exists yet: all scored runs used
+  Codex medium effort, and it was sufficient everywhere tested. Changing a
+  model's default effort is a benchmark result, not a preference, and gets set
+  only when a replay measures one; escalation changes the model tier, not the
+  effort dial.
+- The two adapters validate different enums, each a literal in its own
+  script: `claude-worker.py` accepts `low|medium|high|xhigh|max`;
+  `codex-worker.py` accepts `minimal|low|medium|high|xhigh` (unvalidated
+  locally by the Codex CLI itself). See
+  `docs/scope/149-probes/effort-enums.md`.
 - Spark's value is latency: use for tight edit-test loops and mockup iteration, not judgment.
 - Opus spends ~4–5× Haiku's tokens on the same exploration prompt; route it only where the depth is the point.
 
