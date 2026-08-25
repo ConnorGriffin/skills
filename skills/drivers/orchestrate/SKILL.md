@@ -225,6 +225,28 @@ converted: `code-review` (issue #151), `plan-review` (issue #152),
 use the adapters. A future skill that dispatches a model converts behind its
 own issue before the ban binds it.
 
+## Collect child results
+
+This contract binds every model dispatch owned by this pack.
+
+Before each dispatch, the coordinator records the child's prompt file, its
+coordinator-owned state file, and its durable result locator. Write the complete
+prompt bytes to session scratch and pass that file's contents as the selected
+adapter's positional prompt. Use one state file per dispatch; state is lifecycle
+metadata only, never the child result.
+
+The result locator is the artifact that carries the child's answer: captured
+launcher stdout, a named worktree or branch for implementation changes, or a
+posted comment when the child declares that handoff. Use the adapter's start,
+resume, stop, and verify surface without restating its command mechanics.
+
+A coordinator never ends a turn solely because a child is unfinished, and it
+does not treat a completion notification as the result. After dispatching every
+child that is ready to run, if it must pause, it monitors one named launcher,
+state, stdout, worktree or branch, or posted-comment artifact. It then collects
+the result from the recorded result locator and verifies it under this skill's
+existing rules.
+
 ## Maintenance
 
 The table is provenance-stamped. When a new model ships, replay the benchmark
