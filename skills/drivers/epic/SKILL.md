@@ -69,6 +69,38 @@ Before filing a build, require every relevant load-bearing ruling in the reposit
 
 Use native `blocked-by` edges for actual dependencies. A follow-up required to reach the epic destination is an in-scope native child. A follow-up outside that destination is also filed as a native child, receives its `spike` or `build` type plus `deferred`, and is reported on the originating ticket. Ordinary builds still receive `build` from ticket triage.
 
+## Delegated execution
+
+The operator may explicitly and revocably delegate a locked epic subtree to
+the home session when every order is stamped or every needed ruling is settled.
+Attended sessions remain the default; any newly opened decision returns that
+subtree to attended mode.
+
+The home session remains the epic ledger's sole writer. For delegated triage it
+dispatches a worker through the existing `$ticket triage` interface; for a
+delegated build it dispatches a worker through the existing `$ticket start`
+interface. Those workers use their existing ticket contracts and post stamped
+work orders, session-fit, and completed work products through tracker comments.
+
+The home session dispatches only through the pack adapters, with prompt text
+passed positionally from coordinator-owned session-scratch prompt files and one
+coordinator-owned state file per dispatch. Do not add adapter flags or alter
+adapter mechanics.
+
+Work delegated to the home session proceeds in waves. Before each fan-out, draw
+a conflict map from the queued expected diffs and verify that the shared checkout
+equals the current origin default-branch tip. Fan out every read-only draft and
+review in parallel. Serialize only write-bearing triage and build steps whose
+expected diffs overlap; builds use per-issue worktrees, tickets editing the same
+files run in order, and pull requests merge one at a time with a rebase when a
+shared surface is touched. Before dispatching a build or review worker, verify
+that its target worktree is at, or descends from, the current origin
+default-branch tip; refuse a stale target.
+
+Collect child results under `orchestrate`'s `## Collect child results` section.
+Permit a human merge only after green CI and passed review. Surface a failure
+after the applicable routing ladder is exhausted; do not retry past that ladder.
+
 ## Resolve spikes
 
 For a research spike, run `$research` in a temporary per-spike worktree. The worker returns the required Markdown findings to the home session. The home session writes the Markdown file required by its public interface, posts that returned content under the exact heading `## Findings`, verifies the `## Findings` comment, removes the temporary worktree and its unshipped file, and only then closes the spike.
