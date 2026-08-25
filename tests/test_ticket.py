@@ -53,6 +53,21 @@ SESSION_FIT_MODEL_CHECK_BODY = (
     "refused. Never run part of it, and never launch an agent smarter than the "
     "coordinator."
 )
+BUILDER_SELF_CHECK_BODY = (
+    "Before declaring the change ready, run each check below.\n"
+    "\n"
+    "1. **External surface by execution.** Before coding against a CLI or API surface, "
+    "run `--help` or a probe call against that surface; do not infer flags, arguments, "
+    "or behavior from memory.\n"
+    "2. **Fail-first tests.** Before production edits, run every new test against the "
+    "pre-change behavior or a deliberately broken variant and observe the expected "
+    "failure. A fake that accepts every input or a mock of the function under test is "
+    "not evidence.\n"
+    "3. **Boundaries by execution.** Prove a security or confinement claim by attempting "
+    "the forbidden action in a real run; configuration inspection alone is not evidence.\n"
+    "4. **Post-fix sweep.** After each late fix, sweep its affected path for uncalled "
+    "symbols, dead parameters, and prose that still describes the pre-fix behavior."
+)
 
 TICKET_CHUNK_WORKER_ADAPTER_DISPATCH = """3. **Dispatch one agent per chunk** at the tier its `Agent:` line names. The
    coordinator supplies the selected adapter, the explicit worker model resolved for
@@ -167,6 +182,24 @@ def assistant_line(
 
 
 class TicketSkillContractTests(unittest.TestCase):
+    def test_builder_self_check_is_pinned_in_flat_and_chunked_builder_guidance(self):
+        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
+            encoding="utf-8"
+        )
+        sub_order = template.split("SUB-ORDER 1/<n>", 1)[1].split("```", 1)[0]
+        start_body = start.split("### Builder self-check\n\n", 1)[1].split(
+            "\n\n8. **Implement.**", 1
+        )[0]
+        sub_order_body = sub_order.split("### Builder self-check\n\n", 1)[1].split(
+            "\n\nDo\n", 1
+        )[0]
+
+        self.assertEqual(start_body, BUILDER_SELF_CHECK_BODY)
+        self.assertEqual(sub_order_body, BUILDER_SELF_CHECK_BODY)
+        self.assertEqual(start.count("### Builder self-check"), 1)
+        self.assertEqual(sub_order.count("### Builder self-check"), 1)
+
     def test_flat_session_fit_is_produced_and_consumed(self):
         template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
             encoding="utf-8"
