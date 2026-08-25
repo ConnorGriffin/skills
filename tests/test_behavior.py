@@ -89,6 +89,26 @@ dispatch the coordinator writes the exact chat-delivered plan bytes to an
 immutable session-scratch file and supplies only that file's path as the plan
 location. The worker receives no chat transcript or author-session context."""
 
+PERSONA_REVIEW_PANELIST_DISPATCH = """\
+The coordinator supplies the selected adapter, explicit reviewer model, and explicit
+reviewer effort. For each panelist, dispatch only through
+`skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected adapter's
+read-only review surface. Never use the built-in Agent tool, Workflow tool, or
+background-agent machinery.
+
+Each dispatch has one coordinator-owned state file under the coordinator's
+session-scratch directory. Use the adapter's start, resume, stop, and verify surface;
+adapter state, same-worker resume, and recovery remain adapter-owned.
+
+The coordinator keeps the non-sensitive positional prompt text in session scratch and
+passes that text to the selected adapter. The prompt tells the panelist to read the
+document, its private persona profile, relevant review-log entries, and relevant
+override rulings from their existing locations; review cold without access to another
+panelist's output or the synthesis; and return positions, blocking or note conditions,
+and approval or refusal. The prompt contains no persona name, simulation label, mine
+date, panel narrative, or profile, review-log, or override content."""
+
 REVIEW_ROUTING_CONTRACT = """\
 This reference is the sole live authority for reviewer classification, reviewer
 eligibility, and reviewer-model precedence. The benchmark authority remains
@@ -3192,6 +3212,32 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
         self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION)
 
 
+class PersonaReviewAdapterDispatchTests(unittest.TestCase):
+    SKILL = ROOT / "skills" / "tools" / "persona-review" / "SKILL.md"
+
+    def setUp(self):
+        self.text = self.SKILL.read_text(encoding="utf-8")
+
+    def test_panelist_dispatch_section_is_byte_identical(self):
+        dispatch = self.text.split("## Panelist dispatch\n\n", 1)[1].split(
+            "\n\n## Cold review, per persona", 1
+        )[0]
+        self.assertEqual(dispatch, PERSONA_REVIEW_PANELIST_DISPATCH)
+
+    def test_serial_no_lookback_fallback_is_preserved(self):
+        remainder = self.text.split("## Cold review, per persona\n\n", 1)[1]
+        self.assertIn("\n\n## Synthesis\n", remainder)
+        cold_review = remainder.split("\n\n## Synthesis", 1)[0]
+        self.assertIn(
+            "Where adapter dispatch isn't available, review personas serially in the main session,",
+            cold_review,
+        )
+        self.assertIn(
+            "deliberately not looking back at an earlier persona's output while forming the next one's position.",
+            cold_review,
+        )
+
+
 class WorkerLifecycleContractTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -4846,7 +4892,7 @@ class DelegationAuthorityContractTests(unittest.TestCase):
     def test_persona_review_keeps_conditional_serial_fallback_without_authority(self):
         self.assertNotIn(self.AUTHORIZATION, self.PERSONA_REVIEW)
         self.assertIn(
-            "Where subagents aren't available, review personas serially in the main session",
+            "Where adapter dispatch isn't available, review personas serially in the main session",
             self.PERSONA_REVIEW,
         )
 

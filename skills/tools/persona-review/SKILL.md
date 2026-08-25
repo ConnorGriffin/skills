@@ -135,12 +135,33 @@ review starts, state the panel and, for each pick, the one-line reason it was ch
 Prefer roster personas; invent only when no roster persona's concerns cover a topic
 the document raises.
 
+## Panelist dispatch
+
+The coordinator supplies the selected adapter, explicit reviewer model, and explicit
+reviewer effort. For each panelist, dispatch only through
+`skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected adapter's
+read-only review surface. Never use the built-in Agent tool, Workflow tool, or
+background-agent machinery.
+
+Each dispatch has one coordinator-owned state file under the coordinator's
+session-scratch directory. Use the adapter's start, resume, stop, and verify surface;
+adapter state, same-worker resume, and recovery remain adapter-owned.
+
+The coordinator keeps the non-sensitive positional prompt text in session scratch and
+passes that text to the selected adapter. The prompt tells the panelist to read the
+document, its private persona profile, relevant review-log entries, and relevant
+override rulings from their existing locations; review cold without access to another
+panelist's output or the synthesis; and return positions, blocking or note conditions,
+and approval or refusal. The prompt contains no persona name, simulation label, mine
+date, panel narrative, or profile, review-log, or override content.
+
 ## Cold review, per persona
 
 Each panelist reviews independently and cold: no visibility into the document under
 any other panelist's read, and no access to the panel's eventual synthesis while
-forming its own position. Where the harness supports it, run each panelist in its own
-subagent, handing it only:
+forming its own position. Follow [Panelist dispatch](#panelist-dispatch) for each
+panelist, handing it only:
 
 - The document under review.
 - That persona's profile (stances, style, evidence quotes) — the panelist's only
@@ -152,9 +173,8 @@ subagent, handing it only:
   already closed — do not re-raise them unless the document reopens the grounds for
   them).
 
-Where subagents aren't available, review personas serially in the main session,
-deliberately not looking back at an earlier persona's output while forming the next
-one's position.
+Where adapter dispatch isn't available, review personas serially in the main session,
+deliberately not looking back at an earlier persona's output while forming the next one's position.
 
 Each panelist's output: positions taken, conditions imposed (each marked **blocking**
 or **note**), and an approval or refusal — all in the persona's voice, grounded in its
