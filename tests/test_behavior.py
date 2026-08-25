@@ -140,7 +140,7 @@ after the applicable routing ladder is exhausted; do not retry past that ladder.
 # closed prompt allowlist, and worker-isolation. The skill's section is pinned
 # byte-for-byte against this constant, so any prose edit inside it — of any
 # phrasing — fails by construction rather than by pattern matching.
-PLAN_REVIEW_COLD_READER_DISPATCH = """\
+PLAN_REVIEW_COLD_READER_DISPATCH = b"""
 At the standard skill root, when `orchestrate` is installed, read its
 `references/review-routing.md` and `references/routing-table.md` directly before
 dispatch. Use the four-row reviewer matrix and apply its Claude-parent Codex
@@ -170,13 +170,38 @@ The cold-reader prompt contains exactly:
 1. plan location;
 2. the five-axis rubric;
 3. stakes tier; and
-4. a context-free fresh-reviewer phase instruction.
+4. a context-free fresh-reviewer phase instruction that requires the reviewer
+   to read [drafting conventions](../../drivers/ticket/references/drafting-conventions.md).
 
 The prompt excludes earlier findings, author rationale, chat history, and all
 other author/coordinator-session material. For a chat-delivered plan, before
 dispatch the coordinator writes the exact chat-delivered plan bytes to an
 immutable session-scratch file and supplies only that file's path as the plan
-location. The worker receives no chat transcript or author-session context."""
+location. The worker receives no chat transcript or author-session context.
+
+For every review invocation, the caller creates one coordinator-owned
+session-scratch file named `plan-review-mechanical-fixes.md`. For a durable plan,
+place it in that review invocation's session scratch and record the durable plan
+locator and immutable revision. For a chat-delivered plan, place it beside the
+immutable session-scratch plan file and record that plan file path.
+
+Each entry has exactly: finding; exact correction; reviewer re-check result. The
+file is review-round evidence, never a worker result or a committed repository
+artifact.
+"""
+
+MECHANICAL_FIX_IN_PLACE_BODY = b"""
+A coordinator may correct a cold-review finding in the order without opening a
+rewrite-plus-review round only when both the finding and its correction are
+deterministic and mechanical: for example, a wrong heading anchor, a missing exact
+string, or nondeterministic command ordering.
+
+Record the finding and the exact correction in the round ledger, then have the
+current reviewer re-check the changed order bytes in that same round. A correction
+that requires judgment, changes a decision, changes scope, or reopens a settled
+ruling stays in the panel-or-operator path and does consume the ordinary revision
+cycle.
+"""
 
 DESIGN_IT_TWICE_ADAPTER_DISPATCH = """\
 The coordinator supplies the selected adapter, explicit design-agent model, and
@@ -3412,19 +3437,39 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
     SKILL = ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
 
     def setUp(self):
-        self.text = self.SKILL.read_text(encoding="utf-8")
+        self.source = self.SKILL.read_bytes()
 
     def test_cold_reader_dispatch_section_is_byte_identical(self):
-        dispatch = self.text.split("## Cold-reader dispatch\n\n", 1)[1].split(
-            "\n\n## The rubric", 1
-        )[0]
+        opening = b"## Cold-reader dispatch\n"
+        closing = b"## Mechanical fix in place\n"
+        self.assertEqual(self.source.count(opening), 1)
+        self.assertEqual(self.source.count(closing), 1)
+        dispatch = self.source.split(opening, 1)[1].split(closing, 1)[0]
         self.assertEqual(dispatch, PLAN_REVIEW_COLD_READER_DISPATCH)
 
-    def test_mandatory_independent_review_authority_is_preserved(self):
-        authority = self.text.split("## Delegation authority\n\n", 1)[1].split(
-            "\n\n## Cold-reader dispatch", 1
+    def test_mechanical_fix_in_place_section_is_byte_identical(self):
+        opening = b"## Mechanical fix in place\n"
+        closing = b"## The rubric\n"
+        self.assertEqual(self.source.count(opening), 1)
+        self.assertEqual(self.source.count(closing), 1)
+        body = self.source.split(opening, 1)[1].split(closing, 1)[0]
+        self.assertEqual(body, MECHANICAL_FIX_IN_PLACE_BODY)
+
+    def test_caller_owned_round_ledger_covers_both_plan_locations(self):
+        dispatch = self.source.split(b"## Cold-reader dispatch\n", 1)[1].split(
+            b"## Mechanical fix in place\n", 1
         )[0]
-        self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION)
+        self.assertIn(b"For a durable plan", dispatch)
+        self.assertIn(b"durable plan\nlocator and immutable revision", dispatch)
+        self.assertIn(b"For a chat-delivered plan", dispatch)
+        self.assertIn(b"record that plan file path", dispatch)
+        self.assertIn(b"plan-review-mechanical-fixes.md", dispatch)
+
+    def test_mandatory_independent_review_authority_is_preserved(self):
+        authority = self.source.split(b"## Delegation authority\n\n", 1)[1].split(
+            b"\n\n## Cold-reader dispatch", 1
+        )[0]
+        self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION.encode())
 
 
 class EvidenceBlockContractTests(unittest.TestCase):

@@ -165,7 +165,8 @@ the branch, and its change record already belongs to the parent epic.
     say so in the order's Context, and continue with the default workflow. Stamp
     `Profile: none` on every chunked order: the profile is flat-only.
 
-11. **Draft the work order.** Apply
+11. **Draft the work order.** Read
+    [drafting conventions](../references/drafting-conventions.md), apply
     [references/brief-quality.md](../references/brief-quality.md), then fill
     [templates/work-order.md](../templates/work-order.md), the flat shape or the
     chunked shape per step 8, and run that page's two authoring checks before the

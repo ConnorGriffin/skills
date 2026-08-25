@@ -13,8 +13,9 @@ The subject can be anything plan-shaped: a GitHub issue, an agent work order, a
 PRD, a design doc, a chat-message plan. If the user didn't point at one, ask
 what to review — don't guess.
 
-**Read-only.** A plan review never edits code and never fixes the plan itself.
-It produces objections and a verdict; revising the plan is the author's job.
+**Read-only reviewer.** A plan review never edits code, and the reviewer never
+independently edits the order. It produces objections and a verdict. The caller-owned
+exception is defined in [Mechanical fix in place](#mechanical-fix-in-place).
 
 ## Evidence v2
 
@@ -77,7 +78,8 @@ The cold-reader prompt contains exactly:
 1. plan location;
 2. the five-axis rubric;
 3. stakes tier; and
-4. a context-free fresh-reviewer phase instruction.
+4. a context-free fresh-reviewer phase instruction that requires the reviewer
+   to read [drafting conventions](../../drivers/ticket/references/drafting-conventions.md).
 
 The prompt excludes earlier findings, author rationale, chat history, and all
 other author/coordinator-session material. For a chat-delivered plan, before
@@ -85,6 +87,27 @@ dispatch the coordinator writes the exact chat-delivered plan bytes to an
 immutable session-scratch file and supplies only that file's path as the plan
 location. The worker receives no chat transcript or author-session context.
 
+For every review invocation, the caller creates one coordinator-owned
+session-scratch file named `plan-review-mechanical-fixes.md`. For a durable plan,
+place it in that review invocation's session scratch and record the durable plan
+locator and immutable revision. For a chat-delivered plan, place it beside the
+immutable session-scratch plan file and record that plan file path.
+
+Each entry has exactly: finding; exact correction; reviewer re-check result. The
+file is review-round evidence, never a worker result or a committed repository
+artifact.
+## Mechanical fix in place
+
+A coordinator may correct a cold-review finding in the order without opening a
+rewrite-plus-review round only when both the finding and its correction are
+deterministic and mechanical: for example, a wrong heading anchor, a missing exact
+string, or nondeterministic command ordering.
+
+Record the finding and the exact correction in the round ledger, then have the
+current reviewer re-check the changed order bytes in that same round. A correction
+that requires judgment, changes a decision, changes scope, or reopens a settled
+ruling stays in the panel-or-operator path and does consume the ordinary revision
+cycle.
 ## The rubric
 
 Judge the plan on exactly these five axes. For axes 3 and 4, ground in the

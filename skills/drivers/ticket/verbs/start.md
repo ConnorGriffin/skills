@@ -68,9 +68,10 @@ Before declaring the change ready, run each check below.
 3. **Boundaries by execution.** Prove a security or confinement claim by attempting the forbidden action in a real run; configuration inspection alone is not evidence.
 4. **Post-fix sweep.** After each late fix, sweep its affected path for uncalled symbols, dead parameters, and prose that still describes the pre-fix behavior.
 
-8. **Implement.** Read the repo's `AGENTS.md` or `CLAUDE.md` first; its rules bind
-   everything you write on this branch. Never add or edit one yourself; if the repo
-   has none, work to the user's global standards. Follow the order's Do section.
+8. **Implement.** Read [drafting conventions](../references/drafting-conventions.md)
+   with the locked order, then read the repo's `AGENTS.md` or `CLAUDE.md`; its rules
+   bind everything you write on this branch. Never add or edit one yourself; if the
+   repo has none, work to the user's global standards. Follow the order's Do section.
    Match the repo's existing idioms, reading neighboring code first. Record the
    change where the repo already records changes, on the same branch, per the skill
    page's change-record rule. An epic child creates no change record: the parent

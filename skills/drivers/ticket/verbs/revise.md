@@ -38,9 +38,11 @@ long ago and the pull request is one diff.
    before actioning the round. Absent, say so in one line and continue. This never
    refuses the round.
 
-4. **Collect the round.** Unresolved review comments (human and automated), failing
-   checks, and any new verification output CI posted. List them before touching
-   code.
+4. **Collect the round.** Read
+   [drafting conventions](../references/drafting-conventions.md) before evaluating
+   an order revision. Then collect unresolved review comments (human and automated),
+   failing checks, and any new verification output CI posted. List them before
+   touching code.
 
 5. **Judge, then fix.** Ground every item and classify it with
    [references/review-actions.md](../references/review-actions.md). Never silently
