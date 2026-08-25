@@ -75,6 +75,36 @@ For a research spike, run `$research` in a temporary per-spike worktree. The wor
 
 Close the spike issue only after that verification. Only then derive its `Spikes` and `Decisions` ledger lines, update `Status`, commit with DCO sign-off, and push the standing planning branch. A failed worker leaves the spike `dispatched`; it is not resolved by inference. Interview and mockup spikes run as fresh attended sessions.
 
+## Worker dispatch
+
+The coordinator supplies the selected adapter, explicit worker model, and explicit
+worker effort. Dispatch only through
+`skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in Agent
+tool, Workflow tool, or background-agent machinery.
+
+For each research spike, the coordinator owns
+`<session-scratch>/epic-research-<spike-id>.state` and
+`<session-scratch>/epic-research-<spike-id>.prompt`. The prompt identifies its
+recipient as the already-dispatched research worker, directs that worker to research
+directly without dispatching another worker, and states the research question, required
+Markdown output, temporary-worktree boundary, and return-and-verification contract.
+Write that complete brief to the prompt file, then pass its exact contents as the
+selected adapter's positional prompt.
+
+Start the worker through the adapter's `workspace-write` surface with the temporary
+per-spike worktree as its cwd and the coordinator checkout as its control checkout.
+Use the adapter's start, resume, stop, and verify surface. Preserve adapter-owned
+state, same-worker resume, and coordinator-owned recovery; do not restate adapter argv
+or lifecycle mechanics here.
+
+Reject a nonzero adapter invocation. For a successful invocation, read its
+`final_message` as the Markdown result returned to the home session, then follow the
+existing `## Findings` posting and verification rule. Do not close the spike as
+successful without that verified result. Remove the prompt file after the home session
+verifies the `## Findings` comment, or after it reports a failed worker. Never commit
+the prompt file or state file.
+
 ## Deferred child close-out
 
 Before archive, sweep each deferred child from live GitHub state. A human must choose exactly one disposition:
