@@ -44,6 +44,7 @@ updated: 2026-08-25
 - #163 Coordinator wait protocol: collect child results, never idle-wait — filed
 - #164 Triage evidence blocks command-generated verbatim — filed
 - #165 Builder self-check distilled from review blockers — filed
+- #171 Review-process tuning (conventions preamble, fix-in-place rule, depth-floor qualifier) — filed; item 3 needs an operator ruling before build
 - #145 Claude-parent Codex reviewer dispatch reference — merged
 - #146 Pre-authorize required review delegation — merged
 - #139 Triage stamps session-fit preamble into work orders — in-progress
