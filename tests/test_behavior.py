@@ -2442,6 +2442,208 @@ class OrchestrateAdapterDispatchTests(unittest.TestCase):
         self.assertIn("defaulting to medium", table)
 
 
+class CodeReviewAdapterProtocolTests(unittest.TestCase):
+    """Execute the coordinator contract through the public adapter CLIs."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name)
+        self.worktree = self.root / "worktree"
+        self.worktree.mkdir()
+        self.events = self.root / "events.log"
+        self.release = self.root / "release"
+        self.binary = self.root / "fake-reviewer"
+        self.binary.write_text(
+            """#!/usr/bin/env python3
+import json, os, pathlib, sys, time
+
+arguments = sys.argv[1:]
+is_claude = arguments[:1] == ["-p"]
+prompt = sys.stdin.read() if is_claude else arguments[-1]
+if "axis=" not in prompt:
+    raise SystemExit("missing axis prompt")
+axis = prompt.split("axis=", 1)[1].split()[0].rstrip(";")
+if is_claude:
+    required = {"--model", "--effort", "--permission-mode", "--settings", "--session-id", "--output-format"}
+    if not required.issubset(arguments) or arguments[arguments.index("--output-format") + 1] != "json":
+        raise SystemExit("unexpected Claude adapter argv")
+    if prompt in arguments:
+        raise SystemExit("Claude prompt leaked into argv")
+else:
+    required = {"exec", "-m", "-c", "--sandbox", "--skip-git-repo-check", "-C", "--json"}
+    if not required.issubset(arguments) or arguments[-1] != prompt:
+        raise SystemExit("unexpected Codex adapter argv")
+
+events = pathlib.Path(os.environ["REVIEW_EVENTS"])
+with events.open("a", encoding="utf-8") as handle:
+    handle.write(f"start {axis}\\n")
+if axis == os.environ.get("REVIEW_HOLD_AXIS"):
+    pathlib.Path(os.environ["REVIEW_HELD"]).touch()
+    while not pathlib.Path(os.environ["REVIEW_RELEASE"]).exists():
+        time.sleep(0.01)
+if axis == os.environ.get("REVIEW_FAIL_AXIS"):
+    raise SystemExit(17)
+with events.open("a", encoding="utf-8") as handle:
+    handle.write(f"end {axis}\\n")
+if is_claude:
+    print(json.dumps({"session_id": axis, "result": f"answer-{axis}", "is_error": False}))
+else:
+    print(json.dumps({"type": "thread.started", "thread_id": axis}))
+    print(json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": f"answer-{axis}"}}))
+""",
+            encoding="utf-8",
+        )
+        self.binary.chmod(0o755)
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def coordinate(self, adapter, admitted, *, hold_axis=None, fail_axis=None, broken=None):
+        state_dir = self.root / f"state-{adapter}-{broken or 'correct'}-{len(list(self.root.glob('state-*')))}"
+        state_dir.mkdir()
+        self.events.unlink(missing_ok=True)
+        self.release.unlink(missing_ok=True)
+        (self.root / "held").unlink(missing_ok=True)
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "CODEX_HOME": str(self.root / "codex-home"),
+                "REVIEW_EVENTS": str(self.events),
+                "REVIEW_HELD": str(self.root / "held"),
+                "REVIEW_RELEASE": str(self.release),
+                "REVIEW_HOLD_AXIS": hold_axis or "",
+                "REVIEW_FAIL_AXIS": fail_axis or "",
+            }
+        )
+        worker = CODEX_WORKER if adapter == "codex" else CLAUDE_WORKER
+        option = "--codex" if adapter == "codex" else "--claude"
+        model = "Terra" if adapter == "codex" else "sonnet"
+        axes = (*admitted, "spec") if broken == "launch-unadmitted-spec" else admitted
+        launches = {}
+        artifacts = {}
+        actions = []
+        for axis in axes:
+            if broken == "serial" and launches:
+                self.release.touch()
+                launches[next(reversed(launches))]["process"].wait(timeout=3)
+            state = state_dir / f"{axis}.json"
+            stdout = state_dir / f"{axis}.stdout"
+            stderr = state_dir / f"{axis}.stderr"
+            command = [
+                sys.executable, str(worker), "start", option, str(self.binary), "--state", str(state),
+                "--model", model, "--sandbox", "read-only", "--effort", "high", "--cwd", str(self.worktree),
+                f"axis={axis}; do not modify, patch, or stash",
+            ]
+            out = stdout.open("w", encoding="utf-8")
+            err = stderr.open("w", encoding="utf-8")
+            launches[axis] = {"process": subprocess.Popen(command, cwd=ROOT, env=environment, stdin=subprocess.DEVNULL, stdout=out, stderr=err), "state": state, "out": out, "err": err}
+            artifacts[axis] = (stdout, stderr)
+        deadline = time.monotonic() + 3
+        expected_starts = {f"start {axis}" for axis in axes}
+        while time.monotonic() < deadline:
+            started_before_release = self.events.read_text(encoding="utf-8").splitlines() if self.events.exists() else []
+            if expected_starts.issubset(started_before_release):
+                break
+            time.sleep(0.01)
+        if hold_axis and broken != "partial-no-cleanup":
+            self.release.touch()
+
+        result = {"artifacts": artifacts, "actions": actions, "answers": {}, "returncodes": {}, "started_before_release": started_before_release, "joined": []}
+        if fail_axis and fail_axis in launches:
+            failure = launches[fail_axis]["process"]
+            result["returncodes"][fail_axis] = failure.wait(timeout=3)
+            result["joined"].append(fail_axis)
+            if result["returncodes"][fail_axis] and broken != "ignore-nonzero":
+                survivor = next(axis for axis in admitted if axis != fail_axis)
+                claim = launches[survivor]
+                deadline = time.monotonic() + 3
+                while time.monotonic() < deadline and claim["process"].poll() is None and not claim["state"].exists():
+                    time.sleep(0.01)
+                result["recoverable"] = claim["state"].exists()
+                if result["recoverable"] and broken != "partial-no-cleanup":
+                    for operation in ("stop", "verify"):
+                        cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(claim["state"]), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
+                        self.assertEqual(cleanup.returncode, 0, cleanup.stderr)
+                        actions.append((operation, survivor))
+                result["error"] = f"{fail_axis} exited {result['returncodes'][fail_axis]}"
+                if broken == "partial-no-cleanup":
+                    self.release.touch()
+        for axis, claim in launches.items():
+            if axis in result["returncodes"]:
+                continue
+            result["returncodes"][axis] = claim["process"].wait(timeout=3)
+            result["joined"].append(axis)
+            if result["returncodes"][axis] and broken != "ignore-nonzero":
+                result["error"] = f"{axis} exited {result['returncodes'][axis]}"
+            elif not result["returncodes"][axis] and broken != "state-answer":
+                result["answers"][axis] = json.loads(artifacts[axis][0].read_text(encoding="utf-8"))["final_message"]
+        for claim in launches.values():
+            claim["out"].close()
+            claim["err"].close()
+        result["events"] = self.events.read_text(encoding="utf-8").splitlines()
+        return result
+
+    def assert_broken_then_correct(self, broken, assertion, **arguments):
+        with self.assertRaises(AssertionError):
+            assertion(self.coordinate(broken=broken, **arguments))
+        assertion(self.coordinate(**arguments))
+
+    def test_portable_path_starts_second_axis_before_the_held_first_axis_finishes(self):
+        for adapter in ("codex", "claude"):
+            with self.subTest(adapter=adapter):
+                def concurrent(result):
+                    self.assertIn("start standards", result["started_before_release"])
+                    self.assertIn("start spec", result["started_before_release"])
+                    self.assertLess(result["events"].index("start spec"), result["events"].index("end standards"))
+                    self.assertEqual(result["joined"], ["standards", "spec"])
+
+                self.assert_broken_then_correct(
+                    "serial", concurrent, adapter=adapter, admitted=("standards", "spec"), hold_axis="standards"
+                )
+
+    def test_spec_unavailable_launches_only_standards(self):
+        for adapter in ("codex", "claude"):
+            with self.subTest(adapter=adapter):
+                def standards_only(result):
+                    self.assertEqual(result["joined"], ["standards"])
+                    self.assertEqual(set(result["artifacts"]), {"standards"})
+                    self.assertEqual(result["answers"], {"standards": "answer-standards"})
+
+                self.assert_broken_then_correct(
+                    "launch-unadmitted-spec", standards_only, adapter=adapter, admitted=("standards",)
+                )
+
+    def test_stdout_artifacts_supply_answers_and_nonzero_exits_are_rejected(self):
+        for adapter in ("codex", "claude"):
+            with self.subTest(adapter=adapter):
+                def successful(result):
+                    self.assertEqual(result["answers"], {"standards": "answer-standards", "spec": "answer-spec"})
+                    self.assertTrue(all(path.exists() for pair in result["artifacts"].values() for path in pair))
+                    self.assertNotIn("error", result)
+
+                self.assert_broken_then_correct(
+                    "state-answer", successful, adapter=adapter, admitted=("standards", "spec")
+                )
+                rejected = self.coordinate(adapter, ("standards", "spec"), fail_axis="spec")
+                self.assertEqual(rejected["error"], "spec exited 17")
+                with self.assertRaises(AssertionError):
+                    self.assertIn("error", self.coordinate(adapter, ("standards", "spec"), fail_axis="spec", broken="ignore-nonzero"))
+
+    def test_partial_launch_failure_waits_then_scoped_stop_and_verify_only_for_survivor(self):
+        for adapter in ("codex", "claude"):
+            with self.subTest(adapter=adapter):
+                def recovered(result):
+                    self.assertTrue(result["recoverable"])
+                    self.assertEqual(result["actions"], [("stop", "standards"), ("verify", "standards")])
+                    self.assertEqual(result["joined"], ["spec", "standards"])
+                    self.assertEqual(result["error"], "spec exited 17")
+
+                self.assert_broken_then_correct(
+                    "partial-no-cleanup", recovered, adapter=adapter, admitted=("standards", "spec"),
+                    hold_axis="standards", fail_axis="spec",
+                )
+
+
 class CodeReviewAdapterDispatchTests(unittest.TestCase):
     SKILL = ROOT / "skills" / "tools" / "code-review" / "SKILL.md"
     AUTHORIZATION = (
