@@ -170,6 +170,19 @@ unavailable alternative. With zero or one successful alternative, report that
 the design-it-twice pass did not produce enough alternatives and return to the
 interface-shape frontier; do not recommend a design."""
 
+PREFLIGHT_VERBATIM_COMMAND_OUTPUT = """\
+Every `command → output` evidence block is pasted verbatim from an actual command
+run. To abbreviate output, change the command so it produces the shorter output
+(for example, `grep -m` or `head`); never edit the captured output, insert
+ellipses, or drop matches. Manual edits are prohibited and require a **BLOCKED**
+verdict on their own."""
+
+PLAN_REVIEW_EVIDENCE_BLOCK_SPOT_CHECK = """\
+During the cold read, spot-check at least one `command → output` evidence block:
+run its recorded command and compare the complete result to the cited output.
+Treat a manual edit found in any evidence block as independently requiring a
+**BLOCKED** verdict."""
+
 PERSONA_REVIEW_PANELIST_DISPATCH = """\
 The coordinator supplies the selected adapter, explicit reviewer model, and explicit
 reviewer effort. For each panelist, dispatch only through
@@ -3312,6 +3325,25 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
             "\n\n## Cold-reader dispatch", 1
         )[0]
         self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION)
+
+
+class EvidenceBlockContractTests(unittest.TestCase):
+    def test_verbatim_evidence_sections_are_byte_identical(self):
+        preflight = (ROOT / "skills" / "tools" / "preflight" / "SKILL.md").read_bytes().decode(
+            "utf-8"
+        )
+        preflight_body = preflight.split("### Verbatim command output\n\n", 1)[1].split(
+            "\n\n## 2. First-hour spike", 1
+        )[0]
+        self.assertEqual(preflight_body, PREFLIGHT_VERBATIM_COMMAND_OUTPUT)
+
+        plan_review = (
+            ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
+        ).read_bytes().decode("utf-8")
+        plan_review_body = plan_review.split("### Evidence-block spot check\n\n", 1)[1].split(
+            "\n\n## Delegation authority", 1
+        )[0]
+        self.assertEqual(plan_review_body, PLAN_REVIEW_EVIDENCE_BLOCK_SPOT_CHECK)
 
 
 class PersonaReviewAdapterDispatchTests(unittest.TestCase):
