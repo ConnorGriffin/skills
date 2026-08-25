@@ -27,8 +27,8 @@ updated: 2026-08-24
 - #144 Route review skills through routing table — filed (reframed: final integration; blocked-by edges #145 #149 #151 #152; no order until they land)
 - #149 Universal effort dial and Claude CLI worker adapter — merged
 - #150 Extract shared worker lifecycle into one module — merged
-- #151 Dispatch code-review reviewers through pack adapters — pr:#167
-- #152 Dispatch plan-review cold reviewers through pack adapters — triaged (Terra / medium)
+- #151 Dispatch code-review reviewers through pack adapters — merged
+- #152 Dispatch plan-review cold reviewers through pack adapters — in-progress (Terra, on post-#151 main)
 - #153 Dispatch persona-review's panel through pack adapters — filed
 - #154 Dispatch ticket's chunk agents through pack adapters — filed
 - #155 Dispatch epic's workers through pack adapters — filed
@@ -46,6 +46,7 @@ updated: 2026-08-24
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 #151 — PR #167 merged after a base-drift CI failure (symbols moved by #150's refactor; Sol merged main and repointed by import-verification); #152 build dispatched on the settled base, instructed to reuse #151's test harness
 - 2026-08-25 #151 — built through 3 review rounds; Terra failed the portable-recovery criterion twice, escalated to Sol per ladder (operator amended ladder: Sol failure now escalates to Opus 5 before surfacing); Sol's fix proved both native and portable paths; PR #167 opened
 - 2026-08-25 #150 — fix round closed both blockers (dead gate_wait removed, unmocked Claude lifecycle coverage); PR #166 merged on green CI
 - 2026-08-25 #151 #152 #165 — both dispatch orders countersigned and stamped (Terra/medium) after multi-round Sol cold review; #151 building (#152 serialized behind it, shared test module); #165 filed distilling 4 blocker patterns into builder self-check
