@@ -27,7 +27,7 @@ updated: 2026-08-24
 - #144 Route review skills through routing table — filed (reframed: final integration; blocked-by edges #145 #149 #151 #152; no order until they land)
 - #149 Universal effort dial and Claude CLI worker adapter — merged
 - #150 Extract shared worker lifecycle into one module — in-progress (review FIX round: dead gate_wait, mocked parity test)
-- #151 Dispatch code-review reviewers through pack adapters — in triage round 3 (mechanics-only rescope; join-protocol hardening)
+- #151 Dispatch code-review reviewers through pack adapters — in-progress (Terra; countersigned after 3 rounds)
 - #152 Dispatch plan-review cold reviewers through pack adapters — triaged (Terra / medium)
 - #153 Dispatch persona-review's panel through pack adapters — filed
 - #154 Dispatch ticket's chunk agents through pack adapters — filed
@@ -37,6 +37,7 @@ updated: 2026-08-24
 - #159 Delegated-execution mode for the epic home session — filed (behind #155)
 - #163 Coordinator wait protocol: collect child results, never idle-wait — filed
 - #164 Triage evidence blocks command-generated verbatim — filed
+- #165 Builder self-check distilled from review blockers — filed
 - #145 Claude-parent Codex reviewer dispatch reference — merged
 - #146 Pre-authorize required review delegation — merged
 - #139 Triage stamps session-fit preamble into work orders — in-progress
@@ -45,6 +46,7 @@ updated: 2026-08-24
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 #151 #152 #165 — both dispatch orders countersigned and stamped (Terra/medium) after multi-round Sol cold review; #151 building (#152 serialized behind it, shared test module); #165 filed distilling 4 blocker patterns into builder self-check
 - 2026-08-24 #149 — PR #162 merged after conflict resolution with #161 (coordinator reconciled both SKILL.md rewrites, kept both test pins); #150 build dispatched (Sol), #151 #152 triage drafts dispatched (Terra)
 - 2026-08-24 #149 — chunked build complete over 3 review rounds (caught invalid --cwd flag, live $HOME sandbox escape, stale reference shape); PR #162 opened, Sol voice-judged the body; merge on green
 - 2026-08-24 #145 — PR #161 merged on green CI after base update; #144's blockers now down to #149 #151 #152
