@@ -29,6 +29,7 @@ CBM_LIFECYCLE = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-lif
 SPIN_SCRIPT = ROOT / "skills" / "tools" / "spin-worktree" / "scripts" / "spin-worktree.py"
 CODEX_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "codex-worker.py"
 CLAUDE_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "claude-worker.py"
+WORKER_LIFECYCLE = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "worker_lifecycle.py"
 UI_CRAFT_AUDIT = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "audit.md"
 UI_CRAFT_CRITIQUE = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "critique.md"
 UI_CRAFT_SWEEP = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "behavior-sweep.md"
@@ -36,6 +37,12 @@ UI_CRAFT_ROUTE = ROOT / "skills" / "drivers" / "ui-craft" / "scripts" / "route.m
 README = ROOT / "README.md"
 BEGIN_IGNORE = "# >>> cbm-onboard managed baseline — do not edit inside this block >>>"
 BEGIN_HOOK = "# >>> cbm-onboard managed reindex >>>"
+
+LIFECYCLE_SPEC = importlib.util.spec_from_file_location("worker_lifecycle", WORKER_LIFECYCLE)
+assert LIFECYCLE_SPEC and LIFECYCLE_SPEC.loader
+LIFECYCLE_MODULE = importlib.util.module_from_spec(LIFECYCLE_SPEC)
+sys.modules["worker_lifecycle"] = LIFECYCLE_MODULE
+LIFECYCLE_SPEC.loader.exec_module(LIFECYCLE_MODULE)
 
 WORKER_SPEC = importlib.util.spec_from_file_location("orchestrate_worker", CODEX_WORKER)
 assert WORKER_SPEC and WORKER_SPEC.loader
@@ -2213,7 +2220,7 @@ class WorkerEffortDialTests(unittest.TestCase):
 
     def test_codex_replays_persisted_effort_on_resume(self):
         legacy = {
-            "version": WORKER_MODULE.STATE_VERSION, "lifecycle": "exited",
+            "version": LIFECYCLE_MODULE.STATE_VERSION, "lifecycle": "exited",
             "session_id": "worker-1", "model": "Terra", "sandbox": "read-only",
             "cwd": str(self.worktree.resolve()), "effort": "high",
             "family_semantics": "unsupported", "generation": 1,
@@ -2279,7 +2286,7 @@ class WorkerEffortDialTests(unittest.TestCase):
 
     def test_claude_replays_persisted_effort_on_resume(self):
         legacy = {
-            "version": CLAUDE_WORKER_MODULE.STATE_VERSION, "lifecycle": "exited",
+            "version": LIFECYCLE_MODULE.STATE_VERSION, "lifecycle": "exited",
             "session_id": "worker-1", "model": "sonnet", "sandbox": "read-only",
             "cwd": str(self.worktree.resolve()), "effort": "high",
             "family_semantics": "unsupported", "generation": 1,
@@ -2337,7 +2344,7 @@ class WorkerEffortDialTests(unittest.TestCase):
             with self.subTest(sandbox=sandbox):
                 self.arguments.unlink(missing_ok=True)
                 legacy = {
-                    "version": CLAUDE_WORKER_MODULE.STATE_VERSION, "lifecycle": "exited",
+                    "version": LIFECYCLE_MODULE.STATE_VERSION, "lifecycle": "exited",
                     "session_id": "worker-1", "model": "sonnet", "sandbox": sandbox,
                     "cwd": str(self.worktree.resolve()),
                     "family_semantics": "unsupported", "generation": 1,
@@ -2392,18 +2399,66 @@ class WorkerEffortDialTests(unittest.TestCase):
         # schema superset, never in BASE_STATE_FIELDS, so a pre-existing state
         # file with no "effort" key stays valid at STATE_VERSION 2 and reads
         # back as the medium default on both adapters.
-        self.assertEqual(WORKER_MODULE.STATE_VERSION, 2)
-        self.assertEqual(CLAUDE_WORKER_MODULE.STATE_VERSION, 2)
+        self.assertEqual(LIFECYCLE_MODULE.STATE_VERSION, 2)
+        self.assertEqual(LIFECYCLE_MODULE.STATE_VERSION, 2)
         state = {
             "version": 2, "lifecycle": "running", "session_id": "s",
             "model": "Terra", "sandbox": "read-only", "cwd": str(self.worktree.resolve()),
             "pid": 1, "pgid": 1, "sid": 1, "birth": {"seconds": 1, "microseconds": 0},
         }
-        self.assertTrue(WORKER_MODULE.valid_family_schema(state))
+        self.assertTrue(
+            LIFECYCLE_MODULE.valid_family_schema(
+                state, effort_levels=WORKER_MODULE.EFFORT_LEVELS
+            )
+        )
         self.assertEqual(WORKER_MODULE.effort_of(state), "medium")
         state["model"] = "sonnet"
-        self.assertTrue(CLAUDE_WORKER_MODULE.valid_family_schema(state))
+        self.assertTrue(
+            LIFECYCLE_MODULE.valid_family_schema(
+                state, effort_levels=CLAUDE_WORKER_MODULE.EFFORT_LEVELS
+            )
+        )
         self.assertEqual(CLAUDE_WORKER_MODULE.effort_of(state), "medium")
+
+    def test_claude_max_effort_runs_start_resume_stop_and_verify_through_shared_lifecycle(self):
+        self.environment["FAKE_OUTPUT"] = json.dumps(
+            {"session_id": "worker-1", "result": "started", "is_error": False}
+        )
+        started = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--effort", "max",
+            "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(started.returncode, 0, started.stderr)
+        self.assertEqual(json.loads(started.stdout)["final_message"], "started")
+
+        self.environment["FAKE_OUTPUT"] = json.dumps(
+            {"session_id": "worker-1", "result": "resumed", "is_error": False}
+        )
+        resumed = self.run_claude(
+            "resume", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "continue",
+        )
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        self.assertEqual(json.loads(resumed.stdout)["final_message"], "resumed")
+        self.assertEqual(
+            json.loads(self.state.read_text(encoding="utf-8"))["effort"], "max"
+        )
+
+        for command in ("stop", "verify"):
+            with self.subTest(command=command):
+                result = self.run_claude(
+                    command, "--state", str(self.state), "--cwd", str(self.worktree)
+                )
+                if sys.platform == "darwin":
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(
+                        result.stderr,
+                        f"claude-worker: {LIFECYCLE_MODULE.UNSUPPORTED}\n",
+                    )
+                self.assertNotIn("malformed", result.stderr)
 
 
 class OrchestrateAdapterDispatchTests(unittest.TestCase):
@@ -2463,7 +2518,7 @@ class WorkerLifecycleContractTests(unittest.TestCase):
 
     def family_state(self, lifecycle="running", session_id="worker-1"):
         return {
-            "version": WORKER_MODULE.STATE_VERSION,
+            "version": LIFECYCLE_MODULE.STATE_VERSION,
             "lifecycle": lifecycle,
             "session_id": session_id,
             "model": "Terra",
@@ -2473,13 +2528,13 @@ class WorkerLifecycleContractTests(unittest.TestCase):
 
     def portable_state(self, generation=1):
         return {
-            "version": WORKER_MODULE.STATE_VERSION,
+            "version": LIFECYCLE_MODULE.STATE_VERSION,
             "lifecycle": "exited",
             "session_id": "worker-1",
             "model": "Terra",
             "sandbox": "read-only",
             "cwd": str(self.cwd),
-            "family_semantics": WORKER_MODULE.FAMILY_SEMANTICS_UNSUPPORTED,
+            "family_semantics": LIFECYCLE_MODULE.FAMILY_SEMANTICS_UNSUPPORTED,
             "generation": generation,
         }
 
@@ -2489,31 +2544,158 @@ class WorkerLifecycleContractTests(unittest.TestCase):
     def resume_arguments(self):
         return argparse.Namespace(state=self.state, codex="codex", prompt="continue")
 
+    def test_moved_lifecycle_names_have_one_patchable_owner(self):
+        """A moved-name re-export can make a patch resolve without intercepting."""
+        moved = (
+            "STATE_VERSION", "UNSUPPORTED", "FAMILY_SEMANTICS_UNSUPPORTED",
+            "TERMINAL", "TRANSITIONS", "PROC_PIDTBSDINFO",
+            "PROC_PIDVNODEPATHINFO", "BSD_SIZE", "VNODE_SIZE",
+            "VNODE_CWD_OFFSET", "PID_MAX", "UINT64_MAX", "resolved_directory",
+            "is_within", "state_lock", "atomic_write", "read_state", "transition",
+            "_bounded_integer", "_canonical_path", "BASE_STATE_FIELDS",
+            "_valid_common_schema", "valid_family_schema", "valid_portable_schema",
+            "_libproc", "live_identity", "group_members", "gated_process",
+            "establish_family", "finish_lifecycle", "run_portable",
+            "run_lifecycle", "family_state", "matching_leader",
+        )
+        self.assertTrue(WORKER_LIFECYCLE.exists())
+        for name in moved:
+            self.assertIn(name, LIFECYCLE_MODULE.__dict__)
+            self.assertNotIn(name, WORKER_MODULE.__dict__)
+            self.assertNotIn(name, CLAUDE_WORKER_MODULE.__dict__)
+        for adapter in (CODEX_WORKER, CLAUDE_WORKER):
+            source = adapter.read_text(encoding="utf-8")
+            for name in moved:
+                self.assertIsNone(
+                    re.search(rf"(?<![.\w]){re.escape(name)}\(", source),
+                    f"{adapter.name} calls moved name {name} without lifecycle qualification",
+                )
+
+    def test_both_adapters_route_all_four_commands_through_shared_lifecycle(self):
+        expected = self.portable_state()
+        fresh = {
+            "version": LIFECYCLE_MODULE.STATE_VERSION,
+            "lifecycle": "launching",
+            "session_id": "worker-1",
+            "model": "model",
+            "sandbox": "read-only",
+            "cwd": str(self.cwd),
+        }
+        for adapter, binary_name, stdin_text in (
+            (WORKER_MODULE, "codex", None),
+            (CLAUDE_WORKER_MODULE, "claude", "continue"),
+        ):
+            with self.subTest(adapter=adapter.__name__):
+                arguments = argparse.Namespace(
+                    state=self.state,
+                    cwd=self.cwd,
+                    sandbox="read-only",
+                    control_checkout=None,
+                    model="model",
+                    effort="medium",
+                    prompt="continue",
+                    codex="codex",
+                    claude="claude",
+                    grace_seconds=0.01,
+                )
+                with (
+                    mock.patch.object(
+                        LIFECYCLE_MODULE, "prepare_start", return_value=(fresh, None)
+                    ) as prepare_start,
+                    mock.patch.object(
+                        LIFECYCLE_MODULE, "run_lifecycle", return_value=0
+                    ) as launch,
+                ):
+                    self.assertEqual(adapter.start(arguments), 0)
+                    prepare_start.assert_called_once()
+                    self.assertEqual(launch.call_args.args[2], fresh)
+                    self.assertIs(launch.call_args.kwargs["parse"], adapter.parse)
+                    self.assertIs(launch.call_args.kwargs["emit"], adapter.emit)
+                    self.assertIs(launch.call_args.kwargs["fail"], adapter.fail)
+                    self.assertEqual(launch.call_args.kwargs["stdin_text"], stdin_text)
+                    self.assertEqual(launch.call_args.args[1][0], getattr(arguments, binary_name))
+                with (
+                    mock.patch.object(
+                        LIFECYCLE_MODULE,
+                        "prepare_resume",
+                        return_value=(fresh, expected, None),
+                    ) as prepare_resume,
+                    mock.patch.object(
+                        LIFECYCLE_MODULE, "run_lifecycle", return_value=0
+                    ) as launch,
+                ):
+                    self.assertEqual(adapter.resume(arguments), 0)
+                    prepare_resume.assert_called_once()
+                    self.assertEqual(launch.call_args.kwargs["expected"], expected)
+                    self.assertEqual(launch.call_args.kwargs["stdin_text"], stdin_text)
+                with mock.patch.object(
+                    LIFECYCLE_MODULE, "stop_worker", return_value=(0, None)
+                ) as stop_worker:
+                    self.assertEqual(adapter.stop(arguments), 0)
+                    stop_worker.assert_called_once()
+                with mock.patch.object(
+                    LIFECYCLE_MODULE, "verify_worker", return_value=(0, None)
+                ) as verify_worker:
+                    self.assertEqual(adapter.verify(arguments), 0)
+                    verify_worker.assert_called_once()
+
+    def test_none_stdin_keeps_the_portable_launch_closed(self):
+        completed = subprocess.CompletedProcess(["worker"], 0, "output", "")
+        state = {
+            "version": LIFECYCLE_MODULE.STATE_VERSION,
+            "lifecycle": "launching",
+            "session_id": "",
+            "model": "model",
+            "sandbox": "read-only",
+            "cwd": str(self.cwd),
+        }
+        with (
+            mock.patch.object(
+                LIFECYCLE_MODULE.subprocess, "run", return_value=completed
+            ) as launch,
+            mock.patch.object(LIFECYCLE_MODULE, "atomic_write"),
+        ):
+            self.assertEqual(
+                LIFECYCLE_MODULE.run_portable(
+                    argparse.Namespace(state=self.state),
+                    ["worker"],
+                    state,
+                    1,
+                    parse=lambda _output: ("session", "done", None, None),
+                    emit=lambda *_args: None,
+                    fail=lambda _message: 1,
+                    stdin_text=None,
+                ),
+                0,
+            )
+        self.assertIs(launch.call_args.kwargs["stdin"], subprocess.DEVNULL)
+        self.assertNotIn("input", launch.call_args.kwargs)
+
     def test_transition_table_and_atomic_replace_fsync_the_state_and_parent(self):
-        self.assertEqual(WORKER_MODULE.TRANSITIONS["launching"], {"running", "stopping", "exited"})
-        self.assertEqual(WORKER_MODULE.TRANSITIONS["running"], {"stopping", "exited"})
-        self.assertEqual(WORKER_MODULE.TRANSITIONS["stopping"], {"stopped", "exited"})
+        self.assertEqual(LIFECYCLE_MODULE.TRANSITIONS["launching"], {"running", "stopping", "exited"})
+        self.assertEqual(LIFECYCLE_MODULE.TRANSITIONS["running"], {"stopping", "exited"})
+        self.assertEqual(LIFECYCLE_MODULE.TRANSITIONS["stopping"], {"stopped", "exited"})
         with mock.patch.object(WORKER_MODULE.os, "fsync", wraps=os.fsync) as fsync, mock.patch.object(WORKER_MODULE.os, "replace", wraps=os.replace) as replace:
-            WORKER_MODULE.atomic_write(self.state, self.family_state("launching"))
+            LIFECYCLE_MODULE.atomic_write(self.state, self.family_state("launching"))
         self.assertEqual(replace.call_count, 1)
         self.assertGreaterEqual(fsync.call_count, 2)
-        state = WORKER_MODULE.read_state(self.state, family_required=True)
-        self.assertEqual(WORKER_MODULE.transition(self.state, state, "running")["lifecycle"], "running")
+        state = LIFECYCLE_MODULE.read_state(self.state, family_required=True)
+        self.assertEqual(LIFECYCLE_MODULE.transition(self.state, state, "running")["lifecycle"], "running")
         with self.assertRaises(ValueError):
-            WORKER_MODULE.transition(self.state, state, "stopped")
+            LIFECYCLE_MODULE.transition(self.state, state, "stopped")
 
     def test_every_legal_transition_is_persisted_and_every_other_edge_is_rejected(self):
-        for source, destinations in WORKER_MODULE.TRANSITIONS.items():
+        for source, destinations in LIFECYCLE_MODULE.TRANSITIONS.items():
             for destination in destinations:
                 with self.subTest(source=source, destination=destination):
-                    WORKER_MODULE.atomic_write(self.state, self.family_state(source))
-                    state = WORKER_MODULE.read_state(self.state, family_required=True)
-                    self.assertEqual(WORKER_MODULE.transition(self.state, state, destination)["lifecycle"], destination)
-            illegal = next(candidate for candidate in WORKER_MODULE.TRANSITIONS if candidate not in destinations)
+                    LIFECYCLE_MODULE.atomic_write(self.state, self.family_state(source))
+                    state = LIFECYCLE_MODULE.read_state(self.state, family_required=True)
+                    self.assertEqual(LIFECYCLE_MODULE.transition(self.state, state, destination)["lifecycle"], destination)
+            illegal = next(candidate for candidate in LIFECYCLE_MODULE.TRANSITIONS if candidate not in destinations)
             with self.subTest(source=source, illegal=illegal):
-                WORKER_MODULE.atomic_write(self.state, self.family_state(source))
+                LIFECYCLE_MODULE.atomic_write(self.state, self.family_state(source))
                 with self.assertRaises(ValueError):
-                    WORKER_MODULE.transition(self.state, WORKER_MODULE.read_state(self.state), illegal)
+                    LIFECYCLE_MODULE.transition(self.state, LIFECYCLE_MODULE.read_state(self.state), illegal)
 
     def test_missing_corrupt_stale_and_legacy_state_are_rejected_by_stop_and_verify(self):
         for name, contents in (
@@ -2522,7 +2704,7 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             ("stale", json.dumps({"version": 1})),
             ("legacy", json.dumps({"session_id": "old", "model": "Terra", "sandbox": "read-only", "cwd": str(self.cwd)})),
         ):
-            with self.subTest(name=name), mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()), mock.patch.object(WORKER_MODULE.os, "killpg") as killpg:
+            with self.subTest(name=name), mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()), mock.patch.object(WORKER_MODULE.os, "killpg") as killpg:
                 if contents is None:
                     self.state.unlink(missing_ok=True)
                 else:
@@ -2592,13 +2774,13 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             )
             for operation_name, operation, arguments in operations:
                 with self.subTest(name=name, operation=operation_name):
-                    WORKER_MODULE.atomic_write(self.state, state)
+                    LIFECYCLE_MODULE.atomic_write(self.state, state)
                     error = io.StringIO()
                     with (
-                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()) as libproc,
-                        mock.patch.object(WORKER_MODULE, "gated_process") as gated,
-                        mock.patch.object(WORKER_MODULE, "live_identity") as identity,
-                        mock.patch.object(WORKER_MODULE, "group_members") as members,
+                        mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()) as libproc,
+                        mock.patch.object(LIFECYCLE_MODULE, "gated_process") as gated,
+                        mock.patch.object(LIFECYCLE_MODULE, "live_identity") as identity,
+                        mock.patch.object(LIFECYCLE_MODULE, "group_members") as members,
                         mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
                         redirect_stderr(error),
                     ):
@@ -2632,13 +2814,13 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             )
             for operation_name, operation, arguments in operations:
                 with self.subTest(name=name, operation=operation_name):
-                    WORKER_MODULE.atomic_write(self.state, state)
+                    LIFECYCLE_MODULE.atomic_write(self.state, state)
                     error = io.StringIO()
                     with (
-                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()) as libproc,
-                        mock.patch.object(WORKER_MODULE, "gated_process") as gated,
-                        mock.patch.object(WORKER_MODULE, "live_identity") as identity,
-                        mock.patch.object(WORKER_MODULE, "group_members") as members,
+                        mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()) as libproc,
+                        mock.patch.object(LIFECYCLE_MODULE, "gated_process") as gated,
+                        mock.patch.object(LIFECYCLE_MODULE, "live_identity") as identity,
+                        mock.patch.object(LIFECYCLE_MODULE, "group_members") as members,
                         mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
                         redirect_stderr(error),
                     ):
@@ -2651,19 +2833,19 @@ class WorkerLifecycleContractTests(unittest.TestCase):
                     killpg.assert_not_called()
 
     def test_unsupported_platform_returns_the_exact_code_without_signaling(self):
-        WORKER_MODULE.atomic_write(self.state, self.family_state())
+        LIFECYCLE_MODULE.atomic_write(self.state, self.family_state())
         for operation in (WORKER_MODULE.stop, WORKER_MODULE.verify):
             with self.subTest(operation=operation.__name__):
                 error = io.StringIO()
                 with (
-                    mock.patch.object(WORKER_MODULE, "_libproc", return_value=None),
+                    mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=None),
                     mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
                     redirect_stderr(error),
                 ):
                     self.assertEqual(operation(self.arguments()), 1)
                 self.assertEqual(
                     error.getvalue(),
-                    f"codex-worker: {WORKER_MODULE.UNSUPPORTED}\n",
+                    f"codex-worker: {LIFECYCLE_MODULE.UNSUPPORTED}\n",
                 )
                 killpg.assert_not_called()
 
@@ -2683,17 +2865,17 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         )
         completed = subprocess.CompletedProcess([], 0, stdout=output, stderr="")
         with (
-            mock.patch.object(WORKER_MODULE, "_libproc", return_value=None),
+            mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=None),
             mock.patch.object(WORKER_MODULE.subprocess, "run", return_value=completed) as run_worker,
-            mock.patch.object(WORKER_MODULE, "gated_process") as gated,
+            mock.patch.object(LIFECYCLE_MODULE, "gated_process") as gated,
             mock.patch.object(WORKER_MODULE, "latest_rate_limits", return_value=None),
             redirect_stdout(io.StringIO()),
             redirect_stderr(io.StringIO()),
         ):
             self.assertEqual(WORKER_MODULE.start(arguments), 0)
 
-        state = WORKER_MODULE.read_state(self.state)
-        self.assertEqual(state["version"], WORKER_MODULE.STATE_VERSION)
+        state = LIFECYCLE_MODULE.read_state(self.state)
+        self.assertEqual(state["version"], LIFECYCLE_MODULE.STATE_VERSION)
         self.assertEqual(state["lifecycle"], "exited")
         self.assertEqual(state["session_id"], "worker-1")
         self.assertEqual(state["family_semantics"], "unsupported")
@@ -2704,9 +2886,9 @@ class WorkerLifecycleContractTests(unittest.TestCase):
 
         refusal = io.StringIO()
         with (
-            mock.patch.object(WORKER_MODULE, "_libproc", return_value=None),
+            mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=None),
             mock.patch.object(WORKER_MODULE.subprocess, "run", return_value=completed) as resume_worker,
-            mock.patch.object(WORKER_MODULE, "gated_process") as resume_gate,
+            mock.patch.object(LIFECYCLE_MODULE, "gated_process") as resume_gate,
             mock.patch.object(WORKER_MODULE, "latest_rate_limits", return_value=None),
             mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
             redirect_stdout(io.StringIO()),
@@ -2716,21 +2898,25 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             self.assertEqual(WORKER_MODULE.stop(self.arguments()), 1)
             self.assertEqual(WORKER_MODULE.verify(self.arguments()), 1)
 
-        resumed = WORKER_MODULE.read_state(self.state)
-        self.assertTrue(WORKER_MODULE.valid_portable_schema(resumed))
+        resumed = LIFECYCLE_MODULE.read_state(self.state)
+        self.assertTrue(
+            LIFECYCLE_MODULE.valid_portable_schema(
+                resumed, effort_levels=WORKER_MODULE.EFFORT_LEVELS
+            )
+        )
         self.assertEqual(resumed["generation"], 2)
         self.assertIn("resume", resume_worker.call_args.args[0])
         resume_gate.assert_not_called()
         self.assertEqual(
             refusal.getvalue(),
-            f"codex-worker: {WORKER_MODULE.UNSUPPORTED}\n" * 2,
+            f"codex-worker: {LIFECYCLE_MODULE.UNSUPPORTED}\n" * 2,
         )
         killpg.assert_not_called()
 
         with (
-            mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-            mock.patch.object(WORKER_MODULE, "live_identity") as identity,
-            mock.patch.object(WORKER_MODULE, "group_members") as members,
+            mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+            mock.patch.object(LIFECYCLE_MODULE, "live_identity") as identity,
+            mock.patch.object(LIFECYCLE_MODULE, "group_members") as members,
             mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
             redirect_stderr(io.StringIO()),
         ):
@@ -2741,24 +2927,25 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         killpg.assert_not_called()
 
     def test_already_exited_leader_with_empty_group_stops_without_a_signal(self):
-        WORKER_MODULE.atomic_write(self.state, self.family_state())
-        with mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()), mock.patch.object(WORKER_MODULE, "live_identity", return_value=None), mock.patch.object(WORKER_MODULE, "group_members", return_value=[]), mock.patch.object(WORKER_MODULE.os, "killpg") as killpg:
+        LIFECYCLE_MODULE.atomic_write(self.state, self.family_state())
+        with mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()), mock.patch.object(LIFECYCLE_MODULE, "live_identity", return_value=None), mock.patch.object(LIFECYCLE_MODULE, "group_members", return_value=[]), mock.patch.object(WORKER_MODULE.os, "killpg") as killpg:
             self.assertEqual(WORKER_MODULE.stop(self.arguments()), 0)
-            self.assertEqual(WORKER_MODULE.read_state(self.state)["lifecycle"], "stopped")
+            self.assertEqual(LIFECYCLE_MODULE.read_state(self.state)["lifecycle"], "stopped")
             killpg.assert_not_called()
 
     @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
     def test_launch_gate_eof_exits_before_exec_with_a_dedicated_session_identity(self):
         marker = self.root / "executed"
-        process, release = WORKER_MODULE.gated_process(
+        process, release = LIFECYCLE_MODULE.gated_process(
             [sys.executable, "-c", f"from pathlib import Path; Path({str(marker)!r}).touch()"],
             self.cwd,
+            stdin_text=None,
         )
         try:
             deadline = time.monotonic() + 1
             identity = None
             while time.monotonic() < deadline:
-                identity = WORKER_MODULE.live_identity(process.pid)
+                identity = LIFECYCLE_MODULE.live_identity(process.pid)
                 if identity and identity["pid"] == identity["pgid"] == identity["sid"]:
                     break
                 time.sleep(0.01)
@@ -2778,20 +2965,20 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             ("before family persistence", "before family persistence"),
         ):
             with self.subTest(name=name):
-                WORKER_MODULE.atomic_write(self.state, terminal)
+                LIFECYCLE_MODULE.atomic_write(self.state, terminal)
                 if cutpoint == "before gate":
                     patches = (
-                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-                        mock.patch.object(WORKER_MODULE, "gated_process", side_effect=RuntimeError("cutpoint")),
+                        mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+                        mock.patch.object(LIFECYCLE_MODULE, "gated_process", side_effect=RuntimeError("cutpoint")),
                     )
                     read_fd = None
                 else:
                     read_fd, write_fd = os.pipe()
                     process = mock.Mock(pid=41)
                     patches = (
-                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-                        mock.patch.object(WORKER_MODULE, "gated_process", return_value=(process, write_fd)),
-                        mock.patch.object(WORKER_MODULE, "live_identity", side_effect=RuntimeError("cutpoint")),
+                        mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+                        mock.patch.object(LIFECYCLE_MODULE, "gated_process", return_value=(process, write_fd)),
+                        mock.patch.object(LIFECYCLE_MODULE, "live_identity", side_effect=RuntimeError("cutpoint")),
                     )
                 try:
                     with patches[0], patches[1]:
@@ -2805,17 +2992,17 @@ class WorkerLifecycleContractTests(unittest.TestCase):
                 finally:
                     if read_fd is not None:
                         os.close(read_fd)
-                self.assertEqual(WORKER_MODULE.read_state(self.state), terminal)
+                self.assertEqual(LIFECYCLE_MODULE.read_state(self.state), terminal)
 
     def test_resume_cutpoint_after_family_persistence_is_settled_without_signaling(self):
-        WORKER_MODULE.atomic_write(self.state, self.family_state("exited"))
+        LIFECYCLE_MODULE.atomic_write(self.state, self.family_state("exited"))
         read_fd, write_fd = os.pipe()
         process = mock.Mock(pid=41)
         try:
             with (
-                mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-                mock.patch.object(WORKER_MODULE, "gated_process", return_value=(process, write_fd)),
-                mock.patch.object(WORKER_MODULE, "live_identity", return_value=self.identity),
+                mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+                mock.patch.object(LIFECYCLE_MODULE, "gated_process", return_value=(process, write_fd)),
+                mock.patch.object(LIFECYCLE_MODULE, "live_identity", return_value=self.identity),
                 mock.patch.object(WORKER_MODULE.os, "write", side_effect=RuntimeError("cutpoint")),
             ):
                 with self.assertRaisesRegex(RuntimeError, "cutpoint"):
@@ -2823,16 +3010,16 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         finally:
             os.close(read_fd)
 
-        persisted = WORKER_MODULE.read_state(self.state)
+        persisted = LIFECYCLE_MODULE.read_state(self.state)
         self.assertEqual(persisted["lifecycle"], "launching")
         self.assertEqual(
             {key: persisted[key] for key in self.identity},
             self.identity,
         )
         with (
-            mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-            mock.patch.object(WORKER_MODULE, "live_identity", return_value=None),
-            mock.patch.object(WORKER_MODULE, "group_members", return_value=[]),
+            mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+            mock.patch.object(LIFECYCLE_MODULE, "live_identity", return_value=None),
+            mock.patch.object(LIFECYCLE_MODULE, "group_members", return_value=[]),
             mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
         ):
             self.assertEqual(WORKER_MODULE.stop(self.arguments()), 0)
@@ -2840,15 +3027,15 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             killpg.assert_not_called()
 
     def test_resume_cutpoint_after_release_before_running_is_settled_without_signaling(self):
-        WORKER_MODULE.atomic_write(self.state, self.family_state("exited"))
+        LIFECYCLE_MODULE.atomic_write(self.state, self.family_state("exited"))
         read_fd, write_fd = os.pipe()
         process = mock.Mock(pid=41)
         try:
             with (
-                mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-                mock.patch.object(WORKER_MODULE, "gated_process", return_value=(process, write_fd)),
-                mock.patch.object(WORKER_MODULE, "live_identity", return_value=self.identity),
-                mock.patch.object(WORKER_MODULE, "transition", side_effect=RuntimeError("cutpoint")),
+                mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+                mock.patch.object(LIFECYCLE_MODULE, "gated_process", return_value=(process, write_fd)),
+                mock.patch.object(LIFECYCLE_MODULE, "live_identity", return_value=self.identity),
+                mock.patch.object(LIFECYCLE_MODULE, "transition", side_effect=RuntimeError("cutpoint")),
             ):
                 with self.assertRaisesRegex(RuntimeError, "cutpoint"):
                     WORKER_MODULE.resume(self.resume_arguments())
@@ -2856,12 +3043,12 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         finally:
             os.close(read_fd)
 
-        persisted = WORKER_MODULE.read_state(self.state)
+        persisted = LIFECYCLE_MODULE.read_state(self.state)
         self.assertEqual(persisted["lifecycle"], "launching")
         with (
-            mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-            mock.patch.object(WORKER_MODULE, "live_identity", return_value=None),
-            mock.patch.object(WORKER_MODULE, "group_members", return_value=[]),
+            mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+            mock.patch.object(LIFECYCLE_MODULE, "live_identity", return_value=None),
+            mock.patch.object(LIFECYCLE_MODULE, "group_members", return_value=[]),
             mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
         ):
             self.assertEqual(WORKER_MODULE.stop(self.arguments()), 0)
@@ -2869,47 +3056,47 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             killpg.assert_not_called()
 
     def test_nonterminal_resume_is_rejected_and_legacy_completed_resume_is_accepted_to_launch(self):
-        WORKER_MODULE.atomic_write(self.state, self.family_state("running"))
-        with mock.patch.object(WORKER_MODULE, "run_lifecycle") as launch:
+        LIFECYCLE_MODULE.atomic_write(self.state, self.family_state("running"))
+        with mock.patch.object(LIFECYCLE_MODULE, "run_lifecycle") as launch:
             self.assertNotEqual(WORKER_MODULE.resume(argparse.Namespace(state=self.state, codex="codex", prompt="continue")), 0)
             launch.assert_not_called()
         legacy = {"session_id": "old", "model": "Terra", "sandbox": "read-only", "cwd": str(self.cwd)}
         self.state.write_text(json.dumps(legacy), encoding="utf-8")
-        with mock.patch.object(WORKER_MODULE, "run_lifecycle", return_value=0) as launch:
+        with mock.patch.object(LIFECYCLE_MODULE, "run_lifecycle", return_value=0) as launch:
             self.assertEqual(WORKER_MODULE.resume(argparse.Namespace(state=self.state, codex="codex", prompt="continue")), 0)
             self.assertEqual(launch.call_args.args[2]["lifecycle"], "launching")
 
     def test_process_family_constants_and_no_global_cleanup_authority(self):
-        self.assertEqual(WORKER_MODULE.BSD_SIZE, 136)
-        self.assertEqual(WORKER_MODULE.VNODE_SIZE, 2352)
-        self.assertEqual(WORKER_MODULE.PROC_PIDTBSDINFO, 3)
-        self.assertEqual(WORKER_MODULE.PROC_PIDVNODEPATHINFO, 9)
-        source = CODEX_WORKER.read_text(encoding="utf-8")
+        self.assertEqual(LIFECYCLE_MODULE.BSD_SIZE, 136)
+        self.assertEqual(LIFECYCLE_MODULE.VNODE_SIZE, 2352)
+        self.assertEqual(LIFECYCLE_MODULE.PROC_PIDTBSDINFO, 3)
+        self.assertEqual(LIFECYCLE_MODULE.PROC_PIDVNODEPATHINFO, 9)
         instructions = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertNotIn("pkill", source)
-        self.assertNotIn("proc_listchildpids", source)
-        self.assertNotIn("proc_name", source)
+        for path in (WORKER_LIFECYCLE, CODEX_WORKER, CLAUDE_WORKER):
+            source = path.read_text(encoding="utf-8")
+            self.assertNotIn("pkill", source)
+            self.assertNotIn("proc_listchildpids", source)
+            self.assertNotIn("proc_name", source)
         self.assertIn("Successors never discover or clean", instructions)
 
     def test_claude_worker_process_family_constants_and_no_global_cleanup_authority(self):
-        # The Darwin-constant guard covers both adapters: claude-worker.py
-        # carries its own copy of the same identity-probe constants, not an
-        # import of codex-worker.py's.
-        self.assertEqual(CLAUDE_WORKER_MODULE.BSD_SIZE, 136)
-        self.assertEqual(CLAUDE_WORKER_MODULE.VNODE_SIZE, 2352)
-        self.assertEqual(CLAUDE_WORKER_MODULE.PROC_PIDTBSDINFO, 3)
-        self.assertEqual(CLAUDE_WORKER_MODULE.PROC_PIDVNODEPATHINFO, 9)
-        source = CLAUDE_WORKER.read_text(encoding="utf-8")
-        self.assertNotIn("pkill", source)
-        self.assertNotIn("proc_listchildpids", source)
-        self.assertNotIn("proc_name", source)
+        self.assertIs(WORKER_MODULE.lifecycle, LIFECYCLE_MODULE)
+        self.assertIs(CLAUDE_WORKER_MODULE.lifecycle, LIFECYCLE_MODULE)
+        codex_error = io.StringIO()
+        claude_error = io.StringIO()
+        with redirect_stderr(codex_error):
+            WORKER_MODULE.fail("probe")
+        with redirect_stderr(claude_error):
+            CLAUDE_WORKER_MODULE.fail("probe")
+        self.assertEqual(codex_error.getvalue(), "codex-worker: probe\n")
+        self.assertEqual(claude_error.getvalue(), "claude-worker: probe\n")
 
     @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
     def test_darwin_probe_contract(self):
-        identity = WORKER_MODULE.live_identity(os.getpid())
+        identity = LIFECYCLE_MODULE.live_identity(os.getpid())
         self.assertIsNotNone(identity)
         self.assertEqual(identity["cwd"], str(ROOT.resolve()))
-        self.assertIn(os.getpid(), WORKER_MODULE.group_members(os.getpgrp()))
+        self.assertIn(os.getpid(), LIFECYCLE_MODULE.group_members(os.getpgrp()))
 
 
 class EvidenceEnvelopeTests(unittest.TestCase):
