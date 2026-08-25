@@ -47,14 +47,16 @@ contract; reviewer taste is not.
 * Not blocking: anything real but outside the order. It becomes a follow-up ticket
   or it is discarded. Never a silent fix, never a scope expansion.
 
-## Who reviews
+## Reviewer dispatch boundary
 
 Under `Profile: hardening`, Targeted and Focused orders get no reviewer; Full-depth
 orders keep one review round after hardening.
 
-* Reviewer tier matches the chunk's builder tier, with Sonnet as the floor: Haiku
-  never reviews, so a Haiku chunk is reviewed by Sonnet.
-* A Full-depth or correctness-critical review escalates per
-  [the routing table](../../orchestrate/references/routing-table.md).
+Review depth is an input to
+[review-routing.md](../../orchestrate/references/review-routing.md), which owns
+reviewer classification, eligibility, and model precedence.
+
 * A whole diff assembled from chunks is reviewed Targeted, or Full when any chunk
   was Full.
+
+## Reference boundary

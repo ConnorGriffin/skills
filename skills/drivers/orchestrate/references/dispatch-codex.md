@@ -62,11 +62,17 @@ These are the only validated initial routes in Codex-only mode:
 | Prototyping | Sol (`gpt-5.6-sol`) |
 | Default brainstorming | Terra (`gpt-5.6-terra`) |
 | Documentation | Luna (`gpt-5.6-luna`) |
-| Routine review | Luna (`gpt-5.6-luna`) |
 
 Full-system exploration, novelty-as-deliverable brainstorming, and
-load-bearing or safety review are **NO_VALIDATED_ROUTE** until benchmarked.
+other unlisted admissions are **NO_VALIDATED_ROUTE** until benchmarked.
 Do not invent an escalation for those admissions. Each admitted v0 route is one
 validated rung: retry once in the same worker session, then stop with
 **NO_VALIDATED_ROUTE**. Never escalate Terra, Luna, or Sol to Sonnet or Opus.
 Pass the exact parenthesized CLI model ID to the helper's `--model` argument.
+
+Review admissions are owned by [`review-routing.md`](review-routing.md). Its
+matrix assumes a Claude parent and does not route for this Codex UI parent;
+follow the Codex parent's own session policy instead of treating review as a
+generic admission above.
+
+## Reference boundary

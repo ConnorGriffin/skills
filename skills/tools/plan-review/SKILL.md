@@ -41,20 +41,30 @@ Invoking this skill authorizes every sub-agent dispatch that this procedure mark
 
 ## Cold-reader dispatch
 
-The coordinator supplies the mechanics-only interface inputs: adapter selection,
-explicit reviewer model, explicit reviewer effort, and the cold-reader prompt's
-four allowed inputs. Dispatch only through
+At the standard skill root, when `orchestrate` is installed, read its
+`references/review-routing.md` and `references/routing-table.md` directly before
+dispatch. Use the four-row reviewer matrix and apply its Claude-parent Codex
+presence/headroom gate. For this skill, use `Plan / spec writing` as the table's
+closest validated classification, not a benchmarked plan-review verdict.
+
+When `orchestrate` or its `review-routing.md` is not installed, say so in one
+line and continue Claude-only with Opus, with no Codex attempt.
+
+Reviewer-routing stakes and this skill's plan stakes tier are independent.
+Neither derives from, overrides, or rewrites the other.
+
+The coordinator supplies the selected adapter, explicit reviewer model,
+explicit reviewer effort, and the cold-reader prompt's four allowed inputs.
+Dispatch only through
 `skills/drivers/orchestrate/scripts/codex-worker.py` or
 `skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
 adapter's read-only review surface. Never use the built-in Agent tool, Workflow
 tool, or background-agent machinery.
 
-The coordinator applies the existing parent and Codex-headroom policy when
-selecting an adapter. This interface does not classify review work. It does not
-read or consume a routing table. It does not select a model or effort. Preserve
-adapter-owned state, same-worker resume, and coordinator-owned recovery through the
-orchestrate adapter contract; do not restate its command or lifecycle mechanics
-here.
+After selection, the cold-reader interface does not reclassify review work or
+choose a model or effort. Preserve adapter-owned state, same-worker resume, and
+coordinator-owned recovery through the orchestrate adapter contract; do not
+restate its command or lifecycle mechanics here.
 
 The cold-reader prompt contains exactly:
 1. plan location;

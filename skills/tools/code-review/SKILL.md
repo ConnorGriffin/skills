@@ -33,6 +33,18 @@ forgotten:
 
 Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, including a mandatory nested review skill. Do not ask again solely because a session-level preference says "do not spawn agents"; apply that preference to discretionary delegation only. An explicit task-level refusal of this required review or revocation of delegation overrides this authorization: stop and state that the requested workflow cannot run without its required independent review.
 
+## Dependency and reviewer selection
+
+At the standard skill root, when `orchestrate` is installed, read its
+`references/review-routing.md` and `references/routing-table.md` directly before
+dispatch. Use the four-row reviewer matrix, classify this skill's area as
+`Code review`, and apply the matrix's Claude-parent Codex presence/headroom gate
+to select the initial reviewer adapter and model.
+
+When `orchestrate` or its `review-routing.md` is not installed, say so in one
+line and continue Claude-only: use Sonnet for routine review or Opus for
+load-bearing review, with no Codex attempt.
+
 ## Modes
 
 **First review** — the full process below.

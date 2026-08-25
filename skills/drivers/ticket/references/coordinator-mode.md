@@ -63,19 +63,22 @@ epic, the ticket skill's per-ticket change-record rule still applies.
    stable transcript id, report the omitted claim in one line and continue. Claim
    failures use the shared visible, non-blocking rule.
 
+## Reviewer selection
+
 4. **Review each chunk as it lands**, at that sub-order's stamped depth, before
    merging it. Two things happen, in order, and neither substitutes for the other:
 
-   a. Dispatch a reviewer agent at the tier
-   [review-depth.md](review-depth.md) sets for that chunk, on the chunk's branch
-   against the ticket branch. A chunk built by Sonnet is reviewed by Sonnet, a Haiku
-   chunk by Sonnet, a Full-depth chunk by Opus. Findings go back to the chunk's own
-   agent to fix. Claim each dispatched reviewer session through the shared claim
-   rule with `--role reviewer`, plus the same `--session <id>`, `--agent <agent>`
-   and `--project` it ran in, so review overhead is measured as overhead and never
-   as chunk size. A reviewer with no stable transcript id is reported in one line
-   like an unclaimable worker, and a claim failure follows the same shared
-   non-blocking rule: neither ever holds up dispatching the review.
+   a. Run `/review` for the chunk diff, then apply the selected review skill's matrix
+   entry from
+   [review-routing.md](../../orchestrate/references/review-routing.md) using that
+   chunk's stamped depth. Builder tier is not an input. Dispatch the selected
+   reviewer on the chunk's branch against the ticket branch. Findings go back to
+   the chunk's own agent to fix. Claim each dispatched reviewer session through the
+   shared claim rule with `--role reviewer`, plus the same `--session <id>`,
+   `--agent <agent>` and `--project` it ran in, so review overhead is measured as
+   overhead and never as chunk size. A reviewer with no stable transcript id is
+   reported in one line like an unclaimable worker, and a claim failure follows the
+   same shared non-blocking rule: neither ever holds up dispatching the review.
 
    b. Verify the result yourself, as `/orchestrate` requires of every delegated
    result: read the diff, run the verification command, check the chunk's Done when
@@ -83,6 +86,8 @@ epic, the ticket skill's per-ticket change-record rule still applies.
    finding, then escalates one tier per the routing table. Same-session retries are
    not re-claimed; claim every fresh implementation escalation once, using the
    escalation's stable transcript id, agent, and chunk worktree.
+
+## Chunk integration
 
 5. **Merge into the ticket branch** in the ticket's worktree, one chunk at a time,
    with `--no-ff`. A conflict between two chunks that declared disjoint ownership
