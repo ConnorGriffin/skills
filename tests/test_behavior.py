@@ -3329,17 +3329,17 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
 
 class EvidenceBlockContractTests(unittest.TestCase):
     def test_verbatim_evidence_sections_are_byte_identical(self):
-        preflight = (ROOT / "skills" / "tools" / "preflight" / "SKILL.md").read_text(
-            encoding="utf-8"
+        preflight = (ROOT / "skills" / "tools" / "preflight" / "SKILL.md").read_bytes().decode(
+            "utf-8"
         )
         preflight_body = preflight.split("### Verbatim command output\n\n", 1)[1].split(
             "\n\n## 2. First-hour spike", 1
         )[0]
         self.assertEqual(preflight_body, PREFLIGHT_VERBATIM_COMMAND_OUTPUT)
 
-        plan_review = (ROOT / "skills" / "tools" / "plan-review" / "SKILL.md").read_text(
-            encoding="utf-8"
-        )
+        plan_review = (
+            ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
+        ).read_bytes().decode("utf-8")
         plan_review_body = plan_review.split("### Evidence-block spot check\n\n", 1)[1].split(
             "\n\n## Delegation authority", 1
         )[0]
