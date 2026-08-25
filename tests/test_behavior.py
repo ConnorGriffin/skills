@@ -2558,7 +2558,7 @@ worker = pathlib.Path(sys.argv.pop(1))
 spec = importlib.util.spec_from_file_location("forced_portable_worker", worker)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
-module._libproc = lambda: None
+module.lifecycle._libproc = lambda: None
 arguments = module.parser().parse_args()
 if arguments.command in {"start", "resume"} and not arguments.prompt:
     raise SystemExit(module.fail("prompt is required"))
@@ -2590,7 +2590,7 @@ raise SystemExit(arguments.handler(arguments))
         force_portable = force_portable or os.environ.get("CODE_REVIEW_TEST_FORCE_PORTABLE") == "1"
         worker = CODEX_WORKER if adapter == "codex" else CLAUDE_WORKER
         worker_module = WORKER_MODULE if adapter == "codex" else CLAUDE_WORKER_MODULE
-        native_family = not force_portable and worker_module._libproc() is not None
+        native_family = not force_portable and LIFECYCLE_MODULE._libproc() is not None
         option = "--codex" if adapter == "codex" else "--claude"
         model = "Terra" if adapter == "codex" else "sonnet"
         axes = (*admitted, "spec") if broken == "launch-unadmitted-spec" else admitted
@@ -2605,9 +2605,13 @@ raise SystemExit(arguments.handler(arguments))
             while time.monotonic() < deadline:
                 if claim["state"].exists():
                     candidate = json.loads(claim["state"].read_text(encoding="utf-8"))
-                    if worker_module.valid_family_schema(candidate):
+                    if LIFECYCLE_MODULE.valid_family_schema(
+                        candidate, effort_levels=worker_module.EFFORT_LEVELS
+                    ):
                         return candidate, "family-state", False
-                    portable_terminal = worker_module.valid_portable_schema(candidate)
+                    portable_terminal = LIFECYCLE_MODULE.valid_portable_schema(
+                        candidate, effort_levels=worker_module.EFFORT_LEVELS
+                    )
                 if claim["process"].poll() is not None:
                     return None, "helper-exit", portable_terminal
                 time.sleep(0.01)
