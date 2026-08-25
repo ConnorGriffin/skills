@@ -164,6 +164,15 @@ Context
 <everything this chunk needs to stand alone in a fresh agent. Never "as established
  in chunk 1".>
 
+### Builder self-check
+
+Before declaring the change ready, run each check below.
+
+1. **External surface by execution.** Before coding against a CLI or API surface, run `--help` or a probe call against that surface; do not infer flags, arguments, or behavior from memory.
+2. **Fail-first tests.** Before production edits, run every new test against the pre-change behavior or a deliberately broken variant and observe the expected failure. A fake that accepts every input or a mock of the function under test is not evidence.
+3. **Boundaries by execution.** Prove a security or confinement claim by attempting the forbidden action in a real run; configuration inspection alone is not evidence.
+4. **Post-fix sweep.** After each late fix, sweep its affected path for uncalled symbols, dead parameters, and prose that still describes the pre-fix behavior.
+
 Do
 <numbered, concrete steps scoped to this chunk only>
 

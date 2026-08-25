@@ -59,6 +59,15 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    before implementing. Absent, say so in one line and continue. This never refuses
    the order.
 
+### Builder self-check
+
+Before declaring the change ready, run each check below.
+
+1. **External surface by execution.** Before coding against a CLI or API surface, run `--help` or a probe call against that surface; do not infer flags, arguments, or behavior from memory.
+2. **Fail-first tests.** Before production edits, run every new test against the pre-change behavior or a deliberately broken variant and observe the expected failure. A fake that accepts every input or a mock of the function under test is not evidence.
+3. **Boundaries by execution.** Prove a security or confinement claim by attempting the forbidden action in a real run; configuration inspection alone is not evidence.
+4. **Post-fix sweep.** After each late fix, sweep its affected path for uncalled symbols, dead parameters, and prose that still describes the pre-fix behavior.
+
 8. **Implement.** Read the repo's `AGENTS.md` or `CLAUDE.md` first; its rules bind
    everything you write on this branch. Never add or edit one yourself; if the repo
    has none, work to the user's global standards. Follow the order's Do section.
