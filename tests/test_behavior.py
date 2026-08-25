@@ -69,7 +69,8 @@ state, same-worker resume, and coordinator-owned recovery; do not restate adapte
 or lifecycle mechanics here.
 
 Reject a nonzero adapter invocation. For a successful invocation, read its
-`final_message` as the Markdown result returned to the home session, then follow the
+`final_message` as the Markdown findings returned to the home session. The home
+session writes the Markdown file required by its public interface, then follows the
 existing `## Findings` posting and verification rule. Do not close the spike as
 successful without that verified result. Remove the prompt file after the home session
 verifies the `## Findings` comment, or after it reports a failed worker. Never commit
@@ -4608,8 +4609,8 @@ class EpicAdapterDispatchTests(unittest.TestCase):
     EPIC = ROOT / "skills" / "drivers" / "epic" / "SKILL.md"
     RESEARCH_WORKER_PARAGRAPH = (
         "For a research spike, run `$research` in a temporary per-spike worktree. The worker "
-        "writes the Markdown file required by its public interface and returns it to the home "
-        "session. The home session posts that returned content under the exact heading "
+        "returns the required Markdown findings to the home session. The home session writes the "
+        "Markdown file required by its public interface, posts that returned content under the exact heading "
         "`## Findings`, verifies the `## Findings` comment, removes the temporary worktree and "
         "its unshipped file, and only then closes the spike."
     )
@@ -4621,14 +4622,14 @@ class EpicAdapterDispatchTests(unittest.TestCase):
     )
 
     def test_worker_dispatch_section_is_byte_identical(self):
-        epic = self.EPIC.read_text(encoding="utf-8")
-        body = epic.split("## Worker dispatch\n\n", 1)[1].split(
-            "\n\n## Deferred child close-out", 1
+        epic = self.EPIC.read_bytes()
+        body = epic.split(b"## Worker dispatch\n\n", 1)[1].split(
+            b"\n\n## Deferred child close-out", 1
         )[0]
 
-        self.assertEqual(body, EPIC_WORKER_DISPATCH)
-        self.assertIn(self.RESEARCH_WORKER_PARAGRAPH, epic)
-        self.assertIn(self.VERIFICATION_AND_FAILURE_PARAGRAPH, epic)
+        self.assertEqual(body, EPIC_WORKER_DISPATCH.encode("utf-8"))
+        self.assertIn(self.RESEARCH_WORKER_PARAGRAPH.encode("utf-8"), epic)
+        self.assertIn(self.VERIFICATION_AND_FAILURE_PARAGRAPH.encode("utf-8"), epic)
 
 
 class ReviewRouteResolverTests(unittest.TestCase):

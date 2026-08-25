@@ -71,7 +71,7 @@ Use native `blocked-by` edges for actual dependencies. A follow-up required to r
 
 ## Resolve spikes
 
-For a research spike, run `$research` in a temporary per-spike worktree. The worker writes the Markdown file required by its public interface and returns it to the home session. The home session posts that returned content under the exact heading `## Findings`, verifies the `## Findings` comment, removes the temporary worktree and its unshipped file, and only then closes the spike.
+For a research spike, run `$research` in a temporary per-spike worktree. The worker returns the required Markdown findings to the home session. The home session writes the Markdown file required by its public interface, posts that returned content under the exact heading `## Findings`, verifies the `## Findings` comment, removes the temporary worktree and its unshipped file, and only then closes the spike.
 
 Close the spike issue only after that verification. Only then derive its `Spikes` and `Decisions` ledger lines, update `Status`, commit with DCO sign-off, and push the standing planning branch. A failed worker leaves the spike `dispatched`; it is not resolved by inference. Interview and mockup spikes run as fresh attended sessions.
 
@@ -99,7 +99,8 @@ state, same-worker resume, and coordinator-owned recovery; do not restate adapte
 or lifecycle mechanics here.
 
 Reject a nonzero adapter invocation. For a successful invocation, read its
-`final_message` as the Markdown result returned to the home session, then follow the
+`final_message` as the Markdown findings returned to the home session. The home
+session writes the Markdown file required by its public interface, then follows the
 existing `## Findings` posting and verification rule. Do not close the spike as
 successful without that verified result. Remove the prompt file after the home session
 verifies the `## Findings` comment, or after it reports a failed worker. Never commit
