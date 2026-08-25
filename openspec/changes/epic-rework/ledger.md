@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: #144 triage — BLOCKED on operator decisions Q1 (bare-subject rule) and Q2 (plan-review Claude-only fallback); 2 of 3 panels spent; then #139 re-triage; #153-#157 JIT; #163-#165 per queue notes
+next: #144 building (Sol, order stamped); then #139 re-triage; #153-#157 JIT; #163-#165 per queue notes
 updated: 2026-08-25
 
 ## Notes
@@ -10,10 +10,12 @@ updated: 2026-08-25
 - interim session-fit rule until #139 lands: see #138's session-fit comment for the pattern
 
 ## Fog
-- #144 Q1 bare-subject routing rule: JUDGED_SENSITIVITY_FLOOR / CLOSED_SUBJECT_PROXY / LOAD_BEARING_UNLESS_OVERRIDDEN — awaiting operator
-- #144 Q2 plan-review Claude-only fallback: the routing table's Plan/spec row is Terra -> Sol -> none, with no Claude rung, and warns against Claude for specs; #144's scope text asserts a Sonnet/Opus fallback that the table does not ground — awaiting operator
+- label inventory drift: #135's approved ruling deleted all agentflow:*, wayfinder:*, ready-for-agent, ticket:done; in ConnorGriffin/skills they still exist (observed 2026-08-25 applying ticket:triaged to #144). Either the deletion covered the other 6 repos only, or it was never executed here — deleting labels is destructive and outside the repo, so not actioned unilaterally
 
 ## Decisions
+- #144 Order-less review classification — operator chose judgment against review-depth.md's four sensitivity categories over any path list, keyword proxy, or decision table; #144's acceptance line amended to drop "decidable without human judgment", which was the clause generating the proxy designs
+- #144 plan-review Claude-only fallback — operator ruled: add Opus to the Plan / spec writing ladder (Terra -> Sol -> Opus) and use that rung; no separate availability-fallback concept
+- #144 Reviewer-routing home — review-routing.md beside routing-table.md is the sole live classifier, eligibility, and precedence authority; plan-review's stakes tier stays an independent axis; review-depth.md keeps depth and the sensitivity floor and loses all reviewer selection
 - #140 Review routing — direct routing-table reads in both review skills; Codex reviewers from a Claude parent behind the presence+headroom gate (Luna routine / Opus load-bearing, Claude-only fallback); skill-mandated spawns pre-authorized, task-level refusal still stops the run
 - #135 Label inventory — 7-repo approved list; 7 workflow labels stand; all agentflow:*, wayfinder:*, ready-for-agent, ciq experiments, ticket:done deleted; type labels machine-applied
 
@@ -25,7 +27,7 @@ updated: 2026-08-25
 - #138 Mechanical rename wayfinder to epic — merged
 - #142 Epic skill content (3a) — merged
 - #143 Cross-skill amendments and machinery (3b) — merged
-- #144 Route review skills through routing table — in triage (draft rewritten clean after round-1 BLOCK)
+- #144 Route review skills through routing table — triaged (Opus/high, Full depth, flat); order stamped, building
 - #149 Universal effort dial and Claude CLI worker adapter — merged
 - #150 Extract shared worker lifecycle into one module — merged
 - #151 Dispatch code-review reviewers through pack adapters — merged
@@ -47,6 +49,7 @@ updated: 2026-08-25
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 #144 — triaged and stamped (Opus/high, Full depth, flat) after 3 cold panels, the cap. Rounds 1 and 2 returned BLOCK and the order was rewritten clean rather than patched; 10 findings reproduced against the tree before any was acted on. Round 3's three were fixed in place: two self-contradictions in the order's own overview, and a real gap — the orchestrate dependency gate was wired to resolve_route.py but /review's Process never ran it, and implement/SKILL.md:16, preflight/SKILL.md:76, and scope/SKILL.md:25 reach the review skills without touching the front door at all. Fix enforces at the consumer boundary (both skills fail closed) rather than patching each caller. Order and session-fit comment posted; ticket:triaged applied
 - 2026-08-25 #144 — triage round 2 on the clean rewrite: Sol cold review BLOCK on 4, all reproduced. Two are coordinator rulings now made: the review front door's resolver (skills/workflows/review/scripts/resolve_route.py) green-lights a partial install because PACK_SHIPPED_SKILLS and INSTALL_COMMAND only ever name the selected review skill, so making orchestrate required means amending the resolver and its tests; and reviewer ELIGIBILITY ("Haiku never reviews", review-depth.md:55, repeated at slicing.md:146) must move to review-routing.md or "sole authority" is unsatisfiable. Two are unsettled decisions routed to the operator per the cap rule: the bare-subject rule's candidate definitions miss file-backed PRDs and design docs, which plan-review/SKILL.md:12 admits as ordinary subjects; and the matrix's Claude-only Sonnet/Opus route for plan-review has no source in the Plan/spec row (Terra -> Sol -> none), whose own note warns against routing specs to Claude without a fail-safe review
 - 2026-08-25 #144 — triage round 1: Sol drafted, Sol cold review returned BLOCK on 6 findings, all reproduced against the tree. Two changed the design: plan-review's stakes tier is a different axis from reviewer-model routing and must not be collapsed into it (its panel/termination contract is broader than review-depth's four sensitivity categories), and the classifier cannot live in ticket/review-depth.md because README declares no ticket dependency for either review skill and forbids hidden runtime requirements. Coordinator rulings: classifier homes in orchestrate beside routing-table.md (a dependency #140 already forces), plan-review stakes untouched, review-depth keeps depth and the floor but loses all reviewer-selection claims. Also caught: the verification chain in flight was stale, missing worker_lifecycle.py from AGENTS.md's Test line since #150. Order rewritten clean rather than patched
 - 2026-08-25 #152 — PR #168 merged on green CI; worktree removed. #144's blocked-by edges (#145 #149 #151 #152) are all merged, so the final integration ticket is now triageable
