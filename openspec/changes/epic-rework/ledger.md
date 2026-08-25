@@ -43,6 +43,7 @@ updated: 2026-08-24
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-24 routing — operator directive: Codex-only for new dispatches (opus rung → Sol, sonnet rung → Terra, escalate Terra → Sol; Claude only if Sol fails); in-flight work untouched
 - 2026-08-24 #145 #146 — both built (Sonnet, Terra), Full-depth reviews converged SHIP with zero blocking findings; PRs #161 #160 opened, merge on green CI
 - 2026-08-24 #150 — triaged (opus / high, Full depth, blocked on #149); order pins base commit and mandates post-rebase re-derivation; triage caught a would-be reversal of the #62 stdin risk contract and corrected the issue body's line census (9, not 5)
 - 2026-08-24 #145 — triaged (sonnet / high, Full depth, landable on either #149 base); building via Sonnet session; session-fit comment posted
