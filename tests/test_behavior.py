@@ -2869,16 +2869,34 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
             "\n\n## The rubric", 1
         )[0]
         self.compact_dispatch = " ".join(self.dispatch.split())
+        self.worker_inputs = self.dispatch.split(
+            "The prompt excludes earlier findings", 1
+        )[1]
 
     def test_dispatch_allows_only_pack_adapters(self):
-        self.assertIn("skills/drivers/orchestrate/scripts/codex-worker.py", self.compact_dispatch)
-        self.assertIn("skills/drivers/orchestrate/scripts/claude-worker.py", self.compact_dispatch)
+        exclusivity = (
+            "Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or "
+            "`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected "
+            "adapter's read-only review surface."
+        )
+        self.assertIn(exclusivity, self.compact_dispatch)
+        adapter_paths = re.findall(
+            r"(?<![\w.-])(/?(?:[\w.-]+/)+[\w.-]*worker\.py)",
+            self.dispatch,
+        )
+        self.assertEqual(
+            adapter_paths,
+            [
+                "skills/drivers/orchestrate/scripts/codex-worker.py",
+                "skills/drivers/orchestrate/scripts/claude-worker.py",
+            ],
+        )
         self.assertIn("Never use the built-in Agent tool, Workflow tool, or background-agent machinery", self.compact_dispatch)
         self.assertNotIn("built-in Agent tool, Workflow tool, or background-agent machinery may be used", self.compact_dispatch)
 
     def test_dispatch_is_readonly(self):
         self.assertIn("using the selected adapter's read-only review surface", self.compact_dispatch)
-        self.assertNotIn("using the selected adapter's workspace-write review surface", self.compact_dispatch)
+        self.assertNotIn("workspace-write", self.compact_dispatch)
 
     def test_coordinator_supplies_explicit_adapter_model_and_effort(self):
         self.assertIn(
@@ -2926,6 +2944,12 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
             "author/coordinator-session material", "chat transcript",
         ):
             self.assertIn(forbidden, self.dispatch)
+        guarantee = "The worker receives no chat transcript or author-session context."
+        self.assertIn(guarantee, self.compact_dispatch)
+        worker_inputs = " ".join(self.worker_inputs.split()).lower()
+        other_worker_inputs = worker_inputs.replace(guarantee.lower(), "")
+        for forbidden_input in ("chat transcript", "author-session context"):
+            self.assertNotIn(forbidden_input, other_worker_inputs)
 
     def test_chat_plan_materialization_is_verbatim_immutable_and_path_only(self):
         self.assertIn(
