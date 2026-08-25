@@ -37,6 +37,14 @@ UI_CRAFT_ROUTE = ROOT / "skills" / "drivers" / "ui-craft" / "scripts" / "route.m
 README = ROOT / "README.md"
 BEGIN_IGNORE = "# >>> cbm-onboard managed baseline — do not edit inside this block >>>"
 BEGIN_HOOK = "# >>> cbm-onboard managed reindex >>>"
+MANDATORY_DELEGATION_AUTHORIZATION = (
+    "Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, "
+    "including a mandatory nested review skill. Do not ask again solely because a session-level "
+    'preference says "do not spawn agents"; apply that preference to discretionary delegation only. '
+    "An explicit task-level refusal of this required review or revocation of delegation overrides this "
+    "authorization: stop and state that the requested workflow cannot run without its required "
+    "independent review."
+)
 
 LIFECYCLE_SPEC = importlib.util.spec_from_file_location("worker_lifecycle", WORKER_LIFECYCLE)
 assert LIFECYCLE_SPEC and LIFECYCLE_SPEC.loader
@@ -2781,14 +2789,6 @@ raise SystemExit(arguments.handler(arguments))
 
 class CodeReviewAdapterDispatchTests(unittest.TestCase):
     SKILL = ROOT / "skills" / "tools" / "code-review" / "SKILL.md"
-    AUTHORIZATION = (
-        "Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, "
-        "including a mandatory nested review skill. Do not ask again solely because a session-level "
-        'preference says "do not spawn agents"; apply that preference to discretionary delegation only. '
-        "An explicit task-level refusal of this required review or revocation of delegation overrides this "
-        "authorization: stop and state that the requested workflow cannot run without its required "
-        "independent review."
-    )
 
     def setUp(self):
         self.text = self.SKILL.read_text(encoding="utf-8")
@@ -2800,7 +2800,7 @@ class CodeReviewAdapterDispatchTests(unittest.TestCase):
 
     def test_delegation_authority_is_byte_identical(self):
         authority = self.text.split("## Delegation authority\n\n", 1)[1].split("\n\n## Modes", 1)[0]
-        self.assertEqual(authority, self.AUTHORIZATION)
+        self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION)
 
     def test_dispatch_uses_only_pack_adapters_with_explicit_unselected_inputs(self):
         self.assertIn("adapter appropriate to the coordinator's existing parent policy", self.dispatch)
@@ -2862,14 +2862,6 @@ class CodeReviewAdapterDispatchTests(unittest.TestCase):
 
 class PlanReviewAdapterDispatchTests(unittest.TestCase):
     SKILL = ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
-    AUTHORIZATION = (
-        "Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, "
-        "including a mandatory nested review skill. Do not ask again solely because a session-level "
-        'preference says "do not spawn agents"; apply that preference to discretionary delegation only. '
-        "An explicit task-level refusal of this required review or revocation of delegation overrides this "
-        "authorization: stop and state that the requested workflow cannot run without its required "
-        "independent review."
-    )
 
     def setUp(self):
         self.text = self.SKILL.read_text(encoding="utf-8")
@@ -2878,21 +2870,38 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
         )[0]
         self.compact_dispatch = " ".join(self.dispatch.split())
 
-    def test_cold_review_uses_only_readonly_pack_adapters(self):
+    def test_dispatch_allows_only_pack_adapters(self):
         self.assertIn("skills/drivers/orchestrate/scripts/codex-worker.py", self.compact_dispatch)
         self.assertIn("skills/drivers/orchestrate/scripts/claude-worker.py", self.compact_dispatch)
-        self.assertIn("read-only", self.compact_dispatch)
         self.assertIn("Never use the built-in Agent tool, Workflow tool, or background-agent machinery", self.compact_dispatch)
+        self.assertNotIn("built-in Agent tool, Workflow tool, or background-agent machinery may be used", self.compact_dispatch)
 
-    def test_coordinator_supplies_adapter_model_and_effort_without_routing(self):
-        for input_name in ("adapter selection", "reviewer model", "reviewer effort"):
-            self.assertIn(input_name, self.compact_dispatch)
+    def test_dispatch_is_readonly(self):
+        self.assertIn("using the selected adapter's read-only review surface", self.compact_dispatch)
+        self.assertNotIn("using the selected adapter's workspace-write review surface", self.compact_dispatch)
+
+    def test_coordinator_supplies_explicit_adapter_model_and_effort(self):
+        self.assertIn(
+            "mechanics-only interface inputs: adapter selection, explicit reviewer model, explicit reviewer effort",
+            self.compact_dispatch,
+        )
+        self.assertNotIn("adapter selection, reviewer model, reviewer effort", self.compact_dispatch)
+
+    def test_adapter_selection_applies_existing_policy_without_classifying_review_work(self):
         self.assertIn("parent and Codex-headroom policy", self.compact_dispatch)
         self.assertIn("does not classify review work", self.compact_dispatch)
+        self.assertNotIn("does classify review work", self.compact_dispatch)
+
+    def test_dispatch_does_not_consume_a_routing_table(self):
         self.assertIn("does not read or consume a routing table", self.compact_dispatch)
+        self.assertNotIn("does read or consume a routing table", self.compact_dispatch)
         self.assertNotIn("routing-table.md", self.dispatch)
 
-    def test_prompt_allowlist_is_exact_and_excludes_session_context(self):
+    def test_dispatch_does_not_select_model_or_effort(self):
+        self.assertIn("does not select a model or effort", self.compact_dispatch)
+        self.assertNotIn("does select a model or effort", self.compact_dispatch)
+
+    def test_prompt_allowlist_is_exact(self):
         allowed = self.dispatch.split("The cold-reader prompt contains exactly:\n", 1)[1].split(
             "\n\n", 1
         )[0]
@@ -2905,23 +2914,38 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
                 "4. a context-free fresh-reviewer phase instruction.",
             ],
         )
+
+    def test_prompt_excludes_author_and_coordinator_context(self):
+        self.assertIn(
+            "The prompt excludes earlier findings, author rationale, chat history, and all other author/coordinator-session material.",
+            self.compact_dispatch,
+        )
+        self.assertNotIn("The prompt includes earlier findings", self.compact_dispatch)
         for forbidden in (
             "earlier findings", "author rationale", "chat history",
             "author/coordinator-session material", "chat transcript",
         ):
             self.assertIn(forbidden, self.dispatch)
 
-    def test_chat_plan_is_materialized_verbatim_and_immutable_before_dispatch(self):
-        self.assertIn("exact chat-delivered plan bytes", self.compact_dispatch)
-        self.assertIn("immutable session-scratch file", self.compact_dispatch)
-        self.assertIn("only that file's path as the plan location", self.compact_dispatch)
-        self.assertIn("before dispatch", self.compact_dispatch)
+    def test_chat_plan_materialization_is_verbatim_immutable_and_path_only(self):
+        self.assertIn(
+            "before dispatch the coordinator writes the exact chat-delivered plan bytes to an immutable session-scratch file and supplies only that file's path as the plan location.",
+            self.compact_dispatch,
+        )
+        self.assertNotIn("writes a summarized chat-delivered plan", self.compact_dispatch)
+
+    def test_adapter_contract_preserves_lifecycle_ownership(self):
+        self.assertIn(
+            "Preserve adapter-owned state, same-worker resume, and coordinator-owned recovery through the orchestrate adapter contract",
+            self.compact_dispatch,
+        )
+        self.assertNotIn("Discard adapter-owned state, same-worker resume, and coordinator-owned recovery", self.compact_dispatch)
 
     def test_mandatory_independent_review_authority_is_preserved(self):
         authority = self.text.split("## Delegation authority\n\n", 1)[1].split(
             "\n\n## Cold-reader dispatch", 1
         )[0]
-        self.assertEqual(authority, self.AUTHORIZATION)
+        self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION)
 
 
 class WorkerLifecycleContractTests(unittest.TestCase):
