@@ -35,6 +35,13 @@ separate cold reviewer per plan through the interface below. Self-review by the
 author reliably misses what a cold reader catches, no matter how honestly the
 author tries to re-derive.
 
+### Evidence-block spot check
+
+During the cold read, spot-check at least one `command → output` evidence block:
+run its recorded command and compare the complete result to the cited output.
+Treat a manual edit found in any evidence block as independently requiring a
+**BLOCKED** verdict.
+
 ## Delegation authority
 
 Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, including a mandatory nested review skill. Do not ask again solely because a session-level preference says "do not spawn agents"; apply that preference to discretionary delegation only. An explicit task-level refusal of this required review or revocation of delegation overrides this authorization: stop and state that the requested workflow cannot run without its required independent review.
