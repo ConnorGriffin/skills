@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: collect #163 Full-depth review (Sol, running; build 523e3ff committed in ~/worktrees/skills/163), converge, PR, merge. Then #159 (wave-rule scope, add build-dispatch freshness check) and #171 (item 3 needs operator ruling); #147 deferred. All other builds merged
+next: #159 (delegated-execution mode + wave rule; add build-dispatch freshness check to its scope at triage). #171 items 1-2 buildable, item 3 blocked on operator ruling. #147 deferred. Every other build in the epic is merged
 updated: 2026-08-25
 
 ## Notes
@@ -41,7 +41,7 @@ updated: 2026-08-25
 - #156 Dispatch research's background agent through pack adapters — merged (PR #176)
 - #157 Dispatch codebase-design's parallel design agents through pack adapters — merged (PR #177)
 - #159 Delegated-execution mode for the epic home session — filed; unblocked (#155 merged), scope amended with wave rule
-- #163 Coordinator wait protocol: collect child results, never idle-wait — regrounded order restamped; built (523e3ff), Full review in flight
+- #163 Coordinator wait protocol: collect child results, never idle-wait — merged (PR #182)
 - #171 Review-process tuning (conventions preamble, fix-in-place rule, depth-floor qualifier) — filed; item 3 needs an operator ruling before build
 - #145 Claude-parent Codex reviewer dispatch reference — merged
 - #146 Pre-authorize required review delegation — merged
@@ -53,6 +53,7 @@ updated: 2026-08-25
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 #163 merged — Full review returned one real finding (closing anchors matched heading prefixes, so renaming `## Maintenance` passed the pins), fixed in place by the coordinator and proven red under the rename mutation; PR #182 merged on green CI, issue closed, worktree removed. The build queue is empty except #159 and #171
 - 2026-08-25 wave-2 merged — #164 merged (PR #179) and #165 merged (PR #180) after one fix round each: the recurring defect was read_text() newline normalization defeating raw-byte pins (third occurrence this epic — the conventions preamble must reach build prompts, folded into #171 item 1); #165 also gained a scoped closing-fence assertion and whole-file UTF-8 decodes after its convergence check found two regressions, fixed in place by the coordinator and mutation-proven. #163 went stale against #154/#178 (builder refused correctly), was regrounded by a fresh Sol drafter (old sessions died when the shared scout worktree was removed — keep scout checkouts alive until dependent sessions finish), cold-reviewed (one raw-bytes spec fix in place), restamped, rebuilt (523e3ff, chain green); Full review running
 - 2026-08-25 subtree merged — the adapter-conversion subtree is fully on main: PRs #173 (#154), #174 (#153), #175 (#155), #176 (#156), #177 (#157) merged serially on green CI with per-merge rebases (interleaved-test-class conflicts on #156/#157 resolved by the coordinator keeping both complete classes; #157 re-assembled deterministically from its original patch after a bad composition, all pins mutation-checked). Integration PR #178 merged: orchestrate's Pack-wide reach and its pinned constant now state all dispatching skills converted. All five issues closed; worktrees removed. #163 build dispatched (Sol); #164 #165 built (Terra, one triage round each under the conventions preamble — #164 SHIP round 1), Full reviews in flight
 - 2026-08-25 wave-1 first merge — #139 built (Terra, one round), Full review SHIP first pass, PR #172 merged on green CI (e3f28f4), issue closed, worktree removed. #153-#157 built in parallel; Full reviews returned five BLOCKs sharing one finding class (orchestrate's pinned Pack-wide reach still lists them unconverted — resolved by ruling: one coordinator integration commit after all five merge, per the #144 precedent) plus per-ticket test-strength defects, all fixed by resumed workers; convergence reviews and post-fix chains in flight. Cross-ticket ruling: research's dispatching session writes the Markdown file (worker is read-only); #155's epic block amended to match. Wave 2 started: #164 #165 triage drafts dispatched from a freshness-verified scout checkout with the settled-conventions preamble (#171 item 1) in the prompt
