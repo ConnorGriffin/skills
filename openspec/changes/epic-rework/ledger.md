@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: collect #163 build (Sol, worktree ~/worktrees/skills/163) and #164/#165 Full-depth reviews; review-fix-merge each (serialize on shared test files). Then #159 (unblocked, wave-rule scope) and #171 (item 3 needs operator ruling). Adapter-conversion subtree fully merged
+next: collect #163 Full-depth review (Sol, running; build 523e3ff committed in ~/worktrees/skills/163), converge, PR, merge. Then #159 (wave-rule scope, add build-dispatch freshness check) and #171 (item 3 needs operator ruling); #147 deferred. All other builds merged
 updated: 2026-08-25
 
 ## Notes
@@ -41,18 +41,19 @@ updated: 2026-08-25
 - #156 Dispatch research's background agent through pack adapters — merged (PR #176)
 - #157 Dispatch codebase-design's parallel design agents through pack adapters — merged (PR #177)
 - #159 Delegated-execution mode for the epic home session — filed; unblocked (#155 merged), scope amended with wave rule
-- #163 Coordinator wait protocol: collect child results, never idle-wait — triaged and stamped (Sol/high, Full); building
+- #163 Coordinator wait protocol: collect child results, never idle-wait — regrounded order restamped; built (523e3ff), Full review in flight
 - #171 Review-process tuning (conventions preamble, fix-in-place rule, depth-floor qualifier) — filed; item 3 needs an operator ruling before build
 - #145 Claude-parent Codex reviewer dispatch reference — merged
 - #146 Pre-authorize required review delegation — merged
 - #139 Triage stamps session-fit preamble into work orders — merged (PR #172)
-- #164 Triage evidence blocks command-generated verbatim — triaged (round-1 SHIP) and built; Full review in flight
-- #165 Builder self-check distilled from review blockers — triaged and built; Full review in flight
+- #164 Triage evidence blocks command-generated verbatim — merged (PR #179)
+- #165 Builder self-check distilled from review blockers — merged (PR #180)
 
 ## Deferred
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 wave-2 merged — #164 merged (PR #179) and #165 merged (PR #180) after one fix round each: the recurring defect was read_text() newline normalization defeating raw-byte pins (third occurrence this epic — the conventions preamble must reach build prompts, folded into #171 item 1); #165 also gained a scoped closing-fence assertion and whole-file UTF-8 decodes after its convergence check found two regressions, fixed in place by the coordinator and mutation-proven. #163 went stale against #154/#178 (builder refused correctly), was regrounded by a fresh Sol drafter (old sessions died when the shared scout worktree was removed — keep scout checkouts alive until dependent sessions finish), cold-reviewed (one raw-bytes spec fix in place), restamped, rebuilt (523e3ff, chain green); Full review running
 - 2026-08-25 subtree merged — the adapter-conversion subtree is fully on main: PRs #173 (#154), #174 (#153), #175 (#155), #176 (#156), #177 (#157) merged serially on green CI with per-merge rebases (interleaved-test-class conflicts on #156/#157 resolved by the coordinator keeping both complete classes; #157 re-assembled deterministically from its original patch after a bad composition, all pins mutation-checked). Integration PR #178 merged: orchestrate's Pack-wide reach and its pinned constant now state all dispatching skills converted. All five issues closed; worktrees removed. #163 build dispatched (Sol); #164 #165 built (Terra, one triage round each under the conventions preamble — #164 SHIP round 1), Full reviews in flight
 - 2026-08-25 wave-1 first merge — #139 built (Terra, one round), Full review SHIP first pass, PR #172 merged on green CI (e3f28f4), issue closed, worktree removed. #153-#157 built in parallel; Full reviews returned five BLOCKs sharing one finding class (orchestrate's pinned Pack-wide reach still lists them unconverted — resolved by ruling: one coordinator integration commit after all five merge, per the #144 precedent) plus per-ticket test-strength defects, all fixed by resumed workers; convergence reviews and post-fix chains in flight. Cross-ticket ruling: research's dispatching session writes the Markdown file (worker is read-only); #155's epic block amended to match. Wave 2 started: #164 #165 triage drafts dispatched from a freshness-verified scout checkout with the settled-conventions preamble (#171 item 1) in the prompt
 - 2026-08-25 seven-ticket triage — #139 #153 #154 #155 #156 #157 #163 triaged in three parallel rounds at the cap. Round 1: all seven BLOCK, dominated by a shared stale base (drafted at 04c3ac8; #170's merge moved the ladder and pinned tests) plus adapter-interface errors (prompt-file flags that don't exist, missing --state). Round 2 after regrounding on 7bce5e2: all BLOCK on narrow mechanics, the repeated one being constants including their opening heading against the body-only extraction convention; that convention issued as a shared ruling. Round 3: five SHIP; #139 and #154 blocked on single mechanical findings the coordinator fixed in place per the #144 precedent (139: opening anchor moved outside the canonical body; 154: canonical body reworded to carry the existing test's retained assertion strings). Coordinator overruled one recurring reviewer demand: bare python3 per AGENTS.md — the documented python3.14 substitution is settled (#144). All seven orders and session-fit comments posted, ticket:triaged applied; depths all Full per the shared-workflow sensitivity floor
