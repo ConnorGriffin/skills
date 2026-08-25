@@ -3225,10 +3225,9 @@ class PersonaReviewAdapterDispatchTests(unittest.TestCase):
         self.assertEqual(dispatch, PERSONA_REVIEW_PANELIST_DISPATCH)
 
     def test_serial_no_lookback_fallback_is_preserved(self):
-        self.assertIn("\n\n## Synthesis\n", self.text)
-        cold_review = self.text.split("## Cold review, per persona\n\n", 1)[1].split(
-            "\n\n## Synthesis", 1
-        )[0]
+        remainder = self.text.split("## Cold review, per persona\n\n", 1)[1]
+        self.assertIn("\n\n## Synthesis\n", remainder)
+        cold_review = remainder.split("\n\n## Synthesis", 1)[0]
         self.assertIn(
             "Where adapter dispatch isn't available, review personas serially in the main session,",
             cold_review,
