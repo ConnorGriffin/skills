@@ -2860,6 +2860,70 @@ class CodeReviewAdapterDispatchTests(unittest.TestCase):
         self.assertLess(self.dispatch.index("scoped `stop"), self.dispatch.index("scoped `verify"))
 
 
+class PlanReviewAdapterDispatchTests(unittest.TestCase):
+    SKILL = ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
+    AUTHORIZATION = (
+        "Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, "
+        "including a mandatory nested review skill. Do not ask again solely because a session-level "
+        'preference says "do not spawn agents"; apply that preference to discretionary delegation only. '
+        "An explicit task-level refusal of this required review or revocation of delegation overrides this "
+        "authorization: stop and state that the requested workflow cannot run without its required "
+        "independent review."
+    )
+
+    def setUp(self):
+        self.text = self.SKILL.read_text(encoding="utf-8")
+        self.dispatch = self.text.split("## Cold-reader dispatch\n\n", 1)[1].split(
+            "\n\n## The rubric", 1
+        )[0]
+        self.compact_dispatch = " ".join(self.dispatch.split())
+
+    def test_cold_review_uses_only_readonly_pack_adapters(self):
+        self.assertIn("skills/drivers/orchestrate/scripts/codex-worker.py", self.compact_dispatch)
+        self.assertIn("skills/drivers/orchestrate/scripts/claude-worker.py", self.compact_dispatch)
+        self.assertIn("read-only", self.compact_dispatch)
+        self.assertIn("Never use the built-in Agent tool, Workflow tool, or background-agent machinery", self.compact_dispatch)
+
+    def test_coordinator_supplies_adapter_model_and_effort_without_routing(self):
+        for input_name in ("adapter selection", "reviewer model", "reviewer effort"):
+            self.assertIn(input_name, self.compact_dispatch)
+        self.assertIn("parent and Codex-headroom policy", self.compact_dispatch)
+        self.assertIn("does not classify review work", self.compact_dispatch)
+        self.assertIn("does not read or consume a routing table", self.compact_dispatch)
+        self.assertNotIn("routing-table.md", self.dispatch)
+
+    def test_prompt_allowlist_is_exact_and_excludes_session_context(self):
+        allowed = self.dispatch.split("The cold-reader prompt contains exactly:\n", 1)[1].split(
+            "\n\n", 1
+        )[0]
+        self.assertEqual(
+            allowed.splitlines(),
+            [
+                "1. plan location;",
+                "2. the five-axis rubric;",
+                "3. stakes tier; and",
+                "4. a context-free fresh-reviewer phase instruction.",
+            ],
+        )
+        for forbidden in (
+            "earlier findings", "author rationale", "chat history",
+            "author/coordinator-session material", "chat transcript",
+        ):
+            self.assertIn(forbidden, self.dispatch)
+
+    def test_chat_plan_is_materialized_verbatim_and_immutable_before_dispatch(self):
+        self.assertIn("exact chat-delivered plan bytes", self.compact_dispatch)
+        self.assertIn("immutable session-scratch file", self.compact_dispatch)
+        self.assertIn("only that file's path as the plan location", self.compact_dispatch)
+        self.assertIn("before dispatch", self.compact_dispatch)
+
+    def test_mandatory_independent_review_authority_is_preserved(self):
+        authority = self.text.split("## Delegation authority\n\n", 1)[1].split(
+            "\n\n## Cold-reader dispatch", 1
+        )[0]
+        self.assertEqual(authority, self.AUTHORIZATION)
+
+
 class WorkerLifecycleContractTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
