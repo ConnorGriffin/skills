@@ -37,11 +37,24 @@ gets set when a replay measures one.
 **A Claude worker's sandbox mode is enforced by the OS, not by the prompt.** Read-only and
 write configurations are the committed, executed artifacts under `docs/scope/149-probes/`,
 verified 2026-08-24, with the run captured in `docs/scope/149-probes/output.txt`: the
-read-only worker keeps a working shell and has every write refused by Seatbelt; the write
-worker writes inside its cwd and is refused a write into the home directory.
+read-only worker keeps a working shell and has every write refused by Seatbelt. That holds
+through the adapter too, re-verified in `docs/scope/149-probes/run-log.md`, where the
+refusal also survives a resume through the adapter's own argv.
 
-The write mode's boundary is cwd **plus the session temp directory**, which the sandbox
-documents as writable and a first measurement mistook for a confinement hole. A worker can
+**Correction (2026-08-25), forced by a real run through the adapter.** The write mode was
+not confined by the artifact this ADR originally cited.
+`docs/scope/149-probes/write.settings.json` carries no `filesystem` block at all, and a real
+`workspace-write` worker launched with that shape wrote straight through to `$HOME/.cache`
+— see the `write` case in `run-log.md`. The sandbox does not confine writes unless the
+settings file says so, so the original claim that the write worker "writes inside its cwd
+and is refused a write into the home directory" was false as stated. What actually confines
+it is `filesystem.allowWrite: [cwd]` **alone**, which `claude-worker.py` now generates.
+Pairing it with a `denyWrite` (`["/"]`, then `["~/"]`) was tried and rejected on disk both
+times: `deny` beats `allow` for the same path, so the pair silently re-blocks the very cwd
+`allowWrite` exists to carve out.
+
+With `allowWrite: [cwd]` in place, the write mode's boundary is cwd **plus the session temp
+directory**, which the sandbox documents as writable. A worker can
 therefore write under `$TMPDIR`; it cannot write into the operator's home or control
 checkout. Stating the boundary as "the worktree and nowhere else" would be false. `allowUnsandboxedCommands:
 false` is part of the contract — it disables the `dangerouslyDisableSandbox` retry, so a
