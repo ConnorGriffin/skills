@@ -10,7 +10,7 @@ updated: 2026-08-25
 - interim session-fit rule until #139 lands: see #138's session-fit comment for the pattern
 
 ## Fog
-- label inventory drift: #135's approved ruling deleted all agentflow:*, wayfinder:*, ready-for-agent, ticket:done; in ConnorGriffin/skills they still exist (observed 2026-08-25 applying ticket:triaged to #144). Either the deletion covered the other 6 repos only, or it was never executed here — deleting labels is destructive and outside the repo, so not actioned unilaterally
+- (resolved 2026-08-25) label inventory drift — #135's deletion had never been executed anywhere; operator ordered it live. 106 labels deleted across all 7 repos (skills 20, dotfiles 11, homelab 12, ciq-autotune 22, follow-through 9, home 7, harmonic 25), zero ruled labels remaining; home#18 relabeled spike per the ruling's disposition
 
 ## Decisions
 - Field evidence in routing (operator, 2026-08-25) — session-derived field notes are first-class provenance for routing-table.md alongside benchmark replays; a contradicting field note triggers an area replay rather than silently winning. Codified via #183
