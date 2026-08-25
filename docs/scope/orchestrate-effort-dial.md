@@ -19,10 +19,10 @@ Route: interview mode (a concrete plan exists in the operator's head, untested).
   `model_reasoning_effort=medium` today with no flag; both adapters take `--effort`.
   → issue
 
-* **Effort defaults are per model, operator-set:** Opus medium, Sol medium, Terra high,
-  Luna max. Why: operator ruling, 2026-08-24. These are not benchmark-derived — the
-  2026-08-03 replay scored every Codex run at medium — so the table's provenance stamp
-  must mark them operator-set and unbenchmarked. → ADR
+* **Effort defaults to medium for every model.** Why: operator ruling, 2026-08-24,
+  superseding an earlier per-model split (Terra high, Luna max) on the grounds that no
+  effort benchmarking has been done; values get bumped when a replay measures a reason.
+  The dial exists so a coordinator can override per delegation. → ADR
 
 * **All model dispatch defined by this pack's skills goes through this pack's
   adapters.** Not orchestrate-only: any skill that dispatches a model (code-review,
@@ -46,15 +46,32 @@ Route: interview mode (a concrete plan exists in the operator's head, untested).
   creating no file: a live instance of the SKILL.md warning to demand command output
   rather than trusting a reported success.
 
+## Read-only enforcement — measured 2026-08-24 (Haiku, scratchpad dirs)
+
+| Dispatch | Wrote the file? |
+|---|---|
+| `--permission-mode bypassPermissions` (baseline) | yes |
+| `--permission-mode acceptEdits` | no — new-file Write still asks |
+| `--permission-mode plan` | no — but wrote a plan file into `~/.claude/plans/` |
+| `bypassPermissions --tools Read,Grep,Glob` | no — "Write tool is disabled" |
+| `bypassPermissions --disallowedTools Write,Edit,NotebookEdit,Bash` | no |
+| `bypassPermissions --disallowedTools Write,Edit,NotebookEdit` (Bash allowed) | **yes** |
+| `bypassPermissions --tools Read,Grep,Glob,Bash` | **yes** |
+| `--settings {"sandbox":true}` with Bash allowed | yes |
+| `--settings {"permissions":{"sandbox":true,"allowUnsandboxedCommands":false}}` with Bash allowed | yes |
+
+**Ruling this forces:** Bash is the escape hatch. A read-only Claude worker is one whose
+tool set omits Bash; no permission mode and no settings shape tested blocks a write while
+Bash is available. This is strictly weaker than Codex `--sandbox read-only`, which permits
+commands and blocks writes at the filesystem — a Claude read worker trades shell access
+for the guarantee. A read task that genuinely needs shell is dispatched as a
+write-capable worker into a throwaway worktree instead.
+
 ## Open questions
 
-1. Effort defaults for the models not named in the ruling: Sonnet, Haiku, Spark, and
-   the light-tier alternates.
-2. Whether `--tools` / `--disallowedTools` survive a permissive `--permission-mode`
-   (the read-only guarantee for write-capable dispatch) — probe blocked pending
-   operator approval to run `bypassPermissions` locally.
-3. Sequencing against #144 and #145, which queue edits to the same orchestrate files.
-4. Shape: one flat order or chunked (adapter + tests, doc/ban rewrite, ADR).
+1. Sequencing against #144 and #145, which queue edits to the same orchestrate files.
+2. Shape: one chunked order on #149, or #149 builds the adapters and child issues
+   convert each consuming skill.
 
 ## Spawned tasks
 
