@@ -8,9 +8,11 @@ description: Flip the session into coordinator mode — the parent agent plans, 
 Invoking this skill flips the **whole session** into coordinator mode until the
 operator says otherwise. Detect the parent before dispatching:
 
-- **Claude Code parent:** use the Claude and Codex mechanics below — both
-  dispatch through their CLI-worker adapters (`claude-worker.py` /
-  `codex-worker.py`), never through the Agent tool, the Workflow tool, or a
+- **Claude Code parent:** use the Claude and Codex mechanics below. Before
+  dispatching a Codex worker, read
+  `references/dispatch-codex-from-claude.md`. Both sides dispatch through their
+  CLI-worker adapters (`claude-worker.py` / `codex-worker.py`) —
+  never through the Agent tool, the Workflow tool, or a
   background agent.
 - **Codex UI parent:** read `references/dispatch-codex.md` before routing. In
   this v0, every delegation uses its CLI-worker adapter; do not use native
@@ -121,7 +123,10 @@ is the reason the review is not optional); prototyping routes straight to
    `codex-worker.py`), never through the Agent tool, the Workflow tool, or a
    background agent. See `references/dispatch-claude.md` for the Claude
    adapter's command surface, sandbox shapes, prompt-on-stdin fact, and
-   liveness contract; `references/dispatch-codex.md` for Codex's. `read-only`
+   liveness contract. For Codex, the reference depends on the parent: a Claude
+   Code parent dispatching a Codex worker reads
+   `references/dispatch-codex-from-claude.md`; a Codex UI parent reads
+   `references/dispatch-codex.md`. `read-only`
    is for read-tasks; `workspace-write` only targets an isolated worktree
    (`--cwd`, with `--control-checkout` set to the coordinator's checkout),
    never the coordinator's checkout directly — both adapters refuse a

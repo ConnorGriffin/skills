@@ -2080,6 +2080,49 @@ class OrchestrateCodexPolicyTests(unittest.TestCase):
         self.assertIn("`ps -o time` is growing", dispatch)
         self.assertIn("rollout-*.jsonl", dispatch)
 
+    def test_claude_parent_codex_dispatch_reference_is_pinned(self):
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        dispatch = (
+            ROOT / "skills" / "drivers" / "orchestrate" / "references" / "dispatch-codex.md"
+        ).read_text(encoding="utf-8")
+        from_claude = (
+            ROOT
+            / "skills"
+            / "drivers"
+            / "orchestrate"
+            / "references"
+            / "dispatch-codex-from-claude.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "Before\n  dispatching a Codex worker, read\n  `references/dispatch-codex-from-claude.md`.",
+            skill,
+        )
+        self.assertIn(
+            "Use this adapter only when the interactive coordinator is a Codex UI parent.",
+            dispatch,
+        )
+
+        self.assertIn(
+            "only when the interactive coordinator is a Claude Code\nparent dispatching a **Codex** worker",
+            from_claude,
+        )
+        self.assertIn("gpt-5.6-luna", from_claude)
+        self.assertIn("read-only", from_claude)
+        self.assertIn("Retry a failed routine review once in the same worker session", from_claude)
+        self.assertIn("do not start a second worker for\n   it", from_claude)
+        self.assertIn("escalate one tier per the Code review row's", from_claude)
+        self.assertIn("Luna → Sonnet → Opus", from_claude)
+        self.assertIn(
+            "Item 3's `NO_VALIDATED_ROUTE` stop\n   and its \"never escalate Terra, Luna, or Sol to Sonnet or Opus\" ban are\n   Codex-UI-parent rules and do not apply here.",
+            from_claude,
+        )
+        self.assertIn("Route load-bearing or safety review to Claude Opus directly", from_claude)
+        self.assertIn("routine review begins at Sonnet and escalates to Opus", from_claude)
+        self.assertIn("Make no second Codex attempt for the rest\n   of the session.", from_claude)
+
 
 class WorkerEffortDialTests(unittest.TestCase):
     """Sub-order 1/2 149: the effort dial on both adapters and the STATE_VERSION
@@ -3875,6 +3918,62 @@ class UiCraftCliMainGuardTests(unittest.TestCase):
         self.assert_symlink_parity(
             ("detector", "detect-antipatterns.mjs"), ["--help"], suffix="/"
         )
+
+
+class DelegationAuthorityContractTests(unittest.TestCase):
+    CODE_REVIEW = (ROOT / "skills" / "tools" / "code-review" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    PLAN_REVIEW = (ROOT / "skills" / "tools" / "plan-review" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    TICKET = (ROOT / "skills" / "drivers" / "ticket" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    TRIAGE = (ROOT / "skills" / "drivers" / "ticket" / "verbs" / "triage.md").read_text(
+        encoding="utf-8"
+    )
+    PERSONA_REVIEW = (
+        ROOT / "skills" / "tools" / "persona-review" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
+    ENTRY_POINTS = (CODE_REVIEW, PLAN_REVIEW, TICKET)
+    AUTHORIZATION = "authorizes every sub-agent dispatch that this procedure marks mandatory"
+    DISCRETIONARY_ONLY = (
+        'Do not ask again solely because a session-level preference says "do not spawn '
+        'agents"; apply that preference to discretionary delegation only.'
+    )
+    REFUSAL_STOPS_WORKFLOW = (
+        "An explicit task-level refusal of this required review or revocation of "
+        "delegation overrides this authorization: stop and state that the requested "
+        "workflow cannot run without its required independent review."
+    )
+
+    def test_all_required_review_entry_points_authorize_mandatory_dispatch(self):
+        for skill in self.ENTRY_POINTS:
+            self.assertIn(self.AUTHORIZATION, skill)
+
+    def test_session_preference_leaves_required_dispatch_authorized(self):
+        for skill in self.ENTRY_POINTS:
+            self.assertIn(self.DISCRETIONARY_ONLY, skill)
+
+    def test_explicit_refusal_or_revocation_stops_required_review_workflow(self):
+        for skill in self.ENTRY_POINTS:
+            self.assertIn(self.REFUSAL_STOPS_WORKFLOW, skill)
+
+    def test_persona_review_keeps_conditional_serial_fallback_without_authority(self):
+        self.assertNotIn(self.AUTHORIZATION, self.PERSONA_REVIEW)
+        self.assertIn(
+            "Where subagents aren't available, review personas serially in the main session",
+            self.PERSONA_REVIEW,
+        )
+
+    def test_ticket_authority_covers_triage_plan_review(self):
+        self.assertIn("triage's mandatory `/plan-review`", self.TICKET)
+
+    def test_triage_points_to_ticket_authority_without_repeating_it(self):
+        self.assertIn("ticket skill page's `## Delegation authority` section", self.TRIAGE)
+        self.assertNotIn(self.AUTHORIZATION, self.TRIAGE)
 
 
 if __name__ == "__main__":
