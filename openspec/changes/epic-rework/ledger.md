@@ -34,6 +34,7 @@ updated: 2026-08-24
 - #155 Dispatch epic's workers through pack adapters — filed
 - #156 Dispatch research's background agent through pack adapters — filed
 - #157 Dispatch codebase-design's parallel design agents through pack adapters — filed
+- #159 Delegated-execution mode for the epic home session — filed (behind #155)
 - #145 Claude-parent Codex reviewer dispatch reference — filed
 - #146 Pre-authorize required review delegation — in-progress
 - #139 Triage stamps session-fit preamble into work orders — in-progress
@@ -42,6 +43,7 @@ updated: 2026-08-24
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-24 #159 — filed: delegated-execution mode (operator hands locked subtrees to the home session), attached to #133, proposal amendment in scope
 - 2026-08-24 orchestration — operator delegated completion to home session after killing Sol sessions; #144 reframe done (blocked, native edges), #146 triaged (Terra/medium, Full depth) and building via Terra worker, #149 building via Opus coordinator (chunked), #145 #150 triages in flight, #151-#157 held for just-in-time triage
 - 2026-08-24 #144 #149-#157 — dispatch subtree surfaced; #144 reframed as final integration behind #145 #149 #151 #152; nine new builds attached to #133
 - 2026-08-24 #139 — start blocked: work order predates #158's rewrite of the same files; re-triage required
