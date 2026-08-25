@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: #152 at PR #168, merge on green; then /ticket triage #144; #139 re-triage; #153-#157 JIT; #163-#165 per queue notes
+next: /ticket triage #144 (all blockers now merged); then #139 re-triage; #153-#157 JIT; #163-#165 per queue notes
 updated: 2026-08-25
 
 ## Notes
@@ -24,11 +24,11 @@ updated: 2026-08-25
 - #138 Mechanical rename wayfinder to epic — merged
 - #142 Epic skill content (3a) — merged
 - #143 Cross-skill amendments and machinery (3b) — merged
-- #144 Route review skills through routing table — filed (reframed: final integration; blocked-by edges #145 #149 #151 #152; no order until they land)
+- #144 Route review skills through routing table — filed, unblocked (all four blockers merged); triage next
 - #149 Universal effort dial and Claude CLI worker adapter — merged
 - #150 Extract shared worker lifecycle into one module — merged
 - #151 Dispatch code-review reviewers through pack adapters — merged
-- #152 Dispatch plan-review cold reviewers through pack adapters — at PR #168 (capped review's acceptance met)
+- #152 Dispatch plan-review cold reviewers through pack adapters — merged
 - #153 Dispatch persona-review's panel through pack adapters — filed
 - #154 Dispatch ticket's chunk agents through pack adapters — filed
 - #155 Dispatch epic's workers through pack adapters — filed
@@ -46,6 +46,7 @@ updated: 2026-08-25
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 #152 — PR #168 merged on green CI; worktree removed. #144's blocked-by edges (#145 #149 #151 #152) are all merged, so the final integration ticket is now triageable
 - 2026-08-25 #152 — resumed from handoff: Opus worker had left the canonical-block rewrite uncommitted in the worktree, not lost; home session verified rather than redid it. Ten-mutation sweep over the pinned section caught all ten by construction, full chain green (401 tests, 27 skills). Capped review's acceptance met, so no new round. PR #168 opened; body passed scorer and a Terra cold voice judge
 - 2026-08-25 handoff — operator ended the home session mid-#152; state comment posted on #152; ladder standing: Terra → Sol → Opus 5 (operator-amended); Codex-first directive stands for new dispatches
 - 2026-08-25 #152 — built (Terra), two fix rounds failed semantic falsifiability, escalated Sol then Opus per ladder; reviewer capped with canonical exact-block mandate
