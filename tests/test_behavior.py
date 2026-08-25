@@ -119,6 +119,57 @@ dispatch the coordinator writes the exact chat-delivered plan bytes to an
 immutable session-scratch file and supplies only that file's path as the plan
 location. The worker receives no chat transcript or author-session context."""
 
+DESIGN_IT_TWICE_ADAPTER_DISPATCH = """\
+The coordinator supplies the selected adapter, explicit design-agent model, and
+explicit design-agent effort. Pass model and effort unchanged to every design
+worker. This procedure does not select an adapter, model, or effort, apply a
+routing table or headroom policy, or add defaults.
+
+Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
+adapter's read-only surface. Never use the built-in Agent tool, Workflow tool,
+or background-agent machinery.
+
+Create one coordinator-owned `<session-scratch>/design-it-twice/` directory.
+For alternative `<n>`, write its complete independent technical brief to
+`design-<n>.prompt.md`; use `design-<n>.json` as that worker's state file; and
+capture its launcher stdout and stderr in `design-<n>.stdout` and
+`design-<n>.stderr`. The coordinator passes the contents of
+`design-<n>.prompt.md` as the adapter's positional prompt text. State files
+carry lifecycle metadata only; successful design output comes from each
+launcher's stdout `final_message`.
+
+Start alternatives 1, 2, and 3 through the selected adapter before waiting on
+any launcher, retaining each launcher PID and joining each individually. Each
+worker receives its separate technical brief and one different constraint:
+
+- Alternative 1: "Minimize the interface — aim for 1–3 entry points max.
+  Maximise leverage per entry point."
+- Alternative 2: "Maximise flexibility — support many use cases and extension."
+- Alternative 3: "Optimise for the most common caller — make the default case
+  trivial."
+- Alternative 4, when applicable: "Design around ports & adapters for
+  cross-seam dependencies."
+
+Include both [../SKILL.md](../SKILL.md) vocabulary and CONTEXT.md vocabulary
+in every brief. Each worker must not modify, patch, or stash.
+
+Each worker outputs:
+
+1. Interface (types, methods, params — plus invariants, ordering, error modes)
+2. Usage example showing how callers use it
+3. What the implementation hides behind the seam
+4. Dependency strategy and adapters (see [DEEPENING.md](DEEPENING.md))
+5. Trade-offs — where leverage is high, where it's thin
+
+On one nonzero completion, use the selected adapter's `resume` surface once
+against that alternative's same state file. If it still does not produce a
+successful `final_message`, mark that alternative unavailable. With two or more
+successful alternatives, present and compare the available designs, naming every
+unavailable alternative. With zero or one successful alternative, report that
+the design-it-twice pass did not produce enough alternatives and return to the
+interface-shape frontier; do not recommend a design."""
+
 PERSONA_REVIEW_PANELIST_DISPATCH = """\
 The coordinator supplies the selected adapter, explicit reviewer model, and explicit
 reviewer effort. For each panelist, dispatch only through
@@ -3335,6 +3386,17 @@ class ResearchAdapterDispatchTests(unittest.TestCase):
         job = self.research_job()
         self.assertIn("The coordinator writes the returned findings to a single Markdown file", job)
         self.assertIn("Save it where the repo already keeps such notes; match the existing convention", job)
+
+
+class DesignItTwiceAdapterDispatchTests(unittest.TestCase):
+    REFERENCE = ROOT / "skills" / "tools" / "codebase-design" / "references" / "DESIGN-IT-TWICE.md"
+
+    def test_dispatch_section_is_byte_identical(self):
+        text = self.REFERENCE.read_text(encoding="utf-8")
+        dispatch = text.split("### 2. Dispatch parallel design alternatives\n\n", 1)[1].split(
+            "\n\n### 3. Present and compare\n", 1
+        )[0]
+        self.assertEqual(dispatch, DESIGN_IT_TWICE_ADAPTER_DISPATCH)
 
 
 class WorkerLifecycleContractTests(unittest.TestCase):

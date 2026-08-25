@@ -12,10 +12,6 @@ when `scope`'s interview mode (`skills/workflows/scope/references/interview.md`)
 interface-shape frontier question, this can run right there, the same way
 that file's `ground it` escape hatch grounds a question before re-asking it.
 
-If coordinator mode (the `orchestrate` skill) is active, route the Step 2
-fan-out through its routing table's novel-solution-brainstorming row instead
-of picking sub-agent models yourself.
-
 ## Process
 
 ### 1. Frame the problem space
@@ -32,36 +28,57 @@ space for the chosen candidate:
 Show this to the user, then immediately proceed to Step 2. The user reads and
 thinks while the sub-agents work in parallel.
 
-### 2. Spawn sub-agents
+### 2. Dispatch parallel design alternatives
 
-Spawn 3+ sub-agents in parallel using the Agent tool. Each must produce a
-**radically different** interface for the deepened module.
+The coordinator supplies the selected adapter, explicit design-agent model, and
+explicit design-agent effort. Pass model and effort unchanged to every design
+worker. This procedure does not select an adapter, model, or effort, apply a
+routing table or headroom policy, or add defaults.
 
-Prompt each sub-agent with a separate technical brief (file paths, coupling
-details, dependency category from [DEEPENING.md](DEEPENING.md), what sits
-behind the seam). The brief is independent of the user-facing problem-space
-explanation in Step 1. Give each agent a different design constraint:
+Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
+adapter's read-only surface. Never use the built-in Agent tool, Workflow tool,
+or background-agent machinery.
 
-- Agent 1: "Minimize the interface — aim for 1–3 entry points max. Maximise
-  leverage per entry point."
-- Agent 2: "Maximise flexibility — support many use cases and extension."
-- Agent 3: "Optimise for the most common caller — make the default case
+Create one coordinator-owned `<session-scratch>/design-it-twice/` directory.
+For alternative `<n>`, write its complete independent technical brief to
+`design-<n>.prompt.md`; use `design-<n>.json` as that worker's state file; and
+capture its launcher stdout and stderr in `design-<n>.stdout` and
+`design-<n>.stderr`. The coordinator passes the contents of
+`design-<n>.prompt.md` as the adapter's positional prompt text. State files
+carry lifecycle metadata only; successful design output comes from each
+launcher's stdout `final_message`.
+
+Start alternatives 1, 2, and 3 through the selected adapter before waiting on
+any launcher, retaining each launcher PID and joining each individually. Each
+worker receives its separate technical brief and one different constraint:
+
+- Alternative 1: "Minimize the interface — aim for 1–3 entry points max.
+  Maximise leverage per entry point."
+- Alternative 2: "Maximise flexibility — support many use cases and extension."
+- Alternative 3: "Optimise for the most common caller — make the default case
   trivial."
-- Agent 4 (if applicable): "Design around ports & adapters for cross-seam
-  dependencies."
+- Alternative 4, when applicable: "Design around ports & adapters for
+  cross-seam dependencies."
 
 Include both [../SKILL.md](../SKILL.md) vocabulary and CONTEXT.md vocabulary
-in the brief so each sub-agent names things consistently with the
-architecture language and the project's domain language.
+in every brief. Each worker must not modify, patch, or stash.
 
-Each sub-agent outputs:
+Each worker outputs:
 
-1. Interface (types, methods, params — plus invariants, ordering, error
-   modes)
+1. Interface (types, methods, params — plus invariants, ordering, error modes)
 2. Usage example showing how callers use it
 3. What the implementation hides behind the seam
 4. Dependency strategy and adapters (see [DEEPENING.md](DEEPENING.md))
 5. Trade-offs — where leverage is high, where it's thin
+
+On one nonzero completion, use the selected adapter's `resume` surface once
+against that alternative's same state file. If it still does not produce a
+successful `final_message`, mark that alternative unavailable. With two or more
+successful alternatives, present and compare the available designs, naming every
+unavailable alternative. With zero or one successful alternative, report that
+the design-it-twice pass did not produce enough alternatives and return to the
+interface-shape frontier; do not recommend a design.
 
 ### 3. Present and compare
 
