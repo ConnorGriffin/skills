@@ -55,14 +55,31 @@ def write_output(output, run_expensive):
     return 0
 
 
+def github_output_argument(arguments):
+    for index, argument in enumerate(arguments[:-1]):
+        if argument == "--github-output":
+            return arguments[index + 1]
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--repo", required=True)
-    parser.add_argument("--event", required=True)
-    parser.add_argument("--base", required=True)
-    parser.add_argument("--head", required=True)
-    parser.add_argument("--github-output", required=True)
-    arguments = parser.parse_args()
+    parser.add_argument("--repo")
+    parser.add_argument("--event")
+    parser.add_argument("--base")
+    parser.add_argument("--head")
+    parser.add_argument("--github-output")
+    try:
+        arguments = parser.parse_args()
+    except SystemExit as error:
+        output = github_output_argument(sys.argv[1:])
+        if output:
+            return write_output(output, True)
+        return error.code
+    if not arguments.github_output:
+        parser.error("the following arguments are required: --github-output")
+    if not all((arguments.repo, arguments.event, arguments.base, arguments.head)):
+        return write_output(arguments.github_output, True)
     return write_output(
         arguments.github_output,
         classify(arguments.repo, arguments.event, arguments.base, arguments.head),

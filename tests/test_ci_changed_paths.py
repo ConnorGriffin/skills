@@ -163,6 +163,27 @@ class ChangedPathsCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output, "run_expensive=true")
 
+    def test_missing_classifier_input_fails_closed_when_output_is_writable(self):
+        output = Path(self.temporary.name) / "github-output"
+        result = run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "--repo",
+                str(self.repo),
+                "--event",
+                "pull_request",
+                "--head",
+                "HEAD",
+                "--github-output",
+                str(output),
+            ],
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output.read_text(encoding="utf-8").strip(), "run_expensive=true")
+
     def test_output_transport_failure_is_visible(self):
         output = Path(self.temporary.name) / "missing" / "github-output"
 
