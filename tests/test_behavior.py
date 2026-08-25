@@ -4890,8 +4890,9 @@ class EpicDelegatedExecutionContractTests(unittest.TestCase):
     PROPOSAL = ROOT / "openspec" / "changes" / "epic-rework" / "proposal.md"
     EPIC = ROOT / "skills" / "drivers" / "epic" / "SKILL.md"
 
-    @staticmethod
-    def body_between(document: bytes, opening_anchor: bytes, closing_anchor: bytes) -> bytes:
+    def body_between(self, document: bytes, opening_anchor: bytes, closing_anchor: bytes) -> bytes:
+        self.assertEqual(document.count(opening_anchor), 1)
+        self.assertEqual(document.count(closing_anchor), 1)
         return document.split(opening_anchor, 1)[1].split(closing_anchor, 1)[0]
 
     def test_session_topology_is_pinned_by_raw_bytes(self):
