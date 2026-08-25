@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: #139 re-triage (order predates #158's rewrite of the same files); then #153-#157 JIT; #163-#165 per queue notes — every triage applies the standing over-engineering criterion
+next: collect 7 parallel triage drafts (#139 #153 #154 #155 #156 #157 #163, Terra read-only, state files in session scratchpad), Sol cold-review each, stamp, then parallel builds in per-issue worktrees with serialized merges (shared surface: tests/test_behavior.py — rebase each PR before merge). #164 #165 serialized behind #139 (same ticket verb files); #159 behind #155. Every triage applies the standing over-engineering criterion
 updated: 2026-08-25
 
 ## Notes
@@ -51,6 +51,7 @@ updated: 2026-08-25
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 parallel fan-out — operator asked to parallelize the remaining queue. Conflict map drawn: triage drafts are read-only and conflict-free (all 7 dispatched in parallel); builds parallelize in per-issue worktrees with merges serialized because tests/test_behavior.py is a shared pin surface; #164/#165 wait on #139 (same triage/start verb files); #159 waits on #155. #139's stale worktree partial (built against the superseded aliased order, pre-#158 base) saved as 139-stale-partial.patch in session scratchpad and the worktree reset to main
 - 2026-08-25 #144 — PR #170 merged (7bce5e2) on green CI after a base update (main gained #169, disjoint; chain rerun green on the merged tree); issue auto-closed, worktree removed. The review-routing subtree (#140 spike, builds #138 #142 #143 #144 #145 #146 #149 #150 #151 #152) is complete
 - 2026-08-25 #144 — built to PR #170. Sol completed the amended order (a67a8a2, chain green, 14 canonical contracts mutation-proven). Full-depth Sol cold review returned BLOCK on 4: three accepted and fixed (false only-dispatching-parent claim, dangling "step c above" reference, EOF-bounded test anchors -> Reference boundary closing headings; fix commit 5a8f964), one rejected on the order's own Boundaries (docs/orchestrate-spec.md is protected historical evidence). Convergence check left one residual — Related-authorities allocation unpinned — closed by the coordinator in 1193eba, mutation-proven. Chain rerun green by the coordinator after each commit. Body passed scorer (2.0 KB) and a Terra voice judge with no rewrites; PR #170 opened, merge on green CI
 - 2026-08-25 #144 — resumed after operator audit. Home session audited the stamped order under the operator's over-engineering lens and got two cuts approved: the four Codex-UI NO_VALIDATED_ROUTE matrix rows (invocation path the operator never uses) and the entire fail-closed dependency chain (resolver hard-dep, consumer stops, front-door exit-3 coupling — earn-every-guard: partial installs are not a reachable state on this machine; soft degrade to Claude-only fallback instead). Trim applied in the worktree (resolver and tests reverted to base, matrix cut, two filler End-of-contract headings dropped, routing-table phrase fixed), ruling posted on #144, amended order dispatched to a Sol worker (workspace-write, --control-checkout set, liveness verified via adapter verify before reporting). Worker commits and stops before PR; coordinator owns review and PR
