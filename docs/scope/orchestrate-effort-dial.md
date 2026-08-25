@@ -60,12 +60,37 @@ Route: interview mode (a concrete plan exists in the operator's head, untested).
 | `--settings {"sandbox":true}` with Bash allowed | yes |
 | `--settings {"permissions":{"sandbox":true,"allowUnsandboxedCommands":false}}` with Bash allowed | yes |
 
-**Ruling this forces:** Bash is the escape hatch. A read-only Claude worker is one whose
-tool set omits Bash; no permission mode and no settings shape tested blocks a write while
-Bash is available. This is strictly weaker than Codex `--sandbox read-only`, which permits
-commands and blocks writes at the filesystem — a Claude read worker trades shell access
-for the guarantee. A read task that genuinely needs shell is dispatched as a
-write-capable worker into a throwaway worktree instead.
+**Superseded.** The table above tested the wrong mechanism. Per the Claude Code
+sandboxing docs, `--allowedTools` is an approval rule rather than an availability
+filter, and the Bash sandbox is an object in settings with OS-level (Seatbelt/bubblewrap)
+filesystem enforcement that covers a command and all its children.
+
+### Verified sandbox pair — the real analogue of Codex sandbox modes
+
+Read-only worker (`--permission-mode dontAsk` plus these settings) ran `ls -a`
+successfully and had its bash write refused with "operation not permitted":
+
+```json
+{"sandbox": {"enabled": true, "allowUnsandboxedCommands": false,
+             "filesystem": {"denyWrite": ["/", "~/"]}},
+ "permissions": {"deny": ["Write", "Edit", "NotebookEdit"]}}
+```
+
+Write worker (same permission mode, sandbox on, no denyWrite) wrote inside its cwd and
+nowhere else, matching Codex `workspace-write`:
+
+```json
+{"sandbox": {"enabled": true, "allowUnsandboxedCommands": false}}
+```
+
+`allowUnsandboxedCommands: false` is load-bearing: it disables the `dangerouslyDisableSandbox`
+retry escape hatch, so a blocked command cannot be re-run outside the sandbox. Note that
+under `dontAsk` the write worker's Write tool was itself denied and it fell back to bash —
+a write worker needs its edit tools explicitly allowed.
+
+Docs: [sandboxing](https://code.claude.com/docs/en/sandboxing),
+[headless](https://docs.claude.com/en/docs/claude-code/headless),
+[SDK permissions](https://docs.claude.com/en/api/agent-sdk/permissions).
 
 ## Open questions
 
