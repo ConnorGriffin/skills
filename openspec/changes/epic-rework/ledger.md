@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: home session orchestrating to completion (operator-delegated); builds #146 #149 and triages #145 #150 in flight; #139 re-triage queued
+next: finish #152 (Opus fix in flight per handoff comment on the issue — verify worktree log, review, PR, merge); then /ticket triage #144; #139 re-triage; #153-#157 JIT; #163-#165 per queue notes
 updated: 2026-08-24
 
 ## Notes
@@ -28,7 +28,7 @@ updated: 2026-08-24
 - #149 Universal effort dial and Claude CLI worker adapter — merged
 - #150 Extract shared worker lifecycle into one module — merged
 - #151 Dispatch code-review reviewers through pack adapters — merged
-- #152 Dispatch plan-review cold reviewers through pack adapters — in-progress (Terra, on post-#151 main)
+- #152 Dispatch plan-review cold reviewers through pack adapters — in-progress (review capped round 3; canonical-block mandate + Opus worker state on issue comment)
 - #153 Dispatch persona-review's panel through pack adapters — filed
 - #154 Dispatch ticket's chunk agents through pack adapters — filed
 - #155 Dispatch epic's workers through pack adapters — filed
@@ -46,6 +46,8 @@ updated: 2026-08-24
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 handoff — operator ended the home session mid-#152; state comment posted on #152; ladder standing: Terra → Sol → Opus 5 (operator-amended); Codex-first directive stands for new dispatches
+- 2026-08-25 #152 — built (Terra), two fix rounds failed semantic falsifiability, escalated Sol then Opus per ladder; reviewer capped with canonical exact-block mandate
 - 2026-08-25 #151 — PR #167 merged after a base-drift CI failure (symbols moved by #150's refactor; Sol merged main and repointed by import-verification); #152 build dispatched on the settled base, instructed to reuse #151's test harness
 - 2026-08-25 #151 — built through 3 review rounds; Terra failed the portable-recovery criterion twice, escalated to Sol per ladder (operator amended ladder: Sol failure now escalates to Opus 5 before surfacing); Sol's fix proved both native and portable paths; PR #167 opened
 - 2026-08-25 #150 — fix round closed both blockers (dead gate_wait removed, unmocked Claude lifecycle coverage); PR #166 merged on green CI
