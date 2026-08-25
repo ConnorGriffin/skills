@@ -511,15 +511,25 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertRegex(contract, r"manual.{0,240}(does not|do not|without).{0,120}build")
         self.assertIn("ticket:triaged", contract)
 
-    def test_ticket_read_supplies_parent_for_epic_child_detection(self):
+    def test_ticket_read_supplies_parent_and_labels_for_epic_child_detection(self):
         binding = (
             TICKET_DIRECTORY / "bindings" / "github-issues.md"
         ).read_text(encoding="utf-8")
+        triage = " ".join(
+            (TICKET_DIRECTORY / "verbs" / "triage.md")
+            .read_text(encoding="utf-8")
+            .lower()
+            .split()
+        )
 
         self.assertIn(
-            "--json number,title,body,state,parent,comments",
+            "--json number,title,body,state,labels,parent,comments",
             binding,
         )
+        self.assertIn("parent is only an epic-child candidate", triage)
+        self.assertIn("read that parent through the tracker contract", triage)
+        self.assertIn("`epic` label", triage)
+        self.assertIn("ordinary ticket", triage)
 
     def test_code_triage_stops_before_status_when_build_creation_or_attachment_fails(self):
         binding = (TICKET_DIRECTORY / "bindings" / "github-issues.md").read_text(

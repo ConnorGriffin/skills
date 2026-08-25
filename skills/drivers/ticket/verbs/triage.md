@@ -11,7 +11,10 @@ the branch, and its change record already belongs to the parent epic.
 1. **Read the ticket.** Use the contract's read operation for the description and
    every comment. Note the parent, the links, and any prior work order comment. If
    an order already exists, say so and ask whether to supersede it; a new order
-   posted later wins.
+   posted later wins. A non-null parent is only an epic-child candidate: read that
+   parent through the tracker contract and select the epic-child lifecycle only
+   when its labels include the `epic` label. A missing parent or a parent without
+   `epic` leaves this as an ordinary ticket.
 
 2. **Cut or reuse the worktree.** Before any grounding or repo read, derive a short
    kebab slug from the ticket title, then:
