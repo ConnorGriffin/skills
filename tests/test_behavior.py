@@ -139,6 +139,36 @@ panelist's output or the synthesis; and return positions, blocking or note condi
 and approval or refusal. The prompt contains no persona name, simulation label, mine
 date, panel narrative, or profile, review-log, or override content."""
 
+RESEARCH_WORKER_DISPATCH = """\
+Use exactly one research worker; never create a chain of workers.
+
+The coordinator supplies the selected adapter, explicit research-worker model,
+explicit research-worker effort, and the complete research task. Dispatch only
+through `skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
+adapter's read-only surface. Never use the built-in Agent tool, Workflow tool,
+or background-agent machinery.
+
+Use the selected adapter's `start` surface with one coordinator-owned state file
+under the coordinator's session-scratch directory. The selected adapter's
+`resume`, `stop`, and `verify` surfaces retain lifecycle ownership.
+
+After selection, this interface does not reclassify research work or choose a
+model or effort. Preserve adapter-owned state and coordinator-owned recovery
+through the orchestrate adapter contract; do not restate its command or
+lifecycle mechanics here.
+
+Before dispatch, the coordinator writes the exact complete research-task prompt
+bytes to an immutable session-scratch file and passes that file's contents as
+the selected adapter's positional prompt. The worker receives no chat transcript
+or other coordinator-session material.
+
+The worker performs the research directly and returns source-cited findings to
+the coordinator. Never spawn another background agent or nested worker. If the
+worker fails or is interrupted, report the failure explicitly. Do not describe a
+successful dispatch as completed research. The coordinator writes the returned
+findings to the single Markdown file required below."""
+
 REVIEW_ROUTING_CONTRACT = """\
 This reference is the sole live authority for reviewer classification, reviewer
 eligibility, and reviewer-model precedence. The benchmark authority remains
@@ -3267,6 +3297,45 @@ class PersonaReviewAdapterDispatchTests(unittest.TestCase):
             cold_review,
         )
 
+class ResearchAdapterDispatchTests(unittest.TestCase):
+    SKILL = ROOT / "skills" / "tools" / "research" / "SKILL.md"
+    AGENT_METADATA = ROOT / "skills" / "tools" / "research" / "agents" / "openai.yaml"
+
+    def setUp(self):
+        self.text = self.SKILL.read_text(encoding="utf-8")
+        self.agent_metadata = self.AGENT_METADATA.read_text(encoding="utf-8")
+
+    def test_agent_metadata_describes_pack_adapter_dispatch(self):
+        self.assertIn(
+            'short_description: "Research primary sources through a selected pack adapter"',
+            self.agent_metadata,
+        )
+        self.assertNotIn("background agent", self.agent_metadata)
+
+    def test_research_worker_dispatch_section_is_byte_identical(self):
+        opening_anchor = "## Research-worker dispatch\n\n"
+        closing_anchor = "\n\n## The research worker's job"
+        self.assertIn(opening_anchor, self.text)
+        self.assertIn(closing_anchor, self.text)
+        dispatch = self.text.split(opening_anchor, 1)[1].split(closing_anchor, 1)[0]
+        self.assertEqual(dispatch, RESEARCH_WORKER_DISPATCH)
+
+    def research_job(self):
+        anchor = "## The research worker's job\n\n"
+        self.assertIn(anchor, self.text)
+        return " ".join(self.text.split(anchor, 1)[1].split())
+
+    def test_research_job_requires_primary_sources(self):
+        self.assertIn("Investigate the question against **primary sources**", self.research_job())
+
+    def test_research_job_requires_source_citations_for_each_claim(self):
+        self.assertIn("citing each claim's source", self.research_job())
+
+    def test_coordinator_writes_one_markdown_file_using_repository_convention(self):
+        job = self.research_job()
+        self.assertIn("The coordinator writes the returned findings to a single Markdown file", job)
+        self.assertIn("Save it where the repo already keeps such notes; match the existing convention", job)
+
 
 class WorkerLifecycleContractTests(unittest.TestCase):
     def setUp(self):
@@ -4509,8 +4578,8 @@ class EpicProtocolContractTests(unittest.TestCase):
     def require(self, text, pattern):
         self.assertRegex(text, re.compile(pattern, re.IGNORECASE))
 
-    def test_research_recognizes_it_is_already_running_in_a_worker(self):
-        self.require(self.RESEARCH, r"already (a )?(spawned|background|subagent)")
+    def test_research_worker_performs_research_directly(self):
+        self.require(self.RESEARCH, r"worker performs the research directly")
 
     def test_research_forbids_recursive_delegation(self):
         self.require(

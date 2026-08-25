@@ -1,4 +1,4 @@
 interface:
   display_name: "Research"
-  short_description: "Research primary sources in a background agent"
+  short_description: "Research primary sources through a selected pack adapter"
   default_prompt: "Use $research to investigate this question against primary sources and save the findings in the repository."
