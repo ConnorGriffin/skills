@@ -511,6 +511,67 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertRegex(contract, r"manual.{0,240}(does not|do not|without).{0,120}build")
         self.assertIn("ticket:triaged", contract)
 
+    def test_code_triage_stops_before_status_when_build_creation_or_attachment_fails(self):
+        binding = (TICKET_DIRECTORY / "bindings" / "github-issues.md").read_text(
+            encoding="utf-8"
+        ).lower()
+
+        self.assertIn("creation failure or attachment failure", binding)
+        self.assertIn("do not run the later", binding)
+        self.assertIn("retain the posted work order", binding)
+
+    def test_promotion_requires_both_oversize_and_an_unsettled_decision(self):
+        slicing = (TICKET_DIRECTORY / "references" / "slicing.md").read_text(
+            encoding="utf-8"
+        ).lower()
+
+        contract = " ".join(slicing.split())
+        self.assertRegex(contract, r"more than four.*decision unsettled")
+        self.assertIn("mechanical oversize", contract)
+        self.assertIn("serial `build` tickets", contract)
+
+    def test_epic_child_change_record_consumers_state_their_phase_boundary(self):
+        expected = {
+            "start.md": "creates no change record",
+            "revise.md": "revises neither a per-child change record",
+            "finalize.md": "nor incurs sweep debt",
+            "coordinator-mode.md": "creates, folds, revises, and records no per-child",
+        }
+
+        for filename, boundary in expected.items():
+            path = (
+                TICKET_DIRECTORY / "references" / filename
+                if filename == "coordinator-mode.md"
+                else TICKET_DIRECTORY / "verbs" / filename
+            )
+            with self.subTest(consumer=filename):
+                self.assertIn(boundary, path.read_text(encoding="utf-8").lower())
+
+    def test_status_binding_orders_code_prerequisites_before_triaged_and_excludes_them_otherwise(self):
+        binding = " ".join(
+            (TICKET_DIRECTORY / "bindings" / "github-issues.md")
+            .read_text(encoding="utf-8")
+            .lower()
+            .split()
+        )
+
+        triaged_command = "gh issue edit <id> --repo <org/repo> --add-label ticket:triaged"
+        self.assertLess(binding.index("gh label create build"), binding.index(triaged_command))
+        self.assertLess(binding.index("--add-label build"), binding.index(triaged_command))
+        for classification in ("investigation", "manual"):
+            self.assertIn(f"`{classification}` does not create or attach `build`", binding)
+
+    def test_epic_child_triage_keeps_spec_and_review_state_off_the_child_branch(self):
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
+        contract = " ".join(triage.lower().split())
+
+        self.assertIn("writes only its work order", contract)
+        self.assertIn("separate docs-only pull request to main", contract)
+        self.assertIn("untracked session scratch", contract)
+        self.assertIn("outside the branch", contract)
+        self.assertIn("discard it after the final order", contract)
+        self.assertIn("do not write the epic ledger", contract)
+
     def test_revise_requires_a_base_currency_and_mergeability_refresh(self):
         revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")
 

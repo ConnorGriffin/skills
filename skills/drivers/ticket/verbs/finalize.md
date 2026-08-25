@@ -21,10 +21,12 @@ the code host back to the tracker; this verb is that sync.
 
    d. Move the ticket to done. Report a failed move; do not retry.
 
-   e. Verify the change record landed in the ticket's last pull request, per the
-   skill page's change-record rule. Missed: flag it in the report as sweep debt,
-   never as a per-ticket follow-up pull request and never as a push to an approved
-   pull request.
+   e. Outside an epic, verify the change record landed in the ticket's last pull
+   request, per the skill page's change-record rule. Missed: flag it in the report
+   as sweep debt, never as a per-ticket follow-up pull request and never as a push
+   to an approved pull request. An epic child neither verifies a per-child change
+   record nor incurs sweep debt; the parent epic's existing change/archive flow is
+   its record.
 
    f. Tear the worktree and branch down:
 

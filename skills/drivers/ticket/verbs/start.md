@@ -74,7 +74,8 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    has none, work to the user's global standards. Follow the order's Do section.
    Match the repo's existing idioms, reading neighboring code first. Record the
    change where the repo already records changes, on the same branch, per the skill
-   page's change-record rule.
+   page's change-record rule. An epic child creates no change record: the parent
+   epic's existing change record is authoritative.
 
    **Route by shape of the change.** `Surface lifecycle: build` runs `/ui-craft
    build` against the named locked manifest. `Surface lifecycle: revise` runs
@@ -118,6 +119,9 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
     `/review`; Full orders run one `/review` round after hardening.
 
 11. **Fold the change record into the baseline in the order's last pull request.**
+    This step applies outside an epic. An epic child does not fold a per-child
+    change record; it leaves the parent epic's settled baseline timing and standing
+    planning-pull-request contents unchanged.
     When the pull request being opened is the order's final one (single-pull-request
     orders: the only one), the same diff completes whatever the repo's convention
     asks for at landing time. This lands before the pull request is opened or marked

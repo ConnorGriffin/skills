@@ -3181,6 +3181,10 @@ class EpicProtocolContractTests(unittest.TestCase):
     def test_epic_names_proposal_and_design_as_authority(self):
         self.require(self.EPIC, r"proposal\.md.*design\.md.*authoritative")
 
+    def test_epic_change_folder_uses_tracker_children_and_the_planning_pr_ledger(self):
+        self.require(self.EPIC, r"tracker children substitute for `tasks\.md`")
+        self.require(self.EPIC, r"ledger\.md.*standing planning pull request")
+
     def test_epic_ledger_template_has_all_normative_sections(self):
         for heading in ("Status", "Notes", "Fog", "Decisions", "Spikes", "Builds", "Deferred", "Rounds"):
             self.assertIn(f"## {heading}", self.EPIC)
@@ -3231,6 +3235,17 @@ class EpicProtocolContractTests(unittest.TestCase):
     def test_tracker_uses_native_children_and_blocked_by_edges(self):
         self.require(self.TRACKER, r"--add-sub-issue")
         self.require(self.TRACKER, r"--add-blocked-by")
+
+    def test_tracker_has_one_command_follow_up_creation_interface(self):
+        self.require(
+            self.TRACKER,
+            r"gh issue create --repo OWNER/REPO --title.*--body-file.*--label (build|spike).*--parent EPIC_NUMBER",
+        )
+        self.require(self.TRACKER, r"returned URL.*originating ticket")
+        self.require(
+            self.TRACKER,
+            r"gh issue create --help.*--repo.*--title.*--body-file.*--label.*--parent",
+        )
 
     def test_tracker_reads_child_completion_fields_and_merged_at(self):
         self.require(self.TRACKER, r"subIssues\.nodes")

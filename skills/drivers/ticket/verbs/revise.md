@@ -67,9 +67,11 @@ long ago and the pull request is one diff.
    code changed.
 
 8. **Push and respond.** Push to the same branch. Reply to each addressed comment on
-   the pull request, resolving or answering it. Update the repo's change record if
-   its checklist moved, and update its decision record if a decision changed during
-   review.
+   the pull request, resolving or answering it. Outside an epic, update the repo's
+   change record if its checklist moved, and update its decision record if a
+   decision changed during review. An epic child revises neither a per-child change record
+   nor the parent epic record; its parent epic's existing change/archive flow
+   remains authoritative.
 
 9. **Status.** Comment on the ticket (attribution first) only if the round
    materially changed the plan. Routine fix-and-push rounds need no ticket comment.
