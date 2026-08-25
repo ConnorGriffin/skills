@@ -434,6 +434,9 @@ class TicketSkillContractTests(unittest.TestCase):
         accounting = coordinator.split("## Worker accounting", 1)[1].split(
             "## Reviewer selection", 1
         )[0]
+        operative_arguments = accounting.split(
+            "through the shared claim rule, passing\n", 1
+        )[1].split(". The role", 1)[0]
         normalized = " ".join(accounting.split())
 
         self.assertIn("stable transcript id", accounting)
@@ -443,7 +446,7 @@ class TicketSkillContractTests(unittest.TestCase):
             "--agent <agent>",
             "--project <chunk-worktree>",
         ):
-            self.assertIn(argument, accounting)
+            self.assertIn(argument, operative_arguments)
         self.assertIn("report the omitted claim in one line and continue", normalized)
         self.assertIn("shared visible, non-blocking rule", normalized)
 
@@ -452,9 +455,12 @@ class TicketSkillContractTests(unittest.TestCase):
             TICKET_DIRECTORY / "references" / "coordinator-mode.md"
         ).read_text(encoding="utf-8")
         reviewer_selection = coordinator.split("## Reviewer selection", 1)[1]
+        review_instruction = reviewer_selection.split("   a. ", 1)[1].split(
+            "\n\n   b.", 1
+        )[0]
 
-        self.assertIn("/review", reviewer_selection)
-        self.assertIn("review-routing.md", reviewer_selection)
+        self.assertIn("Run `/review` for the chunk diff", review_instruction)
+        self.assertIn("review-routing.md", review_instruction)
 
     def test_every_ticket_authored_worktree_removal_tears_the_graph_down_first(self):
         pages = {
