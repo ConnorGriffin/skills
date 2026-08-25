@@ -8,7 +8,9 @@ description: Flip the session into coordinator mode — the parent agent plans, 
 Invoking this skill flips the **whole session** into coordinator mode until the
 operator says otherwise. Detect the parent before dispatching:
 
-- **Claude Code parent:** use the Claude and Codex mechanics below.
+- **Claude Code parent:** use the Claude and Codex mechanics below. Before
+  dispatching a Codex worker, read
+  `references/dispatch-codex-from-claude.md`.
 - **Codex UI parent:** read `references/dispatch-codex.md` before routing. In
   this v0, every delegation uses its CLI-worker adapter; do not use native
   `spawn_agent` for implementation or review.
