@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: /ticket start #139 (Terra / medium) in a fresh attended session; /ticket triage #144-#146 can run concurrently
+next: /ticket triage #139 again (base drift from #158); /ticket triage #144-#146 can run concurrently
 updated: 2026-08-24
 
 ## Notes
@@ -27,12 +27,13 @@ updated: 2026-08-24
 - #144 Route review skills through routing table — filed
 - #145 Claude-parent Codex reviewer dispatch reference — filed
 - #146 Pre-authorize required review delegation — filed
-- #139 Triage stamps session-fit preamble into work orders — triaged
+- #139 Triage stamps session-fit preamble into work orders — filed (order stale: base drift from #158, re-triage)
 
 ## Deferred
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-24 #139 — start blocked: work order predates #158's rewrite of the same files; re-triage required
 - 2026-08-24 #143 — built and merged as PR #158 (Opus / medium); finalize in progress; #139 and #144-#146 unblocked
 - 2026-08-24 #143 — triaged (Opus / medium); session-fit comment posted per interim rule
 - 2026-08-24 #142 — built and merged as PR #148 (Terra / medium), finalized; 3b unblocked
