@@ -451,6 +451,66 @@ class TicketSkillContractTests(unittest.TestCase):
         ):
             self.assertIn(disposition, actions)
 
+    def test_under_epic_followups_use_the_epic_tracker_creation_interface(self):
+        actions = (TICKET_DIRECTORY / "references" / "review-actions.md").read_text(
+            encoding="utf-8"
+        )
+        tracker_path = (
+            ROOT / "skills" / "drivers" / "epic" / "references" / "github-tracker.md"
+        )
+        tracker = tracker_path.read_text(encoding="utf-8")
+
+        self.assertIn("../../epic/references/github-tracker.md", actions)
+        self.assertIn("Necessary follow-up", actions)
+        self.assertRegex(
+            tracker,
+            r"gh issue create .*--repo OWNER/REPO.*--title .*--body-file .*--label (spike|build).*--parent EPIC_NUMBER",
+        )
+
+    def test_every_epic_child_change_record_consumer_uses_the_epic_record(self):
+        consumers = {
+            "shared": TICKET_DIRECTORY / "SKILL.md",
+            "triage": TICKET_DIRECTORY / "verbs" / "triage.md",
+            "start": TICKET_DIRECTORY / "verbs" / "start.md",
+            "revise": TICKET_DIRECTORY / "verbs" / "revise.md",
+            "finalize": TICKET_DIRECTORY / "verbs" / "finalize.md",
+            "coordinator": TICKET_DIRECTORY / "references" / "coordinator-mode.md",
+        }
+
+        for name, path in consumers.items():
+            with self.subTest(consumer=name):
+                text = " ".join(path.read_text(encoding="utf-8").lower().split())
+                self.assertIn("epic child", text)
+                self.assertIn("change record", text)
+
+    def test_epic_child_scope_instrumentation_never_creates_a_scope_ledger(self):
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
+        scope = (ROOT / "skills" / "workflows" / "scope" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        contract = " ".join((triage + "\n" + scope).lower().split())
+
+        self.assertIn("epic child", contract)
+        self.assertIn("session scratch", contract)
+        self.assertIn("every specialist", contract)
+        self.assertIn("no scope ledger", contract)
+
+    def test_triaged_build_label_is_conditioned_on_code_classification(self):
+        tracker = (TICKET_DIRECTORY / "references" / "tracker-contract.md").read_text(
+            encoding="utf-8"
+        )
+        binding = (TICKET_DIRECTORY / "bindings" / "github-issues.md").read_text(
+            encoding="utf-8"
+        )
+        contract = " ".join((tracker + "\n" + binding).lower().split())
+
+        for classification in ("code", "investigation", "manual"):
+            self.assertIn(classification, contract)
+        self.assertRegex(contract, r"code classification.{0,240}build")
+        self.assertRegex(contract, r"investigation.{0,240}(does not|do not|without).{0,120}build")
+        self.assertRegex(contract, r"manual.{0,240}(does not|do not|without).{0,120}build")
+        self.assertIn("ticket:triaged", contract)
+
     def test_revise_requires_a_base_currency_and_mergeability_refresh(self):
         revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")
 
