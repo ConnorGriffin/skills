@@ -58,6 +58,10 @@ substitutes a lighter check for the depth the order stamped. Below Full depth un
 `Profile: hardening`, [start](verbs/start.md) and [revise](verbs/revise.md) use its
 exception instead.
 
+## Delegation authority
+
+This authority covers triage's mandatory `/plan-review` and start/revise's `/review` route. Invoking `/ticket` authorizes every sub-agent dispatch that this procedure marks mandatory, including a mandatory nested review skill. Do not ask again solely because a session-level preference says "do not spawn agents"; apply that preference to discretionary delegation only. An explicit task-level refusal of this required review or revocation of delegation overrides this authorization: stop and state that the requested workflow cannot run without its required independent review.
+
 ## Shared rules (every verb)
 
 1. **Open with the ticket summary.** Before any other work, read the ticket and

@@ -186,6 +186,8 @@ the branch, and its change record already belongs to the parent epic.
     returns objections and a verdict. Review depth follows that skill's stakes
     tiering: an ordinary order gets one panel, and a load-bearing one ends only
     when a fresh cold pass returns no blocking objections.
+    The ticket skill page's `## Delegation authority` section covers this mandatory
+    `/plan-review`.
 
     When the stamped profile is hardening, run `/plan-review` only on Full-depth
     orders. Default-workflow orders keep this review unconditionally.
