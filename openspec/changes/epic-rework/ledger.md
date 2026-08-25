@@ -25,7 +25,7 @@ updated: 2026-08-24
 - #142 Epic skill content (3a) — merged
 - #143 Cross-skill amendments and machinery (3b) — merged
 - #144 Route review skills through routing table — filed (reframed: final integration; blocked-by edges #145 #149 #151 #152; no order until they land)
-- #149 Universal effort dial and Claude CLI worker adapter — in-progress
+- #149 Universal effort dial and Claude CLI worker adapter — pr:#162
 - #150 Extract shared worker lifecycle into one module — triaged (opus / high; blocked on #149 merging)
 - #151 Dispatch code-review's reviewers through pack adapters — filed
 - #152 Dispatch plan-review's cold reviewers through pack adapters — filed
@@ -43,6 +43,7 @@ updated: 2026-08-24
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-24 #149 — chunked build complete over 3 review rounds (caught invalid --cwd flag, live $HOME sandbox escape, stale reference shape); PR #162 opened, Sol voice-judged the body; merge on green
 - 2026-08-24 #145 — PR #161 merged on green CI after base update; #144's blockers now down to #149 #151 #152
 - 2026-08-24 #146 — PR #160 merged on green CI; #161 awaiting re-run after base update; #149 chunk 2 rerunning Claude-side live cases post-auth-fix
 - 2026-08-24 routing — operator directive: Codex-only for new dispatches (opus rung → Sol, sonnet rung → Terra, escalate Terra → Sol; Claude only if Sol fails); in-flight work untouched
