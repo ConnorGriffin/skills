@@ -124,6 +124,31 @@ Refuted, not forwarded: that the committed `write.settings.json` had never been 
 
 (none — sequencing and shape settled below)
 
+## Cold panel — rounds 2 and 3
+
+Round 2 (fresh Opus, no round-1 context): 7 blocking. The order commits raw run output,
+which `scripts/validate.py` forbids as a literal user path in any tracked file and re-greps
+across every reachable commit — one such commit fails the gate permanently, and this repo is
+pinned by commit. The lifecycle move silently defeats ~42 `mock.patch.object` sites (122
+`WORKER_MODULE` references) and breaks the test module at import, because
+`spec_from_file_location` does not put the script's directory on `sys.path`. Effort had no
+emitted field, so its replay could only be taken on a worker's word. The `STATE_VERSION`
+branch offered was self-contradictory: `BASE_STATE_FIELDS.issubset(state)` at `:125` makes a
+key mandatory, not permitted.
+
+Round 3 (fresh Opus, cap): 4 blocking, all executability. A second
+`spec_from_file_location` load yields a different module object, so the round-2 fix would
+itself patch nothing. `run_lifecycle`/`run_portable` are not model-agnostic — they call
+codex's parser and `emit`, and both launch paths hard-wire `stdin=DEVNULL` while the claude
+adapter must write its prompt to stdin — so the module needs a named parse/emit/stdin seam
+the order had not specified. A module-global `fail()` prefix is last-writer-wins across two
+adapters in one test process. And effort replay on `--resume` was unmeasured.
+
+Measured in response: `session: resume_accepts_effort=True`. The seam, the module identity,
+and the per-call prefix are now ruled in the order.
+
+Every round's blockers clustered on one thing: extracting the shared lifecycle module.
+
 ## Settled after the panel
 
 * Sequencing: #144 and #145 land after #149 and inherit the adapter surface. #145's
