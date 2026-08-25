@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: /ticket triage #144 (all blockers now merged); then #139 re-triage; #153-#157 JIT; #163-#165 per queue notes
+next: #144 triage — round 1 BLOCKED (6 verified), clean rewrite in flight; one open decision with operator (bare-subject classification); then #139 re-triage; #153-#157 JIT; #163-#165 per queue notes
 updated: 2026-08-25
 
 ## Notes
@@ -24,7 +24,7 @@ updated: 2026-08-25
 - #138 Mechanical rename wayfinder to epic — merged
 - #142 Epic skill content (3a) — merged
 - #143 Cross-skill amendments and machinery (3b) — merged
-- #144 Route review skills through routing table — filed, unblocked (all four blockers merged); triage next
+- #144 Route review skills through routing table — in triage (draft rewritten clean after round-1 BLOCK)
 - #149 Universal effort dial and Claude CLI worker adapter — merged
 - #150 Extract shared worker lifecycle into one module — merged
 - #151 Dispatch code-review reviewers through pack adapters — merged
@@ -46,6 +46,7 @@ updated: 2026-08-25
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 #144 — triage round 1: Sol drafted, Sol cold review returned BLOCK on 6 findings, all reproduced against the tree. Two changed the design: plan-review's stakes tier is a different axis from reviewer-model routing and must not be collapsed into it (its panel/termination contract is broader than review-depth's four sensitivity categories), and the classifier cannot live in ticket/review-depth.md because README declares no ticket dependency for either review skill and forbids hidden runtime requirements. Coordinator rulings: classifier homes in orchestrate beside routing-table.md (a dependency #140 already forces), plan-review stakes untouched, review-depth keeps depth and the floor but loses all reviewer-selection claims. Also caught: the verification chain in flight was stale, missing worker_lifecycle.py from AGENTS.md's Test line since #150. Order rewritten clean rather than patched
 - 2026-08-25 #152 — PR #168 merged on green CI; worktree removed. #144's blocked-by edges (#145 #149 #151 #152) are all merged, so the final integration ticket is now triageable
 - 2026-08-25 #152 — resumed from handoff: Opus worker had left the canonical-block rewrite uncommitted in the worktree, not lost; home session verified rather than redid it. Ten-mutation sweep over the pinned section caught all ten by construction, full chain green (401 tests, 27 skills). Capped review's acceptance met, so no new round. PR #168 opened; body passed scorer and a Terra cold voice judge
 - 2026-08-25 handoff — operator ended the home session mid-#152; state comment posted on #152; ladder standing: Terra → Sol → Opus 5 (operator-amended); Codex-first directive stands for new dispatches
