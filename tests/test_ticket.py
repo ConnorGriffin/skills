@@ -54,6 +54,46 @@ SESSION_FIT_MODEL_CHECK_BODY = (
     "coordinator."
 )
 
+TICKET_CHUNK_WORKER_ADAPTER_DISPATCH = """3. **Dispatch one agent per chunk** at the tier its `Agent:` line names. The
+   coordinator supplies the selected adapter, the explicit worker model resolved for
+   that tier, and explicit worker effort. Dispatch only through
+   `skills/drivers/orchestrate/scripts/codex-worker.py` or
+   `skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in
+   Agent tool, Workflow tool, background-agent machinery, or native agent dispatch.
+
+   For chunk `<n>` and dispatch attempt `<attempt>`, the coordinator writes the
+   complete prompt bytes to
+   `<session-scratch>/ticket-<ticket-id-lowercase>-chunk-<n>-attempt-<attempt>.prompt`
+   and passes that file's contents as the adapter's positional prompt. The prompt is
+   the sub-order fence verbatim, followed only by that chunk's worktree path, branch
+   name, `root_path`, and `project`; the worker follows the graph-identity rule and
+   uses as given the supplied `root_path` and `project` rather than resolving its
+   own. An `unavailable` identity is passed through as such. A chunk never receives
+   the ticket worktree's identity or a sibling's, and never coordinator commentary.
+
+   Start the worker through the selected adapter in `workspace-write` mode, with its
+   cwd set to that chunk's worktree and the coordinator's checkout supplied as the
+   control checkout. The coordinator owns
+   `<session-scratch>/ticket-<ticket-id-lowercase>-chunk-<n>-attempt-<attempt>.state.json`
+   for that dispatch. Same-worker follow-ups use the adapter's resume surface with
+   that state file. If recovery is required, the coordinator runs the adapter's
+   scoped stop surface and then its scoped verify surface before a successor receives
+   the chunk worktree; a successor uses a new `<attempt>` and state file."""
+
+
+class TicketChunkWorkerAdapterDispatchTests(unittest.TestCase):
+    # Opening anchor: ## Chunk-worker dispatch
+    # Closing anchor: ## Worker accounting
+    def test_chunk_worker_adapter_dispatch_is_canonical(self):
+        coordinator = (
+            TICKET_DIRECTORY / "references" / "coordinator-mode.md"
+        ).read_text(encoding="utf-8")
+        dispatch = coordinator.split("## Chunk-worker dispatch\n\n", 1)[1].split(
+            "\n\n## Worker accounting", 1
+        )[0]
+
+        self.assertEqual(dispatch, TICKET_CHUNK_WORKER_ADAPTER_DISPATCH)
+
 
 def run(command: list[str], *, cwd: Path, env: Optional[dict[str, str]] = None):
     return subprocess.run(
@@ -360,8 +400,8 @@ class TicketSkillContractTests(unittest.TestCase):
         coordinator = (
             TICKET_DIRECTORY / "references" / "coordinator-mode.md"
         ).read_text(encoding="utf-8")
-        dispatch = coordinator.split("3. **Dispatch one agent per chunk", 1)[1].split(
-            "\n4. **", 1
+        dispatch = coordinator.split("## Chunk-worker dispatch", 1)[1].split(
+            "## Worker accounting", 1
         )[0]
 
         self.assertIn("graph-identity rule", dispatch)
@@ -370,6 +410,57 @@ class TicketSkillContractTests(unittest.TestCase):
         normalized = " ".join(dispatch.lower().split())
         self.assertIn("uses as given", normalized)
         self.assertIn("never receives the ticket worktree's identity or a sibling's", normalized)
+
+    def test_chunk_preparation_retains_ui_lifecycle_validation(self):
+        coordinator = (
+            TICKET_DIRECTORY / "references" / "coordinator-mode.md"
+        ).read_text(encoding="utf-8")
+        preparation = coordinator.split("## Chunk preparation", 1)[1].split(
+            "## Chunk-worker dispatch", 1
+        )[0]
+
+        self.assertIn("`Surface lifecycle:`", preparation)
+        self.assertIn("`build` or `revise`", preparation)
+        self.assertIn(
+            "names the lock manifest or shipped behavior ledger/replay that mode consumes",
+            " ".join(preparation.split()),
+        )
+        self.assertIn("non-UI chunks keep `none`", preparation)
+
+    def test_worker_accounting_remains_after_dispatch(self):
+        coordinator = (
+            TICKET_DIRECTORY / "references" / "coordinator-mode.md"
+        ).read_text(encoding="utf-8")
+        accounting = coordinator.split("## Worker accounting", 1)[1].split(
+            "## Reviewer selection", 1
+        )[0]
+        operative_arguments = accounting.split(
+            "through the shared claim rule, passing\n", 1
+        )[1].split(". The role", 1)[0]
+        normalized = " ".join(accounting.split())
+
+        self.assertIn("stable transcript id", accounting)
+        for argument in (
+            "--role worker",
+            "--session <id>",
+            "--agent <agent>",
+            "--project <chunk-worktree>",
+        ):
+            self.assertIn(argument, operative_arguments)
+        self.assertIn("report the omitted claim in one line and continue", normalized)
+        self.assertIn("shared visible, non-blocking rule", normalized)
+
+    def test_reviewer_selection_retains_the_existing_review_route(self):
+        coordinator = (
+            TICKET_DIRECTORY / "references" / "coordinator-mode.md"
+        ).read_text(encoding="utf-8")
+        reviewer_selection = coordinator.split("## Reviewer selection", 1)[1]
+        review_instruction = reviewer_selection.split("   a. ", 1)[1].split(
+            "\n\n   b.", 1
+        )[0]
+
+        self.assertIn("Run `/review` for the chunk diff", review_instruction)
+        self.assertIn("review-routing.md", review_instruction)
 
     def test_every_ticket_authored_worktree_removal_tears_the_graph_down_first(self):
         pages = {
