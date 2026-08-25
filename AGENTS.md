@@ -17,6 +17,7 @@ ui-surfaces: none
   tests.test_ticket tests.test_codebase_memory_install tests.test_check_dco
   tests.test_ci_changed_paths && python3 -m py_compile
   skills/tools/codebase-memory/scripts/install.py scripts/ci_changed_paths.py
+  skills/drivers/orchestrate/scripts/worker_lifecycle.py
   skills/drivers/orchestrate/scripts/codex-worker.py
   skills/drivers/orchestrate/scripts/claude-worker.py`. Requires Python 3.10
   or newer (the worker scripts use `X | None` union syntax).
