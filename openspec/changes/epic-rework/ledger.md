@@ -26,15 +26,17 @@ updated: 2026-08-24
 - #143 Cross-skill amendments and machinery (3b) — merged
 - #144 Route review skills through routing table — filed (reframed: final integration; blocked-by edges #145 #149 #151 #152; no order until they land)
 - #149 Universal effort dial and Claude CLI worker adapter — merged
-- #150 Extract shared worker lifecycle into one module — in-progress (Sol / high per directive)
-- #151 Dispatch code-review's reviewers through pack adapters — filed
-- #152 Dispatch plan-review's cold reviewers through pack adapters — filed
+- #150 Extract shared worker lifecycle into one module — in-progress (review FIX round: dead gate_wait, mocked parity test)
+- #151 Dispatch code-review reviewers through pack adapters — in triage round 3 (mechanics-only rescope; join-protocol hardening)
+- #152 Dispatch plan-review cold reviewers through pack adapters — triaged (Terra / medium)
 - #153 Dispatch persona-review's panel through pack adapters — filed
 - #154 Dispatch ticket's chunk agents through pack adapters — filed
 - #155 Dispatch epic's workers through pack adapters — filed
 - #156 Dispatch research's background agent through pack adapters — filed
 - #157 Dispatch codebase-design's parallel design agents through pack adapters — filed
 - #159 Delegated-execution mode for the epic home session — filed (behind #155)
+- #163 Coordinator wait protocol: collect child results, never idle-wait — filed
+- #164 Triage evidence blocks command-generated verbatim — filed
 - #145 Claude-parent Codex reviewer dispatch reference — merged
 - #146 Pre-authorize required review delegation — merged
 - #139 Triage stamps session-fit preamble into work orders — in-progress
