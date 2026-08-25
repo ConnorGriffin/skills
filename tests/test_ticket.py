@@ -183,22 +183,22 @@ def assistant_line(
 
 class TicketSkillContractTests(unittest.TestCase):
     def test_builder_self_check_is_pinned_in_flat_and_chunked_builder_guidance(self):
-        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")
-        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
-            encoding="utf-8"
-        )
-        sub_order = template.split("SUB-ORDER 1/<n>", 1)[1].split("```", 1)[0]
-        start_body = start.split("### Builder self-check\n\n", 1)[1].split(
-            "\n\n8. **Implement.**", 1
+        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_bytes()
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_bytes()
+        sub_order_fence = template.split(b"SUB-ORDER 1/<n>", 1)[1]
+        self.assertEqual(sub_order_fence.count(b"```"), 1)
+        sub_order = sub_order_fence.split(b"```", 1)[0]
+        start_body = start.split(b"### Builder self-check\n\n", 1)[1].split(
+            b"\n\n8. **Implement.**", 1
         )[0]
-        sub_order_body = sub_order.split("### Builder self-check\n\n", 1)[1].split(
-            "\n\nDo\n", 1
+        sub_order_body = sub_order.split(b"### Builder self-check\n\n", 1)[1].split(
+            b"\n\nDo\n", 1
         )[0]
 
-        self.assertEqual(start_body, BUILDER_SELF_CHECK_BODY)
-        self.assertEqual(sub_order_body, BUILDER_SELF_CHECK_BODY)
-        self.assertEqual(start.count("### Builder self-check"), 1)
-        self.assertEqual(sub_order.count("### Builder self-check"), 1)
+        self.assertEqual(start_body, BUILDER_SELF_CHECK_BODY.encode())
+        self.assertEqual(sub_order_body, BUILDER_SELF_CHECK_BODY.encode())
+        self.assertEqual(start.count(b"### Builder self-check"), 1)
+        self.assertEqual(sub_order.count(b"### Builder self-check"), 1)
 
     def test_flat_session_fit_is_produced_and_consumed(self):
         template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
