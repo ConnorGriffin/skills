@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: /ticket triage #139 again (base drift from #158); /ticket triage #144-#146 can run concurrently
+next: home session orchestrating to completion (operator-delegated); builds #146 #149 and triages #145 #150 in flight; #139 re-triage queued
 updated: 2026-08-24
 
 ## Notes
@@ -24,8 +24,8 @@ updated: 2026-08-24
 - #138 Mechanical rename wayfinder to epic — merged
 - #142 Epic skill content (3a) — merged
 - #143 Cross-skill amendments and machinery (3b) — merged
-- #144 Route review skills through routing table — filed (reframed: final integration after #145 #149 #151 #152)
-- #149 Universal effort dial and Claude CLI worker adapter — triaged
+- #144 Route review skills through routing table — filed (reframed: final integration; blocked-by edges #145 #149 #151 #152; no order until they land)
+- #149 Universal effort dial and Claude CLI worker adapter — in-progress
 - #150 Extract shared worker lifecycle into one module — filed
 - #151 Dispatch code-review's reviewers through pack adapters — filed
 - #152 Dispatch plan-review's cold reviewers through pack adapters — filed
@@ -35,13 +35,14 @@ updated: 2026-08-24
 - #156 Dispatch research's background agent through pack adapters — filed
 - #157 Dispatch codebase-design's parallel design agents through pack adapters — filed
 - #145 Claude-parent Codex reviewer dispatch reference — filed
-- #146 Pre-authorize required review delegation — filed
+- #146 Pre-authorize required review delegation — in-progress
 - #139 Triage stamps session-fit preamble into work orders — in-progress
 
 ## Deferred
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-24 orchestration — operator delegated completion to home session after killing Sol sessions; #144 reframe done (blocked, native edges), #146 triaged (Terra/medium, Full depth) and building via Terra worker, #149 building via Opus coordinator (chunked), #145 #150 triages in flight, #151-#157 held for just-in-time triage
 - 2026-08-24 #144 #149-#157 — dispatch subtree surfaced; #144 reframed as final integration behind #145 #149 #151 #152; nine new builds attached to #133
 - 2026-08-24 #139 — start blocked: work order predates #158's rewrite of the same files; re-triage required
 - 2026-08-24 #143 — built and merged as PR #158 (Opus / medium); finalize in progress; #139 and #144-#146 unblocked
