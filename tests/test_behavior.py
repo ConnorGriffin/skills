@@ -2285,7 +2285,8 @@ class WorkerEffortDialTests(unittest.TestCase):
                     self.assertIn("filesystem", settings["sandbox"])
                 else:
                     self.assertIn("Write", settings["permissions"]["allow"])
-                    self.assertNotIn("filesystem", settings["sandbox"])
+                    self.assertIn(str(self.worktree.resolve()), settings["sandbox"]["filesystem"]["allowWrite"])
+                    self.assertNotIn("denyWrite", settings["sandbox"]["filesystem"])
                 self.state.unlink(missing_ok=True)
 
     def test_claude_resume_argv_carries_no_cwd_flag(self):
@@ -2322,16 +2323,24 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertFalse(self.state.exists())
 
     def test_claude_generated_readonly_settings_deny_writes_and_disable_unsandboxed_retry(self):
-        settings = CLAUDE_WORKER_MODULE.sandbox_settings("read-only")
+        settings = CLAUDE_WORKER_MODULE.sandbox_settings("read-only", self.worktree.resolve())
         self.assertEqual(settings["sandbox"]["allowUnsandboxedCommands"], False)
         self.assertIn("/", settings["sandbox"]["filesystem"]["denyWrite"])
         self.assertIn("Write", settings["permissions"]["deny"])
         self.assertIn("Edit", settings["permissions"]["deny"])
 
-    def test_claude_generated_write_settings_allow_edit_tools_and_keep_unsandboxed_retry_disabled(self):
-        settings = CLAUDE_WORKER_MODULE.sandbox_settings("workspace-write")
+    def test_claude_generated_write_settings_confine_writes_to_cwd_and_keep_unsandboxed_retry_disabled(self):
+        # A real run of #149 with no `filesystem` block present wrote straight
+        # through to $HOME/.cache — see docs/scope/149-probes/run-log.md's
+        # `write` case. allowWrite must name the worker's own cwd, alone: a
+        # real run also confirmed denyWrite always wins over allowWrite for
+        # the same path, so pairing them re-blocks the cwd allowWrite exists
+        # to carve out.
+        cwd = self.worktree.resolve()
+        settings = CLAUDE_WORKER_MODULE.sandbox_settings("workspace-write", cwd)
         self.assertEqual(settings["sandbox"]["allowUnsandboxedCommands"], False)
-        self.assertNotIn("filesystem", settings["sandbox"])
+        self.assertIn(str(cwd), settings["sandbox"]["filesystem"]["allowWrite"])
+        self.assertNotIn("denyWrite", settings["sandbox"]["filesystem"])
         self.assertIn("Write", settings["permissions"]["allow"])
         self.assertIn("Edit", settings["permissions"]["allow"])
 
