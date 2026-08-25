@@ -37,6 +37,47 @@ UI_CRAFT_ROUTE = ROOT / "skills" / "drivers" / "ui-craft" / "scripts" / "route.m
 README = ROOT / "README.md"
 BEGIN_IGNORE = "# >>> cbm-onboard managed baseline — do not edit inside this block >>>"
 BEGIN_HOOK = "# >>> cbm-onboard managed reindex >>>"
+MANDATORY_DELEGATION_AUTHORIZATION = (
+    "Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, "
+    "including a mandatory nested review skill. Do not ask again solely because a session-level "
+    'preference says "do not spawn agents"; apply that preference to discretionary delegation only. '
+    "An explicit task-level refusal of this required review or revocation of delegation overrides this "
+    "authorization: stop and state that the requested workflow cannot run without its required "
+    "independent review."
+)
+
+# The single canonical representation of the plan-review cold-reader dispatch
+# contract: adapter exclusivity, read-only surface, mechanics-only inputs, the
+# closed prompt allowlist, and worker-isolation. The skill's section is pinned
+# byte-for-byte against this constant, so any prose edit inside it — of any
+# phrasing — fails by construction rather than by pattern matching.
+PLAN_REVIEW_COLD_READER_DISPATCH = """\
+The coordinator supplies the mechanics-only interface inputs: adapter selection,
+explicit reviewer model, explicit reviewer effort, and the cold-reader prompt's
+four allowed inputs. Dispatch only through
+`skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
+adapter's read-only review surface. Never use the built-in Agent tool, Workflow
+tool, or background-agent machinery.
+
+The coordinator applies the existing parent and Codex-headroom policy when
+selecting an adapter. This interface does not classify review work. It does not
+read or consume a routing table. It does not select a model or effort. Preserve
+adapter-owned state, same-worker resume, and coordinator-owned recovery through the
+orchestrate adapter contract; do not restate its command or lifecycle mechanics
+here.
+
+The cold-reader prompt contains exactly:
+1. plan location;
+2. the five-axis rubric;
+3. stakes tier; and
+4. a context-free fresh-reviewer phase instruction.
+
+The prompt excludes earlier findings, author rationale, chat history, and all
+other author/coordinator-session material. For a chat-delivered plan, before
+dispatch the coordinator writes the exact chat-delivered plan bytes to an
+immutable session-scratch file and supplies only that file's path as the plan
+location. The worker receives no chat transcript or author-session context."""
 
 LIFECYCLE_SPEC = importlib.util.spec_from_file_location("worker_lifecycle", WORKER_LIFECYCLE)
 assert LIFECYCLE_SPEC and LIFECYCLE_SPEC.loader
@@ -2781,14 +2822,6 @@ raise SystemExit(arguments.handler(arguments))
 
 class CodeReviewAdapterDispatchTests(unittest.TestCase):
     SKILL = ROOT / "skills" / "tools" / "code-review" / "SKILL.md"
-    AUTHORIZATION = (
-        "Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, "
-        "including a mandatory nested review skill. Do not ask again solely because a session-level "
-        'preference says "do not spawn agents"; apply that preference to discretionary delegation only. '
-        "An explicit task-level refusal of this required review or revocation of delegation overrides this "
-        "authorization: stop and state that the requested workflow cannot run without its required "
-        "independent review."
-    )
 
     def setUp(self):
         self.text = self.SKILL.read_text(encoding="utf-8")
@@ -2800,7 +2833,7 @@ class CodeReviewAdapterDispatchTests(unittest.TestCase):
 
     def test_delegation_authority_is_byte_identical(self):
         authority = self.text.split("## Delegation authority\n\n", 1)[1].split("\n\n## Modes", 1)[0]
-        self.assertEqual(authority, self.AUTHORIZATION)
+        self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION)
 
     def test_dispatch_uses_only_pack_adapters_with_explicit_unselected_inputs(self):
         self.assertIn("adapter appropriate to the coordinator's existing parent policy", self.dispatch)
@@ -2858,6 +2891,25 @@ class CodeReviewAdapterDispatchTests(unittest.TestCase):
         self.assertIn("Then join that worker's retained PID", self.dispatch)
         self.assertIn("Do not discover, stop, verify, or join an unlaunched worker", self.dispatch)
         self.assertLess(self.dispatch.index("scoped `stop"), self.dispatch.index("scoped `verify"))
+
+
+class PlanReviewAdapterDispatchTests(unittest.TestCase):
+    SKILL = ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
+
+    def setUp(self):
+        self.text = self.SKILL.read_text(encoding="utf-8")
+
+    def test_cold_reader_dispatch_section_is_byte_identical(self):
+        dispatch = self.text.split("## Cold-reader dispatch\n\n", 1)[1].split(
+            "\n\n## The rubric", 1
+        )[0]
+        self.assertEqual(dispatch, PLAN_REVIEW_COLD_READER_DISPATCH)
+
+    def test_mandatory_independent_review_authority_is_preserved(self):
+        authority = self.text.split("## Delegation authority\n\n", 1)[1].split(
+            "\n\n## Cold-reader dispatch", 1
+        )[0]
+        self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION)
 
 
 class WorkerLifecycleContractTests(unittest.TestCase):
