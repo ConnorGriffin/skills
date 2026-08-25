@@ -90,6 +90,10 @@ immutable session-scratch file and supplies only that file's path as the plan
 location. The worker receives no chat transcript or author-session context."""
 
 REVIEW_ROUTING_CONTRACT = """\
+This reference is the sole live authority for reviewer classification, reviewer
+eligibility, and reviewer-model precedence. The benchmark authority remains
+[`routing-table.md`](routing-table.md).
+
 For a review with a work order, effective review depth is the routing input:
 Focused and Targeted are routine; Full is load-bearing. An order with no stamped
 depth retains [review-depth.md](../../ticket/references/review-depth.md)'s Targeted
@@ -116,8 +120,8 @@ Neither derives from, overrides, or rewrites the other.
 | plan-review | routine | Run the Codex presence/headroom gate first. With usable Codex, use Terra from the Plan / spec writing row. On absent, unknown, ≤5%, or rate-limited Codex, enter Claude-only mode at Opus from the Plan / spec writing row, which has no Sonnet rung, and make no second Codex attempt for the session. |
 | plan-review | load-bearing | Use Opus directly from the Plan / spec writing row; select no Codex rung. |
 
-The matrix assumes a Claude parent, the pack's only dispatching parent. A Codex
-parent follows its own session policy and this matrix does not route for it.
+The matrix routes for a Claude parent. A Codex parent follows its own session
+policy in `dispatch-codex.md`, and this matrix does not route for it.
 
 Opus in the Plan / spec writing ladder is an availability rung, not a benchmarked
 plan-writing win.
@@ -212,7 +216,18 @@ When the matrix selects Codex, dispatch the review read-only through
 `codex-worker.py start` and persist one state file for that worker. Retry a
 model-quality failure once through `codex-worker.py resume` against the same
 state file, carrying the specific finding; do not start a second worker for the
-retry. Review is a read task, so `workspace-write` is never correct for it."""
+retry. Review is a read task, so `workspace-write` is never correct for it.
+
+## Infrastructure failure vs. model-quality failure
+
+A worker that failed to launch, hung before session start, lost its rollout,
+or was refused for headroom is a dispatch failure, matching the rule
+`dispatch-codex.md` already states. It is not evidence that Luna reviewed
+badly, so it consumes neither the one same-session retry in `Review admission`
+above nor an escalation rung. See `dispatch-codex.md`'s "Worker liveness" and
+"Interrupted workers" sections for the shared mechanics — they are not
+duplicated here. The launching coordinator owns stop-then-verify before any
+successor touches the worktree."""
 
 REVIEW_DEPTH_DISPATCH_BOUNDARY = """\
 Under `Profile: hardening`, Targeted and Focused orders get no reviewer; Full-depth
@@ -2345,11 +2360,9 @@ class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
         return (ROOT / path).read_text(encoding="utf-8")
 
     @staticmethod
-    def block(text: str, start: str, end: str | None = None) -> str:
+    def block(text: str, start: str, end: str) -> str:
         value = text.split(f"{start}\n\n", 1)[1]
-        if end is not None:
-            return value.split(f"\n\n{end}", 1)[0]
-        return value.removesuffix("\n")
+        return value.split(f"\n\n{end}", 1)[0]
 
     def test_review_routing_contract_is_byte_identical(self):
         text = self.text("skills/drivers/orchestrate/references/review-routing.md")
@@ -2394,28 +2407,28 @@ class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
     def test_codex_ui_admission_block_is_byte_identical(self):
         text = self.text("skills/drivers/orchestrate/references/dispatch-codex.md")
         self.assertEqual(
-            self.block(text, "## Codex-only admission routes"),
+            self.block(text, "## Codex-only admission routes", "## Reference boundary"),
             DISPATCH_CODEX_ADMISSION,
         )
 
     def test_claude_parent_review_admission_is_byte_identical(self):
         text = self.text("skills/drivers/orchestrate/references/dispatch-codex-from-claude.md")
         self.assertEqual(
-            self.block(text, "## Review admission", "## Infrastructure failure vs. model-quality failure"),
+            self.block(text, "## Review admission", "## Boundary"),
             DISPATCH_CODEX_FROM_CLAUDE_ADMISSION,
         )
 
     def test_review_depth_dispatch_boundary_is_byte_identical(self):
         text = self.text("skills/drivers/ticket/references/review-depth.md")
         self.assertEqual(
-            self.block(text, "## Reviewer dispatch boundary"),
+            self.block(text, "## Reviewer dispatch boundary", "## Reference boundary"),
             REVIEW_DEPTH_DISPATCH_BOUNDARY,
         )
 
     def test_slicing_orchestrator_tier_is_byte_identical(self):
         text = self.text("skills/drivers/ticket/references/slicing.md")
         self.assertEqual(
-            self.block(text, "## Orchestrator tier"),
+            self.block(text, "## Orchestrator tier", "## Reference boundary"),
             SLICING_ORCHESTRATOR_TIER,
         )
 

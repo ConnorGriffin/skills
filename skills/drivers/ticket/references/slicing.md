@@ -147,3 +147,5 @@ The order's `Open as:` names the tier the coordinator session must run at: the
 cannot review
 ([review-routing.md](../../orchestrate/references/review-routing.md)). The coordinator never launches
 an agent smarter than itself.
+
+## Reference boundary

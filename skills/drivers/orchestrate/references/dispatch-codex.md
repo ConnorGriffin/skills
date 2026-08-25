@@ -74,3 +74,5 @@ Review admissions are owned by [`review-routing.md`](review-routing.md). Its
 matrix assumes a Claude parent and does not route for this Codex UI parent;
 follow the Codex parent's own session policy instead of treating review as a
 generic admission above.
+
+## Reference boundary

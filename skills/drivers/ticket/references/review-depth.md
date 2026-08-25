@@ -58,3 +58,5 @@ reviewer classification, eligibility, and model precedence.
 
 * A whole diff assembled from chunks is reviewed Targeted, or Full when any chunk
   was Full.
+
+## Reference boundary

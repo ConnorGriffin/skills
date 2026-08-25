@@ -24,8 +24,8 @@ retry. Review is a read task, so `workspace-write` is never correct for it.
 A worker that failed to launch, hung before session start, lost its rollout,
 or was refused for headroom is a dispatch failure, matching the rule
 `dispatch-codex.md` already states. It is not evidence that Luna reviewed
-badly, so it consumes neither the one same-session retry in step c above nor
-an escalation rung. See `dispatch-codex.md`'s "Worker liveness" and
+badly, so it consumes neither the one same-session retry in `Review admission`
+above nor an escalation rung. See `dispatch-codex.md`'s "Worker liveness" and
 "Interrupted workers" sections for the shared mechanics — they are not
 duplicated here. The launching coordinator owns stop-then-verify before any
 successor touches the worktree.
