@@ -84,6 +84,8 @@ Expectation: <what that command must report before the pull request opens>
 Review depth: <focused | targeted | full> (<one-line reason>)
 Profile: <none | hardening>
 
+Drafting conventions: Read `skills/drivers/ticket/references/drafting-conventions.md` before acting on this order.
+
 Context
 <2-5 bullets: what exists today, what constrains this change, decisions already made
  (from the scoping interview or repo history) that the implementation must respect>
@@ -159,6 +161,8 @@ Surface lifecycle: <none | build | revise>
 Review depth: <focused | targeted | full> (<one-line reason>)
 Capability owned: <one coherent capability; exactly one sub-order owns it>
 Shared contracts owned: <none | each named contract this sub-order owns>
+
+Drafting conventions: Read `skills/drivers/ticket/references/drafting-conventions.md` before acting on this order.
 
 Context
 <everything this chunk needs to stand alone in a fresh agent. Never "as established

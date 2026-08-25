@@ -69,6 +69,54 @@ BUILDER_SELF_CHECK_BODY = (
     "symbols, dead parameters, and prose that still describes the pre-fix behavior."
 )
 
+DRAFTING_CONVENTIONS_BODY = b"""
+Canonical prose constants name only the bytes strictly between their named opening
+and closing full-heading-line anchors; neither anchor is part of the constant.
+Read source with `Path.read_bytes()` and compare bytes directly. Do not use
+`read_text()`, universal-newline normalization, or a line-oriented surrogate.
+
+Transcribe a target repository's `AGENTS.md` `Test:` entry byte-exact into the
+order. When this host's interpreter substitution matters, state it separately and
+exactly: `Run every python3 above as /opt/homebrew/bin/python3.14; bare python3
+on this host is 3.9.6.`
+
+Adapter prompts are prompt text passed positionally. The coordinator writes each
+complete prompt to session scratch, passes that file's contents as the adapter's
+positional prompt text, and never invents adapter flags or changes. Each dispatch
+has one coordinator-owned state file; state is lifecycle metadata, never the
+worker's result.
+
+An expected diff is a closed allowlist of repository-relative paths. It has no
+escape clause. A generated-facts appendix records deterministic commands and their
+byte-complete literal output; every cited line is regenerated from the checked-out
+tree.
+"""
+
+REVIEW_DEPTH_SENSITIVITY_FLOOR_BODY = b"""
+Judgment, not a keyword match. A change is **Full**, non-negotiably, when it
+touches any of:
+
+* authentication, authorization, or identity (trust policies, role assumption,
+  single sign-on, token scope)
+* secrets: creation, rotation, scope, or exposure surface
+* destructive or irreversible operations (deletes, replaces, force-applies,
+  data-bearing resources)
+* behavior shared across an organization (a shared library, an organization-level
+  setting, a workflow every repo inherits)
+
+For workflow machinery every repo inherits: Full when the change alters contract
+semantics; Targeted for pure relocation, citation repoints, and additive paragraphs
+that no existing consumer's behavior depends on.
+
+These override a lower stamp without discussion.
+"""
+
+DRAFTING_CONVENTIONS_INSTRUCTION = (
+    b"Drafting conventions: Read "
+    b"`skills/drivers/ticket/references/drafting-conventions.md` "
+    b"before acting on this order."
+)
+
 TICKET_CHUNK_WORKER_ADAPTER_DISPATCH = """3. **Dispatch one agent per chunk** at the tier its `Agent:` line names. The
    coordinator supplies the selected adapter, the explicit worker model resolved for
    that tier, and explicit worker effort. Dispatch only through
@@ -182,6 +230,44 @@ def assistant_line(
 
 
 class TicketSkillContractTests(unittest.TestCase):
+    def test_drafting_conventions_are_canonical_raw_bytes(self):
+        path = TICKET_DIRECTORY / "references" / "drafting-conventions.md"
+        source = path.read_bytes()
+        opening = b"## Drafting conventions\n"
+        closing = b"## Consumer reach\n"
+
+        self.assertEqual(source.count(opening), 1)
+        self.assertEqual(source.count(closing), 1)
+        body = source.split(opening, 1)[1].split(closing, 1)[0]
+        self.assertEqual(body, DRAFTING_CONVENTIONS_BODY)
+
+    def test_review_depth_sensitivity_floor_is_canonical_raw_bytes(self):
+        source = (TICKET_DIRECTORY / "references" / "review-depth.md").read_bytes()
+        opening = b"## Sensitivity floor\n"
+        closing = b"## What blocks\n"
+
+        self.assertEqual(source.count(opening), 1)
+        self.assertEqual(source.count(closing), 1)
+        body = source.split(opening, 1)[1].split(closing, 1)[0]
+        self.assertEqual(body, REVIEW_DEPTH_SENSITIVITY_FLOOR_BODY)
+
+    def test_drafting_conventions_instruction_is_inside_flat_and_sub_order_fences(self):
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_bytes()
+
+        flat_region = template.split(b"## Flat\n", 1)[1].split(b"## Chunked\n", 1)[0]
+        flat_fence = flat_region.split(b"```\n", 1)[1].split(b"\n```", 1)[0]
+        sub_region = template.split(b"SUB-ORDER 1/<n>", 1)[1]
+        sub_order_fence = b"SUB-ORDER 1/<n>" + sub_region.split(b"\n```", 1)[0]
+
+        self.assertIn(DRAFTING_CONVENTIONS_INSTRUCTION, flat_fence)
+        self.assertIn(DRAFTING_CONVENTIONS_INSTRUCTION, sub_order_fence)
+
+    def test_ticket_verb_consumers_point_to_drafting_conventions(self):
+        for verb in ("triage", "start", "revise"):
+            source = (TICKET_DIRECTORY / "verbs" / f"{verb}.md").read_bytes()
+            with self.subTest(verb=verb):
+                self.assertIn(b"drafting-conventions.md", source)
+
     def test_builder_self_check_is_pinned_in_flat_and_chunked_builder_guidance(self):
         start = (TICKET_DIRECTORY / "verbs" / "start.md").read_bytes()
         template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_bytes()

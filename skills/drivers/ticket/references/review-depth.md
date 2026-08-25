@@ -35,8 +35,11 @@ touches any of:
 * behavior shared across an organization (a shared library, an organization-level
   setting, a workflow every repo inherits)
 
-These override a lower stamp without discussion.
+For workflow machinery every repo inherits: Full when the change alters contract
+semantics; Targeted for pure relocation, citation repoints, and additive paragraphs
+that no existing consumer's behavior depends on.
 
+These override a lower stamp without discussion.
 ## What blocks
 
 A finding blocks only when it breaks the order's **Done when** clause. That is the
