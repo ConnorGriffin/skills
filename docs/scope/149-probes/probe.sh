@@ -10,6 +10,11 @@
 #               (outside = a home-directory path, not a temp path)
 #   session   - a caller-supplied --session-id is honored, --resume carries context,
 #               --output-format json exposes the fields the adapter parses
+#   resumed   - a RESUMED read-only worker is still sandboxed (the settings file is
+#               passed again on resume; this is the guarantee the pack depends on)
+#
+# All captured text is redacted of absolute home paths before printing: scripts/validate.py
+# forbids a literal user path in any tracked file AND in all reachable history.
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 scratch=${1:?usage: probe.sh <scratch-dir>}
@@ -34,6 +39,8 @@ for case in readonly write; do
   [ -f "$d/probe.txt" ] && cwd_write=yes || cwd_write=no
   [ -f "$outside/escape-$case.txt" ] && escaped=yes || escaped=no
   echo "$case: wrote_in_cwd=$cwd_write escaped_cwd=$escaped"
+  # The worker's own report, so a dead shell is distinguishable from a blocked write.
+  echo "$case: report=$(tr '\n' ' ' < "$d/out.txt" | sed "s|$HOME|\$HOME|g" | cut -c1-220)"
 done
 rmdir "$outside" 2>/dev/null || true
 
@@ -55,3 +62,18 @@ print("session: parsed_fields=%s" % sorted(
     k for k in ("session_id", "result", "is_error", "total_cost_usd", "permission_denials")
     if k in first))
 PY
+
+# A resumed read-only worker must still be refused a write. If resume rebuilds its
+# configuration from the session record rather than the settings file, this is where
+# the pack's OS-enforcement claim would fail.
+d="$scratch/resumed"; rm -rf "$d"; mkdir -p "$d"
+u=$(python3 -c 'import uuid;print(uuid.uuid4())')
+( cd "$d" && printf 'Reply with exactly: READY' | claude -p --model haiku \
+    --permission-mode dontAsk --settings "$here/readonly.settings.json" \
+    --session-id "$u" --output-format json > first.json 2> first.err ) || true
+( cd "$d" && printf 'Use bash to create resumed.txt in the current directory containing WROTE. Report WROTE_OK or WROTE_FAIL.' \
+    | claude -p --model haiku --permission-mode dontAsk --settings "$here/readonly.settings.json" \
+    --resume "$u" > second.txt 2> second.err ) || true
+[ -f "$d/resumed.txt" ] && rw=yes || rw=no
+echo "resumed: wrote_after_resume=$rw"
+echo "resumed: report=$(tr '\n' ' ' < "$d/second.txt" | sed "s|$HOME|\$HOME|g" | cut -c1-220)"
