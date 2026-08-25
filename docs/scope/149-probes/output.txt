@@ -1,0 +1,6 @@
+# probe run f4fec2a
+# claude 2.1.228 (Claude Code)
+readonly: wrote_in_cwd=no escaped_cwd=no
+write: wrote_in_cwd=yes escaped_cwd=no
+session: id_honored=True resume_carries_context=True
+session: parsed_fields=['is_error', 'permission_denials', 'result', 'session_id', 'total_cost_usd']

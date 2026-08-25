@@ -36,8 +36,14 @@ gets set when a replay measures one.
 
 **A Claude worker's sandbox mode is enforced by the OS, not by the prompt.** Read-only and
 write configurations are the committed, executed artifacts under `docs/scope/149-probes/`,
-verified 2026-08-24: the read-only worker keeps a working shell and has its writes refused
-by Seatbelt; the write worker writes inside its cwd and nowhere else. `allowUnsandboxedCommands:
+verified 2026-08-24, with the run captured in `docs/scope/149-probes/output.txt`: the
+read-only worker keeps a working shell and has every write refused by Seatbelt; the write
+worker writes inside its cwd and is refused a write into the home directory.
+
+The write mode's boundary is cwd **plus the session temp directory**, which the sandbox
+documents as writable and a first measurement mistook for a confinement hole. A worker can
+therefore write under `$TMPDIR`; it cannot write into the operator's home or control
+checkout. Stating the boundary as "the worktree and nowhere else" would be false. `allowUnsandboxedCommands:
 false` is part of the contract — it disables the `dangerouslyDisableSandbox` retry, so a
 blocked command cannot be re-run outside the sandbox.
 

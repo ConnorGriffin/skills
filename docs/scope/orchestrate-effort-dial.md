@@ -76,8 +76,12 @@ successfully and had its bash write refused with "operation not permitted":
  "permissions": {"deny": ["Write", "Edit", "NotebookEdit"]}}
 ```
 
-Write worker (same permission mode, sandbox on, no denyWrite) wrote inside its cwd and
-nowhere else, matching Codex `workspace-write`:
+Write worker (same permission mode, sandbox on, no denyWrite) wrote inside its cwd and was
+refused a write into `$HOME`, matching Codex `workspace-write`. Its writable region is the
+cwd plus the session temp directory: an escape probe aimed at a path under `/private/tmp`
+succeeded, and the same probe aimed at the home directory was refused. An explicit
+`denyWrite: ["/"]` is not the fix — measured, a broad deny beats a narrower `allowWrite`
+for the cwd and blocks the worker entirely.
 
 ```json
 {"sandbox": {"enabled": true, "allowUnsandboxedCommands": false}}
@@ -92,11 +96,40 @@ Docs: [sandboxing](https://code.claude.com/docs/en/sandboxing),
 [headless](https://docs.claude.com/en/docs/claude-code/headless),
 [SDK permissions](https://docs.claude.com/en/api/agent-sdk/permissions).
 
+## Cold panel — round 1 (two Opus reviewers, 2026-08-24)
+
+Eighteen blocking objections, every citation reproduced against the repo. The ones that
+changed the order rather than its wording:
+
+* The shared lifecycle machinery is ~550 of `codex-worker.py`'s 596 lines and is
+  model-agnostic. This ticket creates the charter's second caller, so the seam is earned
+  now: a shared module, not a second copy.
+* Effort cannot survive `resume` as the schema stands — `BASE_STATE_FIELDS`
+  (`codex-worker.py:121`) rejects unknown keys and the resume argv (`:469`) carries no
+  effort. Persisting it is a schema change the order has to authorize.
+* "Prompt on stdin" is a claude-worker fact; `codex-worker.py` takes its prompt
+  positionally (`:584`) and no chunk changes that.
+* The two CLIs do not share an effort enum. Captured in `149-probes/effort-enums.md`.
+* Write confinement was asserted, not measured. Measuring it refuted the claim as written
+  (see above) and corrected both the ADR and this ledger.
+* The ban stranded `research` and `codebase-design`, which dispatch through banned paths
+  today and were on no convert-later list.
+* Agent-tool coupling survives outside Routing step 5, at `SKILL.md:63` and `:103`.
+
+Refuted, not forwarded: that the committed `write.settings.json` had never been executed.
+`probe.sh` runs the committed files; what was missing was captured output, now in
+`output.txt`.
+
 ## Open questions
 
-1. Sequencing against #144 and #145, which queue edits to the same orchestrate files.
-2. Shape: one chunked order on #149, or #149 builds the adapters and child issues
-   convert each consuming skill.
+(none — sequencing and shape settled below)
+
+## Settled after the panel
+
+* Sequencing: #144 and #145 land after #149 and inherit the adapter surface. #145's
+  document is renamed so it cannot be confused with this ticket's `dispatch-claude.md`.
+* Shape: two serial chunks re-cut on the anchor row's own boundary — build, then run
+  live and correct.
 
 ## Spawned tasks
 
