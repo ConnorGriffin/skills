@@ -76,6 +76,65 @@ successful without that verified result. Remove the prompt file after the home s
 verifies the `## Findings` comment, or after it reports a failed worker. Never commit
 the prompt file or state file."""
 
+EPIC_REWORK_SESSION_TOPOLOGY = """\
+* The epic session is the operator's home session. It stays at ledger
+  altitude: it files issues, updates the epic ledger, and dispatches work. It
+  never reads the repo deeply; the home session is the epic ledger's sole
+  writer.
+* Attended sessions are the default whenever a subtree has an open decision.
+  The operator may explicitly and revocably delegate one locked subtree to the
+  home session when its work orders are stamped or its needed rulings are
+  settled. A newly opened decision returns that subtree to attended mode.
+* Delegated triage runs through the existing `$ticket triage` interface, and
+  delegated builds run through the existing `$ticket start` interface. The home
+  session dispatches their workers through the pack adapters; ticket comments
+  carry stamped work orders, session-fit, and completed work products.
+* Before a delegated wave, the home session draws a conflict map from every
+  queued expected diff and verifies that its shared checkout equals the current
+  origin default-branch tip. A stale shared checkout refuses the wave.
+* Every read-only draft and review in a wave fans out in parallel. Only
+  write-bearing triage and build steps serialize when their expected diffs
+  overlap; builds use per-issue worktrees, tickets editing the same files run
+  in order, and pull requests merge one at a time with a rebase when a shared
+  surface is touched. Before dispatching a build or review worker, verify that
+  its target worktree is at, or descends from, the current origin default-branch
+  tip; otherwise refuse that dispatch.
+* Delegated work uses the pack dispatch adapters. The home session collects
+  children under `orchestrate`'s `## Collect child results` contract, permits a
+  human merge only after green CI and passed review, and surfaces a failure when
+  its routing ladder is exhausted. Coordinators never nest."""
+
+EPIC_DELEGATED_EXECUTION = """\
+The operator may explicitly and revocably delegate a locked epic subtree to
+the home session when every order is stamped or every needed ruling is settled.
+Attended sessions remain the default; any newly opened decision returns that
+subtree to attended mode.
+
+The home session remains the epic ledger's sole writer. For delegated triage it
+dispatches a worker through the existing `$ticket triage` interface; for a
+delegated build it dispatches a worker through the existing `$ticket start`
+interface. Those workers use their existing ticket contracts and post stamped
+work orders, session-fit, and completed work products through tracker comments.
+
+The home session dispatches only through the pack adapters, with prompt text
+passed positionally from coordinator-owned session-scratch prompt files and one
+coordinator-owned state file per dispatch. Do not add adapter flags or alter
+adapter mechanics.
+
+Work delegated to the home session proceeds in waves. Before each fan-out, draw
+a conflict map from the queued expected diffs and verify that the shared checkout
+equals the current origin default-branch tip. Fan out every read-only draft and
+review in parallel. Serialize only write-bearing triage and build steps whose
+expected diffs overlap; builds use per-issue worktrees, tickets editing the same
+files run in order, and pull requests merge one at a time with a rebase when a
+shared surface is touched. Before dispatching a build or review worker, verify
+that its target worktree is at, or descends from, the current origin
+default-branch tip; refuse a stale target.
+
+Collect child results under `orchestrate`'s `## Collect child results` section.
+Permit a human merge only after green CI and passed review. Surface a failure
+after the applicable routing ladder is exhausted; do not retry past that ladder."""
+
 # The single canonical representation of the plan-review cold-reader dispatch
 # contract: adapter exclusivity, read-only surface, mechanics-only inputs, the
 # closed prompt allowlist, and worker-isolation. The skill's section is pinned
@@ -4825,6 +4884,34 @@ class EpicAdapterDispatchTests(unittest.TestCase):
         self.assertEqual(body, EPIC_WORKER_DISPATCH.encode("utf-8"))
         self.assertIn(self.RESEARCH_WORKER_PARAGRAPH.encode("utf-8"), epic)
         self.assertIn(self.VERIFICATION_AND_FAILURE_PARAGRAPH.encode("utf-8"), epic)
+
+
+class EpicDelegatedExecutionContractTests(unittest.TestCase):
+    PROPOSAL = ROOT / "openspec" / "changes" / "epic-rework" / "proposal.md"
+    EPIC = ROOT / "skills" / "drivers" / "epic" / "SKILL.md"
+
+    def body_between(self, document: bytes, opening_anchor: bytes, closing_anchor: bytes) -> bytes:
+        self.assertEqual(document.count(opening_anchor), 1)
+        self.assertEqual(document.count(closing_anchor), 1)
+        return document.split(opening_anchor, 1)[1].split(closing_anchor, 1)[0]
+
+    def test_session_topology_is_pinned_by_raw_bytes(self):
+        body = self.body_between(
+            self.PROPOSAL.read_bytes(),
+            b"### Session topology\n\n",
+            b"\n\n### Follow-ups and orphan control",
+        )
+
+        self.assertEqual(body, EPIC_REWORK_SESSION_TOPOLOGY.encode("utf-8"))
+
+    def test_delegated_execution_is_pinned_by_raw_bytes(self):
+        body = self.body_between(
+            self.EPIC.read_bytes(),
+            b"## Delegated execution\n\n",
+            b"\n\n## Resolve spikes",
+        )
+
+        self.assertEqual(body, EPIC_DELEGATED_EXECUTION.encode("utf-8"))
 
 
 class ReviewRouteResolverTests(unittest.TestCase):
