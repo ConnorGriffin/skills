@@ -16,17 +16,7 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    The comment's `Execution:` line says `single agent` or `chunked`; an order with
    no `Execution:` line is a flat order.
 
-3. **Model-check.** The order's `Open as:` line names a required model and effort. A
-   session cannot reliably introspect its own reasoning effort from context, so do
-   not guess it, and do not answer from memory of an earlier guess. State the model
-   name this session's own system prompt reports, then ask the user in prose to
-   confirm the effort level this session is running. Compare both against
-   `Open as:`. Weaker on either axis: say so and stop, so the user relaunches
-   correctly. Same or stronger on both: proceed. On a chunked order, also check every
-   `SUB-ORDER`'s `Agent:` line against the confirmed model: the session must be at
-   least as strong as the strongest chunk. Weaker than any one of them and the whole
-   order is refused. Never run part of it, and never launch an agent smarter than the
-   coordinator.
+3. **Model-check.** On a flat order with `Session fit:`, a session whose system-prompt model is named in that paragraph at or above the selected rung proceeds directly to step 4, skipping the remainder of Model-check and without asking about model fit or effort. Otherwise, the order's `Open as:` line names a required model and effort. A session cannot reliably introspect its own reasoning effort from context, so do not guess it, and do not answer from memory of an earlier guess. State the model name this session's own system prompt reports, then ask the user in prose to confirm the effort level this session is running. Compare both against `Open as:`. Weaker on either axis: say so and stop, so the user relaunches correctly. Same or stronger on both: proceed. On a chunked order, also check every `SUB-ORDER`'s `Agent:` line against the confirmed model: the session must be at least as strong as the strongest chunk. Weaker than any one of them and the whole order is refused. Never run part of it, and never launch an agent smarter than the coordinator.
 
 4. **Worktree and branch.** This is the first repository action after the shared
    opening. Never work in the control checkout. Reuse the worktree

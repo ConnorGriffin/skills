@@ -24,6 +24,35 @@ GRAPH_SELECTION_TRAPS = (
     "apparent recency",
     "only result",
 )
+SESSION_FIT_TEMPLATE_BODY = (
+    "Session fit: <selected execution row's Ladder value, with each model's display "
+    "name in ladder order>. A Claude or Codex session whose system-prompt model is "
+    "named in this paragraph at or above the selected rung proceeds directly to step "
+    "4, skipping the remainder of Model-check and without asking about model fit or "
+    "effort.\n"
+)
+SESSION_FIT_TRIAGE_BODY = (
+    "\n\nFor a flat order, copy the already-selected execution row's `Ladder` value "
+    "from [`routing-table.md`](../../orchestrate/references/routing-table.md) into "
+    "the template's `Session fit:` paragraph, keeping each model's display name and "
+    "ladder order."
+)
+SESSION_FIT_MODEL_CHECK_BODY = (
+    "On a flat order with `Session fit:`, a session whose system-prompt model is named "
+    "in that paragraph at or above the selected rung proceeds directly to step 4, "
+    "skipping the remainder of Model-check and without asking about model fit or "
+    "effort. Otherwise, the order's `Open as:` line names a required model and effort. "
+    "A session cannot reliably introspect its own reasoning effort from context, so do "
+    "not guess it, and do not answer from memory of an earlier guess. State the model "
+    "name this session's own system prompt reports, then ask the user in prose to "
+    "confirm the effort level this session is running. Compare both against `Open as:`. "
+    "Weaker on either axis: say so and stop, so the user relaunches correctly. Same or "
+    "stronger on both: proceed. On a chunked order, also check every `SUB-ORDER`'s "
+    "`Agent:` line against the confirmed model: the session must be at least as strong "
+    "as the strongest chunk. Weaker than any one of them and the whole order is "
+    "refused. Never run part of it, and never launch an agent smarter than the "
+    "coordinator."
+)
 
 
 def run(command: list[str], *, cwd: Path, env: Optional[dict[str, str]] = None):
@@ -98,6 +127,47 @@ def assistant_line(
 
 
 class TicketSkillContractTests(unittest.TestCase):
+    def test_flat_session_fit_is_produced_and_consumed(self):
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
+            encoding="utf-8"
+        )
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(
+            encoding="utf-8"
+        )
+        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(
+            encoding="utf-8"
+        )
+
+        flat_order = template.split("## Flat", 1)[1].split("## Chunked", 1)[0]
+        chunked_header = template.split("## Chunked", 1)[1].split(
+            "SUB-ORDER 1/<n>", 1
+        )[0]
+        sub_order = template.split("SUB-ORDER 1/<n>", 1)[1].split("```", 1)[0]
+        template_body = flat_order.split("Open as: <model> / <effort>.\n", 1)[1].split(
+            "Execution: single agent.", 1
+        )[0]
+        triage_body = triage.split(
+            "value matches the route and contract artifacts settled in step 7.", 1
+        )[1].split("\n\n12. **Adversarial review, mandatory.**", 1)[0]
+        model_check_body = start.split("3. **Model-check.** ", 1)[1].split(
+            "\n\n4. **Worktree and branch.", 1
+        )[0]
+
+        self.assertEqual(template_body, SESSION_FIT_TEMPLATE_BODY)
+        self.assertEqual(triage_body, SESSION_FIT_TRIAGE_BODY)
+        self.assertEqual(model_check_body, SESSION_FIT_MODEL_CHECK_BODY)
+        self.assertEqual(flat_order.count("Session fit:"), 1)
+        self.assertNotIn("Session fit:", chunked_header)
+        self.assertNotIn("Session fit:", sub_order)
+        self.assertIn(
+            "State the model name this session's own system prompt reports",
+            model_check_body,
+        )
+        self.assertIn(
+            "On a chunked order, also check every `SUB-ORDER`'s `Agent:` line",
+            model_check_body,
+        )
+
     def test_chunk_contract_owns_capabilities_and_shared_contracts_once(self):
         slicing = (TICKET_DIRECTORY / "references" / "slicing.md").read_text(
             encoding="utf-8"

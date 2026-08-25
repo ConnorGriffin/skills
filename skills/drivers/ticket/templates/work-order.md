@@ -73,6 +73,7 @@ an extra ticket-comment format.
 ```
 WORK ORDER <ticket-id>: <ticket summary>
 Open as: <model> / <effort>.
+Session fit: <selected execution row's Ladder value, with each model's display name in ladder order>. A Claude or Codex session whose system-prompt model is named in this paragraph at or above the selected rung proceeds directly to step 4, skipping the remainder of Model-check and without asking about model fit or effort.
 Execution: single agent.
 
 Classification: <code | investigation | manual>

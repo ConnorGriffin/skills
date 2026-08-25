@@ -179,6 +179,8 @@ the branch, and its change record already belongs to the parent epic.
     or depend on private capability. Check that every fence's `Surface lifecycle:`
     value matches the route and contract artifacts settled in step 7.
 
+For a flat order, copy the already-selected execution row's `Ladder` value from [`routing-table.md`](../../orchestrate/references/routing-table.md) into the template's `Session fit:` paragraph, keeping each model's display name and ladder order.
+
 12. **Adversarial review, mandatory.** Every draft order gets reviewed before it is
     shown to the user or posted; there is no unreviewed path to step 13. Run
     `/plan-review` against the draft: it spawns cold reviewer agents with the
