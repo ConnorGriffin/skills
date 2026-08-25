@@ -2249,6 +2249,67 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertEqual(argv[argv.index("--effort") + 1], "high")
         self.assertEqual(json.loads(result.stdout)["effort"], "high")
 
+    def test_claude_start_argv_carries_no_cwd_flag_and_settings_matches_sandbox_mode(self):
+        # The installed claude CLI has no --cwd flag; the adapter establishes
+        # the working directory via os.chdir in the gate wrapper (and cwd= in
+        # run_portable), never as an argv token. A fake binary that accepts
+        # any argv would let a stray --cwd slip through unnoticed, so assert
+        # the flag set explicitly for both sandbox modes.
+        for sandbox, expect_deny in (("read-only", True), ("workspace-write", False)):
+            with self.subTest(sandbox=sandbox):
+                self.arguments.unlink(missing_ok=True)
+                self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "s1", "result": "ok", "is_error": False})
+                arguments = [
+                    "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+                    "--model", "sonnet", "--sandbox", sandbox, "--cwd", str(self.worktree),
+                ]
+                if sandbox == "workspace-write":
+                    arguments += ["--control-checkout", str(self.control)]
+                result = self.run_claude(*arguments, "do the work")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+                self.assertNotIn("--cwd", argv)
+                self.assertEqual(
+                    argv,
+                    [
+                        "-p", "--model", "sonnet", "--effort", "medium",
+                        "--permission-mode", "dontAsk", "--settings", argv[argv.index("--settings") + 1],
+                        "--session-id", argv[argv.index("--session-id") + 1],
+                        "--output-format", "json",
+                    ],
+                )
+                settings_path = Path(argv[argv.index("--settings") + 1])
+                settings = json.loads(settings_path.read_text(encoding="utf-8"))
+                if expect_deny:
+                    self.assertIn("Write", settings["permissions"]["deny"])
+                    self.assertIn("filesystem", settings["sandbox"])
+                else:
+                    self.assertIn("Write", settings["permissions"]["allow"])
+                    self.assertNotIn("filesystem", settings["sandbox"])
+                self.state.unlink(missing_ok=True)
+
+    def test_claude_resume_argv_carries_no_cwd_flag(self):
+        for sandbox in ("read-only", "workspace-write"):
+            with self.subTest(sandbox=sandbox):
+                self.arguments.unlink(missing_ok=True)
+                legacy = {
+                    "version": CLAUDE_WORKER_MODULE.STATE_VERSION, "lifecycle": "exited",
+                    "session_id": "worker-1", "model": "sonnet", "sandbox": sandbox,
+                    "cwd": str(self.worktree.resolve()),
+                    "family_semantics": "unsupported", "generation": 1,
+                }
+                if sandbox == "workspace-write":
+                    legacy["control_checkout"] = str(self.control.resolve())
+                self.state.write_text(json.dumps(legacy), encoding="utf-8")
+                self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "worker-1", "result": "ok", "is_error": False})
+                result = self.run_claude("resume", "--claude", str(self.claude_binary), "--state", str(self.state), "continue")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+                self.assertNotIn("--cwd", argv)
+                self.assertEqual(argv[0], "-p")
+                self.assertEqual(argv[1:4], ["--resume", "worker-1", "--model"])
+                self.state.unlink(missing_ok=True)
+
     def test_claude_workspace_write_rejects_the_control_checkout(self):
         result = self.run_claude(
             "start", "--claude", str(self.claude_binary), "--state", str(self.state),

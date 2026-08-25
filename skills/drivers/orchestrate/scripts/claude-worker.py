@@ -320,7 +320,7 @@ def gate_wait(fd: int) -> None:
         os._exit(125)
 
 
-def gated_process(command: list[str], cwd: Path, prompt: str) -> tuple[subprocess.Popen[str], int]:
+def gated_process(command: list[str], cwd: Path) -> tuple[subprocess.Popen[str], int]:
     """Exec a session-leading gate wrapper; Popen can return before the real exec.
 
     Unlike codex-worker.py, the prompt is not part of `command` — it is piped
@@ -349,7 +349,7 @@ def establish_family(
     state: dict[str, Any],
 ) -> tuple[subprocess.Popen[str] | None, int | None]:
     """Persist and release one gated family while the caller holds the state lock."""
-    process, write_fd = gated_process(command, Path(state["cwd"]), args.prompt)
+    process, write_fd = gated_process(command, Path(state["cwd"]))
     pid = process.pid
     try:
         identity = None
@@ -514,7 +514,6 @@ def start(args: argparse.Namespace) -> int:
         args.claude, "-p", "--model", args.model, "--effort", args.effort,
         "--permission-mode", "dontAsk", "--settings", str(settings),
         "--session-id", session_id, "--output-format", "json",
-        "--cwd", str(args.cwd),
     ]
     return run_lifecycle(args, command, state)
 
@@ -552,7 +551,7 @@ def resume(args: argparse.Namespace) -> int:
     command = [
         args.claude, "-p", "--resume", fresh["session_id"], "--model", fresh["model"],
         "--effort", effort, "--permission-mode", "dontAsk", "--settings", str(settings),
-        "--output-format", "json", "--cwd", str(cwd),
+        "--output-format", "json",
     ]
     return run_lifecycle(args, command, fresh, expected=state)
 
