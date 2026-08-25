@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: #144 triage — round 1 BLOCKED (6 verified), clean rewrite in flight; one open decision with operator (bare-subject classification); then #139 re-triage; #153-#157 JIT; #163-#165 per queue notes
+next: #144 triage — BLOCKED on operator decisions Q1 (bare-subject rule) and Q2 (plan-review Claude-only fallback); 2 of 3 panels spent; then #139 re-triage; #153-#157 JIT; #163-#165 per queue notes
 updated: 2026-08-25
 
 ## Notes
@@ -10,7 +10,8 @@ updated: 2026-08-25
 - interim session-fit rule until #139 lands: see #138's session-fit comment for the pattern
 
 ## Fog
-- none
+- #144 Q1 bare-subject routing rule: JUDGED_SENSITIVITY_FLOOR / CLOSED_SUBJECT_PROXY / LOAD_BEARING_UNLESS_OVERRIDDEN — awaiting operator
+- #144 Q2 plan-review Claude-only fallback: the routing table's Plan/spec row is Terra -> Sol -> none, with no Claude rung, and warns against Claude for specs; #144's scope text asserts a Sonnet/Opus fallback that the table does not ground — awaiting operator
 
 ## Decisions
 - #140 Review routing — direct routing-table reads in both review skills; Codex reviewers from a Claude parent behind the presence+headroom gate (Luna routine / Opus load-bearing, Claude-only fallback); skill-mandated spawns pre-authorized, task-level refusal still stops the run
@@ -46,6 +47,7 @@ updated: 2026-08-25
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 #144 — triage round 2 on the clean rewrite: Sol cold review BLOCK on 4, all reproduced. Two are coordinator rulings now made: the review front door's resolver (skills/workflows/review/scripts/resolve_route.py) green-lights a partial install because PACK_SHIPPED_SKILLS and INSTALL_COMMAND only ever name the selected review skill, so making orchestrate required means amending the resolver and its tests; and reviewer ELIGIBILITY ("Haiku never reviews", review-depth.md:55, repeated at slicing.md:146) must move to review-routing.md or "sole authority" is unsatisfiable. Two are unsettled decisions routed to the operator per the cap rule: the bare-subject rule's candidate definitions miss file-backed PRDs and design docs, which plan-review/SKILL.md:12 admits as ordinary subjects; and the matrix's Claude-only Sonnet/Opus route for plan-review has no source in the Plan/spec row (Terra -> Sol -> none), whose own note warns against routing specs to Claude without a fail-safe review
 - 2026-08-25 #144 — triage round 1: Sol drafted, Sol cold review returned BLOCK on 6 findings, all reproduced against the tree. Two changed the design: plan-review's stakes tier is a different axis from reviewer-model routing and must not be collapsed into it (its panel/termination contract is broader than review-depth's four sensitivity categories), and the classifier cannot live in ticket/review-depth.md because README declares no ticket dependency for either review skill and forbids hidden runtime requirements. Coordinator rulings: classifier homes in orchestrate beside routing-table.md (a dependency #140 already forces), plan-review stakes untouched, review-depth keeps depth and the floor but loses all reviewer-selection claims. Also caught: the verification chain in flight was stale, missing worker_lifecycle.py from AGENTS.md's Test line since #150. Order rewritten clean rather than patched
 - 2026-08-25 #152 — PR #168 merged on green CI; worktree removed. #144's blocked-by edges (#145 #149 #151 #152) are all merged, so the final integration ticket is now triageable
 - 2026-08-25 #152 — resumed from handoff: Opus worker had left the canonical-block rewrite uncommitted in the worktree, not lost; home session verified rather than redid it. Ten-mutation sweep over the pinned section caught all ten by construction, full chain green (401 tests, 27 skills). Capped review's acceptance met, so no new round. PR #168 opened; body passed scorer and a Terra cold voice judge
