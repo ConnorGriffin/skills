@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: merge PR #170 (#144) on green CI, finalize #144, then #139 re-triage; #153-#157 JIT; #163-#165 per queue notes — every triage now applies the standing over-engineering criterion
+next: #139 re-triage (order predates #158's rewrite of the same files); then #153-#157 JIT; #163-#165 per queue notes — every triage applies the standing over-engineering criterion
 updated: 2026-08-25
 
 ## Notes
@@ -29,7 +29,7 @@ updated: 2026-08-25
 - #138 Mechanical rename wayfinder to epic — merged
 - #142 Epic skill content (3a) — merged
 - #143 Cross-skill amendments and machinery (3b) — merged
-- #144 Route review skills through routing table — built (Sol, trimmed order); PR #170 open, merge on green CI
+- #144 Route review skills through routing table — merged (PR #170, trimmed order)
 - #149 Universal effort dial and Claude CLI worker adapter — merged
 - #150 Extract shared worker lifecycle into one module — merged
 - #151 Dispatch code-review reviewers through pack adapters — merged
@@ -51,6 +51,7 @@ updated: 2026-08-25
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 #144 — PR #170 merged (7bce5e2) on green CI after a base update (main gained #169, disjoint; chain rerun green on the merged tree); issue auto-closed, worktree removed. The review-routing subtree (#140 spike, builds #138 #142 #143 #144 #145 #146 #149 #150 #151 #152) is complete
 - 2026-08-25 #144 — built to PR #170. Sol completed the amended order (a67a8a2, chain green, 14 canonical contracts mutation-proven). Full-depth Sol cold review returned BLOCK on 4: three accepted and fixed (false only-dispatching-parent claim, dangling "step c above" reference, EOF-bounded test anchors -> Reference boundary closing headings; fix commit 5a8f964), one rejected on the order's own Boundaries (docs/orchestrate-spec.md is protected historical evidence). Convergence check left one residual — Related-authorities allocation unpinned — closed by the coordinator in 1193eba, mutation-proven. Chain rerun green by the coordinator after each commit. Body passed scorer (2.0 KB) and a Terra voice judge with no rewrites; PR #170 opened, merge on green CI
 - 2026-08-25 #144 — resumed after operator audit. Home session audited the stamped order under the operator's over-engineering lens and got two cuts approved: the four Codex-UI NO_VALIDATED_ROUTE matrix rows (invocation path the operator never uses) and the entire fail-closed dependency chain (resolver hard-dep, consumer stops, front-door exit-3 coupling — earn-every-guard: partial installs are not a reachable state on this machine; soft degrade to Claude-only fallback instead). Trim applied in the worktree (resolver and tests reverted to base, matrix cut, two filler End-of-contract headings dropped, routing-table phrase fixed), ruling posted on #144, amended order dispatched to a Sol worker (workspace-write, --control-checkout set, liveness verified via adapter verify before reporting). Worker commits and stops before PR; coordinator owns review and PR
 - 2026-08-25 stand-down — operator ended the session during #144's build. Sol worker stopped mid-run; its partial work is uncommitted in ~/worktrees/skills/144 (new review-routing.md plus 6 modified files, 161/42) with no commits and no PR, and a state comment on #144 enumerates what exists and what is still owed. review-routing.md, routing-table.md, coordinator-mode.md, review-depth.md, slicing.md, resolve_route.py and tests are started; both review SKILL.md files, review/SKILL.md, README.md, orchestrate/SKILL.md and the two dispatch references are untouched. Coordinator note for the resumer: the first build dispatch silently failed because codex-worker.py requires --control-checkout under workspace-write, and it was reported as running before its output was checked — check worker output before reporting a dispatch
