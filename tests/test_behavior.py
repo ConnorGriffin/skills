@@ -2442,6 +2442,87 @@ class OrchestrateAdapterDispatchTests(unittest.TestCase):
         self.assertIn("defaulting to medium", table)
 
 
+class CodeReviewAdapterDispatchTests(unittest.TestCase):
+    SKILL = ROOT / "skills" / "tools" / "code-review" / "SKILL.md"
+    AUTHORIZATION = (
+        "Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, "
+        "including a mandatory nested review skill. Do not ask again solely because a session-level "
+        'preference says "do not spawn agents"; apply that preference to discretionary delegation only. '
+        "An explicit task-level refusal of this required review or revocation of delegation overrides this "
+        "authorization: stop and state that the requested workflow cannot run without its required "
+        "independent review."
+    )
+
+    def setUp(self):
+        self.text = self.SKILL.read_text(encoding="utf-8")
+        self.dispatch = " ".join(
+            self.text.split("### 4. Run both axes in parallel", 1)[1]
+            .split("### 5. Aggregate and report", 1)[0]
+            .split()
+        )
+
+    def test_delegation_authority_is_byte_identical(self):
+        authority = self.text.split("## Delegation authority\n\n", 1)[1].split("\n\n## Modes", 1)[0]
+        self.assertEqual(authority, self.AUTHORIZATION)
+
+    def test_dispatch_uses_only_pack_adapters_with_explicit_unselected_inputs(self):
+        self.assertIn("adapter appropriate to the coordinator's existing parent policy", self.dispatch)
+        self.assertIn("reviewer model", self.dispatch)
+        self.assertIn("reviewer effort", self.dispatch)
+        self.assertIn("Pass model and effort through unchanged", self.dispatch)
+        self.assertIn("codex-worker.py", self.dispatch)
+        self.assertIn("claude-worker.py", self.dispatch)
+        self.assertNotIn("general-purpose", self.dispatch)
+        self.assertNotIn("Agent tool", self.dispatch)
+        self.assertNotIn("Workflow tool", self.dispatch)
+        self.assertNotIn("background agent", self.dispatch)
+        self.assertNotIn("routing-table.md", self.dispatch)
+        self.assertNotIn("routine", self.dispatch)
+        self.assertNotIn("load-bearing", self.dispatch)
+
+    def test_admitted_axes_have_deterministic_files_concurrent_launch_and_individual_joins(self):
+        for path in ("<review-state-dir>/standards.json", "<review-state-dir>/spec.json"):
+            self.assertIn(path, self.dispatch)
+        for artifact in ("standards.stdout", "standards.stderr", "spec.stdout", "spec.stderr"):
+            self.assertIn(artifact, self.dispatch)
+        self.assertIn("start all admitted helper invocations as background processes before waiting", self.dispatch)
+        self.assertIn("Retain each axis-specific launcher PID", self.dispatch)
+        self.assertIn("waiting on its retained PID individually", self.dispatch)
+        self.assertLess(
+            self.dispatch.index("start all admitted helper invocations"),
+            self.dispatch.index("waiting on its retained PID individually"),
+        )
+        self.assertIn("second admitted axis starts while the first remains active", self.dispatch)
+
+    def test_answers_come_from_successful_stdout_and_retries_reuse_state(self):
+        self.assertIn("Reject every nonzero exit", self.dispatch)
+        self.assertIn("parse `final_message` from its stdout artifact", self.dispatch)
+        self.assertIn("State files carry lifecycle metadata only and never the reviewer answer", self.dispatch)
+        self.assertIn("resume` command against the same axis state file", self.dispatch)
+
+    def test_readonly_prompt_transport_contract_is_explicit(self):
+        self.assertIn("`--sandbox read-only`", self.dispatch)
+        self.assertIn("explicit coordinator-supplied `--model` and `--effort`", self.dispatch)
+        self.assertIn("must not modify, patch, or stash", self.dispatch)
+        self.assertIn("Codex receives the positional prompt with inherited stdin closed", self.dispatch)
+        self.assertIn("Claude adapter receives the positional prompt and delivers it to the child on stdin", self.dispatch)
+
+    def test_spec_unavailable_runs_standards_alone_and_reports_it(self):
+        self.assertIn("When Spec is unavailable, launch Standards only", self.dispatch)
+        self.assertIn("do not launch Spec", self.dispatch)
+        self.assertIn("report Spec unavailable", self.dispatch)
+
+    def test_partial_launch_recovery_is_scoped_to_the_surviving_launched_worker(self):
+        self.assertIn("If a later launch fails after another worker launched", self.dispatch)
+        self.assertIn("wait for the surviving helper to reach valid readable state or exit", self.dispatch)
+        self.assertIn("Only when recoverable state exists", self.dispatch)
+        self.assertIn("scoped `stop --state ... --cwd ...`", self.dispatch)
+        self.assertIn("scoped `verify --state ... --cwd ...`", self.dispatch)
+        self.assertIn("Then join that worker's retained PID", self.dispatch)
+        self.assertIn("Do not discover, stop, verify, or join an unlaunched worker", self.dispatch)
+        self.assertLess(self.dispatch.index("scoped `stop"), self.dispatch.index("scoped `verify"))
+
+
 class WorkerLifecycleContractTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

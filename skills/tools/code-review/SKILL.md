@@ -183,9 +183,47 @@ not a code finding.
 
 ### 4. Run both axes in parallel
 
-Two sub-agents, one message, `general-purpose` for both. Each gets: the diff
-command, the commit list, its enumeration, the risk contract when one exists, and its
-brief.
+The coordinator supplies three explicit seam inputs: the adapter appropriate to the
+coordinator's existing parent policy, reviewer model, and reviewer effort. Pass model
+and effort through unchanged to the selected helper. This process does not choose a
+model or effort, consume a routing table, classify work, apply headroom rules, or add
+defaults.
+
+Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`. For every admitted axis, use
+the selected helper's `start` command with `--sandbox read-only`, the explicit
+coordinator-supplied `--model` and `--effort`, `--cwd` set to the reviewed checkout,
+and one state file. Give the shared brief, the axis brief, the diff command, commit
+list, enumeration, and risk contract when one exists as the helper's positional
+prompt. The prompt must say that the reviewer must not modify, patch, or stash. Codex
+receives the positional prompt with inherited stdin closed; Claude adapter receives
+the positional prompt and delivers it to the child on stdin.
+
+Create one coordinator-owned `<review-state-dir>` and use deterministic state paths
+`<review-state-dir>/standards.json` and `<review-state-dir>/spec.json`. Capture each
+axis's launcher stdout and stderr separately in `standards.stdout`, `standards.stderr`,
+`spec.stdout`, and `spec.stderr` within that directory. State files carry lifecycle
+metadata only and never the reviewer answer.
+
+When Spec is admitted, start all admitted helper invocations as background processes
+before waiting for readiness. Retain each axis-specific launcher PID and start the
+second admitted axis while the first remains active. Launcher PIDs are wait handles
+only; cleanup authority remains with adapter state and scoped `stop` / `verify`.
+On the portable path `run_portable` blocks and writes state only after worker exit, so
+the second admitted axis starts while the first remains active: never wait for state
+readiness before launching another admitted axis. When Spec is unavailable, launch
+Standards only, do not launch Spec, and report Spec unavailable.
+
+Join every launched helper by waiting on its retained PID individually. Reject every
+nonzero exit. For every successful helper, parse `final_message` from its stdout
+artifact. Retry an axis with the selected helper's `resume` command against the same
+axis state file; a retry does not start a replacement state.
+
+If a later launch fails after another worker launched, wait for the surviving helper to
+reach valid readable state or exit. Only when recoverable state exists, run that
+launched worker's scoped `stop --state ... --cwd ...`, then scoped `verify --state ...
+--cwd ...`. Then join that worker's retained PID. Do not discover, stop, verify, or
+join an unlaunched worker.
 
 **Shared brief** — give this to both:
 
