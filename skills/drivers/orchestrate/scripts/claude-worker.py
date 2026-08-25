@@ -466,10 +466,23 @@ def run_lifecycle(
     return finish_lifecycle(args, process)
 
 
-def sandbox_settings(sandbox: str) -> dict[str, Any]:
+def sandbox_settings(sandbox: str, cwd: Path) -> dict[str, Any]:
     """The two sandbox shapes, carried as literals — not read from docs/ at run
-    time. docs/scope/149-probes/{readonly,write}.settings.json are the source
-    these literals were copied from; docs/ is not part of an installed skill.
+    time; docs/ is not part of an installed skill. The read-only shape still
+    matches docs/scope/149-probes/readonly.settings.json, the fixture it was
+    originally copied from.
+
+    The workspace-write shape's `filesystem` block does not match
+    write.settings.json (that fixture has none): a real run of #149 with no
+    `filesystem` block present wrote straight through to `$HOME/.cache` — the
+    sandbox leaves the whole filesystem writable outside the settings file's
+    own confinement (see run-log.md's `write` case). `allowWrite: [cwd]` alone
+    closes that: it behaves as an allowlist, confining writes to cwd and
+    refusing everything else. `denyWrite` was tried alongside it (`["/"]`,
+    then `["~/"]`, since cwd sits under the home tree) and rejected both
+    times, confirmed by real runs, not just reasoning about the docs: `deny`
+    always wins over `allow` for the same path, so pairing them silently
+    re-blocks the one directory `allowWrite` exists to carve out.
     """
     if sandbox == "read-only":
         return {
@@ -484,15 +497,16 @@ def sandbox_settings(sandbox: str) -> dict[str, Any]:
         "sandbox": {
             "enabled": True,
             "allowUnsandboxedCommands": False,
+            "filesystem": {"allowWrite": [str(cwd)]},
         },
         "permissions": {"allow": ["Write", "Edit", "NotebookEdit"]},
     }
 
 
-def write_settings_file(sandbox: str) -> Path:
+def write_settings_file(sandbox: str, cwd: Path) -> Path:
     descriptor, path = tempfile.mkstemp(prefix="claude-worker-settings-", suffix=".json")
     with os.fdopen(descriptor, "w", encoding="utf-8") as file:
-        json.dump(sandbox_settings(sandbox), file)
+        json.dump(sandbox_settings(sandbox, cwd), file)
     return Path(path)
 
 
@@ -508,7 +522,7 @@ def start(args: argparse.Namespace) -> int:
     }
     if args.effort != DEFAULT_EFFORT: state["effort"] = args.effort
     if args.control_checkout: state["control_checkout"] = str(args.control_checkout)
-    settings = write_settings_file(args.sandbox)
+    settings = write_settings_file(args.sandbox, args.cwd)
     session_id = str(uuid.uuid4())
     command = [
         args.claude, "-p", "--model", args.model, "--effort", args.effort,
@@ -547,7 +561,7 @@ def resume(args: argparse.Namespace) -> int:
         fresh = {"version": STATE_VERSION, "lifecycle": "launching", "session_id": state["session_id"], "model": state["model"], "sandbox": sandbox, "cwd": str(cwd)}
         if effort != DEFAULT_EFFORT: fresh["effort"] = effort
         if sandbox == "workspace-write": fresh["control_checkout"] = str(control)
-    settings = write_settings_file(sandbox)
+    settings = write_settings_file(sandbox, cwd)
     command = [
         args.claude, "-p", "--resume", fresh["session_id"], "--model", fresh["model"],
         "--effort", effort, "--permission-mode", "dontAsk", "--settings", str(settings),
