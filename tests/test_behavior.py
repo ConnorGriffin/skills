@@ -129,7 +129,13 @@ plan-writing win.
 The matrix chooses only the initial reviewer adapter/model. Existing read-only
 sandboxing, explicit effort, same-session retry, escalation, liveness, recovery,
 and worker-state mechanics remain owned by orchestrate and the merged #145, #149,
-#150, #151, and #152 work."""
+#150, #151, and #152 work.
+
+## Related authorities
+
+Use `routing-table.md` for benchmarked areas, ladders, scores, and effort notes;
+use `review-depth.md` for depth, sensitivity, hardening, blocking, and whole-diff
+behavior."""
 
 ROUTING_TABLE_REVIEW_CONSUMER = """\
 Before applying their own named area row, `code-review` and `plan-review` obtain
@@ -2367,7 +2373,7 @@ class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
     def test_review_routing_contract_is_byte_identical(self):
         text = self.text("skills/drivers/orchestrate/references/review-routing.md")
         self.assertEqual(
-            self.block(text, "## Reviewer selection contract", "## Related authorities"),
+            self.block(text, "## Reviewer selection contract", "## Reference boundary"),
             REVIEW_ROUTING_CONTRACT,
         )
 

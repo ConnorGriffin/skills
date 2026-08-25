@@ -48,3 +48,5 @@ and worker-state mechanics remain owned by orchestrate and the merged #145, #149
 Use `routing-table.md` for benchmarked areas, ladders, scores, and effort notes;
 use `review-depth.md` for depth, sensitivity, hardening, blocking, and whole-diff
 behavior.
+
+## Reference boundary
