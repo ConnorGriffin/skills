@@ -47,13 +47,27 @@ checkout. Stating the boundary as "the worktree and nowhere else" would be false
 false` is part of the contract — it disables the `dangerouslyDisableSandbox` retry, so a
 blocked command cannot be re-run outside the sandbox.
 
+**The two adapters duplicate their lifecycle machinery, deliberately and temporarily.**
+`claude-worker.py` copies `codex-worker.py`'s state handling, process-family ownership,
+liveness, stop, verify, and control-checkout refusal rather than sharing a module. The
+charter's rule that the second caller makes the seam real still holds, and the extraction is
+issue #150 — deferred because three cold review panels showed the move defeats ~42 mock
+patch sites, that a re-loaded module handle patches a different object, that
+`run_lifecycle`/`run_portable` call codex's own parser and hard-wire `stdin=DEVNULL`, and
+that a shared `fail()` prefix is last-writer-wins across two adapters in one test process.
+Carrying that risk on the effort dial's critical path was the worse trade.
+
 ## Consequences
 
 * Effort becomes a routing dial the table can carry, without changing any stamped route.
   Changing a default still requires a benchmark replay.
 * A Claude worker gains what the Codex side already had: enforced `cwd`, an enforced
   sandbox mode, resumable sessions, and coordinator-owned recovery.
-* Consuming skills convert one at a time behind their own issues; until a skill is
-  converted it keeps its current dispatch, and the ban binds it once its issue lands.
+* Consuming skills convert one at a time behind their own issues (#151 code-review, #152
+  plan-review, #153 persona-review, #154 ticket, #155 epic, #156 research, #157
+  codebase-design); until a skill is converted it keeps its current dispatch, and the ban
+  binds it once its issue lands.
+* One fact has two implementations until #150 lands. That is a known, dated exception with
+  an owner, not a standard being relaxed.
 * The pack takes on a second worker script to maintain, and both adapters now track a
   CLI surface that can change under them.

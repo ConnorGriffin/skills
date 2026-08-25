@@ -158,4 +158,14 @@ Every round's blockers clustered on one thing: extracting the shared lifecycle m
 
 ## Spawned tasks
 
-(none yet)
+* #150 — extract the shared worker lifecycle into one module (the deferred half of #149)
+* #151 code-review, #152 plan-review, #153 persona-review, #154 ticket, #155 epic,
+  #156 research, #157 codebase-design — convert each skill's dispatch to the adapters
+
+## Dispositions
+
+* ADR — written: docs/adr/adr-149-pack-owned-model-dispatch.md
+* Issues — filed: #150 through #157
+* Work order — posted on #149; ticket labelled `ticket:triaged`
+
+None outstanding.
