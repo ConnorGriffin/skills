@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: /ticket start #142 in a fresh attended session; #143 (3b) after 3a merges; then #139 build, #144-#146
+next: /ticket triage #143 (3b) in a fresh session; then #139 build, #144-#146
 updated: 2026-08-24
 
 ## Notes
@@ -22,7 +22,7 @@ updated: 2026-08-24
 
 ## Builds
 - #138 Mechanical rename wayfinder to epic — merged
-- #142 Epic skill content (3a) — triaged
+- #142 Epic skill content (3a) — merged
 - #143 Cross-skill amendments and machinery (3b) — filed
 - #144 Route review skills through routing table — filed
 - #145 Claude-parent Codex reviewer dispatch reference — filed
@@ -33,6 +33,7 @@ updated: 2026-08-24
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-24 #142 — built and merged as PR #148 (Terra / medium), finalized; 3b unblocked
 - 2026-08-24 #142 — triaged (Terra / medium); session-fit comment posted per interim rule
 - 2026-08-24 #133 — all children attached as native sub-issues; PR #136 body now names the epic; won't-do rule: close as not-planned, labels off, stays attached; research spikes: worker writes body, home session posts under ## Findings
 - 2026-08-24 #139 #147 — triage found scope couldn't meet acceptance; rescoped to flat orders (option 2 + start.md no-re-ask), chunked half filed deferred as #147
