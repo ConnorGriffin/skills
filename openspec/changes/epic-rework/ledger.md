@@ -13,6 +13,7 @@ updated: 2026-08-25
 - label inventory drift: #135's approved ruling deleted all agentflow:*, wayfinder:*, ready-for-agent, ticket:done; in ConnorGriffin/skills they still exist (observed 2026-08-25 applying ticket:triaged to #144). Either the deletion covered the other 6 repos only, or it was never executed here — deleting labels is destructive and outside the repo, so not actioned unilaterally
 
 ## Decisions
+- Field evidence in routing (operator, 2026-08-25) — session-derived field notes are first-class provenance for routing-table.md alongside benchmark replays; a contradicting field note triggers an area replay rather than silently winning. Codified via #183
 - #171 Depth-floor qualifier (operator, 2026-08-25) — adopted: Full when the change alters contract semantics; Targeted for pure relocation, citation repoints, and additive paragraphs no existing consumer's behavior depends on. All three #171 items now buildable
 - #159 Wave parallelization home (operator, 2026-08-25) — the wave rule (conflict-map first; non-overlapping work fans out, only colliding merges/edits serialize) lives in the epic skill's delegated-execution mode, not orchestrate; #159's issue body amended to carry it
 - Standing triage criterion (operator, 2026-08-25) — every future order in this queue gets an over-engineering check at triage: this is a one-person process; machinery guarding states the operator's setup never reaches (partial installs, unused invocation parents) is a defect per the charter's earn-every-guard rule
@@ -43,7 +44,9 @@ updated: 2026-08-25
 - #157 Dispatch codebase-design's parallel design agents through pack adapters — merged (PR #177)
 - #159 Delegated-execution mode for the epic home session — filed; unblocked (#155 merged), scope amended with wave rule
 - #163 Coordinator wait protocol: collect child results, never idle-wait — merged (PR #182)
-- #171 Review-process tuning (conventions preamble, fix-in-place rule, depth-floor qualifier) — item-3 ruling adopted; triage draft in flight
+- #171 Review-process tuning (conventions preamble, fix-in-place rule, depth-floor qualifier) — triaged (2 rounds + 1 coordinator link fix), stamped (Opus->Sol/medium, Full); building
+- #159 Delegated-execution mode + wave rule — triaged (2 rounds; coordinator overruled the two-order split residual), stamped (Terra/medium); building (two-PR phase sequence, coordinator runs Phase A merge)
+- #183 Routing-table field-derived provenance notes — filed
 - #145 Claude-parent Codex reviewer dispatch reference — merged
 - #146 Pre-authorize required review delegation — merged
 - #139 Triage stamps session-fit preamble into work orders — merged (PR #172)
