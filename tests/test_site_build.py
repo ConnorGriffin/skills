@@ -31,6 +31,7 @@ class SiteBuildTest(unittest.TestCase):
             stale.write_text("stale output")
             subprocess.run([sys.executable, "site/build.py", "--out", str(output)], cwd=ROOT, check=True)
             self.assertFalse(stale.exists())
+            self.assertTrue((output / ".site-build-stamp").is_file())
             skills = [path.parent.name for path in ROOT.glob("skills/*/*/SKILL.md")]
             self.assertEqual({path.stem for path in (output / "skills").glob("*.html")}, set(skills))
             anchors = {}
@@ -48,6 +49,12 @@ class SiteBuildTest(unittest.TestCase):
             self.assertNotRegex(stylesheet, r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
             for pattern in FORBIDDEN: self.assertIsNone(pattern.search(stylesheet), pattern.pattern)
             skill_page = (output / "skills" / "ui-craft.html").read_text()
+            for page in [output / "index.html", *list((output / "skills").glob("*.html"))]:
+                styles = re.findall(r"<style>(.*?)</style>", page.read_text())
+                self.assertLessEqual(len(styles), 1)
+                for style in styles: self.assertIn(".diagram:has(", style)
+            for page in (output / "workflows").glob("*.html"):
+                self.assertNotIn("<style>", page.read_text())
             self.assertEqual(re.findall(r"<dt>([^<]+)</dt>", skill_page), ["Invoke", "Requires", "Bundled", "Source"])
             skill_pages = list((output / "skills").glob("*.html"))
             duplicate_h1_pages = [page.name for page in skill_pages if len(re.findall(r"<h1\b", page.read_text())) != 1]
@@ -72,7 +79,10 @@ class SiteBuildTest(unittest.TestCase):
 
     def test_underscore_emphasis_and_directional_edge_anchors(self):
         builder = load_builder()
-        self.assertEqual(builder.inline("_process_ and __important__", {"path": ROOT / "site/narratives/ticket-flow.md"}, {}), "<em>process</em> and <strong>important</strong>")
+        self.assertEqual(builder.inline("_process_ and __important__ and `fix_introduced_defect`", {"path": ROOT / "site/narratives/ticket-flow.md"}, {}), "<em>process</em> and <strong>important</strong> and <code>fix_introduced_defect</code>")
+        fenced = builder.markdown("```\nfix_introduced_defect\n```", {"path": ROOT / "site/narratives/ticket-flow.md"}, {})
+        self.assertIn("fix_introduced_defect", fenced)
+        self.assertNotIn("<em>introduced</em>", fenced)
         self.assertTrue(builder.edge_path(200, 0, 0, 0).startswith("M200,14"))
         self.assertTrue(builder.edge_path(0, 28, 0, 0).startswith("M76,28"))
 
@@ -83,6 +93,16 @@ class SiteBuildTest(unittest.TestCase):
         self.assertNotIn("<h1", heading_body)
         self.assertIn("Text.", heading_body)
         self.assertIn("Text.", no_heading_body)
+
+    def test_refuses_to_clear_foreign_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "foreign-output"
+            output.mkdir()
+            foreign = output / "keep-me.txt"
+            foreign.write_text("foreign")
+            result = subprocess.run([sys.executable, "site/build.py", "--out", str(output)], cwd=ROOT, check=False, capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(foreign.read_text(), "foreign")
 
 
 if __name__ == "__main__":
