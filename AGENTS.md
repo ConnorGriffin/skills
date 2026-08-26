@@ -1,8 +1,8 @@
 # skills
 
 Connor Griffin's public, portable skill pack for coding agents. Skills live under
-`skills/`, one directory each, and are consumed by the standard `skills` CLI and
-pinned by content hash into agentflow's runtime.
+`skills/`, one directory each, consumed by the standard `skills` CLI and read
+interactively by Claude Code and Codex.
 
 profile: reviewed
 ui-surfaces: none
@@ -34,9 +34,8 @@ ui-surfaces: none
 - Never commit without `Signed-off-by:` — `scripts/check_dco.py` runs on every
   pull request and a missing trailer fails CI, so the commit cannot be fixed
   after the fact without a rewrite.
-- Never move, retag, or delete a release tag. agentflow pins this repo by tag,
-  commit, and per-file SHA-256 (`agentflow/capabilities.toml`, `skills-lock.json`);
-  a moved tag silently changes what the fleet executes.
+- Never move, retag, or delete a release tag. Published releases are immutable
+  history that installers may pin by any ref.
 - Never edit `.agents/skills/` or `.claude/skills/` — those are vendored, pinned
   copies of skills this repo itself authors under `skills/`. Edit the source and
   let the pin be bumped deliberately; editing the copy forks the pack against

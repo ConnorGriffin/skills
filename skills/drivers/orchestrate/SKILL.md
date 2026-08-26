@@ -170,17 +170,6 @@ embed one confident wrong decision in an otherwise excellent spec; Codex models
 are terser and may under-test; small/fast tiers fabricate citations under
 exploration pressure.
 
-## Evidence v2
-
-For a durable, revisioned task authority, use [the shared envelope
-reference](../../../docs/evidence/envelope-v2.md) to emit a delegation that `delegates`
-an admissible claim, criterion, decision, or delegation; a bounded slice that
-`derives_from` that delegation; and a settlement that `settles` an admissible
-verification. A decline or collapse may separately `derives_from` the slice. The
-authority revision and normalized lineage are sufficient. Do not retain worker final
-messages, prompts, transcripts, candidates, proposals, or policy state. This
-preserves the existing routing and bounded retry protocol.
-
 ## Composing with /ui-craft
 
 When coordinator mode runs a ui-craft lifecycle, the delegation split is:
@@ -261,5 +250,3 @@ table in the same commit.
 A field-derived note that contradicts a benchmarked score does not silently
 win. File a replay of every affected area as its own follow-up ticket, then
 replay it under `references/benchmark/README.md`.
-
-## Reference boundary

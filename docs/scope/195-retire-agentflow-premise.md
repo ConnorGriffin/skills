@@ -26,3 +26,8 @@
 
 - #196 filed: codex-worker.py effort enum mismatch (found during this session's headroom probe, unrelated to 195).
 - #197 filed: per-repo reviewer memory idea (future consumer for evidence-like records; new design, own reader).
+
+## Execution notes
+
+- 2026-08-26: removed the retired evidence-v2 consumer contract, converted prose pins
+  to live structural or behavioral checks, and recorded the lasting rationale in ADR 195.

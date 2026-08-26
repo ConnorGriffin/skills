@@ -93,15 +93,6 @@ brief that the implementation and reviews will use. The ledger remains the sessi
 record; the admitted artifact becomes the downstream authority. Do not declare bounded
 work ready while the contract is missing or still only in the ledger.
 
-## Evidence v2
-
-Consult [the shared envelope reference](../../../docs/evidence/envelope-v2.md) when a
-settled claim, criterion, decision, or disposition has a durable issue, ADR, Git, or
-document authority and immutable revision. Emit only its normalized pointer and digest
-with explicit lineage. A session-scratchpad entry has no such authority and is
-ineligible; keep it in the ledger until it is durably recorded. This adds no routing,
-promotion, or policy state.
-
 ## Exit protocol
 
 The session is not done until every disposition is discharged:

@@ -24,261 +24,29 @@ GRAPH_SELECTION_TRAPS = (
     "apparent recency",
     "only result",
 )
-SESSION_FIT_TEMPLATE_BODY = (
-    "Session fit: <selected execution row's Ladder value, with each model's display "
-    "name in ladder order>. A Claude or Codex session whose system-prompt model is "
-    "named in this paragraph at or above the selected rung proceeds directly to step "
-    "4, skipping the remainder of Model-check and without asking about model fit or "
-    "effort.\n"
-)
-SESSION_FIT_TRIAGE_BODY = (
-    "\n\nFor a flat order, copy the already-selected execution row's `Ladder` value "
-    "from [`routing-table.md`](../../orchestrate/references/routing-table.md) into "
-    "the template's `Session fit:` paragraph, keeping each model's display name and "
-    "ladder order."
-)
-SESSION_FIT_MODEL_CHECK_BODY = (
-    "On a flat order with `Session fit:`, a session whose system-prompt model is named "
-    "in that paragraph at or above the selected rung proceeds directly to step 4, "
-    "skipping the remainder of Model-check and without asking about model fit or "
-    "effort."
-)
-CHUNKED_SESSION_FIT_TEMPLATE_BODY = (
-    "Session fit: <the selected execution row's Ladder value, with each model's display "
-    "name in ladder order>; selected Agent rung: <Rung>. A Claude or Codex coordinator "
-    "whose "
-    "system-prompt model is named in this paragraph at or above the selected Agent rung "
-    "proceeds directly to step 4, skipping the remainder of Model-check and without "
-    "asking about model fit or effort."
-)
-CHUNKED_SESSION_FIT_TRIAGE_BODY = (
-    "For a chunked order, select one coordinator execution row with the same grounded, "
-    "fail-closed classification rule that selects a flat order's execution row. Copy that "
-    "row's `Ladder` value into exactly one `Session fit:` paragraph in every sub-order "
-    "fence, keeping each model's display name and ladder order, and annotate each "
-    "paragraph with exactly one `selected Agent rung: <Rung>`. A missing, duplicate, "
-    "malformed, unresolved, or ineligible ladder or selected rung returns through `/scope` "
-    "and produces no draft or comment."
-)
-CHUNKED_SESSION_FIT_MODEL_CHECK_BODY = (
-    "On a flat order with `Session fit:`, a session whose system-prompt model is named "
-    "in that paragraph at or above the selected rung proceeds directly to step 4, "
-    "skipping the remainder of Model-check and without asking about model fit or effort. "
-    "On a chunked order, take that same fast path only when every `SUB-ORDER` has exactly "
-    "one `Session fit:` paragraph whose ladder is an ordered non-empty sequence of "
-    "display-name rungs byte-identical across every `SUB-ORDER`, whose exactly one "
-    "`selected Agent rung: <Rung>` annotation names exactly one rung in that paragraph, "
-    "and whose coordinator system-prompt model is named at or above that selected rung "
-    "in every paragraph. Otherwise, the order's `Open as:` line names a required model "
-    "and effort. "
-    "A session cannot reliably introspect its own reasoning effort from context, so do not "
-    "guess it, and do not answer from memory of an earlier guess. State the model name this "
-    "session's own system prompt reports, then ask the user in prose to confirm the effort "
-    "level this session is running. Compare both against `Open as:`. Weaker on either axis: "
-    "say so and stop, so the user relaunches correctly. Same or stronger on both: proceed. "
-    "On a chunked order, also check every `SUB-ORDER`'s `Agent:` line against the confirmed "
-    "model: the session must be at least as strong as the strongest chunk. Weaker than any "
-    "one of them and the whole order is refused. Never run part of it, and never launch an "
-    "agent smarter than the coordinator."
-)
-BUILDER_SELF_CHECK_BODY = (
-    "Before declaring the change ready, run each check below.\n"
-    "\n"
-    "1. **External surface by execution.** Before coding against a CLI or API surface, "
-    "run `--help` or a probe call against that surface; do not infer flags, arguments, "
-    "or behavior from memory.\n"
-    "2. **Fail-first tests.** Before production edits, run every new test against the "
-    "pre-change behavior or a deliberately broken variant and observe the expected "
-    "failure. A fake that accepts every input or a mock of the function under test is "
-    "not evidence.\n"
-    "3. **Boundaries by execution.** Prove a security or confinement claim by attempting "
-    "the forbidden action in a real run; configuration inspection alone is not evidence.\n"
-    "4. **Post-fix sweep.** After each late fix, sweep its affected path for uncalled "
-    "symbols, dead parameters, and prose that still describes the pre-fix behavior."
-)
-
-DRAFTING_CONVENTIONS_BODY = b"""
-Canonical prose constants name only the bytes strictly between their named opening
-and closing full-heading-line anchors; neither anchor is part of the constant.
-Read source with `Path.read_bytes()` and compare bytes directly. Do not use
-`read_text()`, universal-newline normalization, or a line-oriented surrogate.
-
-Transcribe a target repository's `AGENTS.md` `Test:` entry byte-exact into the
-order. When this host's interpreter substitution matters, state it separately and
-exactly: `Run every python3 above as /opt/homebrew/bin/python3.14; bare python3
-on this host is 3.9.6.`
-
-Adapter prompts are prompt text passed positionally. The coordinator writes each
-complete prompt to session scratch, passes that file's contents as the adapter's
-positional prompt text, and never invents adapter flags or changes. Each dispatch
-has one coordinator-owned state file; state is lifecycle metadata, never the
-worker's result.
-
-An expected diff is a closed allowlist of repository-relative paths. It has no
-escape clause. A generated-facts appendix records deterministic commands and their
-byte-complete literal output; every cited line is regenerated from the checked-out
-tree.
-"""
-
-REVIEW_DEPTH_SENSITIVITY_FLOOR_BODY = b"""
-Judgment, not a keyword match. A change is **Full**, non-negotiably, when it
-touches any of:
-
-* authentication, authorization, or identity (trust policies, role assumption,
-  single sign-on, token scope)
-* secrets: creation, rotation, scope, or exposure surface
-* destructive or irreversible operations (deletes, replaces, force-applies,
-  data-bearing resources)
-* behavior shared across an organization (a shared library, an organization-level
-  setting, a workflow every repo inherits)
-
-For workflow machinery every repo inherits: Full when the change alters contract
-semantics; Targeted for pure relocation, citation repoints, and additive paragraphs
-that no existing consumer's behavior depends on.
-
-These override a lower stamp without discussion.
-"""
-
-DRAFTING_CONVENTIONS_INSTRUCTION = (
-    b"Drafting conventions: Read "
-    b"`skills/drivers/ticket/references/drafting-conventions.md` "
-    b"before acting on this order."
-)
-
-TICKET_CHUNK_WORKER_ADAPTER_DISPATCH = """3. **Dispatch one agent per chunk** at the tier its `Agent:` line names. The
-   coordinator supplies the selected adapter, the explicit worker model resolved for
-   that tier, and explicit worker effort. Dispatch only through
-   `skills/drivers/orchestrate/scripts/codex-worker.py` or
-   `skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in
-   Agent tool, Workflow tool, background-agent machinery, or native agent dispatch.
-
-   For chunk `<n>` and dispatch attempt `<attempt>`, the coordinator writes the
-   complete prompt bytes to
-   `<session-scratch>/ticket-<ticket-id-lowercase>-chunk-<n>-attempt-<attempt>.prompt`
-   and passes that file's contents as the adapter's positional prompt. The prompt is
-   the sub-order fence verbatim, followed only by that chunk's worktree path, branch
-   name, `root_path`, and `project`; the worker follows the graph-identity rule and
-   uses as given the supplied `root_path` and `project` rather than resolving its
-   own. An `unavailable` identity is passed through as such. A chunk never receives
-   the ticket worktree's identity or a sibling's, and never coordinator commentary.
-
-   Start the worker through the selected adapter in `workspace-write` mode, with its
-   cwd set to that chunk's worktree and the coordinator's checkout supplied as the
-   control checkout. The coordinator owns
-   `<session-scratch>/ticket-<ticket-id-lowercase>-chunk-<n>-attempt-<attempt>.state.json`
-   for that dispatch. Same-worker follow-ups use the adapter's resume surface with
-   that state file. If recovery is required, the coordinator runs the adapter's
-   scoped stop surface and then its scoped verify surface before a successor receives
-   the chunk worktree; a successor uses a new `<attempt>` and state file."""
-
-
-class TicketChunkWorkerAdapterDispatchTests(unittest.TestCase):
-    # Opening anchor: ## Chunk-worker dispatch
-    # Closing anchor: ## Worker accounting
-    def test_chunk_worker_adapter_dispatch_is_canonical(self):
-        coordinator = (
-            TICKET_DIRECTORY / "references" / "coordinator-mode.md"
-        ).read_text(encoding="utf-8")
-        dispatch = coordinator.split("## Chunk-worker dispatch\n\n", 1)[1].split(
-            "\n\n## Worker accounting", 1
-        )[0]
-
-        self.assertEqual(dispatch, TICKET_CHUNK_WORKER_ADAPTER_DISPATCH)
-
 
 def run(command: list[str], *, cwd: Path, env: Optional[dict[str, str]] = None):
     return subprocess.run(
-        command,
-        cwd=cwd,
-        env=env,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
+        command, cwd=cwd, env=env, text=True, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, check=False,
     )
 
 
 def user_line(text: str, timestamp: str = "2026-01-01T00:00:00Z") -> str:
-    return json.dumps(
-        {
-            "type": "user",
-            "timestamp": timestamp,
-            "message": {"content": [{"type": "text", "text": text}]},
-        }
-    )
+    return json.dumps({"type": "user", "timestamp": timestamp, "message": {"content": [{"type": "text", "text": text}]}})
 
 
 def codex_meta_line(session_id: str, timestamp: str = "2026-01-01T00:00:00Z") -> str:
-    return json.dumps(
-        {
-            "timestamp": timestamp,
-            "type": "session_meta",
-            "payload": {"session_id": session_id, "cwd": "/tmp/worktree"},
-        }
-    )
+    return json.dumps({"timestamp": timestamp, "type": "session_meta", "payload": {"session_id": session_id, "cwd": "/tmp/worktree"}})
 
 
-def codex_token_line(
-    input_tokens: int, cached: int = 0, timestamp: str = "2026-01-01T00:00:01Z"
-) -> str:
-    return json.dumps(
-        {
-            "timestamp": timestamp,
-            "type": "event_msg",
-            "payload": {
-                "type": "token_count",
-                "info": {
-                    "last_token_usage": {
-                        "input_tokens": input_tokens,
-                        "cached_input_tokens": cached,
-                    }
-                },
-            },
-        }
-    )
+def codex_token_line(input_tokens: int, cached: int = 0, timestamp: str = "2026-01-01T00:00:01Z") -> str:
+    return json.dumps({"timestamp": timestamp, "type": "event_msg", "payload": {"type": "token_count", "info": {"last_token_usage": {"input_tokens": input_tokens, "cached_input_tokens": cached}}}})
 
 
-def assistant_line(
-    peak: int, *, subagent: bool = False, timestamp: str = "2026-01-01T00:00:01Z"
-) -> str:
-    return json.dumps(
-        {
-            "type": "assistant",
-            "timestamp": timestamp,
-            "isSidechain": subagent,
-            "message": {
-                "usage": {
-                    "input_tokens": peak,
-                    "cache_read_input_tokens": 0,
-                    "cache_creation_input_tokens": 0,
-                }
-            },
-        }
-    )
-
-
+def assistant_line(peak: int, *, subagent: bool = False, timestamp: str = "2026-01-01T00:00:01Z") -> str:
+    return json.dumps({"type": "assistant", "timestamp": timestamp, "isSidechain": subagent, "message": {"usage": {"input_tokens": peak, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}})
 class TicketSkillContractTests(unittest.TestCase):
-    def test_drafting_conventions_are_canonical_raw_bytes(self):
-        path = TICKET_DIRECTORY / "references" / "drafting-conventions.md"
-        source = path.read_bytes()
-        opening = b"## Drafting conventions\n"
-        closing = b"## Consumer reach\n"
-
-        self.assertEqual(source.count(opening), 1)
-        self.assertEqual(source.count(closing), 1)
-        body = source.split(opening, 1)[1].split(closing, 1)[0]
-        self.assertEqual(body, DRAFTING_CONVENTIONS_BODY)
-
-    def test_review_depth_sensitivity_floor_is_canonical_raw_bytes(self):
-        source = (TICKET_DIRECTORY / "references" / "review-depth.md").read_bytes()
-        opening = b"## Sensitivity floor\n"
-        closing = b"## What blocks\n"
-
-        self.assertEqual(source.count(opening), 1)
-        self.assertEqual(source.count(closing), 1)
-        body = source.split(opening, 1)[1].split(closing, 1)[0]
-        self.assertEqual(body, REVIEW_DEPTH_SENSITIVITY_FLOOR_BODY)
-
     def test_drafting_conventions_instruction_is_inside_flat_and_sub_order_fences(self):
         template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_bytes()
 
@@ -287,121 +55,15 @@ class TicketSkillContractTests(unittest.TestCase):
         sub_region = template.split(b"SUB-ORDER 1/<n>", 1)[1]
         sub_order_fence = b"SUB-ORDER 1/<n>" + sub_region.split(b"\n```", 1)[0]
 
-        self.assertIn(DRAFTING_CONVENTIONS_INSTRUCTION, flat_fence)
-        self.assertIn(DRAFTING_CONVENTIONS_INSTRUCTION, sub_order_fence)
+        instruction = b"Drafting conventions: Read `skills/drivers/ticket/references/drafting-conventions.md` before acting on this order."
+        self.assertIn(instruction, flat_fence)
+        self.assertIn(instruction, sub_order_fence)
 
     def test_ticket_verb_consumers_point_to_drafting_conventions(self):
         for verb in ("triage", "start", "revise"):
             source = (TICKET_DIRECTORY / "verbs" / f"{verb}.md").read_bytes()
             with self.subTest(verb=verb):
                 self.assertIn(b"drafting-conventions.md", source)
-
-    def test_builder_self_check_is_pinned_in_flat_and_chunked_builder_guidance(self):
-        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_bytes()
-        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_bytes()
-        start.decode("utf-8")
-        template.decode("utf-8")
-        sub_order_fence = template.split(b"SUB-ORDER 1/<n>", 1)[1]
-        self.assertGreaterEqual(sub_order_fence.count(b"```"), 1)
-        sub_order = sub_order_fence.split(b"```", 1)[0]
-        start_body = start.split(b"### Builder self-check\n\n", 1)[1].split(
-            b"\n\n8. **Implement.**", 1
-        )[0]
-        sub_order_body = sub_order.split(b"### Builder self-check\n\n", 1)[1].split(
-            b"\n\nDo\n", 1
-        )[0]
-
-        self.assertEqual(start_body, BUILDER_SELF_CHECK_BODY.encode())
-        self.assertEqual(sub_order_body, BUILDER_SELF_CHECK_BODY.encode())
-        self.assertEqual(start.count(b"### Builder self-check"), 1)
-        self.assertEqual(sub_order.count(b"### Builder self-check"), 1)
-
-    def test_flat_session_fit_is_produced_and_consumed(self):
-        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
-            encoding="utf-8"
-        )
-        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(
-            encoding="utf-8"
-        )
-        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(
-            encoding="utf-8"
-        )
-
-        flat_order = template.split("## Flat", 1)[1].split("## Chunked", 1)[0]
-        chunked_header = template.split("## Chunked", 1)[1].split(
-            "SUB-ORDER 1/<n>", 1
-        )[0]
-        sub_order = template.split("SUB-ORDER 1/<n>", 1)[1].split("```", 1)[0]
-        template_body = flat_order.split("Open as: <model> / <effort>.\n", 1)[1].split(
-            "Execution: single agent.", 1
-        )[0]
-        triage_body = triage.split(
-            "value matches the route and contract artifacts settled in step 7.", 1
-        )[1].split("\n\n### Chunked session fit", 1)[0]
-        model_check_body = start.split("3. **Model-check.** ", 1)[1].split(
-            "\n\n4. **Worktree and branch.", 1
-        )[0]
-
-        self.assertEqual(template_body, SESSION_FIT_TEMPLATE_BODY)
-        self.assertEqual(triage_body, SESSION_FIT_TRIAGE_BODY)
-        self.assertTrue(model_check_body.startswith(SESSION_FIT_MODEL_CHECK_BODY))
-        self.assertEqual(flat_order.count("Session fit:"), 1)
-        self.assertNotIn("Session fit:", chunked_header)
-        self.assertIn("Session fit:", sub_order)
-        self.assertIn(
-            "State the model name this session's own system prompt reports",
-            model_check_body,
-        )
-        self.assertIn(
-            "On a chunked order, also check every `SUB-ORDER`'s `Agent:` line",
-            model_check_body,
-        )
-
-    def test_chunked_session_fit_template_body_is_canonical_raw_bytes(self):
-        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_bytes()
-        template.decode("utf-8")
-        opening = b"### Session fit\n\n"
-        closing = b"\n\n### Builder self-check"
-        chunked_header = template.split(b"## Chunked\n", 1)[1].split(
-            b"SUB-ORDER 1/<n>", 1
-        )[0]
-        sub_order = template.split(b"SUB-ORDER 1/<n>", 1)[1].split(b"\n```", 1)[0]
-
-        self.assertEqual(sub_order.count(b"### Session fit"), 1)
-        self.assertEqual(chunked_header.count(b"### Session fit"), 0)
-        self.assertEqual(sub_order.count(opening), 1)
-        self.assertEqual(sub_order.count(b"Session fit:"), 1)
-        self.assertNotIn(b"Session fit:", chunked_header)
-        body = sub_order.split(opening, 1)[1].split(closing, 1)[0]
-        self.assertEqual(body, CHUNKED_SESSION_FIT_TEMPLATE_BODY.encode())
-        self.assertIn(b"selected Agent rung: <Rung>", body)
-
-    def test_chunked_session_fit_triage_body_is_canonical_raw_bytes(self):
-        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_bytes()
-        triage.decode("utf-8")
-        opening = b"### Chunked session fit\n\n"
-        closing = b"\n\n12. **Adversarial review, mandatory.**"
-
-        self.assertEqual(triage.count(opening), 1)
-        body = triage.split(opening, 1)[1].split(closing, 1)[0]
-        self.assertEqual(body, CHUNKED_SESSION_FIT_TRIAGE_BODY.encode())
-        self.assertIn(b"one coordinator execution row", body)
-        self.assertIn(b"selected Agent rung: <Rung>", body)
-        self.assertIn(b"missing, duplicate, malformed, unresolved, or ineligible", body)
-
-    def test_chunked_session_fit_model_check_body_is_canonical_raw_bytes(self):
-        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_bytes()
-        start.decode("utf-8")
-        opening = b"3. **Model-check.** "
-        closing = b"\n\n4. **Worktree and branch."
-
-        self.assertEqual(start.count(opening), 1)
-        body = start.split(opening, 1)[1].split(closing, 1)[0]
-        self.assertEqual(body, CHUNKED_SESSION_FIT_MODEL_CHECK_BODY.encode())
-        self.assertIn(b"byte-identical across every `SUB-ORDER`", body)
-        self.assertIn(b"exactly one `selected Agent rung: <Rung>` annotation", body)
-        self.assertIn(b"Otherwise, the order's `Open as:` line", body)
-        self.assertIn(b"strongest chunk", body)
 
     def test_chunk_contract_owns_capabilities_and_shared_contracts_once(self):
         slicing = (TICKET_DIRECTORY / "references" / "slicing.md").read_text(
@@ -955,6 +617,59 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertIn("rebase once", revise)
         self.assertIn("stamped review depth", revise)
         self.assertIn("semantic conflict", revise)
+
+
+class ReviewDepthSensitivityFloorTests(unittest.TestCase):
+    def test_sensitivity_floor_forces_full_depth_non_negotiably(self):
+        text = " ".join(
+            (TICKET_DIRECTORY / "references" / "review-depth.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn(
+            "A change is **Full**, non-negotiably, when it touches any of:", text
+        )
+        self.assertIn(
+            "authentication, authorization, or identity (trust policies, role assumption, "
+            "single sign-on, token scope)",
+            text,
+        )
+        self.assertIn(
+            "destructive or irreversible operations (deletes, replaces, force-applies, "
+            "data-bearing resources)",
+            text,
+        )
+        self.assertIn("These override a lower stamp without discussion.", text)
+
+
+class TicketChunkWorkerAdapterDispatchTests(unittest.TestCase):
+    def test_chunk_worker_dispatch_stays_on_the_worker_adapters_only(self):
+        text = " ".join(
+            (TICKET_DIRECTORY / "references" / "coordinator-mode.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn(
+            "Dispatch one agent per chunk** at the tier its `Agent:` line names.", text
+        )
+        self.assertIn(
+            "Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or "
+            "`skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in "
+            "Agent tool, Workflow tool, background-agent machinery, or native agent dispatch.",
+            text,
+        )
+
+    def test_chunk_worker_dispatch_isolates_each_chunks_identity(self):
+        text = " ".join(
+            (TICKET_DIRECTORY / "references" / "coordinator-mode.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn(
+            "A chunk never receives the ticket worktree's identity or a sibling's, and never "
+            "coordinator commentary.",
+            text,
+        )
 
 
 class TicketTelemetryTests(unittest.TestCase):
@@ -1843,6 +1558,62 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(payload["peak_context"], 45_000)
         self.assertEqual(payload["excluded_claims"], 0)
         self.assertEqual(payload["unattributable"], [])
+
+
+class TicketLiveProseContractTests(unittest.TestCase):
+    def test_builder_self_check_matches_its_live_template_copy(self):
+        start = (TICKET_DIRECTORY / "verbs/start.md").read_text(encoding="utf-8")
+        template = (TICKET_DIRECTORY / "templates/work-order.md").read_text(encoding="utf-8")
+        start_body = start.split("### Builder self-check\n\n", 1)[1].split("\n\n8. **Implement.**", 1)[0]
+        template_body = template.split("### Builder self-check\n\n", 1)[1].split(
+            "\n\nDo\n", 1
+        )[0]
+        # Both live copies are the consumer-dependent builder self-check contract.
+        self.assertEqual(start_body, template_body)
+
+    def test_session_fit_rules_are_produced_and_consumed(self):
+        template = (TICKET_DIRECTORY / "templates/work-order.md").read_text(encoding="utf-8")
+        triage = (TICKET_DIRECTORY / "verbs/triage.md").read_text(encoding="utf-8")
+        start = (TICKET_DIRECTORY / "verbs/start.md").read_text(encoding="utf-8")
+        slicing = (TICKET_DIRECTORY / "references/slicing.md").read_text(encoding="utf-8")
+        self.assertIn("Session fit:", template)
+        self.assertIn("copy the already-selected execution row", triage)
+        self.assertIn("skipping the remainder of Model-check", start)
+
+        # Chunked triage is fail-closed: a bad ladder or rung returns through
+        # /scope rather than shipping a draft.
+        self.assertIn(
+            "A missing, duplicate, malformed, unresolved, or ineligible ladder "
+            "or selected rung returns through `/scope` and produces no draft "
+            "or comment.",
+            triage,
+        )
+        self.assertIn("selected Agent rung:", triage)
+        self.assertIn("selected Agent rung:", template)
+
+        # start.md's Model-check consumes the produced paragraph: it must be
+        # byte-identical across every SUB-ORDER before the fast path applies.
+        self.assertIn(
+            "whose ladder is an ordered non-empty sequence of display-name "
+            "rungs byte-identical across every `SUB-ORDER`",
+            start,
+        )
+
+        # The coordinator-strength invariant is stated once, in slicing.md.
+        self.assertIn(
+            "The coordinator never launches an agent smarter than itself.",
+            " ".join(slicing.split()),
+        )
+
+        # Structural shape: the flat fence carries exactly one Session fit
+        # paragraph; the chunked header fence carries none (it lives only in
+        # each SUB-ORDER fence).
+        flat_fence = template.split("## Flat", 1)[1].split("## Chunked", 1)[0]
+        self.assertEqual(flat_fence.count("Session fit:"), 1)
+
+        chunked_section = template.split("## Chunked", 1)[1]
+        chunked_header_fence = chunked_section.split("```\n", 1)[1].split("\n```", 1)[0]
+        self.assertEqual(chunked_header_fence.count("Session fit:"), 0)
 
 
 if __name__ == "__main__":
