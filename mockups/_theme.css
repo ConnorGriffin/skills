@@ -1,0 +1,245 @@
+/* mockups/_theme.css — shared mock scaffold theme for the skills pack.
+ *
+ * Repo-global scaffold (ui-craft lock §4). Every surface's variants link this
+ * one file; extend it, never fork it.
+ *
+ * Ground truth: this repo ships no application and no stylesheet, so there is
+ * no app token layer to extract (no mockups/_theme-app.css). These tokens are
+ * authored here and, at build time, become the docs site's single hand-written
+ * stylesheet. No external fonts, no CDNs, no imported assets.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Ground + ink */
+  --bg:        #fbfaf7;
+  --bg-sunk:   #f2f0ea;
+  --card:      #ffffff;
+  --line:      #ddd9cf;
+  --line-soft: #e9e5dc;
+  --ink:       #22201c;
+  --ink-mid:   #56514a;
+  --ink-dim:   #726c64;   /* 4.97:1 on --bg, 4.56:1 on --bg-sunk — AA at 12px */
+
+  /* Category hues — the one carrier of meaning in this palette.
+   * workflows = front doors, drivers = lifecycles, tools = references. */
+  --c-workflow:      #1f6f5c;
+  --c-workflow-bg:   #e3f0eb;
+  --c-driver:        #8a4a1e;
+  --c-driver-bg:     #f6e9dd;
+  --c-tool:          #3b4f8f;
+  --c-tool-bg:       #e5e9f6;
+
+  --accent: var(--c-driver);
+
+  /* Type */
+  --font-text: Charter, "Bitstream Charter", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --font-ui:   ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --measure: 34rem;   /* prose column */
+  --page:    68rem;   /* full page frame */
+  --radius:  6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #16151a;
+    --bg-sunk:   #1e1d23;
+    --card:      #201f26;
+    --line:      #35333d;
+    --line-soft: #2a2931;
+    --ink:       #e8e5df;
+    --ink-mid:   #b3aea5;
+    --ink-dim:   #8a8479;
+
+    --c-workflow:    #6fd0b4;
+    --c-workflow-bg: #16302a;
+    --c-driver:      #e0a274;
+    --c-driver-bg:   #33231a;
+    --c-tool:        #9fb2ee;
+    --c-tool-bg:     #1e2340;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+/* ---- Mock chrome (recessive; stripped at build time) ------------------- */
+
+.mockbar {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: var(--bg-sunk);
+  border-bottom: 1px solid var(--line);
+  padding: .5rem 1rem;
+}
+.mockbar b { color: var(--ink-mid); font-weight: 600; }
+.mockbar .note { text-transform: none; letter-spacing: 0; font-size: 12.5px; }
+
+/* ---- Page frame -------------------------------------------------------- */
+
+.page { max-width: var(--page); margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+.prose { max-width: var(--measure); }
+
+.masthead { border-bottom: 1px solid var(--line); padding-bottom: 1.25rem; margin-bottom: 2rem; }
+.masthead h1 {
+  font-family: var(--font-ui);
+  font-size: 1.6rem;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  margin: 0 0 .35rem;
+}
+.masthead p { margin: 0; color: var(--ink-mid); }
+
+.sitenav {
+  font-family: var(--font-ui); font-size: .82rem; letter-spacing: .02em;
+  display: flex; gap: 1.1rem; flex-wrap: wrap; margin-bottom: 1rem;
+}
+.sitenav a { color: var(--ink-dim); text-decoration: none; }
+.sitenav a:hover, .sitenav a:focus-visible { color: var(--ink); text-decoration: underline; }
+
+h2 {
+  font-family: var(--font-ui);
+  font-size: 1.02rem; font-weight: 650; letter-spacing: .01em;
+  margin: 2.75rem 0 .9rem;
+}
+h3 { font-family: var(--font-ui); font-size: .95rem; font-weight: 600; margin: 1.6rem 0 .5rem; }
+p { margin: 0 0 1rem; }
+a { color: var(--accent); }
+
+code, kbd { font-family: var(--font-mono); font-size: .87em; }
+pre {
+  font-family: var(--font-mono); font-size: .82rem; line-height: 1.5;
+  background: var(--bg-sunk); border: 1px solid var(--line-soft);
+  border-radius: var(--radius); padding: .8rem 1rem; overflow-x: auto;
+}
+
+/* ---- Category tokens --------------------------------------------------- */
+
+.cat-workflows { --cat: var(--c-workflow); --cat-bg: var(--c-workflow-bg); }
+.cat-drivers   { --cat: var(--c-driver);   --cat-bg: var(--c-driver-bg); }
+.cat-tools     { --cat: var(--c-tool);     --cat-bg: var(--c-tool-bg); }
+
+.tag {
+  font-family: var(--font-ui); font-size: .68rem; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--cat, var(--ink-dim)); background: var(--cat-bg, var(--bg-sunk));
+  border-radius: 3px; padding: .15rem .4rem; white-space: nowrap;
+}
+
+/* ---- Skill list -------------------------------------------------------- */
+
+.skills { list-style: none; margin: 0; padding: 0; }
+.skills li { border-top: 1px solid var(--line-soft); padding: .7rem 0; }
+.skills li:first-child { border-top: 0; }
+.skills a.name {
+  font-family: var(--font-ui); font-weight: 600; font-size: .95rem;
+  color: var(--cat, var(--ink)); text-decoration: none;
+}
+.skills a.name:hover, .skills a.name:focus-visible { text-decoration: underline; }
+.skills .desc { display: block; color: var(--ink-mid); font-size: .93rem; line-height: 1.5; }
+
+/* Category board. Workflows and drivers are short (2 and 6); tools is 19.
+   A symmetric three-column grid therefore leaves ~1400px of dead space beside
+   the tools column. So: a narrow left column carrying the two short
+   categories stacked, and a wide right column where tools flows into two
+   text columns. Collapses to one column under 52rem. */
+.catgrid {
+  display: grid; align-items: start;
+  gap: 2rem 2.75rem;
+  grid-template-columns: minmax(15rem, 19rem) 1fr;
+}
+.catcol > section + section { margin-top: 2.25rem; }
+.cat-tools .skills { column-count: 2; column-gap: 2.25rem; }
+.cat-tools .skills li { break-inside: avoid; }
+.cat-tools .skills li:first-child { border-top: 1px solid var(--line-soft); }
+
+@media (max-width: 52rem) {
+  .catgrid { grid-template-columns: 1fr; }
+  .cat-tools .skills { column-count: 1; }
+  .cat-tools .skills li:first-child { border-top: 0; }
+}
+.cathead { display: flex; align-items: baseline; gap: .55rem; border-bottom: 2px solid var(--cat); padding-bottom: .4rem; margin-bottom: .6rem; }
+.cathead h2 { margin: 0; color: var(--cat); }
+.cathead .count { font-family: var(--font-ui); font-size: .78rem; color: var(--ink-dim); }
+.cathead + p { color: var(--ink-mid); font-size: .93rem; }
+
+/* ---- Diagram ----------------------------------------------------------- */
+
+.figure { margin: 1.5rem 0 2rem; }
+.figure figcaption {
+  font-family: var(--font-ui); font-size: .8rem; color: var(--ink-dim);
+  margin-top: .6rem; max-width: var(--measure);
+}
+.diagram-scroll { overflow-x: auto; border: 1px solid var(--line-soft); border-radius: var(--radius); background: var(--card); padding: .75rem; }
+.diagram { display: block; width: 100%; height: auto; min-width: 620px; }
+
+.diagram .nlabel { font-family: var(--font-ui); font-size: 11px; fill: var(--ink); }
+.diagram .glabel { font-family: var(--font-ui); font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; }
+.diagram .box { stroke-width: 1.25; rx: 4; }
+.diagram .edge { fill: none; stroke: var(--ink-dim); stroke-width: 1; opacity: .16; transition: opacity .12s, stroke .12s; }
+.diagram .node { cursor: default; }
+.diagram .node rect { transition: opacity .12s; }
+.diagram .node:focus-visible { outline: none; }
+.diagram .node:focus-visible rect { stroke-width: 2.5; }
+
+/* Isolation on demand, no JavaScript.
+   At rest the map reads as shape: 87 edges at 16% are texture, not lines you
+   trace. Hovering or tabbing to a box silences every edge but that skill's,
+   which come up opaque and in the skill's own category colour. The per-skill
+   rules are generated at build time into the page's inline <style>; only the
+   two rules below are hand-written. */
+.diagram:has(.node:hover) .edge,
+.diagram:has(.node:focus-visible) .edge { opacity: .05; }
+.diagram:has(.node:hover) .node:not(:hover) rect { opacity: .45; }
+
+.legend { font-family: var(--font-ui); font-size: .8rem; display: flex; gap: 1.1rem; flex-wrap: wrap; margin-top: .7rem; color: var(--ink-mid); }
+.legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.legend i { width: .75rem; height: .75rem; border-radius: 2px; display: inline-block; border: 1.5px solid var(--cat); background: var(--cat-bg); }
+
+/* Fallback for engines without :has() — the map still renders, just static. */
+@supports not selector(:has(*)) {
+  .diagram .edge { opacity: .2; }
+}
+
+/* ---- Meta / requirements ---------------------------------------------- */
+
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: .35rem 1rem; font-size: .92rem; margin: 1.25rem 0 2rem; }
+.meta dt { font-family: var(--font-ui); font-size: .78rem; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-dim); padding-top: .2rem; }
+.meta dd { margin: 0; color: var(--ink); }
+
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+th { font-family: var(--font-ui); font-size: .76rem; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-dim); font-weight: 600; }
+
+/* Rendered SKILL.md body */
+.body h2 { margin-top: 2.25rem; }
+.body-list { padding-left: 1.3rem; margin: 0 0 1rem; }
+.body-list li { margin-bottom: .4rem; }
+.body table { margin-bottom: 1.25rem; }
+.body pre { margin-bottom: 1.25rem; }
+.body > :first-child { margin-top: 0; }
+
+.foot { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--line); font-family: var(--font-ui); font-size: .8rem; color: var(--ink-dim); }
+
+@media (max-width: 40rem) {
+  body { font-size: 16px; }
+  .page { padding: 1.5rem 1rem 3.5rem; }
+  .meta { grid-template-columns: 1fr; gap: .1rem .5rem; }
+  .meta dd { margin-bottom: .7rem; }
+}
