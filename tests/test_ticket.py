@@ -45,8 +45,8 @@ SESSION_FIT_MODEL_CHECK_BODY = (
 )
 CHUNKED_SESSION_FIT_TEMPLATE_BODY = (
     "Session fit: <the selected execution row's Ladder value, with each model's display "
-    "name in ladder order>; selected Agent rung: <Rung> (for Agent: <tier>). A Claude "
-    "or Codex coordinator whose "
+    "name in ladder order>; selected Agent rung: <Rung>. A Claude or Codex coordinator "
+    "whose "
     "system-prompt model is named in this paragraph at or above the selected Agent rung "
     "proceeds directly to step 4, skipping the remainder of Model-check and without "
     "asking about model fit or effort."
@@ -56,10 +56,9 @@ CHUNKED_SESSION_FIT_TRIAGE_BODY = (
     "fail-closed classification rule that selects a flat order's execution row. Copy that "
     "row's `Ladder` value into exactly one `Session fit:` paragraph in every sub-order "
     "fence, keeping each model's display name and ladder order, and annotate each "
-    "paragraph as `selected Agent rung: <Rung> (for Agent: <tier>)`, pairing its rung "
-    "and existing `Agent:` tier at authoring time. A missing, duplicate, malformed, "
-    "unresolved, or ineligible ladder or selected rung returns through `/scope` and "
-    "produces no draft or comment."
+    "paragraph with exactly one `selected Agent rung: <Rung>`. A missing, duplicate, "
+    "malformed, unresolved, or ineligible ladder or selected rung returns through `/scope` "
+    "and produces no draft or comment."
 )
 CHUNKED_SESSION_FIT_MODEL_CHECK_BODY = (
     "On a flat order with `Session fit:`, a session whose system-prompt model is named "
@@ -68,11 +67,10 @@ CHUNKED_SESSION_FIT_MODEL_CHECK_BODY = (
     "On a chunked order, take that same fast path only when every `SUB-ORDER` has exactly "
     "one `Session fit:` paragraph whose ladder is an ordered non-empty sequence of "
     "display-name rungs byte-identical across every `SUB-ORDER`, whose exactly one "
-    "`selected Agent rung: <Rung> (for Agent: <tier>)` annotation names exactly one rung "
-    "in that paragraph and whose parenthetical tier byte-matches that `SUB-ORDER`'s "
-    "`Agent:` value, and whose coordinator system-prompt model is named at or above that "
-    "selected rung in every paragraph. Otherwise, the order's `Open as:` line names a "
-    "required model and effort. "
+    "`selected Agent rung: <Rung>` annotation names exactly one rung in that paragraph, "
+    "and whose coordinator system-prompt model is named at or above that selected rung "
+    "in every paragraph. Otherwise, the order's `Open as:` line names a required model "
+    "and effort. "
     "A session cannot reliably introspect its own reasoning effort from context, so do not "
     "guess it, and do not answer from memory of an earlier guess. State the model name this "
     "session's own system prompt reports, then ask the user in prose to confirm the effort "
@@ -376,7 +374,7 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertNotIn(b"Session fit:", chunked_header)
         body = sub_order.split(opening, 1)[1].split(closing, 1)[0]
         self.assertEqual(body, CHUNKED_SESSION_FIT_TEMPLATE_BODY.encode())
-        self.assertIn(b"selected Agent rung: <Rung> (for Agent: <tier>)", body)
+        self.assertIn(b"selected Agent rung: <Rung>", body)
 
     def test_chunked_session_fit_triage_body_is_canonical_raw_bytes(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_bytes()
@@ -388,7 +386,7 @@ class TicketSkillContractTests(unittest.TestCase):
         body = triage.split(opening, 1)[1].split(closing, 1)[0]
         self.assertEqual(body, CHUNKED_SESSION_FIT_TRIAGE_BODY.encode())
         self.assertIn(b"one coordinator execution row", body)
-        self.assertIn(b"selected Agent rung: <Rung> (for Agent: <tier>)", body)
+        self.assertIn(b"selected Agent rung: <Rung>", body)
         self.assertIn(b"missing, duplicate, malformed, unresolved, or ineligible", body)
 
     def test_chunked_session_fit_model_check_body_is_canonical_raw_bytes(self):
@@ -401,8 +399,7 @@ class TicketSkillContractTests(unittest.TestCase):
         body = start.split(opening, 1)[1].split(closing, 1)[0]
         self.assertEqual(body, CHUNKED_SESSION_FIT_MODEL_CHECK_BODY.encode())
         self.assertIn(b"byte-identical across every `SUB-ORDER`", body)
-        self.assertIn(b"exactly one `selected Agent rung: <Rung> (for Agent: <tier>)`", body)
-        self.assertIn(b"parenthetical tier byte-matches that `SUB-ORDER`'s `Agent:` value", body)
+        self.assertIn(b"exactly one `selected Agent rung: <Rung>` annotation", body)
         self.assertIn(b"Otherwise, the order's `Open as:` line", body)
         self.assertIn(b"strongest chunk", body)
 
