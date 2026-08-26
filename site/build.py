@@ -32,6 +32,23 @@ def slug(text: str, seen: dict[str, int] | None = None) -> str:
     return value if count == 0 else f"{value}-{count}"
 
 
+def first_sentence(text: str) -> str:
+    """Keep sentence punctuation in filenames and abbreviations intact."""
+    match = re.search(r"\.(?=\s+[A-Z]|$)", text)
+    return text[:match.end()] if match else text
+
+
+def bundled_contents(skill: dict) -> str:
+    """Describe the shipped top-level contents of a skill directory."""
+    contents = ["SKILL.md"]
+    contents.extend(
+        entry.name + "/" if entry.is_dir() else entry.name
+        for entry in sorted(skill["path"].parent.iterdir())
+        if entry.name != "SKILL.md" and not entry.name.startswith(".")
+    )
+    return " + ".join(contents)
+
+
 def frontmatter(text: str) -> tuple[dict[str, str], str]:
     match = re.match(r"^---\n(.*?)\n---\n?(.*)$", text, re.S)
     if not match:
@@ -158,7 +175,17 @@ def diagram(skills, edges, kind="map", focus=None, flow=None):
     connections=list(zip(flow, flow[1:])) if flow else [(a,b) for a,d in edges.items() for b in d["uses"] if a in lookup and b in lookup]
     for source,target in connections:
         if source in lookup and target in lookup:
-            x,y=lookup[source]; tx,ty=lookup[target]; paths.append(f'<path class="edge e-{source} e-{target}" d="M{x+152},{y+14} C{x+170},{y+14} {tx-18},{ty+14} {tx},{ty+14}" marker-end="url(#arw)"/>')
+            x, y = lookup[source]
+            tx, ty = lookup[target]
+            if abs(tx - x) >= abs(ty - y):
+                start_x, end_x = (x + 152, tx) if tx >= x else (x, tx + 152)
+                direction = 36 if tx >= x else -36
+                path = f"M{start_x},{y+14} C{start_x+direction},{y+14} {end_x-direction},{ty+14} {end_x},{ty+14}"
+            else:
+                start_y, end_y = (y + 28, ty) if ty >= y else (y, ty + 28)
+                direction = 36 if ty >= y else -36
+                path = f"M{x+76},{start_y} C{x+76},{start_y+direction} {tx+76},{end_y-direction} {tx+76},{end_y}"
+            paths.append(f'<path class="edge e-{source} e-{target}" d="{path}" marker-end="url(#arw)"/>')
     return f'<svg class="diagram" viewBox="0 0 {width} {height}" role="img" aria-label="Relationship diagram for the skills pack."><defs><marker id="arw" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink-dim)"/></marker></defs>{labels}<g class="edges">{"".join(paths)}</g>{"".join(node(s,x,y) for s,x,y in positions)}</svg>'
 
 
@@ -175,7 +202,8 @@ def chrome(title, subtitle, current, prefix="", style="", tag=""):
     tagmark=f'<span class="tag">{tag}</span>' if tag else ""
     tagclass=f" cat-{tag}" if tag else ""
     links="".join(f'<a href="{href}"{" aria-current=\"page\"" if active else ""}>{name}</a>' for name,href,active in nav)
-    return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{title} — skills</title><link rel="stylesheet" href="{prefix}style.css"><style>{style}</style></head><body><div class="page"><nav class="sitenav">{links}</nav><header class="masthead{tagclass}">{tagmark}<h1>{title}</h1><p>{subtitle}</p></header>'
+    subtitle_html = f"<p>{subtitle}</p>" if subtitle else ""
+    return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{title} — skills</title><link rel="stylesheet" href="{prefix}style.css"><style>{style}</style></head><body><div class="page"><nav class="sitenav">{links}</nav><header class="masthead{tagclass}">{tagmark}<h1>{title}</h1>{subtitle_html}</header>'
 
 
 def footer(): return f'<footer class="foot">skills — Connor Griffin · MIT · generated from the SKILL.md files, hand-authored narratives, and hand-maintained relationship data in <a href="{GITHUB}">the repository</a></footer></div></body></html>'
@@ -191,15 +219,15 @@ def build(out: Path):
     tables=[]
     for category in CATEGORIES:
         entries=[s for s in skills.values() if s["category"]==category]
-        rows="".join(f'<li><a class="name" href="skills/{s["name"]}.html">{s["name"]}</a><span class="desc">{s["description"].split(".")[0]}.</span></li>' for s in entries)
+        rows="".join(f'<li><a class="name" href="skills/{s["name"]}.html">{s["name"]}</a><span class="desc">{first_sentence(s["description"])}</span></li>' for s in entries)
         tables.append(f'<section class="cat-{category}" id="{category}"><div class="cathead"><h2>{category}</h2><span class="count">{len(entries)}</span></div><p>{BLURBS[category]}</p><ul class="skills">{rows}</ul></section>')
     style = isolation_style(skills)
-    index=chrome("Skills", "A portable skill pack for coding agents.", "Overview", style=style) + '<p class="prose">A portable skill pack for coding agents. Twenty-seven skills that turn a vague request into tracked work, that work into a reviewed pull request, and that pull request into merged history — with the decisions written down as they are made.</p><figure class="figure"><div class="diagram-scroll">' + diagram(skills,relationships) + '</div><div class="legend"><span class="cat-workflows"><i></i>workflows</span><span class="cat-drivers"><i></i>drivers</span><span class="cat-tools"><i></i>tools</span><span>→ references</span></div><figcaption>Every skill in the pack, and every skill it names. Hover or tab to a box to isolate that skill’s references.</figcaption></figure><div class="catgrid"><div class="catcol">' + tables[0]+tables[1] + '</div><div class="catcol cat-tools">'+tables[2]+'</div></div>'+footer()
+    index=chrome("skills", "", "Overview", style=style) + '<p class="prose">A portable skill pack for coding agents. Twenty-seven skills that turn a vague request into tracked work, that work into a reviewed pull request, and that pull request into merged history — with the decisions written down as they are made.</p><figure class="figure"><div class="diagram-scroll">' + diagram(skills,relationships) + '</div><div class="legend"><span class="cat-workflows"><i></i>workflows</span><span class="cat-drivers"><i></i>drivers</span><span class="cat-tools"><i></i>tools</span><span>→ references</span></div><figcaption>Every skill in the pack, and every skill it names. Hover or tab to a box to isolate that skill’s references.</figcaption></figure><div class="catgrid"><div class="catcol">' + tables[0]+tables[1] + '</div><div class="catcol cat-tools">'+tables[2]+'</div></div>'+footer()
     (out / "index.html").write_text(index)
     for skill in skills.values():
         n=skill["name"]; incoming=[x for x,d in relationships.items() if n in d["uses"]]; outgoing=relationships[n]["uses"]
         body=markdown(skill["body"],skill,skills,True)
-        content=chrome(n, skill["description"], skill["category"].title(), "../", style, tag=skill["category"]) + f'<dl class="meta"><dt>Invoke</dt><dd>{n}</dd><dt>Requires</dt><dd>{inline(relationships[n]["requirements"],skill,skills)}</dd><dt>Bundled</dt><dd>SKILL.md</dd><dt>Source</dt><dd><a href="{GITHUB}/blob/main/{skill["path"].relative_to(ROOT).as_posix()}">SKILL.md</a></dd></dl><figure class="figure"><div class="diagram-scroll">{diagram(skills,relationships,focus=n)}</div><figcaption>{len(incoming)} skills name <code>{n}</code>; it names {len(outgoing)}.</figcaption></figure><h2>SKILL.md</h2><div class="prose body">{body}</div>'+footer()
+        content=chrome(n, skill["description"], skill["category"].title(), "../", style, tag=skill["category"]) + f'<dl class="meta"><dt>Invoke</dt><dd>/{n}</dd><dt>Requires</dt><dd>{inline(relationships[n]["requirements"],skill,skills)}</dd><dt>Bundled</dt><dd>{bundled_contents(skill)}</dd><dt>Source</dt><dd><a href="{GITHUB}/blob/main/{skill["path"].relative_to(ROOT).as_posix()}">SKILL.md</a></dd></dl><figure class="figure"><div class="diagram-scroll">{diagram(skills,relationships,focus=n)}</div><figcaption>{len(incoming)} skills name <code>{n}</code>; it names {len(outgoing)}.</figcaption></figure><h2>SKILL.md</h2><div class="prose body">{body}</div>'+footer()
         (out / "skills" / f"{n}.html").write_text(content)
     for path in sorted((ROOT / "site/narratives").glob("*.md")):
         meta, body=frontmatter(path.read_text()); flow=[x.strip() for x in meta["flow"].split(",")]

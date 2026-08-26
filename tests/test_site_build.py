@@ -31,6 +31,8 @@ class SiteBuildTest(unittest.TestCase):
             skill_page = (output / "skills" / "ui-craft.html").read_text()
             self.assertEqual(re.findall(r"<dt>([^<]+)</dt>", skill_page), ["Invoke", "Requires", "Bundled", "Source"])
             self.assertEqual(skill_page.count("<h1>"), 1)
+            self.assertIn("CLAUDE.md/AGENTS.md estate.", (output / "index.html").read_text())
+            self.assertIn("<dt>Invoke</dt><dd>/ui-craft</dd>", skill_page)
             for page in output.rglob("*.html"):
                 for href in re.findall(r'(?:href|src)="([^"]+)"', page.read_text()):
                     if re.match(r"(?:https?://|mailto:)", href): continue
