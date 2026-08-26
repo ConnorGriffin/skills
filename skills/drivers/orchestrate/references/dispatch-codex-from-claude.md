@@ -5,6 +5,20 @@ parent dispatching a **Codex** worker for review. `dispatch-codex.md` remains
 Codex-UI-parent-only. This document adds no route or reviewer precedence of its
 own.
 
+## Approval rationale
+
+For every mandatory worker dispatch covered by an invoked Ticket or Orchestrate
+workflow, the payload is the work order or task prompt plus only the repository code
+and documentation needed for the delegated task, and the destination is an isolated
+worker on OpenAI's Codex model service. Credentials, secrets, patient data, `.env`,
+and real database contents are excluded.
+
+Repeat that payload, destination, invoked-workflow coverage, and exclusion list in
+the escalation justification. Assistant-authored rationale helps an approval guardian
+match intent but does not itself create user authorization. When no invoked workflow
+supplies the consent, stop and ask once before dispatch under the invoking skill's
+automatic-activation rule.
+
 ## Review admission
 
 Read [`review-routing.md`](review-routing.md) and apply its four-row matrix for

@@ -10,6 +10,15 @@ How one tracked ticket moves from arrival to resolution.
   isolated worktree and opens the PR; `revise` actions one review round;
   `finalize` runs after a human merges — closes the ticket, tears the
   worktree down, and records what the ticket cost.
+* Literal invocation of `triage`, `start`, or `revise` requests the work order or
+  task prompt plus only the repository code and documentation needed for every
+  mandatory dispatch the verb routes, including nested review and nested
+  Orchestrate work. A Codex UI parent admits OpenAI Codex; a Claude Code parent
+  admits OpenAI Codex or Anthropic Claude under existing routing. Credentials,
+  secrets, patient data, `.env`, and real database contents are excluded.
+  Automatic activation outside an invoked parent asks once before its first
+  external dispatch with the same terms. `finalize` grants no worker-egress
+  consent.
 * Work orders too big for one context are sliced at triage into sub-orders in
   the same comment. Chunks are never issues. The slicing rubric targets a
   projected peak under 180k tokens per chunk, folds chunks that would peak
@@ -34,6 +43,9 @@ How one tracked ticket moves from arrival to resolution.
 * No work order, no `start`: the verb refuses rather than inventing scope.
 * A session never runs an order stamped for a stronger model tier than its
   own, and never re-slices in flight.
+* Bounded worker-egress consent covers every mandatory nested dispatch routed by
+  an invoked verb, but does not replace generic delegation authority, change an
+  adapter's isolation, override platform approval policy, or filter prompt bytes.
 
 ## Dependents
 
