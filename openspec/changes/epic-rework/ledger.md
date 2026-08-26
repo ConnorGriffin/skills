@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: #183 (routing-table field-derived provenance notes) — triage under the new conventions reference, build, merge; it is the epic's last open child. Then epic close-out: proposal archive decision to operator
+next: operator decisions — #147 disposition (build now or close as won't-do) and proposal archive. All other children closed; #187 (Terra replay) tracks outside the epic
 updated: 2026-08-25
 
 ## Notes
@@ -46,7 +46,7 @@ updated: 2026-08-25
 - #163 Coordinator wait protocol: collect child results, never idle-wait — merged (PR #182)
 - #171 Review-process tuning (drafting conventions, fix-in-place rule, depth-floor qualifier) — merged (PR #186)
 - #159 Delegated-execution mode + wave rule — merged (PRs #184 Phase A proposal, #185 Phase B skill)
-- #183 Routing-table field-derived provenance notes — filed
+- #183 Routing-table field-derived provenance notes — merged (PR #188); replay follow-up filed as #187
 - #145 Claude-parent Codex reviewer dispatch reference — merged
 - #146 Pre-authorize required review delegation — merged
 - #139 Triage stamps session-fit preamble into work orders — merged (PR #172)
@@ -57,6 +57,7 @@ updated: 2026-08-25
 - #147 Session-fit rule for chunked work orders — after 3b and #144/#145
 
 ## Rounds
+- 2026-08-25 epic children complete — #183 merged (PR #188) after the tuned process caught a real contradiction in the coordinator-authored ticket (drafter refused to draft, reviewer confirmed; ticket amended to observation-only notes, replay owed via #187). #140 closed as resolved. 23/25 children done; the two open are #147 (deferred by design, now unblocked) and #140's closure leaves #147 as the sole open build decision. Session totals: 14 PRs merged today (#170 #172-#180 #182 #184-#186 #188), 106 labels deleted across 7 repos, three process rules landed and immediately exercised
 - 2026-08-25 #159 #171 merged — #159 landed in its two-PR sequence (PR #184 proposal amendment, PR #185 skill mode; Full review's anchor-uniqueness finding fixed in place and proven red under duplicate-heading injection). #171 landed as PR #186 (drafting-conventions reference reaching fences/workers, fix-in-place rule with audit ledger, depth-floor qualifier; the order's Markdown-link literal amended to a backticked path because the validator resolves links file-relative — amendment on the issue; reviewer's stale-premise finding dispositioned, pins re-proven by coordinator in-body mutations after a first mutation landed outside the pinned region). Both issues closed, worktrees removed. Label cleanup executed across all 7 repos same day (Fog resolved). Queue: #183 only
 - 2026-08-25 #163 merged — Full review returned one real finding (closing anchors matched heading prefixes, so renaming `## Maintenance` passed the pins), fixed in place by the coordinator and proven red under the rename mutation; PR #182 merged on green CI, issue closed, worktree removed. The build queue is empty except #159 and #171
 - 2026-08-25 wave-2 merged — #164 merged (PR #179) and #165 merged (PR #180) after one fix round each: the recurring defect was read_text() newline normalization defeating raw-byte pins (third occurrence this epic — the conventions preamble must reach build prompts, folded into #171 item 1); #165 also gained a scoped closing-fence assertion and whole-file UTF-8 decodes after its convergence check found two regressions, fixed in place by the coordinator and mutation-proven. #163 went stale against #154/#178 (builder refused correctly), was regrounded by a fresh Sol drafter (old sessions died when the shared scout worktree was removed — keep scout checkouts alive until dependent sessions finish), cold-reviewed (one raw-bytes spec fix in place), restamped, rebuilt (523e3ff, chain green); Full review running
