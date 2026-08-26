@@ -249,7 +249,17 @@ existing rules.
 
 ## Maintenance
 
-The table is provenance-stamped. When a new model ships, replay the benchmark
-per `references/benchmark/README.md` (~1 area-task per area; note the review and
+The table is provenance-stamped. Benchmark replays and field-derived notes from
+real orchestration sessions are valid provenance classes. Every field-derived
+note must name its issue or ledger source.
+
+When a new model ships, replay the benchmark per
+`references/benchmark/README.md` (~1 area-task per area; note the review and
 prototyping fixtures regenerate and need an incumbent anchor run) and update the
 table in the same commit.
+
+A field-derived note that contradicts a benchmarked score does not silently
+win. File a replay of every affected area as its own follow-up ticket, then
+replay it under `references/benchmark/README.md`.
+
+## Reference boundary
