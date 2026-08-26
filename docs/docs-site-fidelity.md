@@ -7,8 +7,8 @@ produced per `ui-craft` `build`. One row per manifest term, all 27.
 
 | Artifact | SHA |
 |---|---|
-| Branch / base commit | `codex/198-docs-site` @ `e3abbbbb7b8b705bc31e839e5677c0ae14222988` |
-| Ported from commits | `0d2cf18` (generated site), `bee47c7` (publish), `e97763c` + `4f6c243` (review fixes), `e3abbbb` (heading/emphasis/edge fixes) |
+| Branch / base commit | `codex/198-docs-site` @ `30ea8d8` |
+| Ported from commits | `0d2cf18` (generated site), `bee47c7` (publish), `e97763c` + `4f6c243` (review fixes), `e3abbbb` (heading/emphasis/edge fixes), `30ea8d8` (code-span, narrative-style, output-guard hardening) |
 | `mockups/docs-site.lock.md` | `a654855bc3d95b621c83e803394666cf2b770003` |
 | `mockups/docs-site-index.html` | `0968f55787ad9d640df0208c78d283d629c604a7` |
 | `mockups/docs-site-skill.html` | `bd80501a93789660016f5f0692c2140e230bb616` |
@@ -20,19 +20,26 @@ produced per `ui-craft` `build`. One row per manifest term, all 27.
 | `site/narratives/ticket-flow.md` | `465630cedb9833178598f7f2067b8e8882d9f96d` |
 | `tests/test_site_build.py` | `74a086ed103eb337bc3fbec718baae47a5fb9d5a` |
 
-Rebuild: `python3 site/build.py --out _site` (from a cleared `_site/`). Suite:
-`python3 -m unittest tests.test_site_build` — **OK** (4 tests).
+Rebuild: `python3 site/build.py --out _site`. Since `30ea8d8` the output
+directory is cleared only when it carries the `.site-build-stamp` marker, so the
+build refuses to `rmtree` a directory it did not create — pointing `--out` at a
+populated foreign path is now an error rather than data loss. Suite:
+`python3 -m unittest tests.test_site_build` — **OK** (5 tests).
 
-**This table describes the build at `e3abbbb`.** Every row was re-run against
+**This table describes the build at `30ea8d8`.** Every row was re-run against
 this output, not carried over. All 27 terms are met; nothing is blocked and no
 re-settle is outstanding.
 
-The suite now pins the two regressions this ledger caught, so they cannot
-silently return:
-`test_leading_blank_h1_is_dropped_without_dropping_a_body_without_one` covers
-term 20 in both directions, and
-`test_underscore_emphasis_and_directional_edge_anchors` covers the emphasis and
-edge-routing fixes.
+The suite now pins every regression this ledger caught, so none can silently
+return:
+
+| Test | Pins |
+|---|---|
+| `test_builds_real_pack_with_resolved_internal_links` | terms 26, 27 — link and anchor resolution |
+| `test_leading_blank_h1_is_dropped_without_dropping_a_body_without_one` | term 20, in both directions (no duplicate `<h1>`, no emptied body) |
+| `test_duplicate_headings_receive_suffixes` | term 27's `-1`/`-2` dedupe branch |
+| `test_underscore_emphasis_and_directional_edge_anchors` | emphasis rendering and direction-aware edge routing |
+| `test_refuses_to_clear_foreign_output` | the `.site-build-stamp` output guard |
 
 ## Grading caveat — read before trusting this table
 
@@ -46,34 +53,51 @@ here. They are marked ✎ and want an independent eye.
 
 ## Evidence index
 
-Paired renders, mock beside build — `mockups/` and `_site/` over
-`python3 -m http.server`, captured with headless Chrome. **Not committed**:
-`.gitignore` excludes `*.png` and `lock.md` §6 keeps screenshots out of the repo.
+Paired renders, mock beside build. **Deliberately not committed and not paths:**
+`.gitignore` excludes `*.png`, `lock.md` §6 keeps screenshots out of the repo,
+and CONTRIBUTING forbids machine-specific paths in the tree. The set is
+described by its capture protocol and filenames so any reviewer can regenerate
+it byte-for-byte.
 
-Directory: `/private/tmp/claude-501/-Users-connor-Code-ConnorGriffin-skills/dfc11b06-7946-402d-8988-ebaceb922980/scratchpad/fidelity/` — 17 files.
+**Capture protocol.** Serve both trees over `python3 -m http.server` — one on
+`mockups/`, one on the `--out` directory of `site/build.py`. Drive headless
+Chrome:
 
-Every BUILD capture was re-taken at `e3abbbb`: the edge-routing change alters
-all three diagram types, and the heading and emphasis fixes alter every skill
-page.
+```sh
+chrome --headless=new --disable-gpu --hide-scrollbars \
+       --virtual-time-budget=2500 --window-size=<W>,<H> \
+       --screenshot=<name>.png <url>
+```
 
-| File | Covers |
-|---|---|
-| `index-1280-{light,dark}-BUILD.png` | 4–9, 11–17, 24, 25 |
-| `index-{375,768,1440}-light-BUILD.png` | 10, 15 |
-| `skill-1280-{light,dark}-BUILD.png` | 18–21, 26, 27 — and the dropped duplicate `<h1>` plus italic emphasis |
-| `skill-wfa-1280-light-BUILD.png` | 17–21 — full body, and term 21's empty-band leaf case |
-| `narrative-1280-{light,dark}-BUILD.png` | 22, 23 — and direction-aware edges |
+Light renders add `--blink-settings=preferredColorScheme=1`. Dark renders omit
+it and rely on the host's dark default — Chrome honours the light value but
+ignores `=2`, and `--force-dark-mode` silently produces a file identical to the
+light one, which is evidence of nothing. Confirm the two differ before trusting
+a dark capture.
 
-MOCK captures are unchanged; the mock has not moved since the lock:
-`index-{1280-light,1280-dark,375-light}-MOCK.png`,
-`skill-1280-{light,dark}-MOCK.png`, `narrative-1280-{light,dark}-MOCK.png`.
+**The set — 17 files.** BUILD captures were all re-taken at `30ea8d8`; the
+edge-routing, heading, emphasis and narrative-style changes touch every page
+type. MOCK captures are unchanged since the lock.
+
+| File | Viewport | Covers |
+|---|---|---|
+| `index-1280-{light,dark}-BUILD.png` | 1280×1450 | 4–9, 11–17, 24, 25 |
+| `index-375-light-BUILD.png` | 375×1700 | 10, 15 |
+| `index-768-light-BUILD.png` | 768×1500 | 10, 15 |
+| `index-1440-light-BUILD.png` | 1440×1000 | 10, 15 |
+| `skill-1280-{light,dark}-BUILD.png` | 1280×1150 | 18–21, 26, 27; single `<h1>`, italic emphasis, intact code spans |
+| `skill-wfa-1280-light-BUILD.png` | 1280×1300 | 17–21; full body, and term 21's empty-band leaf case |
+| `narrative-1280-{light,dark}-BUILD.png` | 1280×950 | 22, 23; direction-aware edges, zero inline `<style>` |
+| `index-{1280-light,1280-dark,375-light}-MOCK.png` | as above | lock-side halves |
+| `skill-1280-{light,dark}-MOCK.png` | 1280×1150 | lock-side halves |
+| `narrative-1280-{light,dark}-MOCK.png` | 1280×950 | lock-side halves |
 
 ## Ledger
 
 | # | Term | Status | Evidence |
 |---|------|--------|----------|
 | 1 | Zero JavaScript | met | Gate sweep: no `<script>`, `javascript:`, or `on*=` across all 31 pages |
-| 2 | One hand-written stylesheet + generated isolation `<style>` | met | 1 `<link rel=stylesheet>` and exactly one `<style>` per page, containing only `.diagram` isolation rules. **Evidence corrected:** the previous ledger said narrative pages carry no `<style>`; that was wrong when written and is wrong now — every page carries one. Since `4f6c243` the block is scoped per page (index 4174 B for 27 skills; a skill page 930 B; a narrative page 854 B) rather than every page shipping the full set |
+| 2 | One hand-written stylesheet + generated isolation `<style>` | met | One `<link rel=stylesheet>` on every page. Inline `<style>`, re-verified at `30ea8d8`: index 1 block (4174 B, all 27 skills); each skill page 1 block (142–150 B — only the nodes in its own focus diagram); **each narrative page 0 blocks**, which is what lock term 2 states verbatim. Every block contains only `.diagram` isolation rules |
 | 3 | No fetched asset; chrome repo-only, body any origin | met | No `@import`/`src=`/off-origin `url(`; every chrome href → `github.com/ConnorGriffin/skills`; 32 off-repo body links pass through |
 | 4 | Diagrams inline SVG from repo data | met | `<svg class="diagram">` on all 31 pages, no chart library; graph from `relationships.py` |
 | 5 | Boxes coloured by category | met | Every `.node` carries a `cat-*` class matching its skill's directory |
@@ -97,7 +121,7 @@ MOCK captures are unchanged; the mock has not moved since the lock:
 | 23 ✎ | Flow wraps serpentine | met **after fix** | **Was missed**: rows both ran left-to-right, so step 3→4 wrapped diagonally across the figure. Fixed in `site/build.py` `diagram()`; row 0 x=24/224/424, row 1 x=424/224. Pair `narrative-1280-light` |
 | 24 | Persistent chrome: same six-item nav + footer, `aria-current` | met | Nav verbatim and in order on all 31 pages; footer with MIT provenance on all 31 |
 | 25 | No mockbar, no `href="#"` placeholder | met | Zero `href="#"` across the built site; no `.mockbar` |
-| 26 | Body link destinations; fragment split and re-attached | met | All 92 body links resolve: 51 blob (every path exists on disk), 7 cross-page skill links, 2 fragments, 32 off-repo passthrough. `../scope/SKILL.md#risk-contract` → `scope.html#risk-contract` |
+| 26 | Body link destinations; fragment split and re-attached | met | **95 body links, all resolving** — 54 blob (every path exists on disk), 32 off-repo passthrough, 7 cross-page skill links, 2 same-page fragments. By page: 92 on the 27 skill pages, 3 on the 3 narrative pages. `../scope/SKILL.md#risk-contract` → `scope.html#risk-contract` |
 | 27 | Deterministic GitHub-style heading slugs; fragments resolve | met | Every fragment resolves to an emitted heading id on its target page: 2 same-page, 3 cross-page. Slug rule matches on punctuation and duplicate cases |
 
 **Counts: 27 met, 0 re-settle requested, 0 blocked.**
@@ -107,18 +131,22 @@ verdict. Five of the 27 met rows are ✎ self-graded because I authored their fi
 (terms 7, 14, 18, 21, 23); all five were re-verified against this build, and
 they remain the weakest evidence in the table.
 
-Mechanical re-verification at `e3abbbb`, across all 31 pages: no `<script>` or
+Mechanical re-verification at `30ea8d8`, across all 31 pages: no `<script>` or
 inline handler; one stylesheet and one scoped `<style>` per page; no fetched
 asset; every chrome link to the skills repo; 27 nodes and 36 edges matching
 `relationships.py` with every endpoint a real skill directory; all 27 isolation
-rules present; 95 body links resolving (2 same-page fragments, 7 cross-page, 54
-blob, 32 off-repo); 0 of 27 descriptions deviating from the first-sentence
-rule.
+rules present; **95 body links** resolving (54 blob, 32 off-repo, 7 cross-page,
+2 same-page fragments — 92 on skill pages plus 3 on narrative pages); 0 of 27
+descriptions deviating from the first-sentence rule.
+
+An earlier revision of this table gave 92 in one row and 95 in another. Both
+were counts of different scopes stated as if they were the same thing: 92 is
+skill pages only. The figure is **95** everywhere it now appears.
 
 ## Generator-logic gaps
 
 **None open.** Every gap this ledger raised has been fixed in the generator and
-re-verified against the build at `e3abbbb`.
+re-verified against the build at `30ea8d8`.
 
 Closed over the course of the build phase:
 
@@ -133,9 +161,33 @@ Closed over the course of the build phase:
 | `Invoke` missing its leading slash | `4f6c243` | Renders `/ui-craft` |
 | Underscore emphasis rendered literally | `e3abbbb` | 0 literal `_…_` on `writing-for-agents`; 24 `<em>` elements |
 | Edge anchors ignored direction | `e3abbbb` | `edge_path()` picks the side by relative position; the narrative flow's right-to-left row now points left instead of crossing the figure |
+| Emphasis corrupted code spans | `30ea8d8` | 0 `<code>` elements contain injected `<em>`/`<strong>`; 55 underscore-bearing identifiers (`fix_introduced_defect`, `CODING_STANDARDS.md`) render literally |
+| Narrative pages carried an inline `<style>` lock term 2 says they must not | `30ea8d8` | 0 `<style>` blocks on all 3 narrative pages |
 
-The last two were never numbered terms — no term pins emphasis or edge routing —
-but both were visible body content, and both are now correct.
+None of the last three were numbered terms — no term pins emphasis, edge
+routing, or code-span escaping — but all were visible body content, and all are
+now correct.
+
+### One observation, not a term violation
+
+Removing the narrative pages' inline `<style>` (correct per term 2) leaves the
+global rule in `style.css` unscoped:
+
+```css
+.diagram:has(.node:hover) .edge{opacity:.05}
+```
+
+It fires on every diagram, but the lift rules that compensate for it are only
+generated for isolating maps. Measured on `workflows/ticket-flow.html`:
+hovering `epic` drops all 5 flow edges to `0.05` and lifts nothing, so the
+arrows nearly vanish while the pointer rests on a box.
+
+This violates no term — term 8 governs the isolating map, and term 2 states the
+narrative template has no isolating map — so **27/27 stands**. But it is a
+visible wrinkle. It has no fix inside `style.css` alone: distinguishing an
+isolating diagram needs either a marker class on the `<svg>` or moving the dim
+rule into the generated block, both of which are `build.py` changes, so it is
+reported rather than fixed under the standing visual-only remit.
 
 ## Recorded deviations (carried forward)
 
