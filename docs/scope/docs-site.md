@@ -13,11 +13,13 @@
 
 - Must prevent: secret exposure; publishing content identifying real colleagues (persona-review hazard); silent incorrect success (site claiming a skill exists that doesn't).
 - Must recover: nothing automatic.
-- Accepted failure: generator breaks on a future SKILL.md format change → Pages deploy workflow fails visibly; operator fixes manually. Stale hand-authored narrative prose is accepted.
+- Accepted failure: generator breaks on a future SKILL.md format change → Pages deploy workflow fails visibly; operator fixes manually. Stale hand-authored narrative prose is accepted; stale or incomplete hand-maintained relationship edges are accepted (only endpoint existence is checked).
 - Unsupported: non-GitHub-Pages hosting; browsers without SVG.
 - Evidence owed: generator unit test that builds the site from the real repo and asserts every skill in skills/*/ has a page and every cross-link resolves.
 - Why: public but disposable documentation; one operator; fully recoverable.
 - Disposition: copied into the work order.
+
+- Edge graph source (lock manifest open question): settled as the hand-maintained `site/relationships.py` (uses + requirements), transcribed from README tables and SKILL.md prose, endpoint-existence-checked at build. The lock mock's SKILL.md body scan (87 edges) was exploratory, not authoritative. Lock term 8 (hover isolation) stands regardless of edge density; resettle only if the built map makes it pointless. — inline
 
 ## Open questions
 
