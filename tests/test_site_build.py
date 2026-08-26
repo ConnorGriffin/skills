@@ -49,7 +49,11 @@ class SiteBuildTest(unittest.TestCase):
             for pattern in FORBIDDEN: self.assertIsNone(pattern.search(stylesheet), pattern.pattern)
             skill_page = (output / "skills" / "ui-craft.html").read_text()
             self.assertEqual(re.findall(r"<dt>([^<]+)</dt>", skill_page), ["Invoke", "Requires", "Bundled", "Source"])
-            self.assertEqual(skill_page.count("<h1>"), 1)
+            skill_pages = list((output / "skills").glob("*.html"))
+            duplicate_h1_pages = [page.name for page in skill_pages if len(re.findall(r"<h1\b", page.read_text())) != 1]
+            empty_body_pages = [page.name for page in skill_pages if re.search(r'<div class="prose body">\s*</div>', page.read_text())]
+            self.assertEqual(duplicate_h1_pages, [])
+            self.assertEqual(empty_body_pages, [])
             self.assertIn("CLAUDE.md/AGENTS.md estate.", (output / "index.html").read_text())
             self.assertIn("<dt>Invoke</dt><dd>/ui-craft</dd>", skill_page)
             self.assertNotIn(".n-writing-for-agents", (output / "workflows" / "ticket-flow.html").read_text())
@@ -65,6 +69,20 @@ class SiteBuildTest(unittest.TestCase):
         rendered = load_builder().markdown("## Repeat\n\n## Repeat\n", {"path": ROOT / "site/narratives/ticket-flow.md"}, {})
         self.assertIn('id="repeat"', rendered)
         self.assertIn('id="repeat-1"', rendered)
+
+    def test_underscore_emphasis_and_directional_edge_anchors(self):
+        builder = load_builder()
+        self.assertEqual(builder.inline("_process_ and __important__", {"path": ROOT / "site/narratives/ticket-flow.md"}, {}), "<em>process</em> and <strong>important</strong>")
+        self.assertTrue(builder.edge_path(200, 0, 0, 0).startswith("M200,14"))
+        self.assertTrue(builder.edge_path(0, 28, 0, 0).startswith("M76,28"))
+
+    def test_leading_blank_h1_is_dropped_without_dropping_a_body_without_one(self):
+        builder = load_builder()
+        heading_body = builder.markdown("\n# Title\n\nText.\n", {"path": ROOT / "site/narratives/ticket-flow.md"}, {}, True)
+        no_heading_body = builder.markdown("\nText.\n", {"path": ROOT / "site/narratives/ticket-flow.md"}, {}, True)
+        self.assertNotIn("<h1", heading_body)
+        self.assertIn("Text.", heading_body)
+        self.assertIn("Text.", no_heading_body)
 
 
 if __name__ == "__main__":

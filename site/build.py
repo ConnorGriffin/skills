@@ -92,13 +92,19 @@ def inline(text: str, current: dict, skills: dict) -> str:
     escaped = re.sub(r"\[([^]]+)\]\(([^)]+)\)", link, escaped)
     escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
     escaped = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", escaped)
-    return re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<em>\1</em>", escaped)
+    escaped = re.sub(r"(?<!_)__([^_]+)__(?!_)", r"<strong>\1</strong>", escaped)
+    escaped = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<em>\1</em>", escaped)
+    return re.sub(r"(?<!_)_([^_]+)_(?!_)", r"<em>\1</em>", escaped)
 
 
 def markdown(body: str, current: dict, skills: dict, drop_leading_h1=False) -> str:
     lines, out, seen, i = body.splitlines(), [], defaultdict(int), 0
-    if drop_leading_h1 and lines and lines[0].startswith("# "):
-        i = 1
+    if drop_leading_h1:
+        heading_index = 0
+        while heading_index < len(lines) and not lines[heading_index].strip():
+            heading_index += 1
+        if heading_index < len(lines) and lines[heading_index].startswith("# "):
+            i = heading_index + 1
     def flush_paragraph(parts):
         if parts: out.append("<p>" + inline(" ".join(parts), current, skills) + "</p>")
     paragraph = []
@@ -134,6 +140,17 @@ def node(skill, x, y, width=152):
     return (f'<g class="node cat-{cat} n-{skill["name"]}" tabindex="0"><title>{skill["name"]} ({cat})</title>'
             f'<rect class="box" x="{x}" y="{y}" width="{width}" height="28" fill="var(--cat-bg)" stroke="var(--cat)"/>'
             f'<text class="nlabel" x="{x+9}" y="{y+18}" fill="var(--cat)">{skill["name"]}</text></g>')
+
+
+def edge_path(x, y, tx, ty):
+    """Route an edge through the sides of two fixed-size diagram boxes."""
+    if abs(tx - x) >= abs(ty - y):
+        start_x, end_x = (x + 152, tx) if tx >= x else (x, tx + 152)
+        direction = 36 if tx >= x else -36
+        return f"M{start_x},{y+14} C{start_x+direction},{y+14} {end_x-direction},{ty+14} {end_x},{ty+14}"
+    start_y, end_y = (y + 28, ty) if ty >= y else (y, ty + 28)
+    direction = 36 if ty >= y else -36
+    return f"M{x+76},{start_y} C{x+76},{start_y+direction} {tx+76},{end_y-direction} {tx+76},{end_y}"
 
 
 def diagram(skills, edges, kind="map", focus=None, flow=None):
@@ -175,15 +192,7 @@ def diagram(skills, edges, kind="map", focus=None, flow=None):
         if source in lookup and target in lookup:
             x, y = lookup[source]
             tx, ty = lookup[target]
-            if abs(tx - x) >= abs(ty - y):
-                start_x, end_x = (x + 152, tx) if tx >= x else (x, tx + 152)
-                direction = 36 if tx >= x else -36
-                path = f"M{start_x},{y+14} C{start_x+direction},{y+14} {end_x-direction},{ty+14} {end_x},{ty+14}"
-            else:
-                start_y, end_y = (y + 28, ty) if ty >= y else (y, ty + 28)
-                direction = 36 if ty >= y else -36
-                path = f"M{x+76},{start_y} C{x+76},{start_y+direction} {tx+76},{end_y-direction} {tx+76},{end_y}"
-            paths.append(f'<path class="edge e-{source} e-{target}" d="{path}" marker-end="url(#arw)"/>')
+            paths.append(f'<path class="edge e-{source} e-{target}" d="{edge_path(x, y, tx, ty)}" marker-end="url(#arw)"/>')
     return f'<svg class="diagram" viewBox="0 0 {width} {height}" role="img" aria-label="Relationship diagram for the skills pack."><defs><marker id="arw" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink-dim)"/></marker></defs>{labels}<g class="edges">{"".join(paths)}</g>{"".join(node(s,x,y) for s,x,y in positions)}</svg>'
 
 
