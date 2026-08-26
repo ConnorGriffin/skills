@@ -1,7 +1,7 @@
 # Ledger — planning-stack rework
 
 ## Status
-next: operator decisions — #147 disposition (build now or close as won't-do) and proposal archive. All other children closed; #187 (Terra replay) tracks outside the epic
+next: none — epic complete. All 25 children of #133 closed; proposal archived with this ledger; #187 replay owed-but-deferred outside the epic
 updated: 2026-08-25
 
 ## Notes
@@ -55,9 +55,10 @@ updated: 2026-08-25
 - #165 Builder self-check distilled from review blockers — merged (PR #180)
 
 ## Deferred
-- #147 Session-fit rule for chunked work orders — after 3b and #144/#145
+- #147 Session-fit rule for chunked work orders — merged (PR #189)
 
 ## Rounds
+- 2026-08-25 epic complete — #147 merged (PR #189) after two triage rounds, one build fix round, and an operator overrule stripping the coordinator-approved tamper guard as over-hardening (rulings in Decisions). #133's 25 children all closed. Archive executed: proposal and this ledger moved to openspec/changes/archive/epic-rework/, ledger PR #136 merged, #133 closed
 - 2026-08-25 epic children complete — #183 merged (PR #188) after the tuned process caught a real contradiction in the coordinator-authored ticket (drafter refused to draft, reviewer confirmed; ticket amended to observation-only notes, replay owed via #187). #140 closed as resolved. 23/25 children done; the two open are #147 (deferred by design, now unblocked) and #140's closure leaves #147 as the sole open build decision. Session totals: 14 PRs merged today (#170 #172-#180 #182 #184-#186 #188), 106 labels deleted across 7 repos, three process rules landed and immediately exercised
 - 2026-08-25 #159 #171 merged — #159 landed in its two-PR sequence (PR #184 proposal amendment, PR #185 skill mode; Full review's anchor-uniqueness finding fixed in place and proven red under duplicate-heading injection). #171 landed as PR #186 (drafting-conventions reference reaching fences/workers, fix-in-place rule with audit ledger, depth-floor qualifier; the order's Markdown-link literal amended to a backticked path because the validator resolves links file-relative — amendment on the issue; reviewer's stale-premise finding dispositioned, pins re-proven by coordinator in-body mutations after a first mutation landed outside the pinned region). Both issues closed, worktrees removed. Label cleanup executed across all 7 repos same day (Fog resolved). Queue: #183 only
 - 2026-08-25 #163 merged — Full review returned one real finding (closing anchors matched heading prefixes, so renaming `## Maintenance` passed the pins), fixed in place by the coordinator and proven red under the rename mutation; PR #182 merged on green CI, issue closed, worktree removed. The build queue is empty except #159 and #171
