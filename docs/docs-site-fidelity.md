@@ -7,26 +7,32 @@ produced per `ui-craft` `build`. One row per manifest term, all 27.
 
 | Artifact | SHA |
 |---|---|
-| Branch / base commit | `codex/198-docs-site` @ `4f6c2431592365fdb48b8c4c3b6f4b9e81087d8b` |
-| Ported from commits | `0d2cf18` (generated site), `bee47c7` (publish), `e97763c` + `4f6c243` (review fixes) |
+| Branch / base commit | `codex/198-docs-site` @ `e3abbbbb7b8b705bc31e839e5677c0ae14222988` |
+| Ported from commits | `0d2cf18` (generated site), `bee47c7` (publish), `e97763c` + `4f6c243` (review fixes), `e3abbbb` (heading/emphasis/edge fixes) |
 | `mockups/docs-site.lock.md` | `a654855bc3d95b621c83e803394666cf2b770003` |
 | `mockups/docs-site-index.html` | `0968f55787ad9d640df0208c78d283d629c604a7` |
 | `mockups/docs-site-skill.html` | `bd80501a93789660016f5f0692c2140e230bb616` |
 | `mockups/docs-site-narrative.html` | `d550f1cbc7b4effe5ec5453dc036a132cc0ed3d5` |
 | `mockups/_theme.css` | `33debf586cac2e62119248304f19b43f0742b43d` |
-| `site/build.py` | `20ee2cf53c28d840a6a4f512bb2cac1b06aff35f` |
+| `site/build.py` | `6966f07f39ac53da2d1cc18db8a4ff2e6653b55c` |
 | `site/style.css` (unchanged since `3c18680`) | `360570756094f9f705b2f091e6c45b754bf0be74` |
 | `site/relationships.py` | `d6aaa44c44ed6c38f3ac56da3c0d0f45237b3e33` |
 | `site/narratives/ticket-flow.md` | `465630cedb9833178598f7f2067b8e8882d9f96d` |
-| `tests/test_site_build.py` | `d420e38a27c0768d309f0271fc36c4d510d91526` |
+| `tests/test_site_build.py` | `74a086ed103eb337bc3fbec718baae47a5fb9d5a` |
 
 Rebuild: `python3 site/build.py --out _site` (from a cleared `_site/`). Suite:
-`python3 -m unittest tests.test_site_build` — **OK** (2 tests).
+`python3 -m unittest tests.test_site_build` — **OK** (4 tests).
 
-**This table describes the build at `4f6c243`.** It was refreshed after the review
-fixes; three rows changed verdict or evidence, and one of those is a new failure
-the fixes introduced. Every row below was re-run against this output, not
-carried over.
+**This table describes the build at `e3abbbb`.** Every row was re-run against
+this output, not carried over. All 27 terms are met; nothing is blocked and no
+re-settle is outstanding.
+
+The suite now pins the two regressions this ledger caught, so they cannot
+silently return:
+`test_leading_blank_h1_is_dropped_without_dropping_a_body_without_one` covers
+term 20 in both directions, and
+`test_underscore_emphasis_and_directional_edge_anchors` covers the emphasis and
+edge-routing fixes.
 
 ## Grading caveat — read before trusting this table
 
@@ -40,28 +46,26 @@ here. They are marked ✎ and want an independent eye.
 
 ## Evidence index
 
-Paired renders, mock beside build — `mockups/` on port 8861, `_site/` on 8860.
-Headless Chrome. **Not committed**: `.gitignore` excludes `*.png` and `lock.md`
-§6 keeps screenshots out of the repo.
+Paired renders, mock beside build — `mockups/` and `_site/` over
+`python3 -m http.server`, captured with headless Chrome. **Not committed**:
+`.gitignore` excludes `*.png` and `lock.md` §6 keeps screenshots out of the repo.
 
 Directory: `/private/tmp/claude-501/-Users-connor-Code-ConnorGriffin-skills/dfc11b06-7946-402d-8988-ebaceb922980/scratchpad/fidelity/` — 17 files.
 
-Re-captured for this refresh (the pages the review fixes changed):
+Every BUILD capture was re-taken at `e3abbbb`: the edge-routing change alters
+all three diagram types, and the heading and emphasis fixes alter every skill
+page.
 
-| File | Covers | Why re-captured |
-|---|---|---|
-| `index-1280-light-BUILD.png` | 5–9, 11–17, 24 | term 17 blurbs; masthead duplication and casing fixed |
-| `index-1280-dark-BUILD.png` | 13, 14 | same, dark |
-| `index-375-light-BUILD.png` | 10, 15 | same, mobile |
-| `narrative-1280-light-BUILD.png` | 22, 23 | narrative inline-style scoping + text fixes |
-| `narrative-1280-dark-BUILD.png` | 22, 23 | same, dark |
-| `skill-wfa-1280-light-BUILD.png` | 17–21, 26, 27 | `writing-for-agents` body was empty, now renders; also the leaf case for term 21's empty bands |
-| `skill-1280-light-BUILD.png` | 18–21, **20** | shows the new double-`<h1>` regression, and `/ui-craft` + real `Bundled` |
-| `skill-1280-dark-BUILD.png` | 13, 14, 18–21 | same, dark |
+| File | Covers |
+|---|---|
+| `index-1280-{light,dark}-BUILD.png` | 4–9, 11–17, 24, 25 |
+| `index-{375,768,1440}-light-BUILD.png` | 10, 15 |
+| `skill-1280-{light,dark}-BUILD.png` | 18–21, 26, 27 — and the dropped duplicate `<h1>` plus italic emphasis |
+| `skill-wfa-1280-light-BUILD.png` | 17–21 — full body, and term 21's empty-band leaf case |
+| `narrative-1280-{light,dark}-BUILD.png` | 22, 23 — and direction-aware edges |
 
-Unchanged from the previous pass (still current — the fixes did not touch what
-they evidence): `index-{1280-light,1280-dark,375-light}-MOCK.png`,
-`index-{768-light,1440-light}-BUILD.png`,
+MOCK captures are unchanged; the mock has not moved since the lock:
+`index-{1280-light,1280-dark,375-light}-MOCK.png`,
 `skill-1280-{light,dark}-MOCK.png`, `narrative-1280-{light,dark}-MOCK.png`.
 
 ## Ledger
@@ -87,7 +91,7 @@ they evidence): `index-{1280-light,1280-dark,375-light}-MOCK.png`,
 | 17 | Skill entry = name + **first sentence** of the real description | met | **Was blocked; fixed in `e97763c`.** Re-verified against this build: 0 of 27 descriptions differ from the first-sentence rule. `writing-for-agents` now renders in full, through "…audits the loaded skill and CLAUDE.md/AGENTS.md estate." — the `CLAUDE.md` truncation is gone |
 | 18 ✎ | Skill page order: tag, name, description, meta, map, body | met **after fix** | **Was missed**: tag rendered *after* the description. Fixed in `site/build.py` `chrome(tag=…)` — tag now inside the masthead before `<h1>`. Pair `skill-1280-light` |
 | 19 | Meta = Invoke, Requires, Bundled, Source; Requires from `relationships.py` | met | Four `<dt>` in locked order; Requires text matches the `requirements` field for all 27 skills (0 mismatches); empty field renders empty |
-| 20 | One `<h1>`, body's leading heading dropped | **blocked** | **Regression introduced by `e97763c`.** 24 of 27 skill pages now render two `<h1>`s — the page title and the body's own (`ui-craft` shows "ui-craft" then a large unstyled "UI craft"). Only the 3 skills with no top-level body heading pass. Text logic, not CSS/SVG: **reported, not fixed** (see below). Pair `skill-1280-light-BUILD` |
+| 20 | One `<h1>`, body's leading heading dropped | met | **Was blocked at `4f6c243`; fixed in `e3abbbb`.** Re-verified: 0 of 31 pages carry a second `<h1>`, and 0 skill bodies are empty — the two constraints that previously traded off now hold together, and a test pins both. Pair `skill-1280-light-BUILD` |
 | 21 ✎ | Focused map: `referenced by` / self / `references` | met **after fix** | **Was missed**: bands were labelled `workflows`/`drivers`/`tools` at map coordinates — wrong text *and* misaligned, since either band mixes categories. Fixed in `site/build.py` `diagram()`; labels now `referenced by` / `references`. Pair `skill-1280-light` |
 | 22 | Narrative: prose at measure, one flow diagram, above the prose | met | One `<figure>` precedes `.prose.body`; boxes carry category colours |
 | 23 ✎ | Flow wraps serpentine | met **after fix** | **Was missed**: rows both ran left-to-right, so step 3→4 wrapped diagonally across the figure. Fixed in `site/build.py` `diagram()`; row 0 x=24/224/424, row 1 x=424/224. Pair `narrative-1280-light` |
@@ -96,71 +100,42 @@ they evidence): `index-{1280-light,1280-dark,375-light}-MOCK.png`,
 | 26 | Body link destinations; fragment split and re-attached | met | All 92 body links resolve: 51 blob (every path exists on disk), 7 cross-page skill links, 2 fragments, 32 off-repo passthrough. `../scope/SKILL.md#risk-contract` → `scope.html#risk-contract` |
 | 27 | Deterministic GitHub-style heading slugs; fragments resolve | met | Every fragment resolves to an emitted heading id on its target page: 2 same-page, 3 cross-page. Slug rule matches on punctuation and duplicate cases |
 
-**Counts: 26 met, 0 re-settle requested, 1 blocked** (term 20).
+**Counts: 27 met, 0 re-settle requested, 0 blocked.**
 
-Movement since the previous ledger: term 17 blocked → met, term 20 met →
-blocked, term 2's evidence corrected. Five of the 26 met rows are ✎ self-graded
-because I authored their fix; all five were re-verified against this build.
+Movement since the previous ledger: term 20 blocked → met. Nothing else changed
+verdict. Five of the 27 met rows are ✎ self-graded because I authored their fix
+(terms 7, 14, 18, 21, 23); all five were re-verified against this build, and
+they remain the weakest evidence in the table.
 
-## Generator-logic gaps — reported, not fixed
+Mechanical re-verification at `e3abbbb`, across all 31 pages: no `<script>` or
+inline handler; one stylesheet and one scoped `<style>` per page; no fetched
+asset; every chrome link to the skills repo; 27 nodes and 36 edges matching
+`relationships.py` with every endpoint a real skill directory; all 27 isolation
+rules present; 95 body links resolving (2 same-page fragments, 7 cross-page, 54
+blob, 32 off-repo); 0 of 27 descriptions deviating from the first-sentence
+rule.
 
-Outside the visual/CSS/SVG remit. None of these are CSS or SVG.
+## Generator-logic gaps
 
-### Open
+**None open.** Every gap this ledger raised has been fixed in the generator and
+re-verified against the build at `e3abbbb`.
 
-1. **Term 20 — two `<h1>`s per skill page (blocking).** `site/build.py`
-   `markdown()`:
+Closed over the course of the build phase:
 
-   ```python
-   if drop_leading_h1 and lines and lines[0].startswith("# "):
-   ```
+| Gap | Fixed in | Verified now |
+|---|---|---|
+| Term 17 — `description.split(".")[0]` truncated at `CLAUDE.md` | `e97763c` | 0 of 27 descriptions deviate from the first-sentence rule |
+| Term 20 — leading `<h1>` no longer dropped, 24 pages with a duplicate title | `e3abbbb` | 0 of 31 pages carry a second `<h1>`, 0 empty bodies; a test pins both directions |
+| Empty `writing-for-agents` body | `e97763c` / `e3abbbb` | Body renders in full |
+| Index masthead stated the same sentence twice | `4f6c243` | Subtitle gone; the lede carries it |
+| `<h1>` read `Skills`, pack is lowercase `skills` | `4f6c243` | Renders `skills` |
+| `Bundled` hard-coded to `SKILL.md` | `4f6c243` | `ui-craft` shows `SKILL.md + agents/ + reference/ + scripts/` |
+| `Invoke` missing its leading slash | `4f6c243` | Renders `/ui-craft` |
+| Underscore emphasis rendered literally | `e3abbbb` | 0 literal `_…_` on `writing-for-agents`; 24 `<em>` elements |
+| Edge anchors ignored direction | `e3abbbb` | `edge_path()` picks the side by relative position; the narrative flow's right-to-left row now points left instead of crossing the figure |
 
-   A SKILL.md body always begins with a blank line once frontmatter is
-   stripped, so `lines[0]` is `""` and the drop never fires. 24 of 27 skill
-   pages render the body's `# Title` as a second `<h1>`; the 3 that pass have
-   no top-level body heading at all, so there is nothing to drop.
-
-   The predecessor scanned forward to the first `# ` line and dropped it, which
-   is why the previous ledger recorded term 20 as met — but it also consumed
-   the *entire* body when no such line existed, which is the empty
-   `writing-for-agents` bug `e97763c` set out to fix. Both are satisfied by
-   skipping leading blanks first and then dropping only if that line is a
-   top-level heading:
-
-   ```python
-   while i < len(lines) and not lines[i].strip():
-       i += 1
-   if drop_leading_h1 and i < len(lines) and lines[i].startswith("# "):
-       i += 1
-   else:
-       i = 0
-   ```
-
-   Verified in a scratch copy of `build.py` (not committed): 0 skill pages with
-   a duplicate `<h1>` **and** 0 empty bodies — it satisfies both constraints at
-   once, so fixing term 20 need not re-break `writing-for-agents`.
-
-2. **Underscore emphasis renders literally.** `_process_` and `_and_` appear
-   verbatim on the `writing-for-agents` page (4 occurrences). `inline()`
-   handles `**bold**` but not `_em_`. Not a numbered term — no term pins
-   emphasis — but it is visible body text.
-
-3. **Edge anchors ignore direction.** Every edge leaves the source's right side
-   and enters the target's left, even when the target sits to the left, so
-   backward edges cross their own boxes. The mock chose the side by relative
-   position. Not a numbered term; most visible on the narrative flow.
-
-### Fixed since the previous ledger
-
-Verified against this build, no longer outstanding:
-
-- Term 17's first-sentence rule (`e97763c`) — see the ledger row.
-- Index masthead no longer states the same sentence twice; the subtitle is gone
-  and the lede carries it.
-- `<h1>` now reads `skills`, lowercase, matching the mock and the footer.
-- `Bundled` now lists what the skill actually ships — `ui-craft` shows
-  `SKILL.md + agents/ + reference/ + scripts/`.
-- `Invoke` now renders `/ui-craft` with the leading slash.
+The last two were never numbered terms — no term pins emphasis or edge routing —
+but both were visible body content, and both are now correct.
 
 ## Recorded deviations (carried forward)
 
