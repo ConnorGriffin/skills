@@ -203,7 +203,8 @@ def diagram(skills, edges, kind="map", focus=None, flow=None):
             x, y = lookup[source]
             tx, ty = lookup[target]
             paths.append(f'<path class="edge e-{source} e-{target}" d="{edge_path(x, y, tx, ty)}" marker-end="url(#arw)"/>')
-    return f'<svg class="diagram" viewBox="0 0 {width} {height}" role="img" aria-label="Relationship diagram for the skills pack."><defs><marker id="arw" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink-dim)"/></marker></defs>{labels}<g class="edges">{"".join(paths)}</g>{"".join(node(s,x,y) for s,x,y in positions)}</svg>'
+    diagram_class = "diagram" if flow else "diagram isolating"
+    return f'<svg class="{diagram_class}" viewBox="0 0 {width} {height}" role="img" aria-label="Relationship diagram for the skills pack."><defs><marker id="arw" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink-dim)"/></marker></defs>{labels}<g class="edges">{"".join(paths)}</g>{"".join(node(s,x,y) for s,x,y in positions)}</svg>'
 
 
 def isolation_style(skills, names):

@@ -42,7 +42,7 @@ class SiteBuildTest(unittest.TestCase):
                 self.assertNotRegex(text, r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
                 self.assertNotRegex(text, r"<(?:script|img)\b")
                 self.assertNotRegex(text, r"<(?:link|script)\b[^>]+https?://")
-                self.assertIn('<svg class="diagram"', text)
+                self.assertIn('<svg class="diagram', text)
                 self.assertNotRegex(text, r'<div class="prose body">\s*</div>')
                 for pattern in FORBIDDEN: self.assertIsNone(pattern.search(text), pattern.pattern)
             stylesheet = (output / "style.css").read_text()
@@ -55,6 +55,9 @@ class SiteBuildTest(unittest.TestCase):
                 for style in styles: self.assertIn(".diagram:has(", style)
             for page in (output / "workflows").glob("*.html"):
                 self.assertNotIn("<style>", page.read_text())
+                self.assertNotIn('class="diagram isolating"', page.read_text())
+            self.assertIn('class="diagram isolating"', (output / "index.html").read_text())
+            self.assertIn(".diagram.isolating:has(.node:hover) .edge", stylesheet)
             self.assertEqual(re.findall(r"<dt>([^<]+)</dt>", skill_page), ["Invoke", "Requires", "Bundled", "Source"])
             skill_pages = list((output / "skills").glob("*.html"))
             duplicate_h1_pages = [page.name for page in skill_pages if len(re.findall(r"<h1\b", page.read_text())) != 1]
