@@ -182,6 +182,10 @@ the branch, and its change record already belongs to the parent epic.
 
 For a flat order, copy the already-selected execution row's `Ladder` value from [`routing-table.md`](../../orchestrate/references/routing-table.md) into the template's `Session fit:` paragraph, keeping each model's display name and ladder order.
 
+### Chunked session fit
+
+For a chunked order, select one coordinator execution row with the same grounded, fail-closed classification rule that selects a flat order's execution row. Copy that row's `Ladder` value into exactly one `Session fit:` paragraph in every sub-order fence, keeping each model's display name and ladder order, and annotate each paragraph with exactly one `selected Agent rung: <Rung>`. A missing, duplicate, malformed, unresolved, or ineligible ladder or selected rung returns through `/scope` and produces no draft or comment.
+
 12. **Adversarial review, mandatory.** Every draft order gets reviewed before it is
     shown to the user or posted; there is no unreviewed path to step 13. Run
     `/plan-review` against the draft: it spawns cold reviewer agents with the

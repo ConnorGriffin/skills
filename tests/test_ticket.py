@@ -41,17 +41,45 @@ SESSION_FIT_MODEL_CHECK_BODY = (
     "On a flat order with `Session fit:`, a session whose system-prompt model is named "
     "in that paragraph at or above the selected rung proceeds directly to step 4, "
     "skipping the remainder of Model-check and without asking about model fit or "
-    "effort. Otherwise, the order's `Open as:` line names a required model and effort. "
-    "A session cannot reliably introspect its own reasoning effort from context, so do "
-    "not guess it, and do not answer from memory of an earlier guess. State the model "
-    "name this session's own system prompt reports, then ask the user in prose to "
-    "confirm the effort level this session is running. Compare both against `Open as:`. "
-    "Weaker on either axis: say so and stop, so the user relaunches correctly. Same or "
-    "stronger on both: proceed. On a chunked order, also check every `SUB-ORDER`'s "
-    "`Agent:` line against the confirmed model: the session must be at least as strong "
-    "as the strongest chunk. Weaker than any one of them and the whole order is "
-    "refused. Never run part of it, and never launch an agent smarter than the "
-    "coordinator."
+    "effort."
+)
+CHUNKED_SESSION_FIT_TEMPLATE_BODY = (
+    "Session fit: <the selected execution row's Ladder value, with each model's display "
+    "name in ladder order>; selected Agent rung: <Rung>. A Claude or Codex coordinator "
+    "whose "
+    "system-prompt model is named in this paragraph at or above the selected Agent rung "
+    "proceeds directly to step 4, skipping the remainder of Model-check and without "
+    "asking about model fit or effort."
+)
+CHUNKED_SESSION_FIT_TRIAGE_BODY = (
+    "For a chunked order, select one coordinator execution row with the same grounded, "
+    "fail-closed classification rule that selects a flat order's execution row. Copy that "
+    "row's `Ladder` value into exactly one `Session fit:` paragraph in every sub-order "
+    "fence, keeping each model's display name and ladder order, and annotate each "
+    "paragraph with exactly one `selected Agent rung: <Rung>`. A missing, duplicate, "
+    "malformed, unresolved, or ineligible ladder or selected rung returns through `/scope` "
+    "and produces no draft or comment."
+)
+CHUNKED_SESSION_FIT_MODEL_CHECK_BODY = (
+    "On a flat order with `Session fit:`, a session whose system-prompt model is named "
+    "in that paragraph at or above the selected rung proceeds directly to step 4, "
+    "skipping the remainder of Model-check and without asking about model fit or effort. "
+    "On a chunked order, take that same fast path only when every `SUB-ORDER` has exactly "
+    "one `Session fit:` paragraph whose ladder is an ordered non-empty sequence of "
+    "display-name rungs byte-identical across every `SUB-ORDER`, whose exactly one "
+    "`selected Agent rung: <Rung>` annotation names exactly one rung in that paragraph, "
+    "and whose coordinator system-prompt model is named at or above that selected rung "
+    "in every paragraph. Otherwise, the order's `Open as:` line names a required model "
+    "and effort. "
+    "A session cannot reliably introspect its own reasoning effort from context, so do not "
+    "guess it, and do not answer from memory of an earlier guess. State the model name this "
+    "session's own system prompt reports, then ask the user in prose to confirm the effort "
+    "level this session is running. Compare both against `Open as:`. Weaker on either axis: "
+    "say so and stop, so the user relaunches correctly. Same or stronger on both: proceed. "
+    "On a chunked order, also check every `SUB-ORDER`'s `Agent:` line against the confirmed "
+    "model: the session must be at least as strong as the strongest chunk. Weaker than any "
+    "one of them and the whole order is refused. Never run part of it, and never launch an "
+    "agent smarter than the coordinator."
 )
 BUILDER_SELF_CHECK_BODY = (
     "Before declaring the change ready, run each check below.\n"
@@ -309,17 +337,17 @@ class TicketSkillContractTests(unittest.TestCase):
         )[0]
         triage_body = triage.split(
             "value matches the route and contract artifacts settled in step 7.", 1
-        )[1].split("\n\n12. **Adversarial review, mandatory.**", 1)[0]
+        )[1].split("\n\n### Chunked session fit", 1)[0]
         model_check_body = start.split("3. **Model-check.** ", 1)[1].split(
             "\n\n4. **Worktree and branch.", 1
         )[0]
 
         self.assertEqual(template_body, SESSION_FIT_TEMPLATE_BODY)
         self.assertEqual(triage_body, SESSION_FIT_TRIAGE_BODY)
-        self.assertEqual(model_check_body, SESSION_FIT_MODEL_CHECK_BODY)
+        self.assertTrue(model_check_body.startswith(SESSION_FIT_MODEL_CHECK_BODY))
         self.assertEqual(flat_order.count("Session fit:"), 1)
         self.assertNotIn("Session fit:", chunked_header)
-        self.assertNotIn("Session fit:", sub_order)
+        self.assertIn("Session fit:", sub_order)
         self.assertIn(
             "State the model name this session's own system prompt reports",
             model_check_body,
@@ -328,6 +356,52 @@ class TicketSkillContractTests(unittest.TestCase):
             "On a chunked order, also check every `SUB-ORDER`'s `Agent:` line",
             model_check_body,
         )
+
+    def test_chunked_session_fit_template_body_is_canonical_raw_bytes(self):
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_bytes()
+        template.decode("utf-8")
+        opening = b"### Session fit\n\n"
+        closing = b"\n\n### Builder self-check"
+        chunked_header = template.split(b"## Chunked\n", 1)[1].split(
+            b"SUB-ORDER 1/<n>", 1
+        )[0]
+        sub_order = template.split(b"SUB-ORDER 1/<n>", 1)[1].split(b"\n```", 1)[0]
+
+        self.assertEqual(sub_order.count(b"### Session fit"), 1)
+        self.assertEqual(chunked_header.count(b"### Session fit"), 0)
+        self.assertEqual(sub_order.count(opening), 1)
+        self.assertEqual(sub_order.count(b"Session fit:"), 1)
+        self.assertNotIn(b"Session fit:", chunked_header)
+        body = sub_order.split(opening, 1)[1].split(closing, 1)[0]
+        self.assertEqual(body, CHUNKED_SESSION_FIT_TEMPLATE_BODY.encode())
+        self.assertIn(b"selected Agent rung: <Rung>", body)
+
+    def test_chunked_session_fit_triage_body_is_canonical_raw_bytes(self):
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_bytes()
+        triage.decode("utf-8")
+        opening = b"### Chunked session fit\n\n"
+        closing = b"\n\n12. **Adversarial review, mandatory.**"
+
+        self.assertEqual(triage.count(opening), 1)
+        body = triage.split(opening, 1)[1].split(closing, 1)[0]
+        self.assertEqual(body, CHUNKED_SESSION_FIT_TRIAGE_BODY.encode())
+        self.assertIn(b"one coordinator execution row", body)
+        self.assertIn(b"selected Agent rung: <Rung>", body)
+        self.assertIn(b"missing, duplicate, malformed, unresolved, or ineligible", body)
+
+    def test_chunked_session_fit_model_check_body_is_canonical_raw_bytes(self):
+        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_bytes()
+        start.decode("utf-8")
+        opening = b"3. **Model-check.** "
+        closing = b"\n\n4. **Worktree and branch."
+
+        self.assertEqual(start.count(opening), 1)
+        body = start.split(opening, 1)[1].split(closing, 1)[0]
+        self.assertEqual(body, CHUNKED_SESSION_FIT_MODEL_CHECK_BODY.encode())
+        self.assertIn(b"byte-identical across every `SUB-ORDER`", body)
+        self.assertIn(b"exactly one `selected Agent rung: <Rung>` annotation", body)
+        self.assertIn(b"Otherwise, the order's `Open as:` line", body)
+        self.assertIn(b"strongest chunk", body)
 
     def test_chunk_contract_owns_capabilities_and_shared_contracts_once(self):
         slicing = (TICKET_DIRECTORY / "references" / "slicing.md").read_text(
