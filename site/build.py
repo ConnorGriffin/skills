@@ -97,10 +97,8 @@ def inline(text: str, current: dict, skills: dict) -> str:
 
 def markdown(body: str, current: dict, skills: dict, drop_leading_h1=False) -> str:
     lines, out, seen, i = body.splitlines(), [], defaultdict(int), 0
-    if drop_leading_h1:
-        while i < len(lines) and not lines[i].startswith("# "):
-            i += 1
-        if i < len(lines): i += 1
+    if drop_leading_h1 and lines and lines[0].startswith("# "):
+        i = 1
     def flush_paragraph(parts):
         if parts: out.append("<p>" + inline(" ".join(parts), current, skills) + "</p>")
     paragraph = []
@@ -189,11 +187,12 @@ def diagram(skills, edges, kind="map", focus=None, flow=None):
     return f'<svg class="diagram" viewBox="0 0 {width} {height}" role="img" aria-label="Relationship diagram for the skills pack."><defs><marker id="arw" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink-dim)"/></marker></defs>{labels}<g class="edges">{"".join(paths)}</g>{"".join(node(s,x,y) for s,x,y in positions)}</svg>'
 
 
-def isolation_style(skills):
+def isolation_style(skills, names):
     return "".join(
         f'.diagram:has(.n-{name}:hover) .e-{name},.diagram:has(.n-{name}:focus-visible) .e-{name}'
         f'{{opacity:.95;stroke:var(--c-{skill["category"].rstrip("s")});stroke-width:1.4}}'
-        for name, skill in skills.items()
+        for name in sorted(names)
+        for skill in [skills[name]]
     )
 
 
@@ -201,7 +200,11 @@ def chrome(title, subtitle, current, prefix="", style="", tag=""):
     nav=[("Overview", f"{prefix}index.html", current=="Overview"), ("Workflows", f"{prefix}index.html#workflows", current=="Workflows"), ("Drivers", f"{prefix}index.html#drivers", current=="Drivers"), ("Tools", f"{prefix}index.html#tools", current=="Tools"), ("The ticket flow", f"{prefix}workflows/ticket-flow.html", current=="The ticket flow"), ("Source on GitHub", GITHUB, False)]
     tagmark=f'<span class="tag">{tag}</span>' if tag else ""
     tagclass=f" cat-{tag}" if tag else ""
-    links="".join(f'<a href="{href}"{" aria-current=\"page\"" if active else ""}>{name}</a>' for name,href,active in nav)
+    links = "".join(
+        f'<a href="{href}">{name}</a>' if not active
+        else f'<a href="{href}" aria-current="page">{name}</a>'
+        for name, href, active in nav
+    )
     subtitle_html = f"<p>{subtitle}</p>" if subtitle else ""
     return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{title} — skills</title><link rel="stylesheet" href="{prefix}style.css"><style>{style}</style></head><body><div class="page"><nav class="sitenav">{links}</nav><header class="masthead{tagclass}">{tagmark}<h1>{title}</h1>{subtitle_html}</header>'
 
@@ -214,25 +217,32 @@ def build(out: Path):
     if set(skills) != set(relationships): raise ValueError("relationships.py must have exactly one entry for every skill")
     for name, data in relationships.items():
         if set(data) != {"uses", "requirements"} or any(target not in skills for target in data["uses"]): raise ValueError(f"invalid relationship for {name}")
-    out.mkdir(parents=True, exist_ok=True); (out / "skills").mkdir(exist_ok=True); (out / "workflows").mkdir(exist_ok=True)
+    if out.exists():
+        if out.is_dir():
+            shutil.rmtree(out)
+        else:
+            out.unlink()
+    out.mkdir(parents=True); (out / "skills").mkdir(); (out / "workflows").mkdir()
     shutil.copyfile(ROOT / "site/style.css", out / "style.css")
     tables=[]
     for category in CATEGORIES:
         entries=[s for s in skills.values() if s["category"]==category]
         rows="".join(f'<li><a class="name" href="skills/{s["name"]}.html">{s["name"]}</a><span class="desc">{first_sentence(s["description"])}</span></li>' for s in entries)
         tables.append(f'<section class="cat-{category}" id="{category}"><div class="cathead"><h2>{category}</h2><span class="count">{len(entries)}</span></div><p>{BLURBS[category]}</p><ul class="skills">{rows}</ul></section>')
-    style = isolation_style(skills)
-    index=chrome("skills", "", "Overview", style=style) + '<p class="prose">A portable skill pack for coding agents. Twenty-seven skills that turn a vague request into tracked work, that work into a reviewed pull request, and that pull request into merged history — with the decisions written down as they are made.</p><figure class="figure"><div class="diagram-scroll">' + diagram(skills,relationships) + '</div><div class="legend"><span class="cat-workflows"><i></i>workflows</span><span class="cat-drivers"><i></i>drivers</span><span class="cat-tools"><i></i>tools</span><span>→ references</span></div><figcaption>Every skill in the pack, and every skill it names. Hover or tab to a box to isolate that skill’s references.</figcaption></figure><div class="catgrid"><div class="catcol">' + tables[0]+tables[1] + '</div><div class="catcol cat-tools">'+tables[2]+'</div></div>'+footer()
+    index_style = isolation_style(skills, skills)
+    index=chrome("skills", "", "Overview", style=index_style) + '<p class="prose">A portable skill pack for coding agents. Twenty-seven skills that turn a vague request into tracked work, that work into a reviewed pull request, and that pull request into merged history — with the decisions written down as they are made.</p><figure class="figure"><div class="diagram-scroll">' + diagram(skills,relationships) + '</div><div class="legend"><span class="cat-workflows"><i></i>workflows</span><span class="cat-drivers"><i></i>drivers</span><span class="cat-tools"><i></i>tools</span><span>→ references</span></div><figcaption>Every skill in the pack, and every skill it names. Hover or tab to a box to isolate that skill’s references.</figcaption></figure><div class="catgrid"><div class="catcol">' + tables[0]+tables[1] + '</div><div class="catcol cat-tools">'+tables[2]+'</div></div>'+footer()
     (out / "index.html").write_text(index)
     for skill in skills.values():
         n=skill["name"]; incoming=[x for x,d in relationships.items() if n in d["uses"]]; outgoing=relationships[n]["uses"]
         body=markdown(skill["body"],skill,skills,True)
-        content=chrome(n, skill["description"], skill["category"].title(), "../", style, tag=skill["category"]) + f'<dl class="meta"><dt>Invoke</dt><dd>/{n}</dd><dt>Requires</dt><dd>{inline(relationships[n]["requirements"],skill,skills)}</dd><dt>Bundled</dt><dd>{bundled_contents(skill)}</dd><dt>Source</dt><dd><a href="{GITHUB}/blob/main/{skill["path"].relative_to(ROOT).as_posix()}">SKILL.md</a></dd></dl><figure class="figure"><div class="diagram-scroll">{diagram(skills,relationships,focus=n)}</div><figcaption>{len(incoming)} skills name <code>{n}</code>; it names {len(outgoing)}.</figcaption></figure><h2>SKILL.md</h2><div class="prose body">{body}</div>'+footer()
+        skill_style = isolation_style(skills, set(incoming + [n] + outgoing))
+        content=chrome(n, skill["description"], skill["category"].title(), "../", skill_style, tag=skill["category"]) + f'<dl class="meta"><dt>Invoke</dt><dd>/{n}</dd><dt>Requires</dt><dd>{inline(relationships[n]["requirements"],skill,skills)}</dd><dt>Bundled</dt><dd>{bundled_contents(skill)}</dd><dt>Source</dt><dd><a href="{GITHUB}/blob/main/{skill["path"].relative_to(ROOT).as_posix()}">SKILL.md</a></dd></dl><figure class="figure"><div class="diagram-scroll">{diagram(skills,relationships,focus=n)}</div><figcaption>{len(incoming)} skills name <code>{n}</code>; it names {len(outgoing)}.</figcaption></figure><h2>SKILL.md</h2><div class="prose body">{body}</div>'+footer()
         (out / "skills" / f"{n}.html").write_text(content)
     for path in sorted((ROOT / "site/narratives").glob("*.md")):
         meta, body=frontmatter(path.read_text()); flow=[x.strip() for x in meta["flow"].split(",")]
         if any(x not in skills for x in flow): raise ValueError(f"unknown flow endpoint in {path}")
-        current={"path":path,"name":path.stem}; content=chrome(meta["title"],meta["description"], "The ticket flow" if path.stem=="ticket-flow" else "", "../", style) + f'<figure class="figure"><div class="diagram-scroll">{diagram(skills,relationships,flow=flow)}</div><figcaption>The common path. Boxes are coloured by the category of the skill that owns the step.</figcaption></figure><div class="prose body">{markdown(body,current,skills)}</div>'+footer()
+        narrative_style = isolation_style(skills, flow)
+        current={"path":path,"name":path.stem}; content=chrome(meta["title"],meta["description"], "The ticket flow" if path.stem=="ticket-flow" else "", "../", narrative_style) + f'<figure class="figure"><div class="diagram-scroll">{diagram(skills,relationships,flow=flow)}</div><figcaption>The common path. Boxes are coloured by the category of the skill that owns the step.</figcaption></figure><div class="prose body">{markdown(body,current,skills)}</div>'+footer()
         (out / "workflows" / f"{path.stem}.html").write_text(content)
 
 
