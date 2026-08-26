@@ -122,9 +122,15 @@ def node(skill, x, y, width=152):
 
 
 def diagram(skills, edges, kind="map", focus=None, flow=None):
+    labels=""
     if flow:
+        # Serpentine: rows alternate direction, so consecutive steps stay
+        # adjacent instead of wrapping back across the whole figure (lock term 23).
         listed=[skills[n] for n in flow]; positions=[]
-        for i, skill in enumerate(listed): positions.append((skill, 24 + (i % 3)*200, 16 + (i//3)*74))
+        for i, skill in enumerate(listed):
+            row, col = divmod(i, 3)
+            if row % 2: col = 2 - col
+            positions.append((skill, 24 + col*200, 16 + row*74))
         height=74*((len(listed)-1)//3+1)+34; width=624
     elif focus:
         incoming=[skills[n] for n, data in edges.items() if focus in data["uses"]]; outgoing=[skills[n] for n in edges[focus]["uses"]]
@@ -132,17 +138,27 @@ def diagram(skills, edges, kind="map", focus=None, flow=None):
         for col, group in enumerate((incoming, [skills[focus]], outgoing)):
             for row, skill in enumerate(group): positions.append((skill, 24+col*200, 42+row*42))
         width=624; height=max(150, 72+42*max(len(incoming),len(outgoing),1))
+        # Bands say what the columns MEAN; category names here would be wrong,
+        # because either band mixes categories (lock term 21).
+        labels=('<text class="glabel" x="24" y="28">referenced by</text>'
+                '<text class="glabel" x="424" y="28">references</text>')
     else:
-        positions=[]; width=900; height=max(210, 64+max(sum(1 for s in skills.values() if s["category"]==c) for c in CATEGORIES)*36)
-        cols={"workflows": 24, "drivers": 248, "tools": 472}; rows=defaultdict(int)
-        for category in CATEGORIES:
-            for skill in [s for s in skills.values() if s["category"]==category]: positions.append((skill,cols[category],54+rows[category]*36)); rows[category]+=1
+        positions=[]; width=900; rows=defaultdict(int)
+        # Tools is far longer than the other two; it runs in two sub-columns so
+        # the map stays wide rather than tall (lock term 7).
+        by_category={c:[s for s in skills.values() if s["category"]==c] for c in CATEGORIES}
+        split=(len(by_category["tools"])+1)//2
+        columns=[("workflows", by_category["workflows"], 24), ("drivers", by_category["drivers"], 248),
+                 ("tools", by_category["tools"][:split], 472), (None, by_category["tools"][split:], 684)]
+        for _, members, x in columns:
+            for i, skill in enumerate(members): positions.append((skill, x, 54+i*36))
+        height=max(210, 64+max(len(m) for _, m, _ in columns)*36)
+        labels="".join(f'<text class="glabel" x="{x}" y="28">{c}</text>' for c, _, x in columns if c)
     lookup={s["name"]:(x,y) for s,x,y in positions}; paths=[]
     connections=list(zip(flow, flow[1:])) if flow else [(a,b) for a,d in edges.items() for b in d["uses"] if a in lookup and b in lookup]
     for source,target in connections:
         if source in lookup and target in lookup:
             x,y=lookup[source]; tx,ty=lookup[target]; paths.append(f'<path class="edge e-{source} e-{target}" d="M{x+152},{y+14} C{x+170},{y+14} {tx-18},{ty+14} {tx},{ty+14}" marker-end="url(#arw)"/>')
-    labels = "" if kind != "map" else "".join(f'<text class="glabel" x="{x}" y="28">{c}</text>' for c,x in (("workflows",24),("drivers",248),("tools",472)))
     return f'<svg class="diagram" viewBox="0 0 {width} {height}" role="img" aria-label="Relationship diagram for the skills pack."><defs><marker id="arw" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink-dim)"/></marker></defs>{labels}<g class="edges">{"".join(paths)}</g>{"".join(node(s,x,y) for s,x,y in positions)}</svg>'
 
 
@@ -154,10 +170,12 @@ def isolation_style(skills):
     )
 
 
-def chrome(title, subtitle, current, prefix="", style=""):
+def chrome(title, subtitle, current, prefix="", style="", tag=""):
     nav=[("Overview", f"{prefix}index.html", current=="Overview"), ("Workflows", f"{prefix}index.html#workflows", current=="Workflows"), ("Drivers", f"{prefix}index.html#drivers", current=="Drivers"), ("Tools", f"{prefix}index.html#tools", current=="Tools"), ("The ticket flow", f"{prefix}workflows/ticket-flow.html", current=="The ticket flow"), ("Source on GitHub", GITHUB, False)]
+    tagmark=f'<span class="tag">{tag}</span>' if tag else ""
+    tagclass=f" cat-{tag}" if tag else ""
     links="".join(f'<a href="{href}"{" aria-current=\"page\"" if active else ""}>{name}</a>' for name,href,active in nav)
-    return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{title} — skills</title><link rel="stylesheet" href="{prefix}style.css"><style>{style}</style></head><body><div class="page"><nav class="sitenav">{links}</nav><header class="masthead"><h1>{title}</h1><p>{subtitle}</p></header>'
+    return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{title} — skills</title><link rel="stylesheet" href="{prefix}style.css"><style>{style}</style></head><body><div class="page"><nav class="sitenav">{links}</nav><header class="masthead{tagclass}">{tagmark}<h1>{title}</h1><p>{subtitle}</p></header>'
 
 
 def footer(): return f'<footer class="foot">skills — Connor Griffin · MIT · generated from the SKILL.md files, hand-authored narratives, and hand-maintained relationship data in <a href="{GITHUB}">the repository</a></footer></div></body></html>'
@@ -181,7 +199,7 @@ def build(out: Path):
     for skill in skills.values():
         n=skill["name"]; incoming=[x for x,d in relationships.items() if n in d["uses"]]; outgoing=relationships[n]["uses"]
         body=markdown(skill["body"],skill,skills,True)
-        content=chrome(n, skill["description"], skill["category"].title(), "../", style) + f'<span class="tag cat-{skill["category"]}">{skill["category"]}</span><dl class="meta"><dt>Invoke</dt><dd>{n}</dd><dt>Requires</dt><dd>{inline(relationships[n]["requirements"],skill,skills)}</dd><dt>Bundled</dt><dd>SKILL.md</dd><dt>Source</dt><dd><a href="{GITHUB}/blob/main/{skill["path"].relative_to(ROOT).as_posix()}">SKILL.md</a></dd></dl><figure class="figure"><div class="diagram-scroll">{diagram(skills,relationships,focus=n)}</div><figcaption>{len(incoming)} skills name <code>{n}</code>; it names {len(outgoing)}.</figcaption></figure><h2>SKILL.md</h2><div class="prose body">{body}</div>'+footer()
+        content=chrome(n, skill["description"], skill["category"].title(), "../", style, tag=skill["category"]) + f'<dl class="meta"><dt>Invoke</dt><dd>{n}</dd><dt>Requires</dt><dd>{inline(relationships[n]["requirements"],skill,skills)}</dd><dt>Bundled</dt><dd>SKILL.md</dd><dt>Source</dt><dd><a href="{GITHUB}/blob/main/{skill["path"].relative_to(ROOT).as_posix()}">SKILL.md</a></dd></dl><figure class="figure"><div class="diagram-scroll">{diagram(skills,relationships,focus=n)}</div><figcaption>{len(incoming)} skills name <code>{n}</code>; it names {len(outgoing)}.</figcaption></figure><h2>SKILL.md</h2><div class="prose body">{body}</div>'+footer()
         (out / "skills" / f"{n}.html").write_text(content)
     for path in sorted((ROOT / "site/narratives").glob("*.md")):
         meta, body=frontmatter(path.read_text()); flow=[x.strip() for x in meta["flow"].split(",")]
