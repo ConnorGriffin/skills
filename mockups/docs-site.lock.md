@@ -1,7 +1,7 @@
 # Lock manifest — docs-site
 
 Locked: 2026-08-26 by Claude Fable 5 (ui-craft `lock`, issue #198)
-Re-settled: 2026-08-26 — terms 3, 4, 7, 19, the footer string, and new term 26 (see **Re-settled terms** below)
+Re-settled: 2026-08-26 — first pass: terms 3, 4, 7, 19, the footer string, new term 26. Second pass: term 3 again, term 26 clarified, new term 27 (see **Re-settled terms** below)
 Mocks: `docs-site-index.html`, `docs-site-skill.html`, `docs-site-narrative.html`, `_theme.css`, `SCAFFOLD.md`
 Supersedes: — (greenfield; this repo ships no application and no prior docs surface, so the predecessor inventory is skipped by the one-line greenfield rule in `lock.md` §9.3)
 
@@ -25,7 +25,7 @@ switcher: these are separate URLs, not modes of one screen.
 |---|------|------|-------------------|
 | 1 | Zero JavaScript ships. No `<script>` tag, no inline handler, no `javascript:` href, on any page. | gate | grep across built output |
 | 2 | Exactly one hand-written stylesheet, linked as `_theme.css` (renamed at build). Per-skill edge-isolation rules are generated into an inline `<style>` on the pages that carry an isolating map, and are the only other CSS. A page with no isolating map (the narrative template) carries no `<style>` at all. | gate | assertion: exactly one `<link rel=stylesheet>` per page; at most one `<style>`, containing only `.diagram:has(...)` rules |
-| 3 | No **fetched** asset: no external font, CDN, script, image, `@import`, or off-origin `url()`. Plain external *hyperlinks* to the GitHub repository are allowed and expected — the skill page's Source row, body links (term 26), and the footer each carry one. Every `src` resolves inside the site; an `href` may leave it, but only to `github.com/ConnorGriffin/skills`. *(Re-settled 2026-08-26.)* | gate | assertion: zero off-origin `<script>`/`<link>`/`@import`/`url(`; every off-site `href` matches the GitHub repo prefix |
+| 3 | No **fetched** asset anywhere: no external font, CDN, script, image, `@import`, or off-origin `url()`/`src`. *Hyperlinks* are governed by where they sit. **Site chrome** — the nav, the meta Source row, the footer — links only to `github.com/ConnorGriffin/skills`. **Rendered SKILL.md body content may link to any origin**, because real bodies do: `say-less` cites `github.com/ayghri/i-have-adhd` and `persona-review` cites `ConnorGriffin/follow-through`. A body link is never rewritten to the skills repo and never dropped. *(Re-settled 2026-08-26, second pass.)* | gate | assertion: zero off-origin `<script>`/`<link>`/`@import`/`url(`/`src`; every **chrome** `href` matches the skills-repo prefix; **body** `href`s unrestricted by origin but never `#` or empty |
 | 4 | Diagrams are build-time inline `<svg>` generated from the repository's own data — never a library, never a raster, never hand-drawn. Node and edge data come from `site/relationships.py` (term 7); the text in each box and each description comes from SKILL.md frontmatter (term 17). *(Re-settled 2026-08-26.)* | gate | assertion: `<svg class="diagram">` present, no chart library in output |
 | 5 | Every diagram box is coloured by its skill's category, using `--cat`/`--cat-bg`, on every page. Colour is the only carrier of category meaning in the palette. | gate | assertion: each `.node` carries a `cat-*` class matching its skill's directory |
 | 6 | Edges are directed: every edge path carries `marker-end` pointing at the referenced skill. | gate | assertion |
@@ -48,7 +48,8 @@ switcher: these are separate URLs, not modes of one screen.
 | 23 | The flow diagram wraps serpentine — left-to-right, then right-to-left — so it fits the frame without shrinking boxes below the index map's box size. | eye | render |
 | 24 | Persistent chrome on all three templates: the same six-item nav above the masthead, and the same footer line below the content. The nav marks the current page with `aria-current="page"`. Nothing else persists; there is no sidebar, no breadcrumb, no search. | gate | assertion: nav items verbatim and in order on each page |
 | 25 | The `.mockbar` strip does not ship. Neither does any `href="#"` placeholder — every link resolves to a real generated page or a real GitHub URL (term 3 permits the latter). | gate | grep built output for `href="#"`; every remaining `href` resolves |
-| 26 | Links inside a rendered SKILL.md body keep working, by a fixed destination rule: a link to **another skill's `SKILL.md`** maps to that skill's generated page; **any other repository-relative link** maps to the canonical GitHub blob URL on `main`. Relative links resolve against the directory of the SKILL.md being rendered, not the repo root — `reference/lock.md` inside `skills/drivers/ui-craft/SKILL.md` is `…/blob/main/skills/drivers/ui-craft/reference/lock.md`. Absolute `http(s)`, `#`, and `mailto:` links pass through untouched. *(Added by re-settle 2026-08-26.)* | gate | assertion: no body link is `#`; each repo-relative link resolves to an existing path; skill-to-skill links end in `.html` |
+| 26 | Links inside a rendered SKILL.md body keep working, by a fixed destination rule: a link to **another skill's `SKILL.md`** maps to that skill's generated page; **any other repository-relative link** maps to the canonical GitHub blob URL on `main`. Relative links resolve against the directory of the SKILL.md being rendered, not the repo root — `reference/lock.md` inside `skills/drivers/ui-craft/SKILL.md` is `…/blob/main/skills/drivers/ui-craft/reference/lock.md`. Absolute `http(s)` links (any origin, per term 3), `mailto:`, and bare fragments pass through **unchanged**. **A trailing fragment is split off before the rule is applied and re-attached after**, so `../scope/SKILL.md#risk-contract` becomes `scope.html#risk-contract` — not a blob path with a fragment glued on. *(Added 2026-08-26; passthrough and fragment-splitting settled in the second pass.)* | gate | assertion: no body link is `#` or empty; each repo-relative link resolves to an existing path; skill-to-skill links end in `.html` or `.html#…` and name a real skill; absolute and `mailto:` links byte-identical to the source |
+| 27 | **Anchor contract.** Every rendered body heading carries a deterministic GitHub-style slug as its `id`: lowercase, spaces to hyphens, every character that is not alphanumeric or a hyphen dropped, and a duplicate slug suffixed `-1`, `-2`, … in document order. A fragment **must resolve** under this rule — a bare `#frag` against its own page, and a cross-page `other.html#frag` against that page's headings (term 26 splits it). Verified at lock across all 27 bodies: 2 same-page fragments (`plan-review`'s `#mechanical-fix-in-place`, `persona-review`'s `#panelist-dispatch`) and 3 cross-page ones (into `code-review` and `scope`) all resolve. *(Added by re-settle 2026-08-26, second pass.)* | gate | assertion: slug function matches the rule on a fixture with a duplicate and a punctuated heading; every fragment, same-page or cross-page, resolves to an emitted heading id on its target page |
 
 ## Fixture obligations
 
@@ -66,6 +67,12 @@ nothing here is personal or sensitive. What the build must exercise:
   that isolating one skill changes nothing visible.
 - **At least one skill with a `requirements` entry and one without**, or term
   19's "no entry shows no requirement" branch is never exercised.
+- **A body with an off-repo link** (`say-less`, `persona-review`) and **a body
+  with a fragment link** (`plan-review`, `persona-review`), or terms 3 and 27
+  are asserted against content that never exercises them.
+- **A body with two identically-titled headings**, or term 27's `-1`/`-2`
+  dedupe branch is never exercised. No skill in the pack has one today, so this
+  one is a constructed fixture rather than a real page.
 - **A skill page for a skill with a rich body** — headings, a table, a bulleted
   list, a numbered list, and inline emphasis — or terms 18–20 prove nothing.
   `ui-craft` is the locked exemplar and carries all five (verified at lock: 1
@@ -155,6 +162,30 @@ same block, quoting old and new.
 | 19 | "Requires is derived from what the skill directory actually contains" | Requires transcribes `relationships.py`'s `requirements` field. | Work order §2. |
 | 26 | *(did not exist)* | New: destination rule for links inside a rendered SKILL.md body. | Work order §4. |
 | Footer (verbatim strings) | "Apache-2.0 · every page … generated from SKILL.md frontmatter" | "MIT · generated from the SKILL.md files, hand-authored narratives, and hand-maintained relationship data" | Work order §5 — the repo LICENSE is MIT and the provenance was incomplete. |
+| 3 *(2nd pass)* | "an `href` may leave it, but only to `github.com/ConnorGriffin/skills`" | Fetched assets banned everywhere; **chrome** links stay repo-only, **rendered body** links may target any origin. | Work order §1 — real bodies link off-repo. |
+| 26 *(2nd pass)* | "Absolute `http(s)`, `#`, and `mailto:` links pass through untouched." | Same, but explicitly any origin per term 3, and byte-identical passthrough is now asserted. | Work order §1. |
+| 27 | *(did not exist)* | New: the anchor contract — deterministic GitHub-style heading slugs, and every fragment (same-page or cross-page) must resolve under that rule. | Work order §2. |
+
+**Second pass — what the review caught.** Term 3 as first re-settled would have
+forced the builder to rewrite or drop genuine off-repo citations in skill
+bodies. Two real cases prove it: `say-less` credits
+`github.com/ayghri/i-have-adhd` and `persona-review` links
+`ConnorGriffin/follow-through` — a different repository, so even an
+"our-org-only" rule would have failed. The work order also cited
+`handoff/SKILL.md:59` (`example.com`); that line sits inside a fenced block
+(lines 46–69) and renders as code rather than a link, so it is not a third case,
+but the finding stands on the two above.
+
+**A defect the second pass exposed.** Term 26 as first written matched only a
+path *ending* in `SKILL.md`, so a link carrying a fragment —
+`../scope/SKILL.md#risk-contract` — missed the skill-page branch and fell
+through to the blob branch, producing a GitHub path with a fragment glued on
+that resolved to nothing. Three real links in the pack hit this (`clean` and
+`plan-review` and `code-review`, into `code-review` and `scope`). Term 26 now
+splits the fragment before applying the rule and re-attaches it after, and term
+27 asserts cross-page fragments against the target page's headings. All 65 body
+links across all 27 bodies were re-verified: 2 same-page fragments, 7 cross-page
+skill links, 54 blob links, 2 off-repo passthroughs — all resolve.
 
 **The edge-source question is closed.** The earlier manifest carried it as an
 open question for the operator; `docs/scope/docs-site.md` line 22 settles it in
