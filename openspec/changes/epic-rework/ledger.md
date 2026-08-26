@@ -13,6 +13,7 @@ updated: 2026-08-25
 - (resolved 2026-08-25) label inventory drift — #135's deletion had never been executed anywhere; operator ordered it live. 106 labels deleted across all 7 repos (skills 20, dotfiles 11, homelab 12, ciq-autotune 22, follow-through 9, home 7, harmonic 25), zero ruled labels remaining; home#18 relabeled spike per the ruling's disposition
 
 ## Decisions
+- Hardening audit (operator, 2026-08-25) — the trust-boundary clause does not apply to the operator's own edits of their own artifacts in a single-operator repo: #147's tamper guard removed by overrule; #187 (Terra replay) closed as owed-but-deferred, satisfying the Maintenance rule without scheduling work; silent-false-green test guards (anchor uniqueness, raw bytes) and freshness checks stand as earned
 - Field evidence in routing (operator, 2026-08-25) — session-derived field notes are first-class provenance for routing-table.md alongside benchmark replays; a contradicting field note triggers an area replay rather than silently winning. Codified via #183
 - #171 Depth-floor qualifier (operator, 2026-08-25) — adopted: Full when the change alters contract semantics; Targeted for pure relocation, citation repoints, and additive paragraphs no existing consumer's behavior depends on. All three #171 items now buildable
 - #159 Wave parallelization home (operator, 2026-08-25) — the wave rule (conflict-map first; non-overlapping work fans out, only colliding merges/edits serialize) lives in the epic skill's delegated-execution mode, not orchestrate; #159's issue body amended to carry it
