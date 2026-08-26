@@ -23,7 +23,8 @@ ui-surfaces: none
   or newer (the worker scripts use `X | None` union syntax).
 - Dev: no app to run. To exercise a skill, install the pack into a scratch
   directory with `npx skills add . --skill '<name>' --copy --yes`.
-- Source: `skills/<category>/<name>/` (SKILL.md plus its own `references/`,
+- Source: `skills/<category>/<name>/`, where `<category>` is exactly one of
+  `drivers`, `tools`, or `workflows` (SKILL.md plus its own `references/`,
   `reference/`, and `scripts/`), with `profile/`, `output-styles/`, `hooks/`, and
   `docs/` alongside.
 - Tests: `tests/`. `scripts/validate.py` is the structural validator and is part
