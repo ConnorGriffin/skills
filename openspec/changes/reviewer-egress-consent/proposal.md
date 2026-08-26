@@ -4,7 +4,7 @@
 
 `ticket` and `orchestrate` deliberately dispatch through pack-owned CLI workers,
 but their invocation contracts name delegation without naming the repository
-payload or the OpenAI Codex destination. A Codex approval guardian can therefore
+payload or the admitted external destination. An approval guardian can therefore
 treat the launch as unauthorized sensitive egress even after the user deliberately
 invoked the workflow.
 
@@ -12,36 +12,39 @@ invoked the workflow.
 
 * Literal user invocation of `/ticket triage`, `/ticket start`, `/ticket revise`,
   or `/orchestrate` becomes an explicit request to send the bounded task prompt
-  and necessary repository code/documentation to an isolated worker on OpenAI's
-  Codex model service.
-* Automatic or nested skill activation does not acquire that consent. It must
-  inherit an equally explicit contract from the literal parent workflow or ask
-  once before the first external dispatch.
+  and necessary repository code/documentation to an isolated worker on OpenAI
+  Codex for a Codex UI parent, or OpenAI Codex or Anthropic Claude for a Claude
+  Code parent as selected by existing routing.
+* That invocation covers mandatory nested review and Orchestrate dispatches.
+  Automatic activation outside an invoked parent workflow asks once before its
+  first external dispatch; no parser or approval state machine is added.
 * Each skill's OpenAI manifest default prompt carries the same bounded request so
   UI-assisted invocation places the payload and destination in trusted user text.
-* The Codex-parent dispatch reference repeats the payload and destination in its
-  escalation rationale so the guardian can match the planned action to the
-  invocation contract.
+* Each adapter dispatch reference repeats its applicable payload, destination,
+  exclusions, and invoked-workflow coverage so a guardian can match the planned
+  action to the invocation contract.
 * The pack-owned worker adapters, model routing, sandboxing, lifecycle recovery,
   and usage measurement remain unchanged.
 
 ## Risk contract
 
-* **Must prevent:** silent repository egress from automatic routing; transmission
-  of credentials, secrets, patient data, `.env`, or real database contents;
-  weakening the worker sandbox or replacing the pack adapter.
-* **Must recover:** none. A denied guardian check stops before egress and can be
-  retried only after exact user consent.
+* **Must prevent at the instruction-contract layer:** extending consent beyond an
+  invoked Ticket or Orchestrate workflow; authorizing credentials, secrets,
+  patient data, `.env`, or real database contents; weakening the worker sandbox
+  or replacing the pack adapter. This change does not inspect or filter prompt
+  bytes.
+* **Must recover:** none. Automatic activation outside an invoked parent asks once
+  with the same material terms. A denial stops before egress.
 * **Accepted failure:** a guardian whose policy or transcript shape changes may
   still request one explicit confirmation; the workflow stops clearly instead of
   bypassing or repeatedly rephrasing the request.
-* **Unsupported:** treating loose natural-language activation, nested skill
-  activation without a parent consent contract, or `/ticket finalize` as consent
-  for model dispatch.
-* **Evidence owed:** contract tests prove the literal invocation surface and OpenAI
-  default prompt name the payload and destination, automatic/nested activation
-  retains a consent gate, the dispatch rationale repeats the same terms, and
-  existing adapter/lifecycle tests remain green.
+* **Unsupported:** treating automatic activation outside an invoked parent or
+  `/ticket finalize` as consent for model dispatch.
+* **Evidence owed:** static contract tests prove the invocation surfaces name the
+  payload, destination matrix, exclusions, and mandatory nested-dispatch coverage;
+  the applicable default prompt and dispatch rationale repeat those terms; existing
+  adapter/lifecycle tests remain green. They do not claim to prove guardian
+  behavior or byte filtering.
 
 Why: approval semantics govern private repository egress and must fail closed
 without breaking the isolation guarantees that motivated pack-owned dispatch.
