@@ -5271,6 +5271,161 @@ class UiCraftCliMainGuardTests(unittest.TestCase):
         )
 
 
+class WorkerEgressConsentContractTests(unittest.TestCase):
+    TICKET_SKILL = ROOT / "skills" / "drivers" / "ticket" / "SKILL.md"
+    ORCHESTRATE_SKILL = ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md"
+    TICKET_PROMPT = ROOT / "skills" / "drivers" / "ticket" / "agents" / "openai.yaml"
+    ORCHESTRATE_PROMPT = (
+        ROOT / "skills" / "drivers" / "orchestrate" / "agents" / "openai.yaml"
+    )
+    DISPATCH_REFERENCES = {
+        "codex-ui": (
+            ROOT
+            / "skills"
+            / "drivers"
+            / "orchestrate"
+            / "references"
+            / "dispatch-codex.md",
+            "OpenAI's Codex model service",
+        ),
+        "claude-to-codex": (
+            ROOT
+            / "skills"
+            / "drivers"
+            / "orchestrate"
+            / "references"
+            / "dispatch-codex-from-claude.md",
+            "OpenAI's Codex model service",
+        ),
+        "claude-to-claude": (
+            ROOT
+            / "skills"
+            / "drivers"
+            / "orchestrate"
+            / "references"
+            / "dispatch-claude.md",
+            "Anthropic's Claude model service",
+        ),
+    }
+
+    @staticmethod
+    def text(path: Path) -> str:
+        return path.read_text(encoding="utf-8")
+
+    @staticmethod
+    def compact(text: str) -> str:
+        return " ".join(text.split()).lower()
+
+    @staticmethod
+    def frontmatter_description(source: str) -> str:
+        frontmatter = source.split("---\n", 2)[1]
+        return next(
+            line.removeprefix("description:").strip().strip('"')
+            for line in frontmatter.splitlines()
+            if line.startswith("description:")
+        )
+
+    def section(self, source: str, heading: str) -> str:
+        anchor = f"{heading}\n\n"
+        self.assertIn(anchor, source)
+        body = source.split(anchor, 1)[1]
+        return body.split("\n\n## ", 1)[0]
+
+    def assert_material_boundary(self, text: str, destination: str) -> None:
+        compact = self.compact(text)
+        for term in (
+            "work order or task prompt",
+            "repository code and documentation",
+            destination,
+            "credentials",
+            "secrets",
+            "patient data",
+            "`.env`",
+            "real database contents",
+        ):
+            with self.subTest(term=term):
+                self.assertIn(term.lower(), compact)
+        self.assertIn(
+            "credentials, secrets, patient data, `.env`, and real database contents are excluded",
+            compact,
+        )
+
+    def assert_cross_parent_boundary(self, text: str) -> None:
+        self.assert_material_boundary(text, "OpenAI's Codex model service")
+        compact = self.compact(text)
+        self.assertIn("anthropic's claude model service", compact)
+        self.assertIn("codex ui parent", compact)
+        self.assertIn("claude code parent", compact)
+
+    def test_ticket_catalog_and_invocation_declare_bounded_consent(self):
+        source = self.text(self.TICKET_SKILL)
+        description = self.frontmatter_description(source)
+        invocation = self.section(source, "## Invocation")
+
+        for surface in (description, invocation):
+            self.assert_cross_parent_boundary(surface)
+            surface = self.compact(surface)
+            self.assertIn("mandatory worker dispatch", surface)
+            self.assertIn("nested review", surface)
+            self.assertIn("nested orchestrate", surface)
+            self.assertIn("automatic activation", surface)
+            self.assertIn("asks once", surface)
+        self.assertIn("triage", invocation)
+        self.assertIn("start", invocation)
+        self.assertIn("revise", invocation)
+        self.assertIn("finalize", invocation)
+        self.assertIn("no worker-egress consent", invocation)
+        self.assertIn("triage, start, revise, finalize", description)
+        self.assertIn("ticket id", description)
+        self.assertNotIn("disable-model-invocation: true", source)
+
+    def test_orchestrate_catalog_and_invocation_declare_bounded_consent(self):
+        source = self.text(self.ORCHESTRATE_SKILL)
+        description = self.frontmatter_description(source)
+        invocation = self.section(source, "## Invocation")
+
+        for surface in (description, invocation):
+            self.assert_cross_parent_boundary(surface)
+            surface = self.compact(surface)
+            self.assertIn("mandatory worker dispatch", surface)
+            self.assertIn("nested review", surface)
+            self.assertIn("nested orchestrate", surface)
+            self.assertIn("automatic activation", surface)
+            self.assertIn("asks once", surface)
+        self.assertIn("guardian-facing declaration", invocation)
+        self.assertIn("not a platform-policy override", invocation)
+        self.assertIn("not a byte filter", invocation)
+        self.assertIn("parent agent plans, scopes, reviews, and ships", description)
+        self.assertIn("asks the parent to act as an orchestrator/coordinator", description)
+        self.assertNotIn("disable-model-invocation: true", source)
+
+    def test_openai_default_prompts_request_the_openai_specific_transfer(self):
+        for path in (self.TICKET_PROMPT, self.ORCHESTRATE_PROMPT):
+            with self.subTest(path=path):
+                prompt = self.text(path)
+                self.assert_material_boundary(prompt, "OpenAI's Codex model service")
+                self.assertIn("mandatory worker dispatch", prompt)
+                self.assertNotIn("Anthropic's Claude model service", prompt)
+        ticket_prompt = self.compact(self.text(self.TICKET_PROMPT))
+        self.assertIn("triage, start, or revise", ticket_prompt)
+        self.assertIn("triage, start, revise, or finalize", ticket_prompt)
+        self.assertIn("finalize does not request", ticket_prompt)
+
+    def test_adapter_approval_rationales_repeat_boundary_without_making_authority(self):
+        for name, (path, destination) in self.DISPATCH_REFERENCES.items():
+            with self.subTest(reference=name):
+                rationale = self.section(self.text(path), "## Approval rationale")
+                self.assert_material_boundary(rationale, destination)
+                rationale = self.compact(rationale)
+                self.assertIn("invoked ticket or orchestrate workflow", rationale)
+                self.assertIn("every mandatory worker dispatch", rationale)
+                self.assertIn("escalation justification", rationale)
+                self.assertIn("assistant-authored rationale", rationale)
+                self.assertIn("does not itself create user authorization", rationale)
+                self.assertIn("when no invoked workflow supplies the consent", rationale)
+                self.assertIn("stop and ask once before dispatch", rationale)
+
+
 class DelegationAuthorityContractTests(unittest.TestCase):
     CODE_REVIEW = (ROOT / "skills" / "tools" / "code-review" / "SKILL.md").read_text(
         encoding="utf-8"

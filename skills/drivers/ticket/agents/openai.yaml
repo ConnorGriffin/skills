@@ -1,4 +1,4 @@
 interface:
   display_name: "Ticket"
   short_description: "Drive one tracked ticket through triage, start, revise, and finalize, one verb at a time"
-  default_prompt: "Use $ticket to drive this ticket from triage to its merged pull request."
+  default_prompt: "Use $ticket to drive one ticket through triage, start, revise, or finalize. For triage, start, or revise, I request the work order or task prompt plus only the repository code and documentation needed for every mandatory worker dispatch, including nested review and nested Orchestrate work, be sent to an isolated worker on OpenAI's Codex model service. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Finalize does not request worker egress."

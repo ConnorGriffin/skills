@@ -1,4 +1,4 @@
 interface:
   display_name: "Orchestrate"
   short_description: "Coordinator mode: route real work to benchmarked workers"
-  default_prompt: "Use $orchestrate to act as a coordinator and delegate this work to routed workers."
+  default_prompt: "Use $orchestrate to act as a coordinator. I request the work order or task prompt plus only the repository code and documentation needed for every mandatory worker dispatch, including nested review and nested Orchestrate work, be sent to isolated workers on OpenAI's Codex model service. Credentials, secrets, patient data, `.env`, and real database contents are excluded."

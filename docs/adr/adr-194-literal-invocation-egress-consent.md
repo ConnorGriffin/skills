@@ -23,8 +23,9 @@ Literal user invocation of `/ticket triage`, `/ticket start`, `/ticket revise`, 
 `/orchestrate` requests the bounded repository egress those workflows require:
 the task prompt or work order plus only the repository code and documentation needed
 for the delegated task, sent to an isolated worker on the service admitted for the
-parent: OpenAI Codex for a Codex UI parent, or OpenAI Codex or Anthropic Claude for
-a Claude Code parent as selected by existing routing.
+parent: OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model
+service or Anthropic's Claude model service for a Claude Code parent as selected by
+existing routing.
 Credentials, secrets, patient data, `.env`, and real database contents are excluded.
 
 That invocation covers every mandatory worker dispatch the selected workflow
@@ -44,9 +45,10 @@ composition paths: `epic` reaches `ticket`, and chunked ticket execution reaches
 Generic delegation authority and egress consent remain separate contracts. The
 former permits the required worker to exist; the latter permits the bounded bytes
 to be sent to the named destination. Each adapter-specific approval rationale
-repeats the egress contract but does not claim that assistant-authored rationale
-creates user authorization. These are guardian-facing instruction contracts, not
-byte-level prompt filters or changes to platform approval policy.
+repeats the egress contract in its escalation justification but does not claim that
+assistant-authored rationale creates user authorization. These are guardian-facing
+instruction contracts, not byte-level prompt filters or changes to platform approval
+policy.
 
 ## Consequences
 

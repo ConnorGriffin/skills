@@ -1,9 +1,27 @@
 ---
 name: orchestrate
-description: Flip the session into coordinator mode — the parent agent plans, scopes, reviews, and ships, but delegates all real work (exploration, implementation, review, fixes) to sub-agents routed by an empirically benchmarked model capability table. Use when the user invokes /orchestrate or asks the parent to act as an orchestrator/coordinator instead of a developer.
+description: "Flip the session into coordinator mode — the parent agent plans, scopes, reviews, and ships, but delegates all real work (exploration, implementation, review, fixes) to sub-agents routed by an empirically benchmarked model capability table. Use when the user invokes /orchestrate or asks the parent to act as an orchestrator/coordinator instead of a developer. Literal /orchestrate invocation requests the work order or task prompt plus only needed repository code and documentation for every mandatory worker dispatch, including nested review and nested Orchestrate work: to OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model service or Anthropic's Claude model service for a Claude Code parent. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Automatic activation outside an invoked parent workflow asks once before dispatch."
 ---
 
 # Orchestrate — coordinator mode
+
+## Invocation
+
+Literal user invocation of `/orchestrate` requests the bounded transfer needed for
+every mandatory worker dispatch the workflow routes, including nested review and
+nested Orchestrate work. The payload is the work order or task prompt plus only the
+repository code and documentation needed for that delegated task. For a Codex UI
+parent, the destination is an isolated worker on OpenAI's Codex model service. For a
+Claude Code parent, existing routing selects an isolated worker on OpenAI's Codex
+model service or Anthropic's Claude model service. Credentials, secrets, patient data,
+`.env`, and real database contents are excluded.
+
+Automatic activation outside an invoked parent workflow does not acquire this
+consent. Before the first external dispatch it asks once, naming the same payload,
+applicable destination or destination matrix, and exclusions; a denial stops the
+workflow. This is a guardian-facing declaration, not a platform-policy override and
+not a byte filter. It neither changes platform approval policy nor inspects prompt
+bytes.
 
 Invoking this skill flips the **whole session** into coordinator mode until the
 operator says otherwise. Detect the parent before dispatching:
