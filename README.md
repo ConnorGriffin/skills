@@ -7,6 +7,8 @@ yet known), `drivers` (multi-phase procedures chosen deliberately, which call ot
 skills by name), and `tools` (skills that do one job themselves). Some skills compose:
 the UI workflow uses the bundled browser driver for rendered evidence.
 
+Browse the pack at <https://connorgriffin.github.io/skills/>.
+
 ## Included skills
 
 ### Workflows
