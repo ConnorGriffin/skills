@@ -168,6 +168,10 @@ Context
 <everything this chunk needs to stand alone in a fresh agent. Never "as established
  in chunk 1".>
 
+### Session fit
+
+Session fit: <the selected execution row's Ladder value, with each model's display name in ladder order>; selected Agent rung: <the ladder rung triage selected for this sub-order's existing `Agent:` tier>. A Claude or Codex coordinator whose system-prompt model is named in this paragraph at or above the selected Agent rung proceeds directly to step 4, skipping the remainder of Model-check and without asking about model fit or effort.
+
 ### Builder self-check
 
 Before declaring the change ready, run each check below.
