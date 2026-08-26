@@ -373,7 +373,33 @@ routine/load-bearing routing stakes and their initial route directly from
 Opus in the Plan / spec writing ladder is an availability rung, not a benchmarked
 plan-writing win."""
 
-PLAN_SPEC_WRITING_ROW = "| Plan / spec writing | **Terra** | Terra → Sol → Opus | The Codex family owns this area: Terra 5/5 (tightest, correct fail-closed), Sol/Luna/GPT-5.4 ≈4.8. Opus wrote the prettiest spec with a load-bearing polarity error — never route specs to Claude models without a fail-safe review. |"
+ROUTING_TABLE_ROUTES = """\
+Escalate one step at a time along the row's ladder; at the last rung, stop and
+surface both failed attempts to the operator.
+
+| Area | Route | Ladder | Why |
+|---|---|---|---|
+| Exploration / codebase-mapping | **Luna** for bounded lookups; **Sonnet** for full-system maps | Luna → Sonnet → Opus | Sonnet tied Opus at 5/5 with fully verified citations at 60% of the cost; Luna scored 4 at a fraction of both. Haiku fabricated a citation — do not use for exploration you won't verify. |
+| Hermetic implementation | **Terra** | Terra → Sonnet → Opus | Terra matched the merged fix exactly (incl. the window-bounds subtlety) at $2.50; Sonnet/Opus scored 5 with richer tests — escalate for correctness-critical or gnarly changes. Luna/Haiku/Spark all missed a subtle placement decision. Field-derived provenance (sources: #144's session-fit comment and epic ledger PR #136): Terra failed canonical byte-for-byte prose-contract work on #151 and #152, required escalation, and informed #144's stamp; this observation changes neither Route nor Ladder. |
+| Plan / spec writing | **Terra** | Terra → Sol → Opus | The Codex family owns this area: Terra 5/5 (tightest, correct fail-closed), Sol/Luna/GPT-5.4 ≈4.8. Opus wrote the prettiest spec with a load-bearing polarity error — never route specs to Claude models without a fail-safe review. Field-derived provenance (sources: #144's session-fit comment and epic ledger PR #136): Terra failed canonical byte-for-byte prose-contract work on #151 and #152, required escalation, and informed #144's stamp; this observation changes neither Route nor Ladder. |
+| Prototyping (incl. UI mockups) | **Sol** | Sol → Opus → none (top of ladder; Sol first despite Opus's lower sticker price — Sol's per-task token volume ran leaner and its output resolved a spec tension Opus ignored) | Sol, Opus, and Spark all hit 5; Sol resolved a spec tension the others ignored. Spark ties when repo context (an existing lock/design system) exists to reuse — and it's near-instant. Luna is banned here (1/5: no page geometry, invented UI, leaked never-print content). |
+| Novel-solution brainstorming | **Terra**; **Opus** when novelty is the deliverable | Terra → Opus → none (top of ladder) | Opus 5/5 with the most novel idea of the whole benchmark; Terra 4.5 at half the price. Haiku and Spark produce generic-ML re-skins — don't route ideation there. |
+| Documentation writing | **Haiku** (default; Luna equal-scored alternate) | Haiku → Opus → Sol (Opus first: equal score, lower price) | Both scored 4 at ~$1; Opus and Sol scored 5 — escalate for load-bearing ADRs. Sonnet (3) narrated implementation identifiers; Spark (2) fabricated a cross-reference. |
+| Code review | **Luna** for routine PRs; **Opus** for load-bearing/safety review | Luna → Sonnet → Opus; Opus route: none (top of ladder) | Opus was the only model to catch all 3 planted defects (incl. a silently weakened test). Luna caught 2/3 with zero false positives at the lowest cost. GPT-5.5 confidently reported a nonexistent syntax error; GPT-5.4-Mini missed a blatant inverted guard — avoid both for review. Field-derived provenance (source: epic ledger PR #136's 2026-08-25 rounds): Sol produced zero hallucinated findings across approximately 20 Full-depth and cold reviews in one epic session, with every blocking finding reproduced against the tree, grounding the standing Codex-first review practice. |""".encode("utf-8")
+
+ORCHESTRATE_MAINTENANCE = """\
+The table is provenance-stamped. Benchmark replays and field-derived notes from
+real orchestration sessions are valid provenance classes. Every field-derived
+note must name its issue or ledger source.
+
+When a new model ships, replay the benchmark per
+`references/benchmark/README.md` (~1 area-task per area; note the review and
+prototyping fixtures regenerate and need an incumbent anchor run) and update the
+table in the same commit.
+
+A field-derived note that contradicts a benchmarked score does not silently
+win. File a replay of every affected area as its own follow-up ticket, then
+replay it under `references/benchmark/README.md`.""".encode("utf-8")
 
 CODE_REVIEW_DEPENDENCY_SELECTION = """\
 At the standard skill root, when `orchestrate` is installed, read its
@@ -2624,10 +2650,23 @@ class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
             ROUTING_TABLE_REVIEW_CONSUMER,
         )
 
-    def test_plan_spec_writing_row_is_byte_identical(self):
-        text = self.text("skills/drivers/orchestrate/references/routing-table.md")
-        rows = [line for line in text.splitlines() if line.startswith("| Plan / spec writing |")]
-        self.assertEqual(rows, [PLAN_SPEC_WRITING_ROW])
+    def test_routing_table_routes_are_byte_identical(self):
+        source = (
+            ROOT / "skills" / "drivers" / "orchestrate" / "references" / "routing-table.md"
+        ).read_bytes()
+        body = source.split(
+            b"## Routes (cheapest that clears the bar) and escalation ladders\n\n", 1
+        )[1].split(b"\n\n## Effort notes (coarse, per spec decision 8)\n", 1)[0]
+
+        self.assertEqual(body, ROUTING_TABLE_ROUTES)
+
+    def test_orchestrate_maintenance_is_byte_identical(self):
+        source = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
+        body = source.split(b"## Maintenance\n\n", 1)[1].split(
+            b"\n\n## Reference boundary\n", 1
+        )[0]
+
+        self.assertEqual(body, ORCHESTRATE_MAINTENANCE)
 
     def test_code_review_dependency_selection_is_byte_identical(self):
         text = self.text("skills/tools/code-review/SKILL.md")
