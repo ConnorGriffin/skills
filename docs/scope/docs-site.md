@@ -28,3 +28,9 @@
 ## Spawned tasks
 
 (none)
+
+## Review rounds (triage, /plan-review via Sol worker)
+
+- Round 1: 5 blockers, all `authoring` (lifecycle stamp, forbidden escalation path, non-byte-exact verification, open producer/consumer schema, undefined disclosure oracle). All verified and fixed; ui-craft lock produced (e9bcab9).
+- Round 2: 5 blockers — 1 `authoring` (converter scope), 4 `injected` by the round-1 lock (edge-source contradiction, link-term contradiction, body-link rule, wrong footer license). Fixed via resettle ba5e06b.
+- Round 3 (cap): 2 blockers, both `injected` narrowing defects (origin allowlist tighter than real bodies; unspecified anchor slugs). Judged mechanical with obvious defaults, no unsettled human decision (scope's nothing-uncertain rule), fixed via resettle e5c9813 and order amendment; posted without a fourth panel per the cap.
