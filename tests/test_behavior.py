@@ -4971,7 +4971,7 @@ class EpicAdapterDispatchTests(unittest.TestCase):
 
 
 class EpicDelegatedExecutionContractTests(unittest.TestCase):
-    PROPOSAL = ROOT / "openspec" / "changes" / "epic-rework" / "proposal.md"
+    PROPOSAL = ROOT / "openspec" / "changes" / "archive" / "epic-rework" / "proposal.md"
     EPIC = ROOT / "skills" / "drivers" / "epic" / "SKILL.md"
 
     def body_between(self, document: bytes, opening_anchor: bytes, closing_anchor: bytes) -> bytes:
