@@ -73,6 +73,7 @@ an extra ticket-comment format.
 ```
 WORK ORDER <ticket-id>: <ticket summary>
 Open as: <model> / <effort>.
+Session fit: <selected execution row's Ladder value, with each model's display name in ladder order>. A Claude or Codex session whose system-prompt model is named in this paragraph at or above the selected rung proceeds directly to step 4, skipping the remainder of Model-check and without asking about model fit or effort.
 Execution: single agent.
 
 Classification: <code | investigation | manual>
@@ -82,6 +83,8 @@ Verification: <the command that verifies this change>
 Expectation: <what that command must report before the pull request opens>
 Review depth: <focused | targeted | full> (<one-line reason>)
 Profile: <none | hardening>
+
+Drafting conventions: Read `skills/drivers/ticket/references/drafting-conventions.md` before acting on this order.
 
 Context
 <2-5 bullets: what exists today, what constrains this change, decisions already made
@@ -159,9 +162,24 @@ Review depth: <focused | targeted | full> (<one-line reason>)
 Capability owned: <one coherent capability; exactly one sub-order owns it>
 Shared contracts owned: <none | each named contract this sub-order owns>
 
+Drafting conventions: Read `skills/drivers/ticket/references/drafting-conventions.md` before acting on this order.
+
 Context
 <everything this chunk needs to stand alone in a fresh agent. Never "as established
  in chunk 1".>
+
+### Session fit
+
+Session fit: <the selected execution row's Ladder value, with each model's display name in ladder order>; selected Agent rung: <Rung>. A Claude or Codex coordinator whose system-prompt model is named in this paragraph at or above the selected Agent rung proceeds directly to step 4, skipping the remainder of Model-check and without asking about model fit or effort.
+
+### Builder self-check
+
+Before declaring the change ready, run each check below.
+
+1. **External surface by execution.** Before coding against a CLI or API surface, run `--help` or a probe call against that surface; do not infer flags, arguments, or behavior from memory.
+2. **Fail-first tests.** Before production edits, run every new test against the pre-change behavior or a deliberately broken variant and observe the expected failure. A fake that accepts every input or a mock of the function under test is not evidence.
+3. **Boundaries by execution.** Prove a security or confinement claim by attempting the forbidden action in a real run; configuration inspection alone is not evidence.
+4. **Post-fix sweep.** After each late fix, sweep its affected path for uncalled symbols, dead parameters, and prose that still describes the pre-fix behavior.
 
 Do
 <numbered, concrete steps scoped to this chunk only>

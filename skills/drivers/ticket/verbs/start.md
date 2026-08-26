@@ -16,17 +16,7 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    The comment's `Execution:` line says `single agent` or `chunked`; an order with
    no `Execution:` line is a flat order.
 
-3. **Model-check.** The order's `Open as:` line names a required model and effort. A
-   session cannot reliably introspect its own reasoning effort from context, so do
-   not guess it, and do not answer from memory of an earlier guess. State the model
-   name this session's own system prompt reports, then ask the user in prose to
-   confirm the effort level this session is running. Compare both against
-   `Open as:`. Weaker on either axis: say so and stop, so the user relaunches
-   correctly. Same or stronger on both: proceed. On a chunked order, also check every
-   `SUB-ORDER`'s `Agent:` line against the confirmed model: the session must be at
-   least as strong as the strongest chunk. Weaker than any one of them and the whole
-   order is refused. Never run part of it, and never launch an agent smarter than the
-   coordinator.
+3. **Model-check.** On a flat order with `Session fit:`, a session whose system-prompt model is named in that paragraph at or above the selected rung proceeds directly to step 4, skipping the remainder of Model-check and without asking about model fit or effort. On a chunked order, take that same fast path only when every `SUB-ORDER` has exactly one `Session fit:` paragraph whose ladder is an ordered non-empty sequence of display-name rungs byte-identical across every `SUB-ORDER`, whose exactly one `selected Agent rung: <Rung>` annotation names exactly one rung in that paragraph, and whose coordinator system-prompt model is named at or above that selected rung in every paragraph. Otherwise, the order's `Open as:` line names a required model and effort. A session cannot reliably introspect its own reasoning effort from context, so do not guess it, and do not answer from memory of an earlier guess. State the model name this session's own system prompt reports, then ask the user in prose to confirm the effort level this session is running. Compare both against `Open as:`. Weaker on either axis: say so and stop, so the user relaunches correctly. Same or stronger on both: proceed. On a chunked order, also check every `SUB-ORDER`'s `Agent:` line against the confirmed model: the session must be at least as strong as the strongest chunk. Weaker than any one of them and the whole order is refused. Never run part of it, and never launch an agent smarter than the coordinator.
 
 4. **Worktree and branch.** This is the first repository action after the shared
    opening. Never work in the control checkout. Reuse the worktree
@@ -69,12 +59,23 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    before implementing. Absent, say so in one line and continue. This never refuses
    the order.
 
-8. **Implement.** Read the repo's `AGENTS.md` or `CLAUDE.md` first; its rules bind
-   everything you write on this branch. Never add or edit one yourself; if the repo
-   has none, work to the user's global standards. Follow the order's Do section.
+### Builder self-check
+
+Before declaring the change ready, run each check below.
+
+1. **External surface by execution.** Before coding against a CLI or API surface, run `--help` or a probe call against that surface; do not infer flags, arguments, or behavior from memory.
+2. **Fail-first tests.** Before production edits, run every new test against the pre-change behavior or a deliberately broken variant and observe the expected failure. A fake that accepts every input or a mock of the function under test is not evidence.
+3. **Boundaries by execution.** Prove a security or confinement claim by attempting the forbidden action in a real run; configuration inspection alone is not evidence.
+4. **Post-fix sweep.** After each late fix, sweep its affected path for uncalled symbols, dead parameters, and prose that still describes the pre-fix behavior.
+
+8. **Implement.** Read [drafting conventions](../references/drafting-conventions.md)
+   with the locked order, then read the repo's `AGENTS.md` or `CLAUDE.md`; its rules
+   bind everything you write on this branch. Never add or edit one yourself; if the
+   repo has none, work to the user's global standards. Follow the order's Do section.
    Match the repo's existing idioms, reading neighboring code first. Record the
    change where the repo already records changes, on the same branch, per the skill
-   page's change-record rule.
+   page's change-record rule. An epic child creates no change record: the parent
+   epic's existing change record is authoritative.
 
    **Route by shape of the change.** `Surface lifecycle: build` runs `/ui-craft
    build` against the named locked manifest. `Surface lifecycle: revise` runs
@@ -118,6 +119,9 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
     `/review`; Full orders run one `/review` round after hardening.
 
 11. **Fold the change record into the baseline in the order's last pull request.**
+    This step applies outside an epic. An epic child does not fold a per-child
+    change record; it leaves the parent epic's settled baseline timing and standing
+    planning-pull-request contents unchanged.
     When the pull request being opened is the order's final one (single-pull-request
     orders: the only one), the same diff completes whatever the repo's convention
     asks for at landing time. This lands before the pull request is opened or marked

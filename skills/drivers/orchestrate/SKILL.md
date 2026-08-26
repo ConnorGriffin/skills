@@ -8,10 +8,18 @@ description: Flip the session into coordinator mode — the parent agent plans, 
 Invoking this skill flips the **whole session** into coordinator mode until the
 operator says otherwise. Detect the parent before dispatching:
 
-- **Claude Code parent:** use the Claude and Codex mechanics below.
+- **Claude Code parent:** use the Claude and Codex mechanics below. Before
+  dispatching a Codex worker, read
+  `references/dispatch-codex-from-claude.md`. Both sides dispatch through their
+  CLI-worker adapters (`claude-worker.py` / `codex-worker.py`) —
+  never through the Agent tool, the Workflow tool, or a
+  background agent.
 - **Codex UI parent:** read `references/dispatch-codex.md` before routing. In
   this v0, every delegation uses its CLI-worker adapter; do not use native
-  `spawn_agent` for implementation or review.
+  `spawn_agent` for implementation or review. Whether a Codex UI parent also
+  dispatches Claude workers through `claude-worker.py` is explicitly deferred
+  — `references/dispatch-codex.md`'s admission table is Codex-only until that
+  is decided.
 
 ## Codex headroom gate — run at invocation
 
@@ -22,7 +30,11 @@ Before any routing, check whether the Codex side has budget left:
    step 1 entirely and go straight to the same **Claude-only** branch as
    headroom ≤ 5% / unknown below; tell the operator once. A Codex UI parent
    cannot land on this branch — the CLI exists there by construction — so the
-   check only applies to a Claude parent.
+   check only applies to a Claude parent. Also run `command -v claude` — a
+   Claude-only branch dispatches through `claude-worker.py`, which needs the
+   `claude` binary. If **neither** `codex` nor `claude` is present on PATH,
+   the coordinator cannot dispatch at all: report the blocker to the operator
+   and stop — there is no third route.
 1. Probe fresh with a trivial one-word worker run (Luna, `gpt-5.6-luna`,
    `read-only`) — Luna is the probe model because it is the cheapest route the
    table already uses, so it is always available; do not pick a cheaper-looking
@@ -60,9 +72,9 @@ is the reason the review is not optional); prototyping routes straight to
   output rather than trusting it — including independent review passes on
   correctness-sensitive changes, with findings routed back to the implementing
   agent to fix.
-- Continue an existing sub-agent (SendMessage for Claude; `codex exec resume` for
-  Codex) for follow-ups in its area instead of spawning a fresh one, so its
-  context carries over.
+- Continue an existing worker (`claude-worker.py resume` for Claude;
+  `codex-worker.py resume` for Codex) for follow-ups in its area instead of
+  spawning a fresh one, so its context carries over.
 - The coordinator keeps for itself: small mechanical glue (git/gh plumbing,
   toggles, log checks, daemon restarts), verification probes, and all
   communication/decisions with the operator.
@@ -100,20 +112,39 @@ is the reason the review is not optional); prototyping routes straight to
    mode follows only its adapter's admitted routes.
 3. **Never delegate to Fable** — it is the coordinator tier only.
 4. Every delegation is labeled with its model tier so the operator can see the
-   route: Agent-tool dispatches prefix the `description` with the model name
-   (`<Model>: <task description>`, e.g. `Sonnet 5: standards review of phase 1
-   diff`); Codex `codex exec` runs name the model in the coordinator's
-   narration line. Applies to escalation retries too (the new tier's name).
-5. Mechanics: Claude models via the Agent tool with a `model` override — a
-   read-only agent type (e.g. Explore) for read-tasks, `isolation: "worktree"`
-   for write-tasks, so the harness enforces what the prompt asks. Codex models
-   use the parent-specific dispatch adapter. `read-only` is for read-tasks;
-   `workspace-write` only targets an isolated worktree, never the coordinator's
-   checkout. Effort stays medium; escalation changes the model tier, not the
-   effort dial. Belt-and-braces: read-task prompts still carry an explicit
-   "context is read-only — never modify, patch, or stash" line (a benchmark run
-   was invalidated by an agent leaving a patch applied to a shared worktree —
-   treat this as load-bearing).
+   route: name the model in the coordinator's narration line for the
+   `claude-worker.py` / `codex-worker.py` run (`<Model>: <task description>`,
+   e.g. `Sonnet 5: standards review of phase 1 diff`) — the adapters carry no
+   `description` field of their own, so the narration line is what carries the
+   model label, not the dispatch command. Applies to escalation retries too
+   (the new tier's name).
+5. Mechanics: every delegation — Claude or Codex — dispatches through its CLI
+   worker adapter (`skills/drivers/orchestrate/scripts/claude-worker.py` or
+   `codex-worker.py`), never through the Agent tool, the Workflow tool, or a
+   background agent. See `references/dispatch-claude.md` for the Claude
+   adapter's command surface, sandbox shapes, prompt-on-stdin fact, and
+   liveness contract. For Codex, the reference depends on the parent: a Claude
+   Code parent dispatching a Codex worker reads
+   `references/dispatch-codex-from-claude.md`; a Codex UI parent reads
+   `references/dispatch-codex.md`. `read-only`
+   is for read-tasks; `workspace-write` only targets an isolated worktree
+   (`--cwd`, with `--control-checkout` set to the coordinator's checkout),
+   never the coordinator's checkout directly — both adapters refuse a
+   `workspace-write` `--cwd` inside `--control-checkout`. Every delegation
+   carries `--effort`, defaulting to medium (see Effort notes below);
+   escalation changes the model tier, not the effort dial. Belt-and-braces:
+   read-task prompts still carry an explicit "context is read-only — never
+   modify, patch, or stash" line (a benchmark run was invalidated by an agent
+   leaving a patch applied to a shared worktree — treat this as load-bearing).
+
+## Review precedence
+
+Review dispatch is classified before the generic area routing above. Read
+`references/review-routing.md` and apply its reviewer-selection contract: review
+depth or the sensitivity floor determines routing stakes, the selected review
+skill supplies its named routing-table area, and parent policy plus the Codex
+presence/headroom gate removes unavailable candidates. Do not infer a reviewer
+from builder tier or borrow a fallback from another routing-table row.
 
 ## Verification and escalation
 
@@ -181,9 +212,54 @@ Untested seams (benchmark was single-shot mockup generation only): frontend
 build-to-lock with rendered gate assertions, and multi-round mockup iteration.
 Treat those routes as provisional until benchmarked.
 
+## Pack-wide reach
+
+Per ADR 149 (`docs/adr/adr-149-pack-owned-model-dispatch.md`): all model
+dispatch defined by this pack goes through this pack's own adapters
+(`claude-worker.py` / `codex-worker.py`), not the built-in Agent tool, the
+Workflow tool, or background agents. That ruling covers every skill that
+dispatches a model, not only `orchestrate`. Every dispatching skill is now
+converted: `code-review` (issue #151), `plan-review` (issue #152),
+`persona-review` (issue #153), `ticket`'s chunk agents (issue #154), `epic`
+(issue #155), `research` (issue #156), and `codebase-design` (issue #157) all
+use the adapters. A future skill that dispatches a model converts behind its
+own issue before the ban binds it.
+
+## Collect child results
+
+This contract binds every model dispatch owned by this pack.
+
+Before each dispatch, the coordinator records the child's prompt file, its
+coordinator-owned state file, and its durable result locator. Write the complete
+prompt bytes to session scratch and pass that file's contents as the selected
+adapter's positional prompt. Use one state file per dispatch; state is lifecycle
+metadata only, never the child result.
+
+The result locator is the artifact that carries the child's answer: captured
+launcher stdout, a named worktree or branch for implementation changes, or a
+posted comment when the child declares that handoff. Use the adapter's start,
+resume, stop, and verify surface without restating its command mechanics.
+
+A coordinator never ends a turn solely because a child is unfinished, and it
+does not treat a completion notification as the result. After dispatching every
+child that is ready to run, if it must pause, it monitors one named launcher,
+state, stdout, worktree or branch, or posted-comment artifact. It then collects
+the result from the recorded result locator and verifies it under this skill's
+existing rules.
+
 ## Maintenance
 
-The table is provenance-stamped. When a new model ships, replay the benchmark
-per `references/benchmark/README.md` (~1 area-task per area; note the review and
+The table is provenance-stamped. Benchmark replays and field-derived notes from
+real orchestration sessions are valid provenance classes. Every field-derived
+note must name its issue or ledger source.
+
+When a new model ships, replay the benchmark per
+`references/benchmark/README.md` (~1 area-task per area; note the review and
 prototyping fixtures regenerate and need an incumbent anchor run) and update the
 table in the same commit.
+
+A field-derived note that contradicts a benchmarked score does not silently
+win. File a replay of every affected area as its own follow-up ticket, then
+replay it under `references/benchmark/README.md`.
+
+## Reference boundary

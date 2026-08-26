@@ -1,4 +1,4 @@
 interface:
-  display_name: "Wayfinder"
-  short_description: "Map a foggy effort as decision tickets"
-  default_prompt: "Use $epic to chart this large effort as decision tickets and work the next clear decision."
+  display_name: "Epic"
+  short_description: "Maintain an epic ledger and work clear child tickets"
+  default_prompt: "Use $epic to maintain this effort's ledger, resolve its open spikes, and file clear child tickets."

@@ -43,6 +43,14 @@ re-deriving the number, which is a round.
   flag — is not a grep.** It belongs to move 2. Do not let a grep that finds the
   param's name stand in for evidence that anything reads it.
 
+### Verbatim command output
+
+Every `command → output` evidence block is pasted verbatim from an actual command
+run. To abbreviate output, change the command so it produces the shorter output
+(for example, `grep -m` or `head`); never edit the captured output, insert
+ellipses, or drop matches. Manual edits are prohibited and require a **BLOCKED**
+verdict on their own.
+
 ## 2. First-hour spike
 
 Before any reviewer sees the draft, **execute the plan's opening steps against

@@ -82,8 +82,10 @@ session, never cut more chunks.
 * Target each chunk at a projected peak under 180k.
 * Never slice below one pull-request-sized piece of work. A chunk that would peak
   under 120k is mostly overhead; fold it into a neighbour.
-* Practical ceiling: four chunks. More than that means the ticket is really an
-  epic and wants child tickets, not sub-orders.
+* Practical ceiling: four chunks. Promote to `/epic` only when more than four
+  projected chunks leave at least one decision unsettled. Purely mechanical
+  oversize is hand-split into serial `build` tickets instead: the epic apparatus
+  is for fog, not bulk.
 
 ## Where these numbers came from
 
@@ -142,5 +144,8 @@ chunk 1".
 
 The order's `Open as:` names the tier the coordinator session must run at: the
 **highest** tier any chunk names (haiku < sonnet < opus), and never Haiku, which
-cannot review ([review-depth.md](review-depth.md)). The coordinator never launches
+cannot review
+([review-routing.md](../../orchestrate/references/review-routing.md)). The coordinator never launches
 an agent smarter than itself.
+
+## Reference boundary

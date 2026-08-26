@@ -1,0 +1,7 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false
+  },
+  "permissions": { "allow": ["Write", "Edit", "NotebookEdit"] }
+}

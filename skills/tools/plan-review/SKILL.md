@@ -13,8 +13,9 @@ The subject can be anything plan-shaped: a GitHub issue, an agent work order, a
 PRD, a design doc, a chat-message plan. If the user didn't point at one, ask
 what to review — don't guess.
 
-**Read-only.** A plan review never edits code and never fixes the plan itself.
-It produces objections and a verdict; revising the plan is the author's job.
+**Read-only reviewer.** A plan review never edits code, and the reviewer never
+independently edits the order. It produces objections and a verdict. The caller-owned
+exception is defined in [Mechanical fix in place](#mechanical-fix-in-place).
 
 ## Evidence v2
 
@@ -30,11 +31,83 @@ unrevised chat plan has no eligible authority, so emit nothing.
 ## Cold means cold
 
 The reviewer must have no stake in the plan. If this session authored or
-co-authored the plan (or is unsure), do not review it yourself — spawn a
-separate cold subagent per plan with only the plan's location, the rubric, and
-read access to the repo. Self-review by the author reliably misses what a cold
-reader catches, no matter how honestly the author tries to re-derive.
+co-authored the plan (or is unsure), do not review it yourself — dispatch a
+separate cold reviewer per plan through the interface below. Self-review by the
+author reliably misses what a cold reader catches, no matter how honestly the
+author tries to re-derive.
 
+### Evidence-block spot check
+
+During the cold read, spot-check at least one `command → output` evidence block:
+run its recorded command and compare the complete result to the cited output.
+Treat a manual edit found in any evidence block as independently requiring a
+**BLOCKED** verdict.
+
+## Delegation authority
+
+Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, including a mandatory nested review skill. Do not ask again solely because a session-level preference says "do not spawn agents"; apply that preference to discretionary delegation only. An explicit task-level refusal of this required review or revocation of delegation overrides this authorization: stop and state that the requested workflow cannot run without its required independent review.
+
+## Cold-reader dispatch
+
+At the standard skill root, when `orchestrate` is installed, read its
+`references/review-routing.md` and `references/routing-table.md` directly before
+dispatch. Use the four-row reviewer matrix and apply its Claude-parent Codex
+presence/headroom gate. For this skill, use `Plan / spec writing` as the table's
+closest validated classification, not a benchmarked plan-review verdict.
+
+When `orchestrate` or its `review-routing.md` is not installed, say so in one
+line and continue Claude-only with Opus, with no Codex attempt.
+
+Reviewer-routing stakes and this skill's plan stakes tier are independent.
+Neither derives from, overrides, or rewrites the other.
+
+The coordinator supplies the selected adapter, explicit reviewer model,
+explicit reviewer effort, and the cold-reader prompt's four allowed inputs.
+Dispatch only through
+`skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
+adapter's read-only review surface. Never use the built-in Agent tool, Workflow
+tool, or background-agent machinery.
+
+After selection, the cold-reader interface does not reclassify review work or
+choose a model or effort. Preserve adapter-owned state, same-worker resume, and
+coordinator-owned recovery through the orchestrate adapter contract; do not
+restate its command or lifecycle mechanics here.
+
+The cold-reader prompt contains exactly:
+1. plan location;
+2. the five-axis rubric;
+3. stakes tier; and
+4. a context-free fresh-reviewer phase instruction that requires the reviewer
+   to read [drafting conventions](../../drivers/ticket/references/drafting-conventions.md).
+
+The prompt excludes earlier findings, author rationale, chat history, and all
+other author/coordinator-session material. For a chat-delivered plan, before
+dispatch the coordinator writes the exact chat-delivered plan bytes to an
+immutable session-scratch file and supplies only that file's path as the plan
+location. The worker receives no chat transcript or author-session context.
+
+For every review invocation, the caller creates one coordinator-owned
+session-scratch file named `plan-review-mechanical-fixes.md`. For a durable plan,
+place it in that review invocation's session scratch and record the durable plan
+locator and immutable revision. For a chat-delivered plan, place it beside the
+immutable session-scratch plan file and record that plan file path.
+
+Each entry has exactly: finding; exact correction; reviewer re-check result. The
+file is review-round evidence, never a worker result or a committed repository
+artifact.
+## Mechanical fix in place
+
+A coordinator may correct a cold-review finding in the order without opening a
+rewrite-plus-review round only when both the finding and its correction are
+deterministic and mechanical: for example, a wrong heading anchor, a missing exact
+string, or nondeterministic command ordering.
+
+Record the finding and the exact correction in the round ledger, then have the
+current reviewer re-check the changed order bytes in that same round. A correction
+that requires judgment, changes a decision, changes scope, or reopens a settled
+ruling stays in the panel-or-operator path and does consume the ordinary revision
+cycle.
 ## The rubric
 
 Judge the plan on exactly these five axes. For axes 3 and 4, ground in the
@@ -142,9 +215,10 @@ definitions below are the fallback.
      panel's deferred close approval pass.
      The objecting reviewer's own re-verification never terminates — a
      reviewer verifying fixes to their own objections is anchored on them.
-     After each revision cycle converges, launch a new reviewer with no
-     context from the previous ones, told the plan already survived review
-     so shallow objections are gone — dig for what earlier passes miss:
+     After each revision cycle converges, dispatch a new cold reviewer through
+     the cold-reader interface with no context from the previous ones. Its
+     context-free fresh-reviewer phase instruction directs it to dig for what
+     earlier passes miss:
      interactions with machinery the plan doesn't mention, contradictions
      between the plan's own decided constraints, and claims that are subtly
      rather than obviously wrong. Its objections loop back through steps 3

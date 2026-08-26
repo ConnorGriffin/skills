@@ -22,7 +22,8 @@ four.
   ticket comment. Work too big for one agent's context is sliced into sub-orders
   in that same comment ([references/slicing.md](references/slicing.md)). It
   writes nothing to the repo except scope and spec documents committed in the
-  ticket's worktree.
+  ticket's worktree. An epic child writes only its work order; a required epic
+  spec amendment is a separate docs-only pull request merged before stamping.
 * `start` runs in a fresh session, fetches the work order, refuses if there is
   none, implements it on a branch in an isolated worktree (or, on a sliced order,
   coordinates one agent per chunk), iterates the verification step until the
@@ -56,6 +57,10 @@ routes to `code-review`. Neither verb calls a reviewer any other way, and neithe
 substitutes a lighter check for the depth the order stamped. Below Full depth under
 `Profile: hardening`, [start](verbs/start.md) and [revise](verbs/revise.md) use its
 exception instead.
+
+## Delegation authority
+
+This authority covers triage's mandatory `/plan-review` and start/revise's `/review` route. Invoking `/ticket` authorizes every sub-agent dispatch that this procedure marks mandatory, including a mandatory nested review skill. Do not ask again solely because a session-level preference says "do not spawn agents"; apply that preference to discretionary delegation only. An explicit task-level refusal of this required review or revocation of delegation overrides this authorization: stop and state that the requested workflow cannot run without its required independent review.
 
 ## Shared rules (every verb)
 
@@ -105,8 +110,9 @@ exception instead.
    cuts the branch and worktree through `spin-worktree`; `start` and `revise`
    reuse them; `finalize` tears them down. The first repository action after the
    summary-and-claim opening, before grounding or any repo read, is to cut or
-   reuse the ticket's worktree. Grounding, scope ledgers, and change records all
-   happen and get committed there. The control checkout may be dirty, stale, or
+   reuse the ticket's worktree. Outside an epic child, grounding, scope ledgers, and
+   change records all happen and get committed there; an epic child keeps its
+   instrumentation in session scratch and relies on its parent record. The control checkout may be dirty, stale, or
    on another branch: its working tree is never read or written, and it never
    switches branches. Never commit, stash, move, or clean its files, and never
    substitute another task's worktree as the control checkout. It holds the
@@ -119,8 +125,9 @@ exception instead.
    pull request ([references/coordinator-mode.md](references/coordinator-mode.md)).
 
 6. **Working state lives on the ticket.** No plan files and no scratch
-   directories on the branch. The branch carries shipping code plus the repo's own
-   change record, nothing else.
+   directories on the branch. Outside an epic, the branch carries shipping code plus
+   the repo's own change record; an epic child carries shipping code only and its
+   parent epic owns the record.
 
 7. **Ground in what the repo already says.** Read the repo's own decision and
    change records, `docs/`, and recent `git log` before forming opinions. Read the
@@ -219,6 +226,13 @@ want of it.
 ## The change record
 
 The skill records the change where the target repo already records changes.
+
+An **epic child** neither creates, folds, revises, records, nor incurs sweep debt
+for a per-child change record. Its parent epic's existing change/archive flow is
+the record, including its already-settled baseline timing and standing planning
+pull-request contents.
+
+Outside an epic, follow this per-ticket rule:
 
 1. The repo has an OpenSpec layout (`openspec/`): write the change folder on the
    ticket branch (`proposal.md`, `tasks.md`, and `design.md` when the work

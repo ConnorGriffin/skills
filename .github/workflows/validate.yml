@@ -30,6 +30,7 @@ jobs:
           tests.test_ticket
           tests.test_codebase_memory_install
           tests.test_check_dco
+          tests.test_ci_changed_paths
       - name: Check DCO
         if: github.event_name == 'pull_request'
         run: >-
@@ -43,16 +44,31 @@ jobs:
           python3 -m py_compile skills/drivers/ticket/scripts/ticket.py
           python3 -m py_compile skills/tools/cbm-onboard/scripts/cbm-lifecycle.py
           python3 -m py_compile skills/tools/codebase-memory/scripts/install.py
+          python3 -m py_compile scripts/ci_changed_paths.py
+          python3 -m py_compile skills/drivers/orchestrate/scripts/worker_lifecycle.py
+          python3 -m py_compile skills/drivers/orchestrate/scripts/codex-worker.py
+          python3 -m py_compile skills/drivers/orchestrate/scripts/claude-worker.py
           node --check skills/tools/drive-local-webapp/scripts/driver.mjs
           node --check skills/tools/drive-local-webapp/scripts/self-check.mjs
           sh -n skills/tools/cbm-onboard/scripts/cbm-onboard.sh
           sh -n skills/tools/cbm-onboard/scripts/cbm-reindex.sh
           sh -n skills/tools/cbm-onboard/scripts/cbm-teardown.sh
+      - name: Classify changed paths
+        id: changed-paths
+        run: >-
+          python3 scripts/ci_changed_paths.py
+          --repo .
+          --event "${{ github.event_name }}"
+          --base "${{ github.event.pull_request.base.sha }}"
+          --head "${{ github.event.pull_request.head.sha }}"
+          --github-output "$GITHUB_OUTPUT"
       - name: Fresh-install through the standard skills CLI
+        if: steps.changed-paths.outputs.run_expensive != 'false'
         run: >-
           npx --yes skills@1.5.20 add . --skill '*'
           --agent codex --copy --yes
       - name: Verify installed skills
+        if: steps.changed-paths.outputs.run_expensive != 'false'
         run: |
           for skill in drive-local-webapp cbm-onboard spin-worktree research \
             codebase-memory implement tdd review prototype scope epic plan-review \
@@ -65,10 +81,12 @@ jobs:
               ".agents/skills/codebase-memory/$file"
           done
       - name: Install pinned browser driver dependencies
+        if: steps.changed-paths.outputs.run_expensive != 'false'
         working-directory: skills/tools/drive-local-webapp
         run: |
           npm ci
           npx playwright install chromium
       - name: Run browser driver self-check
+        if: steps.changed-paths.outputs.run_expensive != 'false'
         working-directory: skills/tools/drive-local-webapp
         run: npm run self-check

@@ -28,6 +28,8 @@ CBM_TEARDOWN = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-tear
 CBM_LIFECYCLE = ROOT / "skills" / "tools" / "cbm-onboard" / "scripts" / "cbm-lifecycle.py"
 SPIN_SCRIPT = ROOT / "skills" / "tools" / "spin-worktree" / "scripts" / "spin-worktree.py"
 CODEX_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "codex-worker.py"
+CLAUDE_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "claude-worker.py"
+WORKER_LIFECYCLE = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "worker_lifecycle.py"
 UI_CRAFT_AUDIT = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "audit.md"
 UI_CRAFT_CRITIQUE = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "critique.md"
 UI_CRAFT_SWEEP = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "behavior-sweep.md"
@@ -35,11 +37,529 @@ UI_CRAFT_ROUTE = ROOT / "skills" / "drivers" / "ui-craft" / "scripts" / "route.m
 README = ROOT / "README.md"
 BEGIN_IGNORE = "# >>> cbm-onboard managed baseline — do not edit inside this block >>>"
 BEGIN_HOOK = "# >>> cbm-onboard managed reindex >>>"
+MANDATORY_DELEGATION_AUTHORIZATION = (
+    "Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, "
+    "including a mandatory nested review skill. Do not ask again solely because a session-level "
+    'preference says "do not spawn agents"; apply that preference to discretionary delegation only. '
+    "An explicit task-level refusal of this required review or revocation of delegation overrides this "
+    "authorization: stop and state that the requested workflow cannot run without its required "
+    "independent review."
+)
+
+EPIC_WORKER_DISPATCH = """\
+The coordinator supplies the selected adapter, explicit worker model, and explicit
+worker effort. Dispatch only through
+`skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in Agent
+tool, Workflow tool, or background-agent machinery.
+
+For each research spike, the coordinator owns
+`<session-scratch>/epic-research-<spike-id>.state` and
+`<session-scratch>/epic-research-<spike-id>.prompt`. The prompt identifies its
+recipient as the already-dispatched research worker, directs that worker to research
+directly without dispatching another worker, and states the research question, required
+Markdown output, temporary-worktree boundary, and return-and-verification contract.
+Write that complete brief to the prompt file, then pass its exact contents as the
+selected adapter's positional prompt.
+
+Start the worker through the adapter's `workspace-write` surface with the temporary
+per-spike worktree as its cwd and the coordinator checkout as its control checkout.
+Use the adapter's start, resume, stop, and verify surface. Preserve adapter-owned
+state, same-worker resume, and coordinator-owned recovery; do not restate adapter argv
+or lifecycle mechanics here.
+
+Reject a nonzero adapter invocation. For a successful invocation, read its
+`final_message` as the Markdown findings returned to the home session. The home
+session writes the Markdown file required by its public interface, then follows the
+existing `## Findings` posting and verification rule. Do not close the spike as
+successful without that verified result. Remove the prompt file after the home session
+verifies the `## Findings` comment, or after it reports a failed worker. Never commit
+the prompt file or state file."""
+
+EPIC_REWORK_SESSION_TOPOLOGY = """\
+* The epic session is the operator's home session. It stays at ledger
+  altitude: it files issues, updates the epic ledger, and dispatches work. It
+  never reads the repo deeply; the home session is the epic ledger's sole
+  writer.
+* Attended sessions are the default whenever a subtree has an open decision.
+  The operator may explicitly and revocably delegate one locked subtree to the
+  home session when its work orders are stamped or its needed rulings are
+  settled. A newly opened decision returns that subtree to attended mode.
+* Delegated triage runs through the existing `$ticket triage` interface, and
+  delegated builds run through the existing `$ticket start` interface. The home
+  session dispatches their workers through the pack adapters; ticket comments
+  carry stamped work orders, session-fit, and completed work products.
+* Before a delegated wave, the home session draws a conflict map from every
+  queued expected diff and verifies that its shared checkout equals the current
+  origin default-branch tip. A stale shared checkout refuses the wave.
+* Every read-only draft and review in a wave fans out in parallel. Only
+  write-bearing triage and build steps serialize when their expected diffs
+  overlap; builds use per-issue worktrees, tickets editing the same files run
+  in order, and pull requests merge one at a time with a rebase when a shared
+  surface is touched. Before dispatching a build or review worker, verify that
+  its target worktree is at, or descends from, the current origin default-branch
+  tip; otherwise refuse that dispatch.
+* Delegated work uses the pack dispatch adapters. The home session collects
+  children under `orchestrate`'s `## Collect child results` contract, permits a
+  human merge only after green CI and passed review, and surfaces a failure when
+  its routing ladder is exhausted. Coordinators never nest."""
+
+EPIC_DELEGATED_EXECUTION = """\
+The operator may explicitly and revocably delegate a locked epic subtree to
+the home session when every order is stamped or every needed ruling is settled.
+Attended sessions remain the default; any newly opened decision returns that
+subtree to attended mode.
+
+The home session remains the epic ledger's sole writer. For delegated triage it
+dispatches a worker through the existing `$ticket triage` interface; for a
+delegated build it dispatches a worker through the existing `$ticket start`
+interface. Those workers use their existing ticket contracts and post stamped
+work orders, session-fit, and completed work products through tracker comments.
+
+The home session dispatches only through the pack adapters, with prompt text
+passed positionally from coordinator-owned session-scratch prompt files and one
+coordinator-owned state file per dispatch. Do not add adapter flags or alter
+adapter mechanics.
+
+Work delegated to the home session proceeds in waves. Before each fan-out, draw
+a conflict map from the queued expected diffs and verify that the shared checkout
+equals the current origin default-branch tip. Fan out every read-only draft and
+review in parallel. Serialize only write-bearing triage and build steps whose
+expected diffs overlap; builds use per-issue worktrees, tickets editing the same
+files run in order, and pull requests merge one at a time with a rebase when a
+shared surface is touched. Before dispatching a build or review worker, verify
+that its target worktree is at, or descends from, the current origin
+default-branch tip; refuse a stale target.
+
+Collect child results under `orchestrate`'s `## Collect child results` section.
+Permit a human merge only after green CI and passed review. Surface a failure
+after the applicable routing ladder is exhausted; do not retry past that ladder."""
+
+# The single canonical representation of the plan-review cold-reader dispatch
+# contract: adapter exclusivity, read-only surface, mechanics-only inputs, the
+# closed prompt allowlist, and worker-isolation. The skill's section is pinned
+# byte-for-byte against this constant, so any prose edit inside it — of any
+# phrasing — fails by construction rather than by pattern matching.
+PLAN_REVIEW_COLD_READER_DISPATCH = b"""
+At the standard skill root, when `orchestrate` is installed, read its
+`references/review-routing.md` and `references/routing-table.md` directly before
+dispatch. Use the four-row reviewer matrix and apply its Claude-parent Codex
+presence/headroom gate. For this skill, use `Plan / spec writing` as the table's
+closest validated classification, not a benchmarked plan-review verdict.
+
+When `orchestrate` or its `review-routing.md` is not installed, say so in one
+line and continue Claude-only with Opus, with no Codex attempt.
+
+Reviewer-routing stakes and this skill's plan stakes tier are independent.
+Neither derives from, overrides, or rewrites the other.
+
+The coordinator supplies the selected adapter, explicit reviewer model,
+explicit reviewer effort, and the cold-reader prompt's four allowed inputs.
+Dispatch only through
+`skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
+adapter's read-only review surface. Never use the built-in Agent tool, Workflow
+tool, or background-agent machinery.
+
+After selection, the cold-reader interface does not reclassify review work or
+choose a model or effort. Preserve adapter-owned state, same-worker resume, and
+coordinator-owned recovery through the orchestrate adapter contract; do not
+restate its command or lifecycle mechanics here.
+
+The cold-reader prompt contains exactly:
+1. plan location;
+2. the five-axis rubric;
+3. stakes tier; and
+4. a context-free fresh-reviewer phase instruction that requires the reviewer
+   to read [drafting conventions](../../drivers/ticket/references/drafting-conventions.md).
+
+The prompt excludes earlier findings, author rationale, chat history, and all
+other author/coordinator-session material. For a chat-delivered plan, before
+dispatch the coordinator writes the exact chat-delivered plan bytes to an
+immutable session-scratch file and supplies only that file's path as the plan
+location. The worker receives no chat transcript or author-session context.
+
+For every review invocation, the caller creates one coordinator-owned
+session-scratch file named `plan-review-mechanical-fixes.md`. For a durable plan,
+place it in that review invocation's session scratch and record the durable plan
+locator and immutable revision. For a chat-delivered plan, place it beside the
+immutable session-scratch plan file and record that plan file path.
+
+Each entry has exactly: finding; exact correction; reviewer re-check result. The
+file is review-round evidence, never a worker result or a committed repository
+artifact.
+"""
+
+MECHANICAL_FIX_IN_PLACE_BODY = b"""
+A coordinator may correct a cold-review finding in the order without opening a
+rewrite-plus-review round only when both the finding and its correction are
+deterministic and mechanical: for example, a wrong heading anchor, a missing exact
+string, or nondeterministic command ordering.
+
+Record the finding and the exact correction in the round ledger, then have the
+current reviewer re-check the changed order bytes in that same round. A correction
+that requires judgment, changes a decision, changes scope, or reopens a settled
+ruling stays in the panel-or-operator path and does consume the ordinary revision
+cycle.
+"""
+
+DESIGN_IT_TWICE_ADAPTER_DISPATCH = """\
+The coordinator supplies the selected adapter, explicit design-agent model, and
+explicit design-agent effort. Pass model and effort unchanged to every design
+worker. This procedure does not select an adapter, model, or effort, apply a
+routing table or headroom policy, or add defaults.
+
+Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
+adapter's read-only surface. Never use the built-in Agent tool, Workflow tool,
+or background-agent machinery.
+
+Create one coordinator-owned `<session-scratch>/design-it-twice/` directory.
+For alternative `<n>`, write its complete independent technical brief to
+`design-<n>.prompt.md`; use `design-<n>.json` as that worker's state file; and
+capture its launcher stdout and stderr in `design-<n>.stdout` and
+`design-<n>.stderr`. The coordinator passes the contents of
+`design-<n>.prompt.md` as the adapter's positional prompt text. State files
+carry lifecycle metadata only; successful design output comes from each
+launcher's stdout `final_message`.
+
+Start alternatives 1, 2, and 3 through the selected adapter before waiting on
+any launcher, retaining each launcher PID and joining each individually. Each
+worker receives its separate technical brief and one different constraint:
+
+- Alternative 1: "Minimize the interface — aim for 1–3 entry points max.
+  Maximise leverage per entry point."
+- Alternative 2: "Maximise flexibility — support many use cases and extension."
+- Alternative 3: "Optimise for the most common caller — make the default case
+  trivial."
+- Alternative 4, when applicable: "Design around ports & adapters for
+  cross-seam dependencies."
+
+Include both [../SKILL.md](../SKILL.md) vocabulary and CONTEXT.md vocabulary
+in every brief. Each worker must not modify, patch, or stash.
+
+Each worker outputs:
+
+1. Interface (types, methods, params — plus invariants, ordering, error modes)
+2. Usage example showing how callers use it
+3. What the implementation hides behind the seam
+4. Dependency strategy and adapters (see [DEEPENING.md](DEEPENING.md))
+5. Trade-offs — where leverage is high, where it's thin
+
+On one nonzero completion, use the selected adapter's `resume` surface once
+against that alternative's same state file. If it still does not produce a
+successful `final_message`, mark that alternative unavailable. With two or more
+successful alternatives, present and compare the available designs, naming every
+unavailable alternative. With zero or one successful alternative, report that
+the design-it-twice pass did not produce enough alternatives and return to the
+interface-shape frontier; do not recommend a design."""
+
+PREFLIGHT_VERBATIM_COMMAND_OUTPUT = """\
+Every `command → output` evidence block is pasted verbatim from an actual command
+run. To abbreviate output, change the command so it produces the shorter output
+(for example, `grep -m` or `head`); never edit the captured output, insert
+ellipses, or drop matches. Manual edits are prohibited and require a **BLOCKED**
+verdict on their own."""
+
+PLAN_REVIEW_EVIDENCE_BLOCK_SPOT_CHECK = """\
+During the cold read, spot-check at least one `command → output` evidence block:
+run its recorded command and compare the complete result to the cited output.
+Treat a manual edit found in any evidence block as independently requiring a
+**BLOCKED** verdict."""
+
+PERSONA_REVIEW_PANELIST_DISPATCH = """\
+The coordinator supplies the selected adapter, explicit reviewer model, and explicit
+reviewer effort. For each panelist, dispatch only through
+`skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected adapter's
+read-only review surface. Never use the built-in Agent tool, Workflow tool, or
+background-agent machinery.
+
+Each dispatch has one coordinator-owned state file under the coordinator's
+session-scratch directory. Use the adapter's start, resume, stop, and verify surface;
+adapter state, same-worker resume, and recovery remain adapter-owned.
+
+The coordinator keeps the non-sensitive positional prompt text in session scratch and
+passes that text to the selected adapter. The prompt tells the panelist to read the
+document, its private persona profile, relevant review-log entries, and relevant
+override rulings from their existing locations; review cold without access to another
+panelist's output or the synthesis; and return positions, blocking or note conditions,
+and approval or refusal. The prompt contains no persona name, simulation label, mine
+date, panel narrative, or profile, review-log, or override content."""
+
+RESEARCH_WORKER_DISPATCH = """\
+Use exactly one research worker; never create a chain of workers.
+
+The coordinator supplies the selected adapter, explicit research-worker model,
+explicit research-worker effort, and the complete research task. Dispatch only
+through `skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
+adapter's read-only surface. Never use the built-in Agent tool, Workflow tool,
+or background-agent machinery.
+
+Use the selected adapter's `start` surface with one coordinator-owned state file
+under the coordinator's session-scratch directory. The selected adapter's
+`resume`, `stop`, and `verify` surfaces retain lifecycle ownership.
+
+After selection, this interface does not reclassify research work or choose a
+model or effort. Preserve adapter-owned state and coordinator-owned recovery
+through the orchestrate adapter contract; do not restate its command or
+lifecycle mechanics here.
+
+Before dispatch, the coordinator writes the exact complete research-task prompt
+bytes to an immutable session-scratch file and passes that file's contents as
+the selected adapter's positional prompt. The worker receives no chat transcript
+or other coordinator-session material.
+
+The worker performs the research directly and returns source-cited findings to
+the coordinator. Never spawn another background agent or nested worker. If the
+worker fails or is interrupted, report the failure explicitly. Do not describe a
+successful dispatch as completed research. The coordinator writes the returned
+findings to the single Markdown file required below."""
+
+REVIEW_ROUTING_CONTRACT = """\
+This reference is the sole live authority for reviewer classification, reviewer
+eligibility, and reviewer-model precedence. The benchmark authority remains
+[`routing-table.md`](routing-table.md).
+
+For a review with a work order, effective review depth is the routing input:
+Focused and Targeted are routine; Full is load-bearing. An order with no stamped
+depth retains [review-depth.md](../../ticket/references/review-depth.md)'s Targeted
+default.
+
+For every review without a work order—a bare diff, chat plan, file-backed PRD, design document, or GitHub issue—the dispatcher judges the subject against [review-depth.md](../../ticket/references/review-depth.md)'s sensitivity floor: any of its four categories makes the subject load-bearing; otherwise it is routine.
+
+Precedence is fixed: effective depth, or the judged sensitivity floor when there
+is no order, produces routine/load-bearing routing stakes; the selected review
+skill supplies its routing-table area; `routing-table.md` supplies that row's
+candidate model or ladder; parent policy and the Codex presence/headroom gate
+remove unavailable candidates. Builder tier is never an input, and a fallback is
+never borrowed from another row.
+
+Haiku never reviews.
+
+Reviewer-routing stakes and plan-review's plan stakes tier are independent.
+Neither derives from, overrides, or rewrites the other.
+
+| Review skill | Routing stakes | Initial route |
+|---|---|---|
+| code-review | routine | Run the Codex presence/headroom gate first. With usable Codex, use Luna from the Code review row. On absent, unknown, ≤5%, or rate-limited Codex, enter Claude-only mode at Sonnet from the Code review row and make no second Codex attempt for the session. |
+| code-review | load-bearing | Use Opus directly from the Code review row; select no Codex rung. |
+| plan-review | routine | Run the Codex presence/headroom gate first. With usable Codex, use Terra from the Plan / spec writing row. On absent, unknown, ≤5%, or rate-limited Codex, enter Claude-only mode at Opus from the Plan / spec writing row, which has no Sonnet rung, and make no second Codex attempt for the session. |
+| plan-review | load-bearing | Use Opus directly from the Plan / spec writing row; select no Codex rung. |
+
+The matrix routes for a Claude parent. A Codex parent follows its own session
+policy in `dispatch-codex.md`, and this matrix does not route for it.
+
+Opus in the Plan / spec writing ladder is an availability rung, not a benchmarked
+plan-writing win.
+
+The matrix chooses only the initial reviewer adapter/model. Existing read-only
+sandboxing, explicit effort, same-session retry, escalation, liveness, recovery,
+and worker-state mechanics remain owned by orchestrate and the merged #145, #149,
+#150, #151, and #152 work.
+
+## Related authorities
+
+Use `routing-table.md` for benchmarked areas, ladders, scores, and effort notes;
+use `review-depth.md` for depth, sensitivity, hardening, blocking, and whole-diff
+behavior."""
+
+ROUTING_TABLE_REVIEW_CONSUMER = """\
+Before applying their own named area row, `code-review` and `plan-review` obtain
+routine/load-bearing routing stakes and their initial route directly from
+[`review-routing.md`](review-routing.md).
+
+Opus in the Plan / spec writing ladder is an availability rung, not a benchmarked
+plan-writing win."""
+
+ROUTING_TABLE_ROUTES = """\
+Escalate one step at a time along the row's ladder; at the last rung, stop and
+surface both failed attempts to the operator.
+
+| Area | Route | Ladder | Why |
+|---|---|---|---|
+| Exploration / codebase-mapping | **Luna** for bounded lookups; **Sonnet** for full-system maps | Luna → Sonnet → Opus | Sonnet tied Opus at 5/5 with fully verified citations at 60% of the cost; Luna scored 4 at a fraction of both. Haiku fabricated a citation — do not use for exploration you won't verify. |
+| Hermetic implementation | **Terra** | Terra → Sonnet → Opus | Terra matched the merged fix exactly (incl. the window-bounds subtlety) at $2.50; Sonnet/Opus scored 5 with richer tests — escalate for correctness-critical or gnarly changes. Luna/Haiku/Spark all missed a subtle placement decision. Field-derived provenance (sources: #144's session-fit comment and epic ledger PR #136): Terra failed canonical byte-for-byte prose-contract work on #151 and #152, required escalation, and informed #144's stamp; this observation changes neither Route nor Ladder. |
+| Plan / spec writing | **Terra** | Terra → Sol → Opus | The Codex family owns this area: Terra 5/5 (tightest, correct fail-closed), Sol/Luna/GPT-5.4 ≈4.8. Opus wrote the prettiest spec with a load-bearing polarity error — never route specs to Claude models without a fail-safe review. Field-derived provenance (sources: #144's session-fit comment and epic ledger PR #136): Terra failed canonical byte-for-byte prose-contract work on #151 and #152, required escalation, and informed #144's stamp; this observation changes neither Route nor Ladder. |
+| Prototyping (incl. UI mockups) | **Sol** | Sol → Opus → none (top of ladder; Sol first despite Opus's lower sticker price — Sol's per-task token volume ran leaner and its output resolved a spec tension Opus ignored) | Sol, Opus, and Spark all hit 5; Sol resolved a spec tension the others ignored. Spark ties when repo context (an existing lock/design system) exists to reuse — and it's near-instant. Luna is banned here (1/5: no page geometry, invented UI, leaked never-print content). |
+| Novel-solution brainstorming | **Terra**; **Opus** when novelty is the deliverable | Terra → Opus → none (top of ladder) | Opus 5/5 with the most novel idea of the whole benchmark; Terra 4.5 at half the price. Haiku and Spark produce generic-ML re-skins — don't route ideation there. |
+| Documentation writing | **Haiku** (default; Luna equal-scored alternate) | Haiku → Opus → Sol (Opus first: equal score, lower price) | Both scored 4 at ~$1; Opus and Sol scored 5 — escalate for load-bearing ADRs. Sonnet (3) narrated implementation identifiers; Spark (2) fabricated a cross-reference. |
+| Code review | **Luna** for routine PRs; **Opus** for load-bearing/safety review | Luna → Sonnet → Opus; Opus route: none (top of ladder) | Opus was the only model to catch all 3 planted defects (incl. a silently weakened test). Luna caught 2/3 with zero false positives at the lowest cost. GPT-5.5 confidently reported a nonexistent syntax error; GPT-5.4-Mini missed a blatant inverted guard — avoid both for review. Field-derived provenance (source: epic ledger PR #136's 2026-08-25 rounds): Sol produced zero hallucinated findings across approximately 20 Full-depth and cold reviews in one epic session, with every blocking finding reproduced against the tree, grounding the standing Codex-first review practice. |""".encode("utf-8")
+
+ORCHESTRATE_MAINTENANCE = """\
+The table is provenance-stamped. Benchmark replays and field-derived notes from
+real orchestration sessions are valid provenance classes. Every field-derived
+note must name its issue or ledger source.
+
+When a new model ships, replay the benchmark per
+`references/benchmark/README.md` (~1 area-task per area; note the review and
+prototyping fixtures regenerate and need an incumbent anchor run) and update the
+table in the same commit.
+
+A field-derived note that contradicts a benchmarked score does not silently
+win. File a replay of every affected area as its own follow-up ticket, then
+replay it under `references/benchmark/README.md`.""".encode("utf-8")
+
+CODE_REVIEW_DEPENDENCY_SELECTION = """\
+At the standard skill root, when `orchestrate` is installed, read its
+`references/review-routing.md` and `references/routing-table.md` directly before
+dispatch. Use the four-row reviewer matrix, classify this skill's area as
+`Code review`, and apply the matrix's Claude-parent Codex presence/headroom gate
+to select the initial reviewer adapter and model.
+
+When `orchestrate` or its `review-routing.md` is not installed, say so in one
+line and continue Claude-only: use Sonnet for routine review or Opus for
+load-bearing review, with no Codex attempt."""
+
+ORCHESTRATE_REVIEW_PRECEDENCE = """\
+Review dispatch is classified before the generic area routing above. Read
+`references/review-routing.md` and apply its reviewer-selection contract: review
+depth or the sensitivity floor determines routing stakes, the selected review
+skill supplies its named routing-table area, and parent policy plus the Codex
+presence/headroom gate removes unavailable candidates. Do not infer a reviewer
+from builder tier or borrow a fallback from another routing-table row."""
+
+ORCHESTRATE_PACK_WIDE_REACH = """\
+Per ADR 149 (`docs/adr/adr-149-pack-owned-model-dispatch.md`): all model
+dispatch defined by this pack goes through this pack's own adapters
+(`claude-worker.py` / `codex-worker.py`), not the built-in Agent tool, the
+Workflow tool, or background agents. That ruling covers every skill that
+dispatches a model, not only `orchestrate`. Every dispatching skill is now
+converted: `code-review` (issue #151), `plan-review` (issue #152),
+`persona-review` (issue #153), `ticket`'s chunk agents (issue #154), `epic`
+(issue #155), `research` (issue #156), and `codebase-design` (issue #157) all
+use the adapters. A future skill that dispatches a model converts behind its
+own issue before the ban binds it."""
+
+ORCHESTRATE_COLLECT_CHILD_RESULTS = """\
+This contract binds every model dispatch owned by this pack.
+
+Before each dispatch, the coordinator records the child's prompt file, its
+coordinator-owned state file, and its durable result locator. Write the complete
+prompt bytes to session scratch and pass that file's contents as the selected
+adapter's positional prompt. Use one state file per dispatch; state is lifecycle
+metadata only, never the child result.
+
+The result locator is the artifact that carries the child's answer: captured
+launcher stdout, a named worktree or branch for implementation changes, or a
+posted comment when the child declares that handoff. Use the adapter's start,
+resume, stop, and verify surface without restating its command mechanics.
+
+A coordinator never ends a turn solely because a child is unfinished, and it
+does not treat a completion notification as the result. After dispatching every
+child that is ready to run, if it must pause, it monitors one named launcher,
+state, stdout, worktree or branch, or posted-comment artifact. It then collects
+the result from the recorded result locator and verifies it under this skill's
+existing rules."""
+
+DISPATCH_CODEX_ADMISSION = """\
+These are the only validated initial routes in Codex-only mode:
+
+| Area | Initial route |
+|---|---|
+| Bounded exploration | Luna (`gpt-5.6-luna`) |
+| Hermetic implementation | Terra (`gpt-5.6-terra`) |
+| Plan / spec writing | Terra (`gpt-5.6-terra`) |
+| Prototyping | Sol (`gpt-5.6-sol`) |
+| Default brainstorming | Terra (`gpt-5.6-terra`) |
+| Documentation | Luna (`gpt-5.6-luna`) |
+
+Full-system exploration, novelty-as-deliverable brainstorming, and
+other unlisted admissions are **NO_VALIDATED_ROUTE** until benchmarked.
+Do not invent an escalation for those admissions. Each admitted v0 route is one
+validated rung: retry once in the same worker session, then stop with
+**NO_VALIDATED_ROUTE**. Never escalate Terra, Luna, or Sol to Sonnet or Opus.
+Pass the exact parenthesized CLI model ID to the helper's `--model` argument.
+
+Review admissions are owned by [`review-routing.md`](review-routing.md). Its
+matrix assumes a Claude parent and does not route for this Codex UI parent;
+follow the Codex parent's own session policy instead of treating review as a
+generic admission above."""
+
+DISPATCH_CODEX_FROM_CLAUDE_ADMISSION = """\
+Read [`review-routing.md`](review-routing.md) and apply its four-row matrix for
+reviewer classification and initial adapter/model selection. That matrix
+composes the selected review skill's area with `routing-table.md` and the Codex
+presence/headroom gate in `SKILL.md`; this adapter reference does not duplicate
+their precedence.
+
+When the matrix selects Codex, dispatch the review read-only through
+`codex-worker.py start` and persist one state file for that worker. Retry a
+model-quality failure once through `codex-worker.py resume` against the same
+state file, carrying the specific finding; do not start a second worker for the
+retry. Review is a read task, so `workspace-write` is never correct for it.
+
+## Infrastructure failure vs. model-quality failure
+
+A worker that failed to launch, hung before session start, lost its rollout,
+or was refused for headroom is a dispatch failure, matching the rule
+`dispatch-codex.md` already states. It is not evidence that Luna reviewed
+badly, so it consumes neither the one same-session retry in `Review admission`
+above nor an escalation rung. See `dispatch-codex.md`'s "Worker liveness" and
+"Interrupted workers" sections for the shared mechanics — they are not
+duplicated here. The launching coordinator owns stop-then-verify before any
+successor touches the worktree."""
+
+REVIEW_DEPTH_DISPATCH_BOUNDARY = """\
+Under `Profile: hardening`, Targeted and Focused orders get no reviewer; Full-depth
+orders keep one review round after hardening.
+
+Review depth is an input to
+[review-routing.md](../../orchestrate/references/review-routing.md), which owns
+reviewer classification, eligibility, and model precedence.
+
+* A whole diff assembled from chunks is reviewed Targeted, or Full when any chunk
+  was Full."""
+
+SLICING_ORCHESTRATOR_TIER = """\
+The order's `Open as:` names the tier the coordinator session must run at: the
+**highest** tier any chunk names (haiku < sonnet < opus), and never Haiku, which
+cannot review
+([review-routing.md](../../orchestrate/references/review-routing.md)). The coordinator never launches
+an agent smarter than itself."""
+
+COORDINATOR_REVIEWER_SELECTION = """\
+4. **Review each chunk as it lands**, at that sub-order's stamped depth, before
+   merging it. Two things happen, in order, and neither substitutes for the other:
+
+   a. Run `/review` for the chunk diff, then apply the selected review skill's matrix
+   entry from
+   [review-routing.md](../../orchestrate/references/review-routing.md) using that
+   chunk's stamped depth. Builder tier is not an input. Dispatch the selected
+   reviewer on the chunk's branch against the ticket branch. Findings go back to
+   the chunk's own agent to fix. Claim each dispatched reviewer session through the
+   shared claim rule with `--role reviewer`, plus the same `--session <id>`,
+   `--agent <agent>` and `--project` it ran in, so review overhead is measured as
+   overhead and never as chunk size. A reviewer with no stable transcript id is
+   reported in one line like an unclaimable worker, and a claim failure follows the
+   same shared non-blocking rule: neither ever holds up dispatching the review.
+
+   b. Verify the result yourself, as `/orchestrate` requires of every delegated
+   result: read the diff, run the verification command, check the chunk's Done when
+   clause. A failed verification retries once in the chunk's agent with the specific
+   finding, then escalates one tier per the routing table. Same-session retries are
+   not re-claimed; claim every fresh implementation escalation once, using the
+   escalation's stable transcript id, agent, and chunk worktree."""
+
+README_CODE_REVIEW_ROW = "| [`code-review`](skills/tools/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | `orchestrate` is an optional integration used for reviewer routing when installed; parallel-agent support recommended; GitHub CLI to fetch an originating issue; see [docs/review-round-mining.md](docs/review-round-mining.md) for the mined evidence behind the fix protocol and the round cap |"
+README_PLAN_REVIEW_ROW = "| [`plan-review`](skills/tools/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | `orchestrate` is an optional integration used for reviewer routing when installed; parallel-agent support recommended; `persona-review` optional for load-bearing plans; the round-count evidence behind its rules is in [docs/review-round-mining.md](docs/review-round-mining.md) |"
+
+LIFECYCLE_SPEC = importlib.util.spec_from_file_location("worker_lifecycle", WORKER_LIFECYCLE)
+assert LIFECYCLE_SPEC and LIFECYCLE_SPEC.loader
+LIFECYCLE_MODULE = importlib.util.module_from_spec(LIFECYCLE_SPEC)
+sys.modules["worker_lifecycle"] = LIFECYCLE_MODULE
+LIFECYCLE_SPEC.loader.exec_module(LIFECYCLE_MODULE)
 
 WORKER_SPEC = importlib.util.spec_from_file_location("orchestrate_worker", CODEX_WORKER)
 assert WORKER_SPEC and WORKER_SPEC.loader
 WORKER_MODULE = importlib.util.module_from_spec(WORKER_SPEC)
 WORKER_SPEC.loader.exec_module(WORKER_MODULE)
+
+CLAUDE_WORKER_SPEC = importlib.util.spec_from_file_location("orchestrate_claude_worker", CLAUDE_WORKER)
+assert CLAUDE_WORKER_SPEC and CLAUDE_WORKER_SPEC.loader
+CLAUDE_WORKER_MODULE = importlib.util.module_from_spec(CLAUDE_WORKER_SPEC)
+CLAUDE_WORKER_SPEC.loader.exec_module(CLAUDE_WORKER_MODULE)
 
 
 def run(
@@ -1621,6 +2141,8 @@ class CodexWorkerTests(unittest.TestCase):
                 "Terra",
                 "-c",
                 'sandbox_mode="workspace-write"',
+                "-c",
+                "model_reasoning_effort=medium",
                 "--json",
                 "continue with the failing test",
             ],
@@ -2072,6 +2594,1017 @@ class OrchestrateCodexPolicyTests(unittest.TestCase):
         self.assertIn("`ps -o time` is growing", dispatch)
         self.assertIn("rollout-*.jsonl", dispatch)
 
+    def test_claude_parent_codex_dispatch_reference_is_pinned(self):
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        dispatch = (
+            ROOT / "skills" / "drivers" / "orchestrate" / "references" / "dispatch-codex.md"
+        ).read_text(encoding="utf-8")
+        from_claude = (
+            ROOT
+            / "skills"
+            / "drivers"
+            / "orchestrate"
+            / "references"
+            / "dispatch-codex-from-claude.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "Before\n  dispatching a Codex worker, read\n  `references/dispatch-codex-from-claude.md`.",
+            skill,
+        )
+        self.assertIn(
+            "Use this adapter only when the interactive coordinator is a Codex UI parent.",
+            dispatch,
+        )
+
+        self.assertIn(
+            "only when the interactive coordinator is a Claude Code\nparent dispatching a **Codex** worker",
+            from_claude,
+        )
+        self.assertIn("read-only", from_claude)
+
+
+class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
+    @staticmethod
+    def text(path: str) -> str:
+        return (ROOT / path).read_text(encoding="utf-8")
+
+    @staticmethod
+    def block(text: str, start: str, end: str) -> str:
+        value = text.split(f"{start}\n\n", 1)[1]
+        return value.split(f"\n\n{end}", 1)[0]
+
+    def test_review_routing_contract_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/references/review-routing.md")
+        self.assertEqual(
+            self.block(text, "## Reviewer selection contract", "## Reference boundary"),
+            REVIEW_ROUTING_CONTRACT,
+        )
+
+    def test_routing_table_review_consumer_block_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/references/routing-table.md")
+        self.assertEqual(
+            self.block(text, "## Review-consumer classification", "## Routes (cheapest that clears the bar) and escalation ladders"),
+            ROUTING_TABLE_REVIEW_CONSUMER,
+        )
+
+    def test_routing_table_routes_are_byte_identical(self):
+        source = (
+            ROOT / "skills" / "drivers" / "orchestrate" / "references" / "routing-table.md"
+        ).read_bytes()
+        body = source.split(
+            b"## Routes (cheapest that clears the bar) and escalation ladders\n\n", 1
+        )[1].split(b"\n\n## Effort notes (coarse, per spec decision 8)\n", 1)[0]
+
+        self.assertEqual(body, ROUTING_TABLE_ROUTES)
+
+    def test_orchestrate_maintenance_is_byte_identical(self):
+        source = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
+        body = source.split(b"## Maintenance\n\n", 1)[1].split(
+            b"\n\n## Reference boundary\n", 1
+        )[0]
+
+        self.assertEqual(body, ORCHESTRATE_MAINTENANCE)
+
+    def test_code_review_dependency_selection_is_byte_identical(self):
+        text = self.text("skills/tools/code-review/SKILL.md")
+        self.assertEqual(
+            self.block(text, "## Dependency and reviewer selection", "## Modes"),
+            CODE_REVIEW_DEPENDENCY_SELECTION,
+        )
+
+    def test_orchestrate_review_precedence_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/SKILL.md")
+        self.assertEqual(
+            self.block(text, "## Review precedence", "## Verification and escalation"),
+            ORCHESTRATE_REVIEW_PRECEDENCE,
+        )
+
+    def test_orchestrate_pack_wide_reach_is_byte_identical(self):
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
+        body = skill.split(b"## Pack-wide reach\n\n", 1)[1].split(
+            b"\n\n## Collect child results\n", 1
+        )[0]
+
+        self.assertEqual(body, ORCHESTRATE_PACK_WIDE_REACH.encode("utf-8"))
+
+    def test_orchestrate_collect_child_results_is_byte_identical(self):
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
+        body = skill.split(b"## Collect child results\n\n", 1)[1].split(
+            b"\n\n## Maintenance\n", 1
+        )[0]
+
+        self.assertEqual(body, ORCHESTRATE_COLLECT_CHILD_RESULTS.encode("utf-8"))
+
+    def test_orchestrate_pack_wide_reach_boundaries_are_preserved(self):
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
+
+        self.assertIn(b"## Pack-wide reach", skill)
+        self.assertEqual(skill.count(b"\n## Maintenance\n"), 1)
+        self.assertIn(
+            b"A future skill that dispatches a model converts behind its\n"
+            b"own issue before the ban binds it.",
+            skill,
+        )
+
+    def test_codex_ui_admission_block_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/references/dispatch-codex.md")
+        self.assertEqual(
+            self.block(text, "## Codex-only admission routes", "## Reference boundary"),
+            DISPATCH_CODEX_ADMISSION,
+        )
+
+    def test_claude_parent_review_admission_is_byte_identical(self):
+        text = self.text("skills/drivers/orchestrate/references/dispatch-codex-from-claude.md")
+        self.assertEqual(
+            self.block(text, "## Review admission", "## Boundary"),
+            DISPATCH_CODEX_FROM_CLAUDE_ADMISSION,
+        )
+
+    def test_review_depth_dispatch_boundary_is_byte_identical(self):
+        text = self.text("skills/drivers/ticket/references/review-depth.md")
+        self.assertEqual(
+            self.block(text, "## Reviewer dispatch boundary", "## Reference boundary"),
+            REVIEW_DEPTH_DISPATCH_BOUNDARY,
+        )
+
+    def test_slicing_orchestrator_tier_is_byte_identical(self):
+        text = self.text("skills/drivers/ticket/references/slicing.md")
+        self.assertEqual(
+            self.block(text, "## Orchestrator tier", "## Reference boundary"),
+            SLICING_ORCHESTRATOR_TIER,
+        )
+
+    def test_coordinator_reviewer_selection_is_byte_identical(self):
+        text = self.text("skills/drivers/ticket/references/coordinator-mode.md")
+        self.assertEqual(
+            self.block(text, "## Reviewer selection", "## Chunk integration"),
+            COORDINATOR_REVIEWER_SELECTION,
+        )
+
+    def test_readme_code_review_row_is_byte_identical(self):
+        rows = [line for line in README.read_text(encoding="utf-8").splitlines() if line.startswith("| [`code-review`")]
+        self.assertEqual(rows, [README_CODE_REVIEW_ROW])
+
+    def test_readme_plan_review_row_is_byte_identical(self):
+        rows = [line for line in README.read_text(encoding="utf-8").splitlines() if line.startswith("| [`plan-review`")]
+        self.assertEqual(rows, [README_PLAN_REVIEW_ROW])
+
+
+class WorkerEffortDialTests(unittest.TestCase):
+    """Sub-order 1/2 149: the effort dial on both adapters and the STATE_VERSION
+    choice (effort is optional-with-default, not added to BASE_STATE_FIELDS,
+    so STATE_VERSION stays 2 and pre-existing state files remain valid)."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.scratch = Path(self.temporary.name)
+        self.control = self.scratch / "control"
+        self.worktree = self.scratch / "worktree"
+        self.control.mkdir()
+        self.worktree.mkdir()
+        self.state = self.scratch / "worker-state.json"
+        self.arguments = self.scratch / "arguments.json"
+        self.stdin_capture = self.scratch / "stdin.txt"
+
+        self.codex_binary = self.scratch / "fake-codex"
+        self.codex_binary.write_text(
+            "#!/usr/bin/env python3\n"
+            "import json, os, pathlib, sys\n"
+            "pathlib.Path(os.environ['FAKE_ARGUMENTS']).write_text(json.dumps(sys.argv[1:]))\n"
+            "sys.stdout.write(os.environ.get('FAKE_OUTPUT', ''))\n"
+            "sys.exit(int(os.environ.get('FAKE_EXIT', '0')))\n",
+            encoding="utf-8",
+        )
+        self.codex_binary.chmod(0o755)
+
+        self.claude_binary = self.scratch / "fake-claude"
+        self.claude_binary.write_text(
+            "#!/usr/bin/env python3\n"
+            "import json, os, pathlib, sys\n"
+            "pathlib.Path(os.environ['FAKE_ARGUMENTS']).write_text(json.dumps(sys.argv[1:]))\n"
+            "pathlib.Path(os.environ['FAKE_STDIN']).write_text(sys.stdin.read())\n"
+            "sys.stdout.write(os.environ.get('FAKE_OUTPUT', ''))\n"
+            "sys.exit(int(os.environ.get('FAKE_EXIT', '0')))\n",
+            encoding="utf-8",
+        )
+        self.claude_binary.chmod(0o755)
+
+        self.environment = os.environ.copy()
+        self.environment["FAKE_ARGUMENTS"] = str(self.arguments)
+        self.environment["FAKE_STDIN"] = str(self.stdin_capture)
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def run_codex(self, *arguments: str):
+        return run(["python3", str(CODEX_WORKER), *arguments], cwd=ROOT, env=self.environment)
+
+    def run_claude(self, *arguments: str):
+        return run(["python3", str(CLAUDE_WORKER), *arguments], cwd=ROOT, env=self.environment)
+
+    # --- codex-worker.py -------------------------------------------------
+
+    def test_codex_start_defaults_to_medium_effort_in_argv(self):
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+        result = self.run_codex(
+            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--model", "Terra", "--sandbox", "read-only", "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn("model_reasoning_effort=medium", argv)
+        self.assertNotIn("effort", json.loads(self.state.read_text(encoding="utf-8")))
+
+    def test_codex_start_carries_a_custom_effort_and_persists_it(self):
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+        result = self.run_codex(
+            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--model", "Terra", "--sandbox", "read-only", "--effort", "high",
+            "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn("model_reasoning_effort=high", argv)
+        self.assertEqual(json.loads(self.state.read_text(encoding="utf-8"))["effort"], "high")
+
+    def test_codex_rejects_an_effort_outside_its_own_enum(self):
+        result = self.run_codex(
+            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--model", "Terra", "--sandbox", "read-only", "--effort", "max",
+            "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--effort", result.stderr)
+        self.assertFalse(self.state.exists())
+
+    def test_codex_replays_persisted_effort_on_resume(self):
+        legacy = {
+            "version": LIFECYCLE_MODULE.STATE_VERSION, "lifecycle": "exited",
+            "session_id": "worker-1", "model": "Terra", "sandbox": "read-only",
+            "cwd": str(self.worktree.resolve()), "effort": "high",
+            "family_semantics": "unsupported", "generation": 1,
+        }
+        self.state.write_text(json.dumps(legacy), encoding="utf-8")
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+        result = self.run_codex("resume", "--codex", str(self.codex_binary), "--state", str(self.state), "continue")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn("model_reasoning_effort=high", argv)
+        self.assertEqual(json.loads(result.stdout)["effort"], "high")
+
+    # --- claude-worker.py -------------------------------------------------
+
+    def test_claude_start_puts_prompt_on_stdin_not_argv(self):
+        self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "s1", "result": "ok", "is_error": False})
+        result = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--cwd", str(self.worktree), "the actual prompt text",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertNotIn("the actual prompt text", argv)
+        self.assertEqual(self.stdin_capture.read_text(encoding="utf-8"), "the actual prompt text")
+
+    def test_claude_start_defaults_to_medium_effort_in_argv(self):
+        self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "s1", "result": "ok", "is_error": False})
+        result = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn("--effort", argv)
+        self.assertEqual(argv[argv.index("--effort") + 1], "medium")
+        self.assertNotIn("effort", json.loads(self.state.read_text(encoding="utf-8")))
+        self.assertEqual(json.loads(result.stdout)["effort"], "medium")
+
+    def test_claude_start_carries_a_custom_effort_and_persists_it(self):
+        self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "s1", "result": "ok", "is_error": False})
+        result = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--effort", "xhigh",
+            "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertEqual(argv[argv.index("--effort") + 1], "xhigh")
+        self.assertEqual(json.loads(self.state.read_text(encoding="utf-8"))["effort"], "xhigh")
+        self.assertEqual(json.loads(result.stdout)["effort"], "xhigh")
+
+    def test_claude_rejects_an_effort_outside_its_own_enum(self):
+        # "minimal" is valid for codex but not claude — the two adapters do not
+        # share one enum.
+        result = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--effort", "minimal",
+            "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--effort", result.stderr)
+        self.assertFalse(self.state.exists())
+
+    def test_claude_replays_persisted_effort_on_resume(self):
+        legacy = {
+            "version": LIFECYCLE_MODULE.STATE_VERSION, "lifecycle": "exited",
+            "session_id": "worker-1", "model": "sonnet", "sandbox": "read-only",
+            "cwd": str(self.worktree.resolve()), "effort": "high",
+            "family_semantics": "unsupported", "generation": 1,
+        }
+        self.state.write_text(json.dumps(legacy), encoding="utf-8")
+        self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "worker-1", "result": "ok", "is_error": False})
+        result = self.run_claude("resume", "--claude", str(self.claude_binary), "--state", str(self.state), "continue")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertEqual(argv[argv.index("--effort") + 1], "high")
+        self.assertEqual(json.loads(result.stdout)["effort"], "high")
+
+    def test_claude_start_argv_carries_no_cwd_flag_and_settings_matches_sandbox_mode(self):
+        # The installed claude CLI has no --cwd flag; the adapter establishes
+        # the working directory via os.chdir in the gate wrapper (and cwd= in
+        # run_portable), never as an argv token. A fake binary that accepts
+        # any argv would let a stray --cwd slip through unnoticed, so assert
+        # the flag set explicitly for both sandbox modes.
+        for sandbox, expect_deny in (("read-only", True), ("workspace-write", False)):
+            with self.subTest(sandbox=sandbox):
+                self.arguments.unlink(missing_ok=True)
+                self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "s1", "result": "ok", "is_error": False})
+                arguments = [
+                    "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+                    "--model", "sonnet", "--sandbox", sandbox, "--cwd", str(self.worktree),
+                ]
+                if sandbox == "workspace-write":
+                    arguments += ["--control-checkout", str(self.control)]
+                result = self.run_claude(*arguments, "do the work")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+                self.assertNotIn("--cwd", argv)
+                self.assertEqual(
+                    argv,
+                    [
+                        "-p", "--model", "sonnet", "--effort", "medium",
+                        "--permission-mode", "dontAsk", "--settings", argv[argv.index("--settings") + 1],
+                        "--session-id", argv[argv.index("--session-id") + 1],
+                        "--output-format", "json",
+                    ],
+                )
+                settings_path = Path(argv[argv.index("--settings") + 1])
+                settings = json.loads(settings_path.read_text(encoding="utf-8"))
+                if expect_deny:
+                    self.assertIn("Write", settings["permissions"]["deny"])
+                    self.assertIn("filesystem", settings["sandbox"])
+                else:
+                    self.assertIn("Write", settings["permissions"]["allow"])
+                    self.assertIn(str(self.worktree.resolve()), settings["sandbox"]["filesystem"]["allowWrite"])
+                    self.assertNotIn("denyWrite", settings["sandbox"]["filesystem"])
+                self.state.unlink(missing_ok=True)
+
+    def test_claude_resume_argv_carries_no_cwd_flag(self):
+        for sandbox in ("read-only", "workspace-write"):
+            with self.subTest(sandbox=sandbox):
+                self.arguments.unlink(missing_ok=True)
+                legacy = {
+                    "version": LIFECYCLE_MODULE.STATE_VERSION, "lifecycle": "exited",
+                    "session_id": "worker-1", "model": "sonnet", "sandbox": sandbox,
+                    "cwd": str(self.worktree.resolve()),
+                    "family_semantics": "unsupported", "generation": 1,
+                }
+                if sandbox == "workspace-write":
+                    legacy["control_checkout"] = str(self.control.resolve())
+                self.state.write_text(json.dumps(legacy), encoding="utf-8")
+                self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "worker-1", "result": "ok", "is_error": False})
+                result = self.run_claude("resume", "--claude", str(self.claude_binary), "--state", str(self.state), "continue")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+                self.assertNotIn("--cwd", argv)
+                self.assertEqual(argv[0], "-p")
+                self.assertEqual(argv[1:4], ["--resume", "worker-1", "--model"])
+                self.state.unlink(missing_ok=True)
+
+    def test_claude_workspace_write_rejects_the_control_checkout(self):
+        result = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "workspace-write",
+            "--cwd", str(self.control), "--control-checkout", str(self.control),
+            "do the work",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("control checkout", result.stderr)
+        self.assertFalse(self.state.exists())
+
+    def test_claude_generated_readonly_settings_deny_writes_and_disable_unsandboxed_retry(self):
+        settings = CLAUDE_WORKER_MODULE.sandbox_settings("read-only", self.worktree.resolve())
+        self.assertEqual(settings["sandbox"]["allowUnsandboxedCommands"], False)
+        self.assertIn("/", settings["sandbox"]["filesystem"]["denyWrite"])
+        self.assertIn("Write", settings["permissions"]["deny"])
+        self.assertIn("Edit", settings["permissions"]["deny"])
+
+    def test_claude_generated_write_settings_confine_writes_to_cwd_and_keep_unsandboxed_retry_disabled(self):
+        # A real run of #149 with no `filesystem` block present wrote straight
+        # through to $HOME/.cache — see docs/scope/149-probes/run-log.md's
+        # `write` case. allowWrite must name the worker's own cwd, alone: a
+        # real run also confirmed denyWrite always wins over allowWrite for
+        # the same path, so pairing them re-blocks the cwd allowWrite exists
+        # to carve out.
+        cwd = self.worktree.resolve()
+        settings = CLAUDE_WORKER_MODULE.sandbox_settings("workspace-write", cwd)
+        self.assertEqual(settings["sandbox"]["allowUnsandboxedCommands"], False)
+        self.assertIn(str(cwd), settings["sandbox"]["filesystem"]["allowWrite"])
+        self.assertNotIn("denyWrite", settings["sandbox"]["filesystem"])
+        self.assertIn("Write", settings["permissions"]["allow"])
+        self.assertIn("Edit", settings["permissions"]["allow"])
+
+    def test_missing_effort_defaults_to_medium_without_a_version_bump(self):
+        # STATE_VERSION decision: effort lives only in each command's `allowed`
+        # schema superset, never in BASE_STATE_FIELDS, so a pre-existing state
+        # file with no "effort" key stays valid at STATE_VERSION 2 and reads
+        # back as the medium default on both adapters.
+        self.assertEqual(LIFECYCLE_MODULE.STATE_VERSION, 2)
+        self.assertEqual(LIFECYCLE_MODULE.STATE_VERSION, 2)
+        state = {
+            "version": 2, "lifecycle": "running", "session_id": "s",
+            "model": "Terra", "sandbox": "read-only", "cwd": str(self.worktree.resolve()),
+            "pid": 1, "pgid": 1, "sid": 1, "birth": {"seconds": 1, "microseconds": 0},
+        }
+        self.assertTrue(
+            LIFECYCLE_MODULE.valid_family_schema(
+                state, effort_levels=WORKER_MODULE.EFFORT_LEVELS
+            )
+        )
+        self.assertEqual(WORKER_MODULE.effort_of(state), "medium")
+        state["model"] = "sonnet"
+        self.assertTrue(
+            LIFECYCLE_MODULE.valid_family_schema(
+                state, effort_levels=CLAUDE_WORKER_MODULE.EFFORT_LEVELS
+            )
+        )
+        self.assertEqual(CLAUDE_WORKER_MODULE.effort_of(state), "medium")
+
+    def test_claude_max_effort_runs_start_resume_stop_and_verify_through_shared_lifecycle(self):
+        self.environment["FAKE_OUTPUT"] = json.dumps(
+            {"session_id": "worker-1", "result": "started", "is_error": False}
+        )
+        started = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--effort", "max",
+            "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(started.returncode, 0, started.stderr)
+        self.assertEqual(json.loads(started.stdout)["final_message"], "started")
+
+        self.environment["FAKE_OUTPUT"] = json.dumps(
+            {"session_id": "worker-1", "result": "resumed", "is_error": False}
+        )
+        resumed = self.run_claude(
+            "resume", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "continue",
+        )
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        self.assertEqual(json.loads(resumed.stdout)["final_message"], "resumed")
+        self.assertEqual(
+            json.loads(self.state.read_text(encoding="utf-8"))["effort"], "max"
+        )
+
+        for command in ("stop", "verify"):
+            with self.subTest(command=command):
+                result = self.run_claude(
+                    command, "--state", str(self.state), "--cwd", str(self.worktree)
+                )
+                if sys.platform == "darwin":
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(
+                        result.stderr,
+                        f"claude-worker: {LIFECYCLE_MODULE.UNSUPPORTED}\n",
+                    )
+                self.assertNotIn("malformed", result.stderr)
+
+
+class OrchestrateAdapterDispatchTests(unittest.TestCase):
+    def test_skill_bans_agent_tool_workflow_tool_and_background_agents_for_dispatch(self):
+        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("never through the Agent tool, the Workflow tool, or a\n  background agent", skill)
+        self.assertIn("claude-worker.py", skill)
+        self.assertIn("claude-worker.py resume", skill)
+        self.assertNotIn("via the Agent tool with a `model` override", skill)
+        self.assertIn("defaulting to medium", skill)
+
+    def test_dispatch_claude_reference_exists_and_names_both_sandbox_modes(self):
+        dispatch = (
+            ROOT / "skills" / "drivers" / "orchestrate" / "references" / "dispatch-claude.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("read-only", dispatch)
+        self.assertIn("workspace-write", dispatch)
+        self.assertIn("prompt to the worker's stdin", dispatch)
+        self.assertIn("liveness", dispatch.lower())
+        self.assertIn("permission_denials", dispatch)
+        self.assertIn("command -v claude", dispatch)
+        # The workspace-write shape is the one a real run of #149 corrected: with
+        # no filesystem block, a worker wrote through to $HOME/.cache. Pin the
+        # corrected shape so this reference cannot drift back to describing the
+        # pre-fix sandbox while the adapter generates the fixed one — nothing
+        # else asserts what this document claims the shape is.
+        self.assertIn("filesystem.allowWrite", dispatch)
+        self.assertNotIn("no filesystem deny-list", dispatch)
+
+    def test_routing_table_effort_notes_name_both_enums(self):
+        table = (
+            ROOT / "skills" / "drivers" / "orchestrate" / "references" / "routing-table.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("low|medium|high|xhigh|max", table)
+        self.assertIn("minimal|low|medium|high|xhigh", table)
+        self.assertIn("defaulting to medium", table)
+
+
+class CodeReviewAdapterProtocolTests(unittest.TestCase):
+    """Execute the coordinator contract through the public adapter CLIs."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name)
+        self.worktree = self.root / "worktree"
+        self.worktree.mkdir()
+        self.events = self.root / "events.log"
+        self.release = self.root / "release"
+        self.binary = self.root / "fake-reviewer"
+        self.binary.write_text(
+            """#!/usr/bin/env python3
+import json, os, pathlib, sys, time
+
+arguments = sys.argv[1:]
+is_claude = arguments[:1] == ["-p"]
+prompt = sys.stdin.read() if is_claude else arguments[-1]
+if "axis=" not in prompt:
+    raise SystemExit("missing axis prompt")
+axis = prompt.split("axis=", 1)[1].split()[0].rstrip(";")
+if is_claude:
+    required = {"--model", "--effort", "--permission-mode", "--settings", "--session-id", "--output-format"}
+    if not required.issubset(arguments) or arguments[arguments.index("--output-format") + 1] != "json":
+        raise SystemExit("unexpected Claude adapter argv")
+    if prompt in arguments:
+        raise SystemExit("Claude prompt leaked into argv")
+else:
+    required = {"exec", "-m", "-c", "--sandbox", "--skip-git-repo-check", "-C", "--json"}
+    if not required.issubset(arguments) or arguments[-1] != prompt:
+        raise SystemExit("unexpected Codex adapter argv")
+
+events = pathlib.Path(os.environ["REVIEW_EVENTS"])
+with events.open("a", encoding="utf-8") as handle:
+    handle.write(f"start {axis}\\n")
+if axis == os.environ.get("REVIEW_HOLD_AXIS"):
+    pathlib.Path(os.environ["REVIEW_HELD"]).touch()
+    while not pathlib.Path(os.environ["REVIEW_RELEASE"]).exists():
+        time.sleep(0.01)
+if axis == os.environ.get("REVIEW_FAIL_AXIS"):
+    raise SystemExit(17)
+with events.open("a", encoding="utf-8") as handle:
+    handle.write(f"end {axis}\\n")
+if is_claude:
+    print(json.dumps({"session_id": axis, "result": f"answer-{axis}", "is_error": False}))
+else:
+    print(json.dumps({"type": "thread.started", "thread_id": axis}))
+    print(json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": f"answer-{axis}"}}))
+""",
+            encoding="utf-8",
+        )
+        self.binary.chmod(0o755)
+        self.portable_launcher = self.root / "force-portable.py"
+        self.portable_launcher.write_text(
+            """#!/usr/bin/env python3
+import importlib.util, pathlib, sys
+
+worker = pathlib.Path(sys.argv.pop(1))
+spec = importlib.util.spec_from_file_location("forced_portable_worker", worker)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.lifecycle._libproc = lambda: None
+arguments = module.parser().parse_args()
+if arguments.command in {"start", "resume"} and not arguments.prompt:
+    raise SystemExit(module.fail("prompt is required"))
+raise SystemExit(arguments.handler(arguments))
+""",
+            encoding="utf-8",
+        )
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def coordinate(self, adapter, admitted, *, hold_axis=None, fail_axis=None, launch_fail_axis=None, force_portable=False, broken=None):
+        state_dir = self.root / f"state-{adapter}-{broken or 'correct'}-{len(list(self.root.glob('state-*')))}"
+        state_dir.mkdir()
+        self.events.unlink(missing_ok=True)
+        self.release.unlink(missing_ok=True)
+        (self.root / "held").unlink(missing_ok=True)
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "CODEX_HOME": str(self.root / "codex-home"),
+                "REVIEW_EVENTS": str(self.events),
+                "REVIEW_HELD": str(self.root / "held"),
+                "REVIEW_RELEASE": str(self.release),
+                "REVIEW_HOLD_AXIS": hold_axis or "",
+                "REVIEW_FAIL_AXIS": fail_axis or "",
+            }
+        )
+        force_portable = force_portable or os.environ.get("CODE_REVIEW_TEST_FORCE_PORTABLE") == "1"
+        worker = CODEX_WORKER if adapter == "codex" else CLAUDE_WORKER
+        worker_module = WORKER_MODULE if adapter == "codex" else CLAUDE_WORKER_MODULE
+        native_family = not force_portable and LIFECYCLE_MODULE._libproc() is not None
+        option = "--codex" if adapter == "codex" else "--claude"
+        model = "Terra" if adapter == "codex" else "sonnet"
+        axes = (*admitted, "spec") if broken == "launch-unadmitted-spec" else admitted
+        launches = {}
+        launch_errors = {}
+        artifacts = {}
+        actions = []
+
+        def wait_for_recovery(claim):
+            deadline = time.monotonic() + 3
+            portable_terminal = False
+            while time.monotonic() < deadline:
+                if claim["state"].exists():
+                    candidate = json.loads(claim["state"].read_text(encoding="utf-8"))
+                    if LIFECYCLE_MODULE.valid_family_schema(
+                        candidate, effort_levels=worker_module.EFFORT_LEVELS
+                    ):
+                        return candidate, "family-state", False
+                    portable_terminal = LIFECYCLE_MODULE.valid_portable_schema(
+                        candidate, effort_levels=worker_module.EFFORT_LEVELS
+                    )
+                if claim["process"].poll() is not None:
+                    return None, "helper-exit", portable_terminal
+                time.sleep(0.01)
+            return None, None, portable_terminal
+
+        for axis in axes:
+            if broken == "serial" and launches:
+                self.release.touch()
+                launches[next(reversed(launches))]["process"].wait(timeout=3)
+            state = state_dir / f"{axis}.json"
+            stdout = state_dir / f"{axis}.stdout"
+            stderr = state_dir / f"{axis}.stderr"
+            axis_worker = self.root / "unlaunchable-adapter" if axis == launch_fail_axis else worker
+            launcher = [sys.executable, str(self.portable_launcher), str(axis_worker)] if force_portable else [sys.executable, str(axis_worker)]
+            command = [
+                *( [str(axis_worker)] if axis == launch_fail_axis else launcher ),
+                "start", option, str(self.binary), "--state", str(state),
+                "--model", model, "--sandbox", "read-only", "--effort", "high", "--cwd", str(self.worktree),
+                f"axis={axis}; do not modify, patch, or stash",
+            ]
+            out = stdout.open("w", encoding="utf-8")
+            err = stderr.open("w", encoding="utf-8")
+            artifacts[axis] = (stdout, stderr)
+            try:
+                launches[axis] = {"process": subprocess.Popen(command, cwd=ROOT, env=environment, stdin=subprocess.DEVNULL, stdout=out, stderr=err), "state": state, "out": out, "err": err}
+            except OSError as error:
+                out.close()
+                err.close()
+                launch_errors[axis] = str(error)
+                break
+        deadline = time.monotonic() + 3
+        expected_starts = {f"start {axis}" for axis in launches}
+        while time.monotonic() < deadline:
+            started_before_release = self.events.read_text(encoding="utf-8").splitlines() if self.events.exists() else []
+            if expected_starts.issubset(started_before_release):
+                break
+            time.sleep(0.01)
+        if hold_axis and not launch_errors:
+            self.release.touch()
+
+        result = {"artifacts": artifacts, "actions": actions, "answers": {}, "launch_errors": launch_errors, "launched": {axis: claim["process"].pid for axis, claim in launches.items()}, "returncodes": {}, "started_before_release": started_before_release, "joined": [], "unlaunched_actions": []}
+        if launch_errors:
+            failed_axis = next(iter(launch_errors))
+            survivor, claim = next(iter(launches.items()))
+            if not native_family:
+                self.release.touch()
+            recovery_state, recovery_ready, portable_terminal = wait_for_recovery(claim)
+            result["recoverable"] = recovery_state is not None
+            result["recovery_ready"] = recovery_ready
+            result["portable_terminal"] = portable_terminal
+            if broken == "touch-unlaunched":
+                for operation in ("stop", "verify"):
+                    cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(state_dir / f"{failed_axis}.json"), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
+                    result["unlaunched_actions"].append((operation, failed_axis, cleanup.returncode))
+            if result["recoverable"]:
+                for operation in ("stop", "verify"):
+                    cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(claim["state"]), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
+                    self.assertEqual(cleanup.returncode, 0, cleanup.stderr)
+                    actions.append((operation, survivor))
+            else:
+                self.release.touch()
+            result["error"] = f"{failed_axis} failed to launch"
+        if fail_axis and fail_axis in launches:
+            failure = launches[fail_axis]["process"]
+            result["returncodes"][fail_axis] = failure.wait(timeout=3)
+            result["joined"].append(fail_axis)
+            if result["returncodes"][fail_axis] and broken != "ignore-nonzero":
+                survivor = next(axis for axis in admitted if axis != fail_axis)
+                claim = launches[survivor]
+                recovery_state, _, _ = wait_for_recovery(claim)
+                result["recoverable"] = recovery_state is not None
+                if result["recoverable"]:
+                    for operation in ("stop", "verify"):
+                        cleanup = run([sys.executable, str(worker), operation, option, str(self.binary), "--state", str(claim["state"]), "--cwd", str(self.worktree)], cwd=ROOT, env=environment)
+                        self.assertEqual(cleanup.returncode, 0, cleanup.stderr)
+                        actions.append((operation, survivor))
+                result["error"] = f"{fail_axis} exited {result['returncodes'][fail_axis]}"
+        for axis, claim in launches.items():
+            if axis in result["returncodes"]:
+                continue
+            result["returncodes"][axis] = claim["process"].wait(timeout=3)
+            result["joined"].append(axis)
+            if result["returncodes"][axis] and broken != "ignore-nonzero" and "error" not in result:
+                result["error"] = f"{axis} exited {result['returncodes'][axis]}"
+            elif not result["returncodes"][axis] and broken != "state-answer":
+                result["answers"][axis] = json.loads(artifacts[axis][0].read_text(encoding="utf-8"))["final_message"]
+        for claim in launches.values():
+            claim["out"].close()
+            claim["err"].close()
+        result["events"] = self.events.read_text(encoding="utf-8").splitlines()
+        return result
+
+    def assert_broken_then_correct(self, broken, assertion, **arguments):
+        with self.assertRaises(AssertionError):
+            assertion(self.coordinate(broken=broken, **arguments))
+        assertion(self.coordinate(**arguments))
+
+    def test_portable_path_starts_second_axis_before_the_held_first_axis_finishes(self):
+        for adapter in ("codex", "claude"):
+            with self.subTest(adapter=adapter):
+                def concurrent(result):
+                    self.assertIn("start standards", result["started_before_release"])
+                    self.assertIn("start spec", result["started_before_release"])
+                    self.assertLess(result["events"].index("start spec"), result["events"].index("end standards"))
+                    self.assertEqual(result["joined"], ["standards", "spec"])
+
+                self.assert_broken_then_correct(
+                    "serial", concurrent, adapter=adapter, admitted=("standards", "spec"), hold_axis="standards"
+                )
+
+    def test_spec_unavailable_launches_only_standards(self):
+        for adapter in ("codex", "claude"):
+            with self.subTest(adapter=adapter):
+                def standards_only(result):
+                    self.assertEqual(result["joined"], ["standards"])
+                    self.assertEqual(set(result["artifacts"]), {"standards"})
+                    self.assertEqual(result["answers"], {"standards": "answer-standards"})
+
+                self.assert_broken_then_correct(
+                    "launch-unadmitted-spec", standards_only, adapter=adapter, admitted=("standards",)
+                )
+
+    def test_stdout_artifacts_supply_answers_and_nonzero_exits_are_rejected(self):
+        for adapter in ("codex", "claude"):
+            with self.subTest(adapter=adapter):
+                def successful(result):
+                    self.assertEqual(result["answers"], {"standards": "answer-standards", "spec": "answer-spec"})
+                    self.assertTrue(all(path.exists() for pair in result["artifacts"].values() for path in pair))
+                    self.assertNotIn("error", result)
+
+                self.assert_broken_then_correct(
+                    "state-answer", successful, adapter=adapter, admitted=("standards", "spec")
+                )
+                rejected = self.coordinate(adapter, ("standards", "spec"), fail_axis="spec")
+                self.assertEqual(rejected["error"], "spec exited 17")
+                with self.assertRaises(AssertionError):
+                    self.assertIn("error", self.coordinate(adapter, ("standards", "spec"), fail_axis="spec", broken="ignore-nonzero"))
+
+    def test_partial_launch_failure_waits_then_scoped_stop_and_verify_only_for_survivor(self):
+        for adapter in ("codex", "claude"):
+            force_portable_only = os.environ.get("CODE_REVIEW_TEST_FORCE_PORTABLE") == "1"
+            family_modes = (("native", False), ("portable", True)) if sys.platform == "darwin" and not force_portable_only else (("portable", True),)
+            for family_mode, force_portable in family_modes:
+                with self.subTest(adapter=adapter, family_mode=family_mode):
+                    def recovered(result):
+                        self.assertEqual(result["launched"].keys(), {"standards"})
+                        self.assertNotIn("spec", result["joined"])
+                        if family_mode == "native":
+                            self.assertTrue(result["recoverable"])
+                            self.assertEqual(result["recovery_ready"], "family-state")
+                            self.assertFalse(result["portable_terminal"])
+                            self.assertEqual(result["actions"], [("stop", "standards"), ("verify", "standards")])
+                        else:
+                            self.assertFalse(result["recoverable"])
+                            self.assertEqual(result["recovery_ready"], "helper-exit")
+                            self.assertTrue(result["portable_terminal"])
+                            self.assertEqual(result["actions"], [])
+                        self.assertEqual(result["unlaunched_actions"], [])
+                        self.assertEqual(result["joined"], ["standards"])
+                        self.assertEqual(result["error"], "spec failed to launch")
+
+                    self.assert_broken_then_correct(
+                        "touch-unlaunched", recovered, adapter=adapter, admitted=("standards", "spec"),
+                        hold_axis="standards", launch_fail_axis="spec", force_portable=force_portable,
+                    )
+
+
+class CodeReviewAdapterDispatchTests(unittest.TestCase):
+    SKILL = ROOT / "skills" / "tools" / "code-review" / "SKILL.md"
+
+    def setUp(self):
+        self.text = self.SKILL.read_text(encoding="utf-8")
+        self.dispatch = " ".join(
+            self.text.split("### 4. Run both axes in parallel", 1)[1]
+            .split("### 5. Aggregate and report", 1)[0]
+            .split()
+        )
+
+    def test_delegation_authority_is_byte_identical(self):
+        authority = self.text.split("## Delegation authority\n\n", 1)[1].split(
+            "\n\n## Dependency and reviewer selection", 1
+        )[0]
+        self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION)
+
+    def test_dispatch_uses_only_pack_adapters_with_explicit_inputs(self):
+        self.assertIn("reviewer model", self.dispatch)
+        self.assertIn("reviewer effort", self.dispatch)
+        self.assertIn("Pass model and effort through unchanged", self.dispatch)
+        self.assertIn("codex-worker.py", self.dispatch)
+        self.assertIn("claude-worker.py", self.dispatch)
+        self.assertNotIn("general-purpose", self.dispatch)
+        self.assertNotIn("Agent tool", self.dispatch)
+        self.assertNotIn("Workflow tool", self.dispatch)
+        self.assertNotIn("background agent", self.dispatch)
+
+    def test_admitted_axes_have_deterministic_files_concurrent_launch_and_individual_joins(self):
+        for path in ("<review-state-dir>/standards.json", "<review-state-dir>/spec.json"):
+            self.assertIn(path, self.dispatch)
+        for artifact in ("standards.stdout", "standards.stderr", "spec.stdout", "spec.stderr"):
+            self.assertIn(artifact, self.dispatch)
+        self.assertIn("start all admitted helper invocations as background processes before waiting", self.dispatch)
+        self.assertIn("Retain each axis-specific launcher PID", self.dispatch)
+        self.assertIn("waiting on its retained PID individually", self.dispatch)
+        self.assertLess(
+            self.dispatch.index("start all admitted helper invocations"),
+            self.dispatch.index("waiting on its retained PID individually"),
+        )
+        self.assertIn("second admitted axis starts while the first remains active", self.dispatch)
+
+    def test_answers_come_from_successful_stdout_and_retries_reuse_state(self):
+        self.assertIn("Reject every nonzero exit", self.dispatch)
+        self.assertIn("parse `final_message` from its stdout artifact", self.dispatch)
+        self.assertIn("State files carry lifecycle metadata only and never the reviewer answer", self.dispatch)
+        self.assertIn("resume` command against the same axis state file", self.dispatch)
+
+    def test_readonly_prompt_transport_contract_is_explicit(self):
+        self.assertIn("`--sandbox read-only`", self.dispatch)
+        self.assertIn("explicit coordinator-supplied `--model` and `--effort`", self.dispatch)
+        self.assertIn("must not modify, patch, or stash", self.dispatch)
+        self.assertIn("Codex receives the positional prompt with inherited stdin closed", self.dispatch)
+        self.assertIn("Claude adapter receives the positional prompt and delivers it to the child on stdin", self.dispatch)
+
+    def test_spec_unavailable_runs_standards_alone_and_reports_it(self):
+        self.assertIn("When Spec is unavailable, launch Standards only", self.dispatch)
+        self.assertIn("do not launch Spec", self.dispatch)
+        self.assertIn("report Spec unavailable", self.dispatch)
+
+    def test_partial_launch_recovery_is_scoped_to_the_surviving_launched_worker(self):
+        self.assertIn("If a later launch fails after another worker launched", self.dispatch)
+        self.assertIn("wait for the surviving helper to reach valid readable state or exit", self.dispatch)
+        self.assertIn("Only when recoverable state exists", self.dispatch)
+        self.assertIn("scoped `stop --state ... --cwd ...`", self.dispatch)
+        self.assertIn("scoped `verify --state ... --cwd ...`", self.dispatch)
+        self.assertIn("Then join that worker's retained PID", self.dispatch)
+        self.assertIn("Do not discover, stop, verify, or join an unlaunched worker", self.dispatch)
+        self.assertLess(self.dispatch.index("scoped `stop"), self.dispatch.index("scoped `verify"))
+
+
+class PlanReviewAdapterDispatchTests(unittest.TestCase):
+    SKILL = ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
+
+    def setUp(self):
+        self.source = self.SKILL.read_bytes()
+
+    def test_cold_reader_dispatch_section_is_byte_identical(self):
+        opening = b"## Cold-reader dispatch\n"
+        closing = b"## Mechanical fix in place\n"
+        self.assertEqual(self.source.count(opening), 1)
+        self.assertEqual(self.source.count(closing), 1)
+        dispatch = self.source.split(opening, 1)[1].split(closing, 1)[0]
+        self.assertEqual(dispatch, PLAN_REVIEW_COLD_READER_DISPATCH)
+
+    def test_mechanical_fix_in_place_section_is_byte_identical(self):
+        opening = b"## Mechanical fix in place\n"
+        closing = b"## The rubric\n"
+        self.assertEqual(self.source.count(opening), 1)
+        self.assertEqual(self.source.count(closing), 1)
+        body = self.source.split(opening, 1)[1].split(closing, 1)[0]
+        self.assertEqual(body, MECHANICAL_FIX_IN_PLACE_BODY)
+
+    def test_caller_owned_round_ledger_covers_both_plan_locations(self):
+        dispatch = self.source.split(b"## Cold-reader dispatch\n", 1)[1].split(
+            b"## Mechanical fix in place\n", 1
+        )[0]
+        self.assertIn(b"For a durable plan", dispatch)
+        self.assertIn(b"durable plan\nlocator and immutable revision", dispatch)
+        self.assertIn(b"For a chat-delivered plan", dispatch)
+        self.assertIn(b"record that plan file path", dispatch)
+        self.assertIn(b"plan-review-mechanical-fixes.md", dispatch)
+
+    def test_mandatory_independent_review_authority_is_preserved(self):
+        authority = self.source.split(b"## Delegation authority\n\n", 1)[1].split(
+            b"\n\n## Cold-reader dispatch", 1
+        )[0]
+        self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION.encode())
+
+
+class EvidenceBlockContractTests(unittest.TestCase):
+    def test_verbatim_evidence_sections_are_byte_identical(self):
+        preflight = (ROOT / "skills" / "tools" / "preflight" / "SKILL.md").read_bytes().decode(
+            "utf-8"
+        )
+        preflight_body = preflight.split("### Verbatim command output\n\n", 1)[1].split(
+            "\n\n## 2. First-hour spike", 1
+        )[0]
+        self.assertEqual(preflight_body, PREFLIGHT_VERBATIM_COMMAND_OUTPUT)
+
+        plan_review = (
+            ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
+        ).read_bytes().decode("utf-8")
+        plan_review_body = plan_review.split("### Evidence-block spot check\n\n", 1)[1].split(
+            "\n\n## Delegation authority", 1
+        )[0]
+        self.assertEqual(plan_review_body, PLAN_REVIEW_EVIDENCE_BLOCK_SPOT_CHECK)
+
+
+class PersonaReviewAdapterDispatchTests(unittest.TestCase):
+    SKILL = ROOT / "skills" / "tools" / "persona-review" / "SKILL.md"
+
+    def setUp(self):
+        self.text = self.SKILL.read_text(encoding="utf-8")
+
+    def test_panelist_dispatch_section_is_byte_identical(self):
+        dispatch = self.text.split("## Panelist dispatch\n\n", 1)[1].split(
+            "\n\n## Cold review, per persona", 1
+        )[0]
+        self.assertEqual(dispatch, PERSONA_REVIEW_PANELIST_DISPATCH)
+
+    def test_serial_no_lookback_fallback_is_preserved(self):
+        remainder = self.text.split("## Cold review, per persona\n\n", 1)[1]
+        self.assertIn("\n\n## Synthesis\n", remainder)
+        cold_review = remainder.split("\n\n## Synthesis", 1)[0]
+        self.assertIn(
+            "Where adapter dispatch isn't available, review personas serially in the main session,",
+            cold_review,
+        )
+        self.assertIn(
+            "deliberately not looking back at an earlier persona's output while forming the next one's position.",
+            cold_review,
+        )
+
+class ResearchAdapterDispatchTests(unittest.TestCase):
+    SKILL = ROOT / "skills" / "tools" / "research" / "SKILL.md"
+    AGENT_METADATA = ROOT / "skills" / "tools" / "research" / "agents" / "openai.yaml"
+
+    def setUp(self):
+        self.text = self.SKILL.read_text(encoding="utf-8")
+        self.agent_metadata = self.AGENT_METADATA.read_text(encoding="utf-8")
+
+    def test_agent_metadata_describes_pack_adapter_dispatch(self):
+        self.assertIn(
+            'short_description: "Research primary sources through a selected pack adapter"',
+            self.agent_metadata,
+        )
+        self.assertNotIn("background agent", self.agent_metadata)
+
+    def test_research_worker_dispatch_section_is_byte_identical(self):
+        opening_anchor = "## Research-worker dispatch\n\n"
+        closing_anchor = "\n\n## The research worker's job"
+        self.assertIn(opening_anchor, self.text)
+        self.assertIn(closing_anchor, self.text)
+        dispatch = self.text.split(opening_anchor, 1)[1].split(closing_anchor, 1)[0]
+        self.assertEqual(dispatch, RESEARCH_WORKER_DISPATCH)
+
+    def research_job(self):
+        anchor = "## The research worker's job\n\n"
+        self.assertIn(anchor, self.text)
+        return " ".join(self.text.split(anchor, 1)[1].split())
+
+    def test_research_job_requires_primary_sources(self):
+        self.assertIn("Investigate the question against **primary sources**", self.research_job())
+
+    def test_research_job_requires_source_citations_for_each_claim(self):
+        self.assertIn("citing each claim's source", self.research_job())
+
+    def test_coordinator_writes_one_markdown_file_using_repository_convention(self):
+        job = self.research_job()
+        self.assertIn("The coordinator writes the returned findings to a single Markdown file", job)
+        self.assertIn("Save it where the repo already keeps such notes; match the existing convention", job)
+
+
+class DesignItTwiceAdapterDispatchTests(unittest.TestCase):
+    REFERENCE = ROOT / "skills" / "tools" / "codebase-design" / "references" / "DESIGN-IT-TWICE.md"
+
+    def test_dispatch_section_is_byte_identical(self):
+        text = self.REFERENCE.read_text(encoding="utf-8")
+        dispatch = text.split("### 2. Dispatch parallel design alternatives\n\n", 1)[1].split(
+            "\n\n### 3. Present and compare\n", 1
+        )[0]
+        self.assertEqual(dispatch, DESIGN_IT_TWICE_ADAPTER_DISPATCH)
+
 
 class WorkerLifecycleContractTests(unittest.TestCase):
     def setUp(self):
@@ -2094,7 +3627,7 @@ class WorkerLifecycleContractTests(unittest.TestCase):
 
     def family_state(self, lifecycle="running", session_id="worker-1"):
         return {
-            "version": WORKER_MODULE.STATE_VERSION,
+            "version": LIFECYCLE_MODULE.STATE_VERSION,
             "lifecycle": lifecycle,
             "session_id": session_id,
             "model": "Terra",
@@ -2104,13 +3637,13 @@ class WorkerLifecycleContractTests(unittest.TestCase):
 
     def portable_state(self, generation=1):
         return {
-            "version": WORKER_MODULE.STATE_VERSION,
+            "version": LIFECYCLE_MODULE.STATE_VERSION,
             "lifecycle": "exited",
             "session_id": "worker-1",
             "model": "Terra",
             "sandbox": "read-only",
             "cwd": str(self.cwd),
-            "family_semantics": WORKER_MODULE.FAMILY_SEMANTICS_UNSUPPORTED,
+            "family_semantics": LIFECYCLE_MODULE.FAMILY_SEMANTICS_UNSUPPORTED,
             "generation": generation,
         }
 
@@ -2120,31 +3653,158 @@ class WorkerLifecycleContractTests(unittest.TestCase):
     def resume_arguments(self):
         return argparse.Namespace(state=self.state, codex="codex", prompt="continue")
 
+    def test_moved_lifecycle_names_have_one_patchable_owner(self):
+        """A moved-name re-export can make a patch resolve without intercepting."""
+        moved = (
+            "STATE_VERSION", "UNSUPPORTED", "FAMILY_SEMANTICS_UNSUPPORTED",
+            "TERMINAL", "TRANSITIONS", "PROC_PIDTBSDINFO",
+            "PROC_PIDVNODEPATHINFO", "BSD_SIZE", "VNODE_SIZE",
+            "VNODE_CWD_OFFSET", "PID_MAX", "UINT64_MAX", "resolved_directory",
+            "is_within", "state_lock", "atomic_write", "read_state", "transition",
+            "_bounded_integer", "_canonical_path", "BASE_STATE_FIELDS",
+            "_valid_common_schema", "valid_family_schema", "valid_portable_schema",
+            "_libproc", "live_identity", "group_members", "gated_process",
+            "establish_family", "finish_lifecycle", "run_portable",
+            "run_lifecycle", "family_state", "matching_leader",
+        )
+        self.assertTrue(WORKER_LIFECYCLE.exists())
+        for name in moved:
+            self.assertIn(name, LIFECYCLE_MODULE.__dict__)
+            self.assertNotIn(name, WORKER_MODULE.__dict__)
+            self.assertNotIn(name, CLAUDE_WORKER_MODULE.__dict__)
+        for adapter in (CODEX_WORKER, CLAUDE_WORKER):
+            source = adapter.read_text(encoding="utf-8")
+            for name in moved:
+                self.assertIsNone(
+                    re.search(rf"(?<![.\w]){re.escape(name)}\(", source),
+                    f"{adapter.name} calls moved name {name} without lifecycle qualification",
+                )
+
+    def test_both_adapters_route_all_four_commands_through_shared_lifecycle(self):
+        expected = self.portable_state()
+        fresh = {
+            "version": LIFECYCLE_MODULE.STATE_VERSION,
+            "lifecycle": "launching",
+            "session_id": "worker-1",
+            "model": "model",
+            "sandbox": "read-only",
+            "cwd": str(self.cwd),
+        }
+        for adapter, binary_name, stdin_text in (
+            (WORKER_MODULE, "codex", None),
+            (CLAUDE_WORKER_MODULE, "claude", "continue"),
+        ):
+            with self.subTest(adapter=adapter.__name__):
+                arguments = argparse.Namespace(
+                    state=self.state,
+                    cwd=self.cwd,
+                    sandbox="read-only",
+                    control_checkout=None,
+                    model="model",
+                    effort="medium",
+                    prompt="continue",
+                    codex="codex",
+                    claude="claude",
+                    grace_seconds=0.01,
+                )
+                with (
+                    mock.patch.object(
+                        LIFECYCLE_MODULE, "prepare_start", return_value=(fresh, None)
+                    ) as prepare_start,
+                    mock.patch.object(
+                        LIFECYCLE_MODULE, "run_lifecycle", return_value=0
+                    ) as launch,
+                ):
+                    self.assertEqual(adapter.start(arguments), 0)
+                    prepare_start.assert_called_once()
+                    self.assertEqual(launch.call_args.args[2], fresh)
+                    self.assertIs(launch.call_args.kwargs["parse"], adapter.parse)
+                    self.assertIs(launch.call_args.kwargs["emit"], adapter.emit)
+                    self.assertIs(launch.call_args.kwargs["fail"], adapter.fail)
+                    self.assertEqual(launch.call_args.kwargs["stdin_text"], stdin_text)
+                    self.assertEqual(launch.call_args.args[1][0], getattr(arguments, binary_name))
+                with (
+                    mock.patch.object(
+                        LIFECYCLE_MODULE,
+                        "prepare_resume",
+                        return_value=(fresh, expected, None),
+                    ) as prepare_resume,
+                    mock.patch.object(
+                        LIFECYCLE_MODULE, "run_lifecycle", return_value=0
+                    ) as launch,
+                ):
+                    self.assertEqual(adapter.resume(arguments), 0)
+                    prepare_resume.assert_called_once()
+                    self.assertEqual(launch.call_args.kwargs["expected"], expected)
+                    self.assertEqual(launch.call_args.kwargs["stdin_text"], stdin_text)
+                with mock.patch.object(
+                    LIFECYCLE_MODULE, "stop_worker", return_value=(0, None)
+                ) as stop_worker:
+                    self.assertEqual(adapter.stop(arguments), 0)
+                    stop_worker.assert_called_once()
+                with mock.patch.object(
+                    LIFECYCLE_MODULE, "verify_worker", return_value=(0, None)
+                ) as verify_worker:
+                    self.assertEqual(adapter.verify(arguments), 0)
+                    verify_worker.assert_called_once()
+
+    def test_none_stdin_keeps_the_portable_launch_closed(self):
+        completed = subprocess.CompletedProcess(["worker"], 0, "output", "")
+        state = {
+            "version": LIFECYCLE_MODULE.STATE_VERSION,
+            "lifecycle": "launching",
+            "session_id": "",
+            "model": "model",
+            "sandbox": "read-only",
+            "cwd": str(self.cwd),
+        }
+        with (
+            mock.patch.object(
+                LIFECYCLE_MODULE.subprocess, "run", return_value=completed
+            ) as launch,
+            mock.patch.object(LIFECYCLE_MODULE, "atomic_write"),
+        ):
+            self.assertEqual(
+                LIFECYCLE_MODULE.run_portable(
+                    argparse.Namespace(state=self.state),
+                    ["worker"],
+                    state,
+                    1,
+                    parse=lambda _output: ("session", "done", None, None),
+                    emit=lambda *_args: None,
+                    fail=lambda _message: 1,
+                    stdin_text=None,
+                ),
+                0,
+            )
+        self.assertIs(launch.call_args.kwargs["stdin"], subprocess.DEVNULL)
+        self.assertNotIn("input", launch.call_args.kwargs)
+
     def test_transition_table_and_atomic_replace_fsync_the_state_and_parent(self):
-        self.assertEqual(WORKER_MODULE.TRANSITIONS["launching"], {"running", "stopping", "exited"})
-        self.assertEqual(WORKER_MODULE.TRANSITIONS["running"], {"stopping", "exited"})
-        self.assertEqual(WORKER_MODULE.TRANSITIONS["stopping"], {"stopped", "exited"})
+        self.assertEqual(LIFECYCLE_MODULE.TRANSITIONS["launching"], {"running", "stopping", "exited"})
+        self.assertEqual(LIFECYCLE_MODULE.TRANSITIONS["running"], {"stopping", "exited"})
+        self.assertEqual(LIFECYCLE_MODULE.TRANSITIONS["stopping"], {"stopped", "exited"})
         with mock.patch.object(WORKER_MODULE.os, "fsync", wraps=os.fsync) as fsync, mock.patch.object(WORKER_MODULE.os, "replace", wraps=os.replace) as replace:
-            WORKER_MODULE.atomic_write(self.state, self.family_state("launching"))
+            LIFECYCLE_MODULE.atomic_write(self.state, self.family_state("launching"))
         self.assertEqual(replace.call_count, 1)
         self.assertGreaterEqual(fsync.call_count, 2)
-        state = WORKER_MODULE.read_state(self.state, family_required=True)
-        self.assertEqual(WORKER_MODULE.transition(self.state, state, "running")["lifecycle"], "running")
+        state = LIFECYCLE_MODULE.read_state(self.state, family_required=True)
+        self.assertEqual(LIFECYCLE_MODULE.transition(self.state, state, "running")["lifecycle"], "running")
         with self.assertRaises(ValueError):
-            WORKER_MODULE.transition(self.state, state, "stopped")
+            LIFECYCLE_MODULE.transition(self.state, state, "stopped")
 
     def test_every_legal_transition_is_persisted_and_every_other_edge_is_rejected(self):
-        for source, destinations in WORKER_MODULE.TRANSITIONS.items():
+        for source, destinations in LIFECYCLE_MODULE.TRANSITIONS.items():
             for destination in destinations:
                 with self.subTest(source=source, destination=destination):
-                    WORKER_MODULE.atomic_write(self.state, self.family_state(source))
-                    state = WORKER_MODULE.read_state(self.state, family_required=True)
-                    self.assertEqual(WORKER_MODULE.transition(self.state, state, destination)["lifecycle"], destination)
-            illegal = next(candidate for candidate in WORKER_MODULE.TRANSITIONS if candidate not in destinations)
+                    LIFECYCLE_MODULE.atomic_write(self.state, self.family_state(source))
+                    state = LIFECYCLE_MODULE.read_state(self.state, family_required=True)
+                    self.assertEqual(LIFECYCLE_MODULE.transition(self.state, state, destination)["lifecycle"], destination)
+            illegal = next(candidate for candidate in LIFECYCLE_MODULE.TRANSITIONS if candidate not in destinations)
             with self.subTest(source=source, illegal=illegal):
-                WORKER_MODULE.atomic_write(self.state, self.family_state(source))
+                LIFECYCLE_MODULE.atomic_write(self.state, self.family_state(source))
                 with self.assertRaises(ValueError):
-                    WORKER_MODULE.transition(self.state, WORKER_MODULE.read_state(self.state), illegal)
+                    LIFECYCLE_MODULE.transition(self.state, LIFECYCLE_MODULE.read_state(self.state), illegal)
 
     def test_missing_corrupt_stale_and_legacy_state_are_rejected_by_stop_and_verify(self):
         for name, contents in (
@@ -2153,7 +3813,7 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             ("stale", json.dumps({"version": 1})),
             ("legacy", json.dumps({"session_id": "old", "model": "Terra", "sandbox": "read-only", "cwd": str(self.cwd)})),
         ):
-            with self.subTest(name=name), mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()), mock.patch.object(WORKER_MODULE.os, "killpg") as killpg:
+            with self.subTest(name=name), mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()), mock.patch.object(WORKER_MODULE.os, "killpg") as killpg:
                 if contents is None:
                     self.state.unlink(missing_ok=True)
                 else:
@@ -2223,13 +3883,13 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             )
             for operation_name, operation, arguments in operations:
                 with self.subTest(name=name, operation=operation_name):
-                    WORKER_MODULE.atomic_write(self.state, state)
+                    LIFECYCLE_MODULE.atomic_write(self.state, state)
                     error = io.StringIO()
                     with (
-                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()) as libproc,
-                        mock.patch.object(WORKER_MODULE, "gated_process") as gated,
-                        mock.patch.object(WORKER_MODULE, "live_identity") as identity,
-                        mock.patch.object(WORKER_MODULE, "group_members") as members,
+                        mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()) as libproc,
+                        mock.patch.object(LIFECYCLE_MODULE, "gated_process") as gated,
+                        mock.patch.object(LIFECYCLE_MODULE, "live_identity") as identity,
+                        mock.patch.object(LIFECYCLE_MODULE, "group_members") as members,
                         mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
                         redirect_stderr(error),
                     ):
@@ -2263,13 +3923,13 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             )
             for operation_name, operation, arguments in operations:
                 with self.subTest(name=name, operation=operation_name):
-                    WORKER_MODULE.atomic_write(self.state, state)
+                    LIFECYCLE_MODULE.atomic_write(self.state, state)
                     error = io.StringIO()
                     with (
-                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()) as libproc,
-                        mock.patch.object(WORKER_MODULE, "gated_process") as gated,
-                        mock.patch.object(WORKER_MODULE, "live_identity") as identity,
-                        mock.patch.object(WORKER_MODULE, "group_members") as members,
+                        mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()) as libproc,
+                        mock.patch.object(LIFECYCLE_MODULE, "gated_process") as gated,
+                        mock.patch.object(LIFECYCLE_MODULE, "live_identity") as identity,
+                        mock.patch.object(LIFECYCLE_MODULE, "group_members") as members,
                         mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
                         redirect_stderr(error),
                     ):
@@ -2282,19 +3942,19 @@ class WorkerLifecycleContractTests(unittest.TestCase):
                     killpg.assert_not_called()
 
     def test_unsupported_platform_returns_the_exact_code_without_signaling(self):
-        WORKER_MODULE.atomic_write(self.state, self.family_state())
+        LIFECYCLE_MODULE.atomic_write(self.state, self.family_state())
         for operation in (WORKER_MODULE.stop, WORKER_MODULE.verify):
             with self.subTest(operation=operation.__name__):
                 error = io.StringIO()
                 with (
-                    mock.patch.object(WORKER_MODULE, "_libproc", return_value=None),
+                    mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=None),
                     mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
                     redirect_stderr(error),
                 ):
                     self.assertEqual(operation(self.arguments()), 1)
                 self.assertEqual(
                     error.getvalue(),
-                    f"codex-worker: {WORKER_MODULE.UNSUPPORTED}\n",
+                    f"codex-worker: {LIFECYCLE_MODULE.UNSUPPORTED}\n",
                 )
                 killpg.assert_not_called()
 
@@ -2314,17 +3974,17 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         )
         completed = subprocess.CompletedProcess([], 0, stdout=output, stderr="")
         with (
-            mock.patch.object(WORKER_MODULE, "_libproc", return_value=None),
+            mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=None),
             mock.patch.object(WORKER_MODULE.subprocess, "run", return_value=completed) as run_worker,
-            mock.patch.object(WORKER_MODULE, "gated_process") as gated,
+            mock.patch.object(LIFECYCLE_MODULE, "gated_process") as gated,
             mock.patch.object(WORKER_MODULE, "latest_rate_limits", return_value=None),
             redirect_stdout(io.StringIO()),
             redirect_stderr(io.StringIO()),
         ):
             self.assertEqual(WORKER_MODULE.start(arguments), 0)
 
-        state = WORKER_MODULE.read_state(self.state)
-        self.assertEqual(state["version"], WORKER_MODULE.STATE_VERSION)
+        state = LIFECYCLE_MODULE.read_state(self.state)
+        self.assertEqual(state["version"], LIFECYCLE_MODULE.STATE_VERSION)
         self.assertEqual(state["lifecycle"], "exited")
         self.assertEqual(state["session_id"], "worker-1")
         self.assertEqual(state["family_semantics"], "unsupported")
@@ -2335,9 +3995,9 @@ class WorkerLifecycleContractTests(unittest.TestCase):
 
         refusal = io.StringIO()
         with (
-            mock.patch.object(WORKER_MODULE, "_libproc", return_value=None),
+            mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=None),
             mock.patch.object(WORKER_MODULE.subprocess, "run", return_value=completed) as resume_worker,
-            mock.patch.object(WORKER_MODULE, "gated_process") as resume_gate,
+            mock.patch.object(LIFECYCLE_MODULE, "gated_process") as resume_gate,
             mock.patch.object(WORKER_MODULE, "latest_rate_limits", return_value=None),
             mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
             redirect_stdout(io.StringIO()),
@@ -2347,21 +4007,25 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             self.assertEqual(WORKER_MODULE.stop(self.arguments()), 1)
             self.assertEqual(WORKER_MODULE.verify(self.arguments()), 1)
 
-        resumed = WORKER_MODULE.read_state(self.state)
-        self.assertTrue(WORKER_MODULE.valid_portable_schema(resumed))
+        resumed = LIFECYCLE_MODULE.read_state(self.state)
+        self.assertTrue(
+            LIFECYCLE_MODULE.valid_portable_schema(
+                resumed, effort_levels=WORKER_MODULE.EFFORT_LEVELS
+            )
+        )
         self.assertEqual(resumed["generation"], 2)
         self.assertIn("resume", resume_worker.call_args.args[0])
         resume_gate.assert_not_called()
         self.assertEqual(
             refusal.getvalue(),
-            f"codex-worker: {WORKER_MODULE.UNSUPPORTED}\n" * 2,
+            f"codex-worker: {LIFECYCLE_MODULE.UNSUPPORTED}\n" * 2,
         )
         killpg.assert_not_called()
 
         with (
-            mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-            mock.patch.object(WORKER_MODULE, "live_identity") as identity,
-            mock.patch.object(WORKER_MODULE, "group_members") as members,
+            mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+            mock.patch.object(LIFECYCLE_MODULE, "live_identity") as identity,
+            mock.patch.object(LIFECYCLE_MODULE, "group_members") as members,
             mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
             redirect_stderr(io.StringIO()),
         ):
@@ -2372,24 +4036,25 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         killpg.assert_not_called()
 
     def test_already_exited_leader_with_empty_group_stops_without_a_signal(self):
-        WORKER_MODULE.atomic_write(self.state, self.family_state())
-        with mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()), mock.patch.object(WORKER_MODULE, "live_identity", return_value=None), mock.patch.object(WORKER_MODULE, "group_members", return_value=[]), mock.patch.object(WORKER_MODULE.os, "killpg") as killpg:
+        LIFECYCLE_MODULE.atomic_write(self.state, self.family_state())
+        with mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()), mock.patch.object(LIFECYCLE_MODULE, "live_identity", return_value=None), mock.patch.object(LIFECYCLE_MODULE, "group_members", return_value=[]), mock.patch.object(WORKER_MODULE.os, "killpg") as killpg:
             self.assertEqual(WORKER_MODULE.stop(self.arguments()), 0)
-            self.assertEqual(WORKER_MODULE.read_state(self.state)["lifecycle"], "stopped")
+            self.assertEqual(LIFECYCLE_MODULE.read_state(self.state)["lifecycle"], "stopped")
             killpg.assert_not_called()
 
     @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
     def test_launch_gate_eof_exits_before_exec_with_a_dedicated_session_identity(self):
         marker = self.root / "executed"
-        process, release = WORKER_MODULE.gated_process(
+        process, release = LIFECYCLE_MODULE.gated_process(
             [sys.executable, "-c", f"from pathlib import Path; Path({str(marker)!r}).touch()"],
             self.cwd,
+            stdin_text=None,
         )
         try:
             deadline = time.monotonic() + 1
             identity = None
             while time.monotonic() < deadline:
-                identity = WORKER_MODULE.live_identity(process.pid)
+                identity = LIFECYCLE_MODULE.live_identity(process.pid)
                 if identity and identity["pid"] == identity["pgid"] == identity["sid"]:
                     break
                 time.sleep(0.01)
@@ -2409,20 +4074,20 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             ("before family persistence", "before family persistence"),
         ):
             with self.subTest(name=name):
-                WORKER_MODULE.atomic_write(self.state, terminal)
+                LIFECYCLE_MODULE.atomic_write(self.state, terminal)
                 if cutpoint == "before gate":
                     patches = (
-                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-                        mock.patch.object(WORKER_MODULE, "gated_process", side_effect=RuntimeError("cutpoint")),
+                        mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+                        mock.patch.object(LIFECYCLE_MODULE, "gated_process", side_effect=RuntimeError("cutpoint")),
                     )
                     read_fd = None
                 else:
                     read_fd, write_fd = os.pipe()
                     process = mock.Mock(pid=41)
                     patches = (
-                        mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-                        mock.patch.object(WORKER_MODULE, "gated_process", return_value=(process, write_fd)),
-                        mock.patch.object(WORKER_MODULE, "live_identity", side_effect=RuntimeError("cutpoint")),
+                        mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+                        mock.patch.object(LIFECYCLE_MODULE, "gated_process", return_value=(process, write_fd)),
+                        mock.patch.object(LIFECYCLE_MODULE, "live_identity", side_effect=RuntimeError("cutpoint")),
                     )
                 try:
                     with patches[0], patches[1]:
@@ -2436,17 +4101,17 @@ class WorkerLifecycleContractTests(unittest.TestCase):
                 finally:
                     if read_fd is not None:
                         os.close(read_fd)
-                self.assertEqual(WORKER_MODULE.read_state(self.state), terminal)
+                self.assertEqual(LIFECYCLE_MODULE.read_state(self.state), terminal)
 
     def test_resume_cutpoint_after_family_persistence_is_settled_without_signaling(self):
-        WORKER_MODULE.atomic_write(self.state, self.family_state("exited"))
+        LIFECYCLE_MODULE.atomic_write(self.state, self.family_state("exited"))
         read_fd, write_fd = os.pipe()
         process = mock.Mock(pid=41)
         try:
             with (
-                mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-                mock.patch.object(WORKER_MODULE, "gated_process", return_value=(process, write_fd)),
-                mock.patch.object(WORKER_MODULE, "live_identity", return_value=self.identity),
+                mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+                mock.patch.object(LIFECYCLE_MODULE, "gated_process", return_value=(process, write_fd)),
+                mock.patch.object(LIFECYCLE_MODULE, "live_identity", return_value=self.identity),
                 mock.patch.object(WORKER_MODULE.os, "write", side_effect=RuntimeError("cutpoint")),
             ):
                 with self.assertRaisesRegex(RuntimeError, "cutpoint"):
@@ -2454,16 +4119,16 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         finally:
             os.close(read_fd)
 
-        persisted = WORKER_MODULE.read_state(self.state)
+        persisted = LIFECYCLE_MODULE.read_state(self.state)
         self.assertEqual(persisted["lifecycle"], "launching")
         self.assertEqual(
             {key: persisted[key] for key in self.identity},
             self.identity,
         )
         with (
-            mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-            mock.patch.object(WORKER_MODULE, "live_identity", return_value=None),
-            mock.patch.object(WORKER_MODULE, "group_members", return_value=[]),
+            mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+            mock.patch.object(LIFECYCLE_MODULE, "live_identity", return_value=None),
+            mock.patch.object(LIFECYCLE_MODULE, "group_members", return_value=[]),
             mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
         ):
             self.assertEqual(WORKER_MODULE.stop(self.arguments()), 0)
@@ -2471,15 +4136,15 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             killpg.assert_not_called()
 
     def test_resume_cutpoint_after_release_before_running_is_settled_without_signaling(self):
-        WORKER_MODULE.atomic_write(self.state, self.family_state("exited"))
+        LIFECYCLE_MODULE.atomic_write(self.state, self.family_state("exited"))
         read_fd, write_fd = os.pipe()
         process = mock.Mock(pid=41)
         try:
             with (
-                mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-                mock.patch.object(WORKER_MODULE, "gated_process", return_value=(process, write_fd)),
-                mock.patch.object(WORKER_MODULE, "live_identity", return_value=self.identity),
-                mock.patch.object(WORKER_MODULE, "transition", side_effect=RuntimeError("cutpoint")),
+                mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+                mock.patch.object(LIFECYCLE_MODULE, "gated_process", return_value=(process, write_fd)),
+                mock.patch.object(LIFECYCLE_MODULE, "live_identity", return_value=self.identity),
+                mock.patch.object(LIFECYCLE_MODULE, "transition", side_effect=RuntimeError("cutpoint")),
             ):
                 with self.assertRaisesRegex(RuntimeError, "cutpoint"):
                     WORKER_MODULE.resume(self.resume_arguments())
@@ -2487,12 +4152,12 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         finally:
             os.close(read_fd)
 
-        persisted = WORKER_MODULE.read_state(self.state)
+        persisted = LIFECYCLE_MODULE.read_state(self.state)
         self.assertEqual(persisted["lifecycle"], "launching")
         with (
-            mock.patch.object(WORKER_MODULE, "_libproc", return_value=object()),
-            mock.patch.object(WORKER_MODULE, "live_identity", return_value=None),
-            mock.patch.object(WORKER_MODULE, "group_members", return_value=[]),
+            mock.patch.object(LIFECYCLE_MODULE, "_libproc", return_value=object()),
+            mock.patch.object(LIFECYCLE_MODULE, "live_identity", return_value=None),
+            mock.patch.object(LIFECYCLE_MODULE, "group_members", return_value=[]),
             mock.patch.object(WORKER_MODULE.os, "killpg") as killpg,
         ):
             self.assertEqual(WORKER_MODULE.stop(self.arguments()), 0)
@@ -2500,34 +4165,47 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             killpg.assert_not_called()
 
     def test_nonterminal_resume_is_rejected_and_legacy_completed_resume_is_accepted_to_launch(self):
-        WORKER_MODULE.atomic_write(self.state, self.family_state("running"))
-        with mock.patch.object(WORKER_MODULE, "run_lifecycle") as launch:
+        LIFECYCLE_MODULE.atomic_write(self.state, self.family_state("running"))
+        with mock.patch.object(LIFECYCLE_MODULE, "run_lifecycle") as launch:
             self.assertNotEqual(WORKER_MODULE.resume(argparse.Namespace(state=self.state, codex="codex", prompt="continue")), 0)
             launch.assert_not_called()
         legacy = {"session_id": "old", "model": "Terra", "sandbox": "read-only", "cwd": str(self.cwd)}
         self.state.write_text(json.dumps(legacy), encoding="utf-8")
-        with mock.patch.object(WORKER_MODULE, "run_lifecycle", return_value=0) as launch:
+        with mock.patch.object(LIFECYCLE_MODULE, "run_lifecycle", return_value=0) as launch:
             self.assertEqual(WORKER_MODULE.resume(argparse.Namespace(state=self.state, codex="codex", prompt="continue")), 0)
             self.assertEqual(launch.call_args.args[2]["lifecycle"], "launching")
 
     def test_process_family_constants_and_no_global_cleanup_authority(self):
-        self.assertEqual(WORKER_MODULE.BSD_SIZE, 136)
-        self.assertEqual(WORKER_MODULE.VNODE_SIZE, 2352)
-        self.assertEqual(WORKER_MODULE.PROC_PIDTBSDINFO, 3)
-        self.assertEqual(WORKER_MODULE.PROC_PIDVNODEPATHINFO, 9)
-        source = CODEX_WORKER.read_text(encoding="utf-8")
+        self.assertEqual(LIFECYCLE_MODULE.BSD_SIZE, 136)
+        self.assertEqual(LIFECYCLE_MODULE.VNODE_SIZE, 2352)
+        self.assertEqual(LIFECYCLE_MODULE.PROC_PIDTBSDINFO, 3)
+        self.assertEqual(LIFECYCLE_MODULE.PROC_PIDVNODEPATHINFO, 9)
         instructions = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertNotIn("pkill", source)
-        self.assertNotIn("proc_listchildpids", source)
-        self.assertNotIn("proc_name", source)
+        for path in (WORKER_LIFECYCLE, CODEX_WORKER, CLAUDE_WORKER):
+            source = path.read_text(encoding="utf-8")
+            self.assertNotIn("pkill", source)
+            self.assertNotIn("proc_listchildpids", source)
+            self.assertNotIn("proc_name", source)
         self.assertIn("Successors never discover or clean", instructions)
+
+    def test_claude_worker_process_family_constants_and_no_global_cleanup_authority(self):
+        self.assertIs(WORKER_MODULE.lifecycle, LIFECYCLE_MODULE)
+        self.assertIs(CLAUDE_WORKER_MODULE.lifecycle, LIFECYCLE_MODULE)
+        codex_error = io.StringIO()
+        claude_error = io.StringIO()
+        with redirect_stderr(codex_error):
+            WORKER_MODULE.fail("probe")
+        with redirect_stderr(claude_error):
+            CLAUDE_WORKER_MODULE.fail("probe")
+        self.assertEqual(codex_error.getvalue(), "codex-worker: probe\n")
+        self.assertEqual(claude_error.getvalue(), "claude-worker: probe\n")
 
     @unittest.skipUnless(sys.platform == "darwin", "requires Darwin process-family probes")
     def test_darwin_probe_contract(self):
-        identity = WORKER_MODULE.live_identity(os.getpid())
+        identity = LIFECYCLE_MODULE.live_identity(os.getpid())
         self.assertIsNotNone(identity)
         self.assertEqual(identity["cwd"], str(ROOT.resolve()))
-        self.assertIn(os.getpid(), WORKER_MODULE.group_members(os.getpgrp()))
+        self.assertIn(os.getpid(), LIFECYCLE_MODULE.group_members(os.getpgrp()))
 
 
 class EvidenceEnvelopeTests(unittest.TestCase):
@@ -3157,7 +4835,7 @@ export const chromium = {
         self.assertNotIn("HEADLESS-SANDBOX-BLOCKED", result.stdout + result.stderr)
 
 
-class EpicResearchDispatchHandshakeTests(unittest.TestCase):
+class EpicProtocolContractTests(unittest.TestCase):
     RESEARCH = (ROOT / "skills" / "tools" / "research" / "SKILL.md").read_text(encoding="utf-8")
     EPIC = (ROOT / "skills" / "drivers" / "epic" / "SKILL.md").read_text(
         encoding="utf-8"
@@ -3169,8 +4847,8 @@ class EpicResearchDispatchHandshakeTests(unittest.TestCase):
     def require(self, text, pattern):
         self.assertRegex(text, re.compile(pattern, re.IGNORECASE))
 
-    def test_research_recognizes_it_is_already_running_in_a_worker(self):
-        self.require(self.RESEARCH, r"already (a )?(spawned|background|subagent)")
+    def test_research_worker_performs_research_directly(self):
+        self.require(self.RESEARCH, r"worker performs the research directly")
 
     def test_research_forbids_recursive_delegation(self):
         self.require(
@@ -3178,84 +4856,146 @@ class EpicResearchDispatchHandshakeTests(unittest.TestCase):
             r"(never|do not) spawn (a |another )?(nested|background )?(agent|worker)",
         )
 
-    def test_epic_supervises_launched_workers_to_a_terminal_outcome(self):
-        self.require(
-            self.EPIC, r"(supervise|wait for).*(terminal|completion|complete)"
-        )
+    def test_epic_names_proposal_and_design_as_authority(self):
+        self.require(self.EPIC, r"proposal\.md.*design\.md.*authoritative")
 
-    def test_epic_releases_a_failed_workers_claim(self):
-        self.require(
-            self.EPIC,
-            r"if a worker fails or is interrupted,\s+release its `wayfinder:resolving` claim",
-        )
+    def test_epic_change_folder_uses_tracker_children_and_the_planning_pr_ledger(self):
+        self.require(self.EPIC, r"tracker children substitute for `tasks\.md`")
+        self.require(self.EPIC, r"ledger\.md.*standing planning pull request")
 
-    def test_tracker_excludes_awaiting_disposition_from_the_frontier(self):
+    def test_epic_ledger_template_has_all_normative_sections(self):
+        for heading in ("Status", "Notes", "Fog", "Decisions", "Spikes", "Builds", "Deferred", "Rounds"):
+            self.assertIn(f"## {heading}", self.EPIC)
+
+    def test_epic_ledger_preserves_pointer_only_notes_and_derived_decisions(self):
+        self.require(self.EPIC, r"Notes.*pointers?.*never.*rules")
+        self.require(self.EPIC, r"Decisions.*derived")
+
+    def test_home_session_is_the_sole_ledger_writer_and_tracker_wins(self):
+        self.require(self.EPIC, r"home session.*only.*ledger writer")
+        self.require(self.EPIC, r"live GitHub.*truth.*ledger")
+
+    def test_epic_uses_one_draft_planning_pr_and_signed_off_pushes(self):
+        self.require(self.EPIC, r"one standing draft planning pull request")
+        self.require(self.EPIC, r"signed-off.*push")
+
+    def test_build_admission_refuses_open_spikes_or_fog(self):
+        self.require(self.EPIC, r"refuse.*build.*open spike.*Fog")
+        self.require(self.EPIC, r"Fog.*Decisions.*spike")
+
+    def test_build_admission_requires_adrs_and_locked_surface_spec(self):
+        self.require(self.EPIC, r"load-bearing.*ADR")
+        self.require(self.EPIC, r"user-facing.*locked.*ui-craft")
+
+    def test_research_handoff_uses_exact_findings_heading_and_temporary_worktree(self):
+        self.assertIn("## Findings", self.EPIC)
+        self.require(self.EPIC, r"temporary per-spike worktree")
+        self.require(self.EPIC, r"verif.*Findings.*close")
+        self.require(self.EPIC, r"removes.*temporary.*unshipped.*only then closes")
+
+    def test_failed_ledger_push_reports_staleness_and_recovers_from_tracker_truth(self):
+        self.require(self.EPIC, r"ledger push fails.*visible ledger staleness.*recover.*live GitHub")
+
+    def test_research_close_updates_tracker_before_derived_ledger(self):
+        self.require(self.EPIC, r"close.*spike.*only after.*verification")
+        self.require(self.EPIC, r"Only then derive.*Spikes.*Decisions.*Status.*DCO sign-off.*push")
+
+    def test_deferred_children_have_explicit_close_out_dispositions(self):
+        self.require(self.EPIC, r"promote.*remove.*deferred")
+        self.require(self.EPIC, r"reparent.*future epic.*retaining.*deferred")
+        self.require(self.EPIC, r"NOT_PLANNED.*remove.*deferred")
+        self.require(self.EPIC, r"refuse.*archive.*open.*deferred")
+
+    def test_tracker_bootstraps_the_four_protocol_labels_without_touching_ticket_axis(self):
+        self.require(self.TRACKER, r"epic.*spike.*build.*deferred")
+        self.require(self.TRACKER, r"ticket:\*.*independent")
+
+    def test_tracker_uses_native_children_and_blocked_by_edges(self):
+        self.require(self.TRACKER, r"--add-sub-issue")
+        self.require(self.TRACKER, r"--add-blocked-by")
+
+    def test_tracker_has_one_command_follow_up_creation_interface(self):
         self.require(
             self.TRACKER,
-            r"wayfinder:awaiting-disposition.*excluded from the frontier",
+            r"gh issue create --repo OWNER/REPO --title.*--body-file.*--label (build|spike).*--parent EPIC_NUMBER",
         )
-
-    def test_epic_reconciles_every_awaiting_disposition_child(self):
-        self.require(
-            self.EPIC,
-            r"reconcile every one carrying `wayfinder:awaiting-disposition`",
-        )
-
-    def test_tracker_map_index_is_not_the_authoritative_pending_queue(self):
+        self.require(self.TRACKER, r"returned URL.*originating ticket")
         self.require(
             self.TRACKER,
-            r"durable queue; `Awaiting disposition` is its map index",
+            r"gh issue create --help.*--repo.*--title.*--body-file.*--label.*--parent",
         )
 
-    def test_epic_defines_structured_candidate_envelope(self):
-        self.require(self.EPIC, r"wayfinder_findings:")
+    def test_tracker_reads_child_completion_fields_and_merged_at(self):
+        self.require(self.TRACKER, r"subIssues\.nodes")
+        self.require(self.TRACKER, r"stateReason")
+        self.require(self.TRACKER, r"closedByPullRequestsReferences")
+        self.require(self.TRACKER, r"mergedAt")
 
-    def test_epic_candidate_identity_is_stable_replay_identity(self):
-        self.require(
-            self.EPIC, r"not titles or list position, are the replay identity"
+    def test_completion_checks_are_direct_and_merged_or_not_planned(self):
+        self.require(self.TRACKER, r"no open spike child")
+        self.require(self.TRACKER, r"merged.*NOT_PLANNED")
+        self.require(self.TRACKER, r"no open deferred child")
+
+    def test_epic_close_waits_for_final_push_human_merge_and_verification(self):
+        self.require(self.EPIC, r"final ledger.*archive.*push")
+        self.require(self.EPIC, r"planning pull request.*human-merged")
+        self.require(self.EPIC, r"verify.*merge")
+        self.require(self.EPIC, r"then close.*epic.*tear down")
+
+
+class EpicAdapterDispatchTests(unittest.TestCase):
+    EPIC = ROOT / "skills" / "drivers" / "epic" / "SKILL.md"
+    RESEARCH_WORKER_PARAGRAPH = (
+        "For a research spike, run `$research` in a temporary per-spike worktree. The worker "
+        "returns the required Markdown findings to the home session. The home session writes the "
+        "Markdown file required by its public interface, posts that returned content under the exact heading "
+        "`## Findings`, verifies the `## Findings` comment, removes the temporary worktree and "
+        "its unshipped file, and only then closes the spike."
+    )
+    VERIFICATION_AND_FAILURE_PARAGRAPH = (
+        "Close the spike issue only after that verification. Only then derive its `Spikes` and "
+        "`Decisions` ledger lines, update `Status`, commit with DCO sign-off, and push the "
+        "standing planning branch. A failed worker leaves the spike `dispatched`; it is not "
+        "resolved by inference. Interview and mockup spikes run as fresh attended sessions."
+    )
+
+    def test_worker_dispatch_section_is_byte_identical(self):
+        epic = self.EPIC.read_bytes()
+        body = epic.split(b"## Worker dispatch\n\n", 1)[1].split(
+            b"\n\n## Deferred child close-out", 1
+        )[0]
+
+        self.assertEqual(body, EPIC_WORKER_DISPATCH.encode("utf-8"))
+        self.assertIn(self.RESEARCH_WORKER_PARAGRAPH.encode("utf-8"), epic)
+        self.assertIn(self.VERIFICATION_AND_FAILURE_PARAGRAPH.encode("utf-8"), epic)
+
+
+class EpicDelegatedExecutionContractTests(unittest.TestCase):
+    PROPOSAL = ROOT / "openspec" / "changes" / "epic-rework" / "proposal.md"
+    EPIC = ROOT / "skills" / "drivers" / "epic" / "SKILL.md"
+
+    def body_between(self, document: bytes, opening_anchor: bytes, closing_anchor: bytes) -> bytes:
+        self.assertEqual(document.count(opening_anchor), 1)
+        self.assertEqual(document.count(closing_anchor), 1)
+        return document.split(opening_anchor, 1)[1].split(closing_anchor, 1)[0]
+
+    def test_session_topology_is_pinned_by_raw_bytes(self):
+        body = self.body_between(
+            self.PROPOSAL.read_bytes(),
+            b"### Session topology\n\n",
+            b"\n\n### Follow-ups and orphan control",
         )
 
-    def test_epic_map_only_link_does_not_count_as_durable_handoff(self):
-        self.require(
-            self.EPIC,
-            r"map (link|Handoffs entry) alone.*(never|does not).*count",
+        self.assertEqual(body, EPIC_REWORK_SESSION_TOPOLOGY.encode("utf-8"))
+
+    def test_delegated_execution_is_pinned_by_raw_bytes(self):
+        body = self.body_between(
+            self.EPIC.read_bytes(),
+            b"## Delegated execution\n\n",
+            b"\n\n## Resolve spikes",
         )
 
-    def test_epic_must_not_close_with_undisposed_candidates(self):
-        self.require(
-            self.EPIC,
-            r"close.*only after every.*candidate.*(disposed|disposition)",
-        )
-
-    def test_epic_build_issue_carries_candidate_identity_marker(self):
-        self.require(self.EPIC, r"Wayfinder candidate:")
-
-    def test_tracker_candidate_identity_is_copied_into_handoff_or_disposition(self):
-        self.require(
-            self.TRACKER,
-            r"exact candidate identity copied into each Build Issue or disposition",
-        )
-
-    def test_tracker_validates_a_disposition_before_treating_it_complete(self):
-        self.require(
-            self.TRACKER,
-            r"disposition comment as complete only when.*candidate",
-        )
-
-    def test_tracker_complete_disposition_retains_its_trigger(self):
-        self.require(self.TRACKER, r"required observable trigger")
-
-    def test_tracker_complete_disposition_retains_its_verification_condition(self):
-        self.require(self.TRACKER, r"verification condition")
-
-    def test_tracker_documents_in_place_repair_edit(self):
-        self.require(self.TRACKER, r"issues/comments/COMMENT_ID")
-
-    def test_epic_workers_must_not_unconditionally_close_tickets(self):
-        self.assertNotRegex(
-            self.EPIC,
-            re.compile(r"claims, researches, comments, closes", re.IGNORECASE),
-        )
+        self.assertEqual(body, EPIC_DELEGATED_EXECUTION.encode("utf-8"))
 
 
 class ReviewRouteResolverTests(unittest.TestCase):
@@ -3529,6 +5269,62 @@ class UiCraftCliMainGuardTests(unittest.TestCase):
         self.assert_symlink_parity(
             ("detector", "detect-antipatterns.mjs"), ["--help"], suffix="/"
         )
+
+
+class DelegationAuthorityContractTests(unittest.TestCase):
+    CODE_REVIEW = (ROOT / "skills" / "tools" / "code-review" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    PLAN_REVIEW = (ROOT / "skills" / "tools" / "plan-review" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    TICKET = (ROOT / "skills" / "drivers" / "ticket" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    TRIAGE = (ROOT / "skills" / "drivers" / "ticket" / "verbs" / "triage.md").read_text(
+        encoding="utf-8"
+    )
+    PERSONA_REVIEW = (
+        ROOT / "skills" / "tools" / "persona-review" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
+    ENTRY_POINTS = (CODE_REVIEW, PLAN_REVIEW, TICKET)
+    AUTHORIZATION = "authorizes every sub-agent dispatch that this procedure marks mandatory"
+    DISCRETIONARY_ONLY = (
+        'Do not ask again solely because a session-level preference says "do not spawn '
+        'agents"; apply that preference to discretionary delegation only.'
+    )
+    REFUSAL_STOPS_WORKFLOW = (
+        "An explicit task-level refusal of this required review or revocation of "
+        "delegation overrides this authorization: stop and state that the requested "
+        "workflow cannot run without its required independent review."
+    )
+
+    def test_all_required_review_entry_points_authorize_mandatory_dispatch(self):
+        for skill in self.ENTRY_POINTS:
+            self.assertIn(self.AUTHORIZATION, skill)
+
+    def test_session_preference_leaves_required_dispatch_authorized(self):
+        for skill in self.ENTRY_POINTS:
+            self.assertIn(self.DISCRETIONARY_ONLY, skill)
+
+    def test_explicit_refusal_or_revocation_stops_required_review_workflow(self):
+        for skill in self.ENTRY_POINTS:
+            self.assertIn(self.REFUSAL_STOPS_WORKFLOW, skill)
+
+    def test_persona_review_keeps_conditional_serial_fallback_without_authority(self):
+        self.assertNotIn(self.AUTHORIZATION, self.PERSONA_REVIEW)
+        self.assertIn(
+            "Where adapter dispatch isn't available, review personas serially in the main session",
+            self.PERSONA_REVIEW,
+        )
+
+    def test_ticket_authority_covers_triage_plan_review(self):
+        self.assertIn("triage's mandatory `/plan-review`", self.TICKET)
+
+    def test_triage_points_to_ticket_authority_without_repeating_it(self):
+        self.assertIn("ticket skill page's `## Delegation authority` section", self.TRIAGE)
+        self.assertNotIn(self.AUTHORIZATION, self.TRIAGE)
 
 
 if __name__ == "__main__":

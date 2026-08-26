@@ -1,325 +1,155 @@
 ---
 name: epic
-description: Chart and resolve a large, foggy effort as a GitHub map of decision tickets, then hand clear independent subtrees to your implementation workflow as ordinary build issues. Use when an idea is too large or uncertain for one session, when the user invokes wayfinder or supplies a wayfinder map, or when planning must settle research, UI, domain, and scope decisions before implementation begins.
+description: "Maintain an epic ledger and work clear child tickets through a GitHub-backed planning lifecycle. Use when an effort needs multiple attended sessions, recorded decisions, spikes, or independently shippable builds."
 ---
 
-# Wayfinder
+# Epic
 
-Find the way to a destination across multiple sessions. Maintain one `wayfinder:map`
-issue with child decision tickets, resolve one decision per session, and file build
-issues only when no open decision can invalidate their subtree.
+`$epic` maintains one OpenSpec-backed epic from its first uncertainty through human-verified close-out. It plans and coordinates; clear implementation belongs in ordinary child tickets and runs through `$ticket`.
 
-## Operating rules
+## Authority and boundaries
 
-- **Plan, do not build.** Resolve decisions and create planning artifacts. The pull to
-  implement is normally the signal to hand a clear subtree to whatever process builds
-  your work.
-- **Refer by name.** In human-facing text, wrap issue links in their titles. Never make
-  people decode a wall of bare issue numbers.
-- **Keep one source for each answer.** The resolution lives in its ticket comment. The map
-  keeps only a one-line gist and link. An ADR keeps only the lasting ruling.
-- **Work one decision per session.** Parallel AFK research tickets are the sole exception.
-- **Ground structural decisions in the project's standards.** When a decision ticket
-  settles module or interface shape, judge it by the project's engineering standards
-  document (charter, architecture guide) when one exists, and load `/codebase-design`
-  for the vocabulary when it is available. Interface shape is a decision the map
-  resolves, never one left implicit for the build session.
-- **Use GitHub's native structure.** Read
-  [references/github-tracker.md](references/github-tracker.md) before any tracker action.
-  Do not replace child issues, blocking relationships, or label claims with body text.
+An epic lives at `openspec/changes/<epic-slug>/`. Its `proposal.md` and `design.md` are authoritative for destination, scope, risk, and durable decisions. Tracker children substitute for `tasks.md`; `ledger.md` rides the standing planning pull request. The epic ledger is a derived index, not another source of truth. Live GitHub is truth whenever it disagrees with the ledger.
 
-## Evidence v2
+Use GitHub Issues only. Read [the tracker reference](references/github-tracker.md) before the first tracker action. A tracker, authentication, or Git failure stops the current operation visibly; do not guess or repair authoritative state from the ledger.
 
-Use [the shared envelope reference](../../../docs/evidence/envelope-v2.md) for a grounded
-claim, criterion, decision, or disposition only after its GitHub issue/comment or ADR
-has a stable locator and normalized immutable content digest. The map and scratchpad
-are planning state, not evidence authority. Record the decision in its existing ticket
-protocol first; emit only normalized authority facts and lineage, never the research
-body, candidate list, proposal, or worker transcript.
+The home session owns the epic. It stays at planning altitude, files and reads issues, and is the only epic-ledger writer. Build and triage sessions report in their ticket comments and pull requests; the home session syncs the ledger after they return. Coordinators do not nest.
 
-## The map
+## The epic ledger
 
-The map is a GitHub issue labelled `wayfinder:map`. Its decision tickets are native child
-issues. The map body is the low-resolution view loaded at the start of every session:
+Keep `ledger.md` on one standing draft planning pull request, in a dedicated planning worktree. Every planning commit is signed-off, pushed as work proceeds, and the branch merges from main only when necessary. The close-out commit moves the OpenSpec change to the archive in that same pull request. After human merge verification, tear down the planning worktree.
+
+This template and grammar are normative:
 
 ```markdown
-## Destination
+# Ledger — <epic title>
 
-<One or two lines describing what this effort is finding its way to.>
+## Status
+next: <the single next action, one line>
+updated: <YYYY-MM-DD>
 
 ## Notes
+- <pointer only: a skill to invoke, or the location of an existing rule>
 
-<Domain, standing preferences, and skills every session must consult.>
+## Fog
+- <something not yet precise enough to ticket>
 
-## Decisions so far
+## Decisions
+- #<n> <title> — <one-line gist of the resolved spike's ruling>
 
-- [<closed ticket title>](https://github.com/<org>/<repo>/issues/<n>) — <one-line gist>
+## Spikes
+- #<n> <title> — open | dispatched | resolved — <one-line gist>
 
-## Awaiting disposition
+## Builds
+- #<n> <title> — filed | triaged | in-progress | pr:#<n> | merged
 
-- [<open research ticket title>](https://github.com/<org>/<repo>/issues/<n>) — <findings are complete; build candidates need rulings>
+## Deferred
+- #<n> <title> — <one-line reason it can wait>
 
-## Not yet specified
-
-<In-scope fog that cannot yet be phrased as a precise question.>
-
-## Handoffs
-
-- [<build issue title>](https://github.com/<org>/<repo>/issues/<n>) — <independent subtree handed off>
-
-## Out of scope
-
-<Work consciously ruled beyond the destination, with reasons.>
+## Rounds
+- <YYYY-MM-DD> #<n> — <sessions used, outcome, one line>
 ```
 
-The map is an index, not a duplicate store. Discover live work from its open child issues,
-not by maintaining another ticket list in the body.
+Titles never contain ` — `. `Spikes` and `Builds` split at the first delimiter whose next field is a listed state token; free text follows a second delimiter. `Decisions` and `Deferred` have only free text after their first delimiter. `Rounds` lead with date, issue reference, and free text. `Notes` and `Fog` are plain lines.
 
-## Decision tickets
+`Notes` contains pointers and never rules; new standing instructions belong in the repository's ADR home. `Decisions` is derived from resolved spikes, one line for each ruling that still stands. GitHub state, including the `deferred` label, wins over every ledger line.
 
-Each ticket is sized to one agent session and has this body:
+## Start and maintain an epic
 
-```markdown
-## Question
+1. Confirm the target repository already has OpenSpec. Otherwise run `$openspec-adopt` as a separate documentation-only pull request.
+2. Land the proposal and design on main before opening child work. Create the epic issue with the `epic` label, its native child issues, and the standing draft planning pull request carrying the ledger.
+3. Re-read relevant live GitHub state before each mutation. Sync derived ledger lines and `Status`, commit with DCO sign-off, and push. If that ledger push fails, report visible ledger staleness and recover its derived state from live GitHub before continuing.
+4. Keep Fog as the operator's prompt. Remove a Fog line only through a `Decisions` line or a spike; never silently delete it.
 
-<The precise decision or investigation this ticket resolves.>
-```
+## Admit work deliberately
 
-Apply exactly one ticket-type label:
+File a spike when a question is precise but not yet resolved. A spike can be research, interview, mockup, or a human prerequisite. File a build only as a bounded refusal: refuse to file a build while an open spike or standing Fog line can invalidate its outcome, constraints, or acceptance criteria.
 
-- **`wayfinder:research` (AFK-able):** Any investigation an unattended agent session can
-  finish alone — an internal repository audit as much as an outward read. Invoke `/research`
-  when the answer depends on documentation, third-party systems, or sources outside the
-  repository; ground directly in the repo when it doesn't. Record findings, sources, and
-  the decision they support. Treat `/research` as a required dependency for outward reads:
-  if it is unavailable, leave the ticket unclaimed and tell the human rather than
-  substituting a generic search pass. The label is a promise of AFK-ability — an unattended
-  session may be dispatched for an unclaimed research ticket, so apply it honestly.
-- **`wayfinder:prototype` (HITL):** Invoke `/ui-craft`. Produce repository-grounded
-  variants, iterate with the human, and finish with a locked visual spec linked from the
-  ticket. That artifact also satisfies any later review gate that demands a locked design.
-- **`wayfinder:interview` (HITL):** Invoke `/scope`'s interview mode, plus a
-  domain-modelling skill when one is available. Follow interview mode's design-tree
-  cadence: ask the whole currently answerable frontier in one numbered round, then
-  wait. Never answer the human's side of the exchange.
-- **`wayfinder:task` (HITL):** A prerequisite that genuinely needs the human in the loop.
-  It earns a place only by unblocking a decision, not by delivering the destination — and
-  it is never an execution errand: a prerequisite that must *change the world* before a
-  decision can be made is handed off as an ordinary build issue, and its landed result
-  feeds back into the map as a decision input.
+Before filing a build, require every relevant load-bearing ruling in the repository's ADR home. User-facing work also requires a locked `/ui-craft` spec. The build issue must stand alone and receive the normal `$ticket` triage flow; the epic does not manufacture a work order.
 
-`wayfinder:awaiting-disposition` is durable state, not a ticket type or a claim. A research
-ticket in that state remains open, keeps its one `wayfinder:research` ticket-type label, and
-may temporarily also carry the distinct `wayfinder:resolving` claim while a human reconciles
-its findings.
+Use native `blocked-by` edges for actual dependencies. A follow-up required to reach the epic destination is an in-scope native child. A follow-up outside that destination is also filed as a native child, receives its `spike` or `build` type plus `deferred`, and is reported on the originating ticket. Ordinary builds still receive `build` from ticket triage.
 
-The claim is the `wayfinder:resolving` label, shared by human sessions and unattended
-workers. Assignment is not the claim: an unattended worker may run under the operator's own
-GitHub identity, so assignment cannot tell the two apart. Set the label before work, remove
-it on completion or when giving up, and skip open tickets already claimed. Native issue
-dependencies define order. The **frontier** is the map's child tickets that are open,
-unblocked, unclaimed, and not carrying `wayfinder:awaiting-disposition`.
+## Delegated execution
 
-The session that launches a worker owns claim recovery. A successful spawn is not a
-durable outcome: supervise the worker until the ticket is resolved or the worker fails. On
-failure or interruption, remove its `wayfinder:resolving` claim before reporting the ticket
-available again. Never leave a claimed ticket behind with no live worker. If your
-environment has its own dispatcher that runs unclaimed research tickets unattended, that
-dispatcher owns them instead and charting does not spawn workers itself.
+The operator may explicitly and revocably delegate a locked epic subtree to
+the home session when every order is stamped or every needed ruling is settled.
+Attended sessions remain the default; any newly opened decision returns that
+subtree to attended mode.
 
-## Fog and scope
+The home session remains the epic ledger's sole writer. For delegated triage it
+dispatches a worker through the existing `$ticket triage` interface; for a
+delegated build it dispatches a worker through the existing `$ticket start`
+interface. Those workers use their existing ticket contracts and post stamped
+work orders, session-fit, and completed work products through tracker comments.
 
-Put a question in a ticket when it can be stated precisely now, even if blocked. Keep it in
-`Not yet specified` when the question itself is still vague. Do not pre-slice fog: one patch
-may later become several tickets or none.
+The home session dispatches only through the pack adapters, with prompt text
+passed positionally from coordinator-owned session-scratch prompt files and one
+coordinator-owned state file per dispatch. Do not add adapter flags or alter
+adapter mechanics.
 
-Keep decided work, live tickets, and out-of-scope work out of the fog. When a ticket proves
-to be beyond the destination, close it, link it under `Out of scope` with the reason, and do
-not add it to `Decisions so far`.
+Work delegated to the home session proceeds in waves. Before each fan-out, draw
+a conflict map from the queued expected diffs and verify that the shared checkout
+equals the current origin default-branch tip. Fan out every read-only draft and
+review in parallel. Serialize only write-bearing triage and build steps whose
+expected diffs overlap; builds use per-issue worktrees, tickets editing the same
+files run in order, and pull requests merge one at a time with a rebase when a
+shared surface is touched. Before dispatching a build or review worker, verify
+that its target worktree is at, or descends from, the current origin
+default-branch tip; refuse a stale target.
 
-## Chart a map
+Collect child results under `orchestrate`'s `## Collect child results` section.
+Permit a human merge only after green CI and passed review. Surface a failure
+after the applicable routing ladder is exhausted; do not retry past that ladder.
 
-When the user brings a loose idea:
+## Resolve spikes
 
-1. Run `/scope`'s interview mode, and a domain-modelling skill when one is available, to
-   name the destination. The destination fixes scope, so settle it first.
-2. Grill breadth-first across the effort. Surface precise decisions, dependency order, and
-   coarse fog without resolving any ticket.
-3. If the route is already clear and fits one session, stop and tell the user a map would
-   add no leverage.
-4. Ensure the six persistent `wayfinder:*` labels exist, then create the map with its destination,
-   notes, fog, and scope boundary.
-5. Create every currently precise decision ticket as a child of the map. Create all issues
-   first, then add native blocking relationships in a second pass.
-6. Verify `/research` is available and the environment can both launch and supervise
-   background workers. If either capability is unavailable, leave research tickets
-   unclaimed and report the missing prerequisite.
-7. For each research ticket already on the frontier, launch one separate AFK worker with
-   `/research` and the complete ticket-resolution task attached. Tell it explicitly that it
-   is already the background worker: it must research directly, never delegate again. Each
-   worker verifies eligibility, claims, researches, comments, and updates only its ticket
-   and the map. Its terminal findings comment must end with the structured candidate list
-   defined under **Reconcile completed research**. If that list contains any
-   `handoff_required` candidates, it adds `wayfinder:awaiting-disposition`, adds the ticket
-   under `Awaiting disposition`, releases its claim, and leaves the ticket open. Otherwise it
-   records the final gist under `Decisions so far`, closes the ticket, and releases its claim.
-8. Record every worker ID and supervise all workers to terminal completion. Spawn success
-   alone does not mean "research running." Before reporting success, verify the findings
-   comment and map update, then verify either an open, unclaimed awaiting-disposition ticket
-   or a closed ticket with no undisposed candidates. If a worker fails or is interrupted,
-   release its `wayfinder:resolving` claim and report the failure. If the user replaces the
-   task, reconcile or cancel every worker and release failed claims before switching work.
-9. Stop after every launch has reached a durable outcome. Charting creates the map; the
-   root session does not hand-resolve a research ticket while its worker runs.
+For a research spike, run `$research` in a temporary per-spike worktree. The worker returns the required Markdown findings to the home session. The home session writes the Markdown file required by its public interface, posts that returned content under the exact heading `## Findings`, verifies the `## Findings` comment, removes the temporary worktree and its unshipped file, and only then closes the spike.
 
-## Work through a map
+Close the spike issue only after that verification. Only then derive its `Spikes` and `Decisions` ledger lines, update `Status`, commit with DCO sign-off, and push the standing planning branch. A failed worker leaves the spike `dispatched`; it is not resolved by inference. Interview and mockup spikes run as fresh attended sessions.
 
-When the user supplies a map, optionally with a ticket:
+## Worker dispatch
 
-1. Load the map body, not every child body.
-2. Before selecting ordinary frontier work, inspect the map's open research children and
-   reconcile every one carrying `wayfinder:awaiting-disposition` by following **Reconcile
-   completed research** below. Restore a missing `Awaiting disposition` entry before
-   reconciling. Skip an awaiting child another session already claims with
-   `wayfinder:resolving`; that session owns finishing it. Re-read the map after each ticket;
-   do not begin frontier work while any unclaimed awaiting child or entry remains.
-3. If the user named a ticket, verify it is open and unblocked. Otherwise choose the first
-   frontier ticket in tracker order. Claim it before reading deeply or invoking another
-   skill.
-4. Resolve that one question. Load related tickets only as needed and invoke every skill in
-   the map's `Notes`.
-5. Post a resolution comment with the answer, supporting evidence or artifact links, and
-   the important alternatives rejected. Keep the full reasoning here.
-6. Decide whether the ruling is load-bearing. Create or update an ADR before closing when
-   the decision constrains multiple builds, is costly to reverse, settles architecture or
-   domain language, or must be enforced downstream. Follow the repository's ADR format and
-   index. Link the ADR from the resolution; keep reasoning in the ticket and the concise
-   ruling plus consequences in the ADR.
-7. Close the ticket and append its titled link plus one-line gist to `Decisions so far`.
-8. Create and wire newly precise tickets, graduate cleared fog, and remove invalidated or
-   out-of-scope tickets. Expect concurrent sessions and re-read tracker state before edits.
-9. Evaluate handoff eligibility for every affected independent subtree.
+The coordinator supplies the selected adapter, explicit worker model, and explicit
+worker effort. Dispatch only through
+`skills/drivers/orchestrate/scripts/codex-worker.py` or
+`skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in Agent
+tool, Workflow tool, or background-agent machinery.
 
-## Reconcile completed research
+For each research spike, the coordinator owns
+`<session-scratch>/epic-research-<spike-id>.state` and
+`<session-scratch>/epic-research-<spike-id>.prompt`. The prompt identifies its
+recipient as the already-dispatched research worker, directs that worker to research
+directly without dispatching another worker, and states the research question, required
+Markdown output, temporary-worktree boundary, and return-and-verification contract.
+Write that complete brief to the prompt file, then pass its exact contents as the
+selected adapter's positional prompt.
 
-Completed unattended research with structured `handoff_required` candidates is not resolved
-until a human disposes every candidate. Keep the research ticket open, keep
-`wayfinder:awaiting-disposition`, and keep its titled link under the map's
-`Awaiting disposition` section throughout reconciliation.
+Start the worker through the adapter's `workspace-write` surface with the temporary
+per-spike worktree as its cwd and the coordinator checkout as its control checkout.
+Use the adapter's start, resume, stop, and verify surface. Preserve adapter-owned
+state, same-worker resume, and coordinator-owned recovery; do not restate adapter argv
+or lifecycle mechanics here.
 
-Claim the research ticket with `wayfinder:resolving`, then read its terminal findings comment.
-The worker writes every candidate in a final fenced YAML block using this envelope; an empty
-`candidates` list explicitly proves that no build disposition is pending:
+Reject a nonzero adapter invocation. For a successful invocation, read its
+`final_message` as the Markdown findings returned to the home session. The home
+session writes the Markdown file required by its public interface, then follows the
+existing `## Findings` posting and verification rule. Do not close the spike as
+successful without that verified result. Remove the prompt file after the home session
+verifies the `## Findings` comment, or after it reports a failed worker. Never commit
+the prompt file or state file.
 
-```yaml
-wayfinder_findings:
-  candidates:
-    - id: <stable identity unique within this research ticket>
-      disposition: handoff_required
-      title: <independently shippable outcome>
-      outcome: <observable result the build must produce>
-```
+## Deferred child close-out
 
-Keep `id` byte-for-byte unchanged in every build issue or disposition comment. Candidate IDs,
-not titles or list position, are the replay identity. A missing or malformed envelope is not a
-completed research result: repair the findings comment before closing or reconciling the ticket.
-The operator may select zero or more candidates. For each independently shippable selected
-candidate, file one ordinary standalone build issue using **Hand clear work to implementation**;
-never combine independent candidates into an umbrella issue. Copy the candidate's exact
-structured identity into that issue's `Wayfinder candidate:` marker so replay can match the
-issue back to one candidate. For every unselected candidate, record that same identity in a
-disposition comment on the research ticket:
+Before archive, sweep each deferred child from live GitHub state. A human must choose exactly one disposition:
 
-- **No-build:** name the reason, the observable trigger that would invalidate the ruling, and
-  the condition that verifies no build is needed.
-- **Deferred:** name the observable trigger that reopens consideration and the condition that
-  will verify the later build is complete.
+- Promote it outside the closing epic as a spike or build, and remove `deferred`.
+- Reparent it to a future epic while retaining `deferred`; it is no longer this epic's child.
+- Post the won't-do reason, close it with state reason `NOT_PLANNED`, keep its type label, and remove `deferred`.
 
-A selected candidate is durably disposed only when all three handoff facts agree:
+Refuse to archive while an open child carries `deferred`.
 
-1. the map's `Handoffs` entry links the build issue;
-2. the build issue body contains the exact marker `Wayfinder handoff: #<map>`; and
-3. the build issue has a native `blockedBy` edge to this terminal research child.
+## Completion and close-out
 
-A map link alone never counts as a handoff. Before filing anything, and again after every
-GitHub mutation, re-read the map, research comments and labels, candidate build issue bodies,
-and native dependencies. Derive completed work from GitHub: match existing map entries and
-ordinary issues carrying the exact marker and research dependency back to each structured
-candidate by its copied identity. Repair a partial three-fact handoff in place; never create a
-duplicate build issue, map line, or disposition comment. The tracker reference gives the
-mutation order and replay procedure.
+Read the three completion predicates directly from GitHub: no open spike child; every build child has a merged closing pull request or is closed `NOT_PLANNED`; and no open deferred child remains. Do not infer any predicate from a ledger line.
 
-After every candidate has exactly one durable selected, no-build, or deferred disposition,
-finalize in order: remove the ticket's `Awaiting disposition` map entry, remove
-`wayfinder:awaiting-disposition`, append its titled link and explicit final gist under
-`Decisions so far`, then close the research ticket and release its claim.
-Close research only after every candidate has a durable disposition; never close it with an
-undisposed candidate.
-
-Maintainer invariant: closed research always has a durable disposition. No hidden
-issues-to-file list exists outside GitHub.
-
-## Hand clear work to implementation
-
-Hand off a subtree as soon as all of these are true:
-
-- its fog is empty;
-- no open decision anywhere on the map could invalidate its outcome, constraints, or
-  acceptance criteria;
-- every relevant load-bearing ruling is in an ADR;
-- any user-facing surface has a locked `/ui-craft` spec.
-
-File a new ordinary GitHub issue in the repository that will build it. Do **not** make it a
-child decision ticket, and do **not** add any `wayfinder:*` label. Whatever intake your
-implementation workflow uses owns its own routing labels, briefs, and effort dials —
-wayfinder never sets them.
-
-Make the issue stand alone. Whoever picks it up grounds from the repository and will not
-chase the map's links to reconstruct context. Use the repository's domain terms and inline
-every relevant ruling:
-
-```markdown
-## Outcome
-
-<Observable result this build should deliver.>
-
-## Decided constraints
-
-- <Decision title>: <ruling stated inline, with ADR link when one exists>
-
-## Scope
-
-<What this ticket includes.>
-
-## Acceptance criteria
-
-- <Observable criterion>
-
-## Evidence and locked artifacts
-
-- <Research evidence or locked visual spec, with the operative conclusion repeated here>
-
-## Not part of this ticket
-
-- <Nearby work deliberately excluded>
-
-Wayfinder handoff: #<map>
-Wayfinder candidate: <candidate id — only when this issue came from a research disposition>
-```
-
-Before filing, run `/plan-review` on the brief above — a finding can still change the issue
-body before the marker/dependency triad below is written.
-
-Before filing, reconcile existing handoff facts in GitHub. The two trailing marker lines are
-the issue's durable identity: keep `Wayfinder handoff: #<map>` byte-for-byte, and carry
-`Wayfinder candidate:` only when a research disposition produced this issue, repeating that
-candidate's `id` unchanged. Then add a native `blockedBy` edge from the build issue to at
-least one terminal decision child that cleared the work, and link the filed issue under the
-map's `Handoffs`. During research disposition, that dependency is the terminal research
-child. All three facts must agree before the handoff counts. If intake sends the issue back
-for more scoping or clarification, treat that as evidence the map was incomplete: create a
-new decision ticket for the gap, link the held build issue, and stop handing off dependent
-work until the gap is resolved.
-
-The map is complete when nothing remains in fog, no decision ticket is open, and every
-buildable subtree has been handed off (or the destination explicitly requires no build).
+Only after all predicates pass, make the final ledger-and-archive commit and push it. Take the planning pull request out of draft, wait for the planning pull request to be human-merged, and verify that merge. Then close the epic issue and tear down the planning worktree. Report the issue and planning pull request URLs, the three direct checks, and any visible ledger staleness.
