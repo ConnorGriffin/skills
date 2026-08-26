@@ -2,11 +2,6 @@
 
 ## Drafting conventions
 
-Canonical prose constants name only the bytes strictly between their named opening
-and closing full-heading-line anchors; neither anchor is part of the constant.
-Read source with `Path.read_bytes()` and compare bytes directly. Do not use
-`read_text()`, universal-newline normalization, or a line-oriented surrogate.
-
 Transcribe a target repository's `AGENTS.md` `Test:` entry byte-exact into the
 order. When this host's interpreter substitution matters, state it separately and
 exactly: `Run every python3 above as /opt/homebrew/bin/python3.14; bare python3
@@ -22,4 +17,3 @@ An expected diff is a closed allowlist of repository-relative paths. It has no
 escape clause. A generated-facts appendix records deterministic commands and their
 byte-complete literal output; every cited line is regenerated from the checked-out
 tree.
-## Consumer reach

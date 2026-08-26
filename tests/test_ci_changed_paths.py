@@ -92,7 +92,6 @@ class ChangedPathsCliTests(unittest.TestCase):
     def test_unsafe_and_mixed_pull_requests_run_expensive_work(self):
         for relative_path in (
             "docs/render_comparison.py",
-            "docs/evidence/contract-v2.json",
             "skills/drivers/ticket/SKILL.md",
             "scripts/validate.py",
             "tests/test_ticket.py",

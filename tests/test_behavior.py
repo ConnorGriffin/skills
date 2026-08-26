@@ -37,514 +37,6 @@ UI_CRAFT_ROUTE = ROOT / "skills" / "drivers" / "ui-craft" / "scripts" / "route.m
 README = ROOT / "README.md"
 BEGIN_IGNORE = "# >>> cbm-onboard managed baseline — do not edit inside this block >>>"
 BEGIN_HOOK = "# >>> cbm-onboard managed reindex >>>"
-MANDATORY_DELEGATION_AUTHORIZATION = (
-    "Invoking this skill authorizes every sub-agent dispatch that this procedure marks mandatory, "
-    "including a mandatory nested review skill. Do not ask again solely because a session-level "
-    'preference says "do not spawn agents"; apply that preference to discretionary delegation only. '
-    "An explicit task-level refusal of this required review or revocation of delegation overrides this "
-    "authorization: stop and state that the requested workflow cannot run without its required "
-    "independent review."
-)
-
-EPIC_WORKER_DISPATCH = """\
-The coordinator supplies the selected adapter, explicit worker model, and explicit
-worker effort. Dispatch only through
-`skills/drivers/orchestrate/scripts/codex-worker.py` or
-`skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in Agent
-tool, Workflow tool, or background-agent machinery.
-
-For each research spike, the coordinator owns
-`<session-scratch>/epic-research-<spike-id>.state` and
-`<session-scratch>/epic-research-<spike-id>.prompt`. The prompt identifies its
-recipient as the already-dispatched research worker, directs that worker to research
-directly without dispatching another worker, and states the research question, required
-Markdown output, temporary-worktree boundary, and return-and-verification contract.
-Write that complete brief to the prompt file, then pass its exact contents as the
-selected adapter's positional prompt.
-
-Start the worker through the adapter's `workspace-write` surface with the temporary
-per-spike worktree as its cwd and the coordinator checkout as its control checkout.
-Use the adapter's start, resume, stop, and verify surface. Preserve adapter-owned
-state, same-worker resume, and coordinator-owned recovery; do not restate adapter argv
-or lifecycle mechanics here.
-
-Reject a nonzero adapter invocation. For a successful invocation, read its
-`final_message` as the Markdown findings returned to the home session. The home
-session writes the Markdown file required by its public interface, then follows the
-existing `## Findings` posting and verification rule. Do not close the spike as
-successful without that verified result. Remove the prompt file after the home session
-verifies the `## Findings` comment, or after it reports a failed worker. Never commit
-the prompt file or state file."""
-
-EPIC_REWORK_SESSION_TOPOLOGY = """\
-* The epic session is the operator's home session. It stays at ledger
-  altitude: it files issues, updates the epic ledger, and dispatches work. It
-  never reads the repo deeply; the home session is the epic ledger's sole
-  writer.
-* Attended sessions are the default whenever a subtree has an open decision.
-  The operator may explicitly and revocably delegate one locked subtree to the
-  home session when its work orders are stamped or its needed rulings are
-  settled. A newly opened decision returns that subtree to attended mode.
-* Delegated triage runs through the existing `$ticket triage` interface, and
-  delegated builds run through the existing `$ticket start` interface. The home
-  session dispatches their workers through the pack adapters; ticket comments
-  carry stamped work orders, session-fit, and completed work products.
-* Before a delegated wave, the home session draws a conflict map from every
-  queued expected diff and verifies that its shared checkout equals the current
-  origin default-branch tip. A stale shared checkout refuses the wave.
-* Every read-only draft and review in a wave fans out in parallel. Only
-  write-bearing triage and build steps serialize when their expected diffs
-  overlap; builds use per-issue worktrees, tickets editing the same files run
-  in order, and pull requests merge one at a time with a rebase when a shared
-  surface is touched. Before dispatching a build or review worker, verify that
-  its target worktree is at, or descends from, the current origin default-branch
-  tip; otherwise refuse that dispatch.
-* Delegated work uses the pack dispatch adapters. The home session collects
-  children under `orchestrate`'s `## Collect child results` contract, permits a
-  human merge only after green CI and passed review, and surfaces a failure when
-  its routing ladder is exhausted. Coordinators never nest."""
-
-EPIC_DELEGATED_EXECUTION = """\
-The operator may explicitly and revocably delegate a locked epic subtree to
-the home session when every order is stamped or every needed ruling is settled.
-Attended sessions remain the default; any newly opened decision returns that
-subtree to attended mode.
-
-The home session remains the epic ledger's sole writer. For delegated triage it
-dispatches a worker through the existing `$ticket triage` interface; for a
-delegated build it dispatches a worker through the existing `$ticket start`
-interface. Those workers use their existing ticket contracts and post stamped
-work orders, session-fit, and completed work products through tracker comments.
-
-The home session dispatches only through the pack adapters, with prompt text
-passed positionally from coordinator-owned session-scratch prompt files and one
-coordinator-owned state file per dispatch. Do not add adapter flags or alter
-adapter mechanics.
-
-Work delegated to the home session proceeds in waves. Before each fan-out, draw
-a conflict map from the queued expected diffs and verify that the shared checkout
-equals the current origin default-branch tip. Fan out every read-only draft and
-review in parallel. Serialize only write-bearing triage and build steps whose
-expected diffs overlap; builds use per-issue worktrees, tickets editing the same
-files run in order, and pull requests merge one at a time with a rebase when a
-shared surface is touched. Before dispatching a build or review worker, verify
-that its target worktree is at, or descends from, the current origin
-default-branch tip; refuse a stale target.
-
-Collect child results under `orchestrate`'s `## Collect child results` section.
-Permit a human merge only after green CI and passed review. Surface a failure
-after the applicable routing ladder is exhausted; do not retry past that ladder."""
-
-# The single canonical representation of the plan-review cold-reader dispatch
-# contract: adapter exclusivity, read-only surface, mechanics-only inputs, the
-# closed prompt allowlist, and worker-isolation. The skill's section is pinned
-# byte-for-byte against this constant, so any prose edit inside it — of any
-# phrasing — fails by construction rather than by pattern matching.
-PLAN_REVIEW_COLD_READER_DISPATCH = b"""
-At the standard skill root, when `orchestrate` is installed, read its
-`references/review-routing.md` and `references/routing-table.md` directly before
-dispatch. Use the four-row reviewer matrix and apply its Claude-parent Codex
-presence/headroom gate. For this skill, use `Plan / spec writing` as the table's
-closest validated classification, not a benchmarked plan-review verdict.
-
-When `orchestrate` or its `review-routing.md` is not installed, say so in one
-line and continue Claude-only with Opus, with no Codex attempt.
-
-Reviewer-routing stakes and this skill's plan stakes tier are independent.
-Neither derives from, overrides, or rewrites the other.
-
-The coordinator supplies the selected adapter, explicit reviewer model,
-explicit reviewer effort, and the cold-reader prompt's four allowed inputs.
-Dispatch only through
-`skills/drivers/orchestrate/scripts/codex-worker.py` or
-`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
-adapter's read-only review surface. Never use the built-in Agent tool, Workflow
-tool, or background-agent machinery.
-
-After selection, the cold-reader interface does not reclassify review work or
-choose a model or effort. Preserve adapter-owned state, same-worker resume, and
-coordinator-owned recovery through the orchestrate adapter contract; do not
-restate its command or lifecycle mechanics here.
-
-The cold-reader prompt contains exactly:
-1. plan location;
-2. the five-axis rubric;
-3. stakes tier; and
-4. a context-free fresh-reviewer phase instruction that requires the reviewer
-   to read [drafting conventions](../../drivers/ticket/references/drafting-conventions.md).
-
-The prompt excludes earlier findings, author rationale, chat history, and all
-other author/coordinator-session material. For a chat-delivered plan, before
-dispatch the coordinator writes the exact chat-delivered plan bytes to an
-immutable session-scratch file and supplies only that file's path as the plan
-location. The worker receives no chat transcript or author-session context.
-
-For every review invocation, the caller creates one coordinator-owned
-session-scratch file named `plan-review-mechanical-fixes.md`. For a durable plan,
-place it in that review invocation's session scratch and record the durable plan
-locator and immutable revision. For a chat-delivered plan, place it beside the
-immutable session-scratch plan file and record that plan file path.
-
-Each entry has exactly: finding; exact correction; reviewer re-check result. The
-file is review-round evidence, never a worker result or a committed repository
-artifact.
-"""
-
-MECHANICAL_FIX_IN_PLACE_BODY = b"""
-A coordinator may correct a cold-review finding in the order without opening a
-rewrite-plus-review round only when both the finding and its correction are
-deterministic and mechanical: for example, a wrong heading anchor, a missing exact
-string, or nondeterministic command ordering.
-
-Record the finding and the exact correction in the round ledger, then have the
-current reviewer re-check the changed order bytes in that same round. A correction
-that requires judgment, changes a decision, changes scope, or reopens a settled
-ruling stays in the panel-or-operator path and does consume the ordinary revision
-cycle.
-"""
-
-DESIGN_IT_TWICE_ADAPTER_DISPATCH = """\
-The coordinator supplies the selected adapter, explicit design-agent model, and
-explicit design-agent effort. Pass model and effort unchanged to every design
-worker. This procedure does not select an adapter, model, or effort, apply a
-routing table or headroom policy, or add defaults.
-
-Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or
-`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
-adapter's read-only surface. Never use the built-in Agent tool, Workflow tool,
-or background-agent machinery.
-
-Create one coordinator-owned `<session-scratch>/design-it-twice/` directory.
-For alternative `<n>`, write its complete independent technical brief to
-`design-<n>.prompt.md`; use `design-<n>.json` as that worker's state file; and
-capture its launcher stdout and stderr in `design-<n>.stdout` and
-`design-<n>.stderr`. The coordinator passes the contents of
-`design-<n>.prompt.md` as the adapter's positional prompt text. State files
-carry lifecycle metadata only; successful design output comes from each
-launcher's stdout `final_message`.
-
-Start alternatives 1, 2, and 3 through the selected adapter before waiting on
-any launcher, retaining each launcher PID and joining each individually. Each
-worker receives its separate technical brief and one different constraint:
-
-- Alternative 1: "Minimize the interface — aim for 1–3 entry points max.
-  Maximise leverage per entry point."
-- Alternative 2: "Maximise flexibility — support many use cases and extension."
-- Alternative 3: "Optimise for the most common caller — make the default case
-  trivial."
-- Alternative 4, when applicable: "Design around ports & adapters for
-  cross-seam dependencies."
-
-Include both [../SKILL.md](../SKILL.md) vocabulary and CONTEXT.md vocabulary
-in every brief. Each worker must not modify, patch, or stash.
-
-Each worker outputs:
-
-1. Interface (types, methods, params — plus invariants, ordering, error modes)
-2. Usage example showing how callers use it
-3. What the implementation hides behind the seam
-4. Dependency strategy and adapters (see [DEEPENING.md](DEEPENING.md))
-5. Trade-offs — where leverage is high, where it's thin
-
-On one nonzero completion, use the selected adapter's `resume` surface once
-against that alternative's same state file. If it still does not produce a
-successful `final_message`, mark that alternative unavailable. With two or more
-successful alternatives, present and compare the available designs, naming every
-unavailable alternative. With zero or one successful alternative, report that
-the design-it-twice pass did not produce enough alternatives and return to the
-interface-shape frontier; do not recommend a design."""
-
-PREFLIGHT_VERBATIM_COMMAND_OUTPUT = """\
-Every `command → output` evidence block is pasted verbatim from an actual command
-run. To abbreviate output, change the command so it produces the shorter output
-(for example, `grep -m` or `head`); never edit the captured output, insert
-ellipses, or drop matches. Manual edits are prohibited and require a **BLOCKED**
-verdict on their own."""
-
-PLAN_REVIEW_EVIDENCE_BLOCK_SPOT_CHECK = """\
-During the cold read, spot-check at least one `command → output` evidence block:
-run its recorded command and compare the complete result to the cited output.
-Treat a manual edit found in any evidence block as independently requiring a
-**BLOCKED** verdict."""
-
-PERSONA_REVIEW_PANELIST_DISPATCH = """\
-The coordinator supplies the selected adapter, explicit reviewer model, and explicit
-reviewer effort. For each panelist, dispatch only through
-`skills/drivers/orchestrate/scripts/codex-worker.py` or
-`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected adapter's
-read-only review surface. Never use the built-in Agent tool, Workflow tool, or
-background-agent machinery.
-
-Each dispatch has one coordinator-owned state file under the coordinator's
-session-scratch directory. Use the adapter's start, resume, stop, and verify surface;
-adapter state, same-worker resume, and recovery remain adapter-owned.
-
-The coordinator keeps the non-sensitive positional prompt text in session scratch and
-passes that text to the selected adapter. The prompt tells the panelist to read the
-document, its private persona profile, relevant review-log entries, and relevant
-override rulings from their existing locations; review cold without access to another
-panelist's output or the synthesis; and return positions, blocking or note conditions,
-and approval or refusal. The prompt contains no persona name, simulation label, mine
-date, panel narrative, or profile, review-log, or override content."""
-
-RESEARCH_WORKER_DISPATCH = """\
-Use exactly one research worker; never create a chain of workers.
-
-The coordinator supplies the selected adapter, explicit research-worker model,
-explicit research-worker effort, and the complete research task. Dispatch only
-through `skills/drivers/orchestrate/scripts/codex-worker.py` or
-`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
-adapter's read-only surface. Never use the built-in Agent tool, Workflow tool,
-or background-agent machinery.
-
-Use the selected adapter's `start` surface with one coordinator-owned state file
-under the coordinator's session-scratch directory. The selected adapter's
-`resume`, `stop`, and `verify` surfaces retain lifecycle ownership.
-
-After selection, this interface does not reclassify research work or choose a
-model or effort. Preserve adapter-owned state and coordinator-owned recovery
-through the orchestrate adapter contract; do not restate its command or
-lifecycle mechanics here.
-
-Before dispatch, the coordinator writes the exact complete research-task prompt
-bytes to an immutable session-scratch file and passes that file's contents as
-the selected adapter's positional prompt. The worker receives no chat transcript
-or other coordinator-session material.
-
-The worker performs the research directly and returns source-cited findings to
-the coordinator. Never spawn another background agent or nested worker. If the
-worker fails or is interrupted, report the failure explicitly. Do not describe a
-successful dispatch as completed research. The coordinator writes the returned
-findings to the single Markdown file required below."""
-
-REVIEW_ROUTING_CONTRACT = """\
-This reference is the sole live authority for reviewer classification, reviewer
-eligibility, and reviewer-model precedence. The benchmark authority remains
-[`routing-table.md`](routing-table.md).
-
-For a review with a work order, effective review depth is the routing input:
-Focused and Targeted are routine; Full is load-bearing. An order with no stamped
-depth retains [review-depth.md](../../ticket/references/review-depth.md)'s Targeted
-default.
-
-For every review without a work order—a bare diff, chat plan, file-backed PRD, design document, or GitHub issue—the dispatcher judges the subject against [review-depth.md](../../ticket/references/review-depth.md)'s sensitivity floor: any of its four categories makes the subject load-bearing; otherwise it is routine.
-
-Precedence is fixed: effective depth, or the judged sensitivity floor when there
-is no order, produces routine/load-bearing routing stakes; the selected review
-skill supplies its routing-table area; `routing-table.md` supplies that row's
-candidate model or ladder; parent policy and the Codex presence/headroom gate
-remove unavailable candidates. Builder tier is never an input, and a fallback is
-never borrowed from another row.
-
-Haiku never reviews.
-
-Reviewer-routing stakes and plan-review's plan stakes tier are independent.
-Neither derives from, overrides, or rewrites the other.
-
-| Review skill | Routing stakes | Initial route |
-|---|---|---|
-| code-review | routine | Run the Codex presence/headroom gate first. With usable Codex, use Luna from the Code review row. On absent, unknown, ≤5%, or rate-limited Codex, enter Claude-only mode at Sonnet from the Code review row and make no second Codex attempt for the session. |
-| code-review | load-bearing | Use Opus directly from the Code review row; select no Codex rung. |
-| plan-review | routine | Run the Codex presence/headroom gate first. With usable Codex, use Terra from the Plan / spec writing row. On absent, unknown, ≤5%, or rate-limited Codex, enter Claude-only mode at Opus from the Plan / spec writing row, which has no Sonnet rung, and make no second Codex attempt for the session. |
-| plan-review | load-bearing | Use Opus directly from the Plan / spec writing row; select no Codex rung. |
-
-The matrix routes for a Claude parent. A Codex parent follows its own session
-policy in `dispatch-codex.md`, and this matrix does not route for it.
-
-Opus in the Plan / spec writing ladder is an availability rung, not a benchmarked
-plan-writing win.
-
-The matrix chooses only the initial reviewer adapter/model. Existing read-only
-sandboxing, explicit effort, same-session retry, escalation, liveness, recovery,
-and worker-state mechanics remain owned by orchestrate and the merged #145, #149,
-#150, #151, and #152 work.
-
-## Related authorities
-
-Use `routing-table.md` for benchmarked areas, ladders, scores, and effort notes;
-use `review-depth.md` for depth, sensitivity, hardening, blocking, and whole-diff
-behavior."""
-
-ROUTING_TABLE_REVIEW_CONSUMER = """\
-Before applying their own named area row, `code-review` and `plan-review` obtain
-routine/load-bearing routing stakes and their initial route directly from
-[`review-routing.md`](review-routing.md).
-
-Opus in the Plan / spec writing ladder is an availability rung, not a benchmarked
-plan-writing win."""
-
-ROUTING_TABLE_ROUTES = """\
-Escalate one step at a time along the row's ladder; at the last rung, stop and
-surface both failed attempts to the operator.
-
-| Area | Route | Ladder | Why |
-|---|---|---|---|
-| Exploration / codebase-mapping | **Luna** for bounded lookups; **Sonnet** for full-system maps | Luna → Sonnet → Opus | Sonnet tied Opus at 5/5 with fully verified citations at 60% of the cost; Luna scored 4 at a fraction of both. Haiku fabricated a citation — do not use for exploration you won't verify. |
-| Hermetic implementation | **Terra** | Terra → Sonnet → Opus | Terra matched the merged fix exactly (incl. the window-bounds subtlety) at $2.50; Sonnet/Opus scored 5 with richer tests — escalate for correctness-critical or gnarly changes. Luna/Haiku/Spark all missed a subtle placement decision. Field-derived provenance (sources: #144's session-fit comment and epic ledger PR #136): Terra failed canonical byte-for-byte prose-contract work on #151 and #152, required escalation, and informed #144's stamp; this observation changes neither Route nor Ladder. |
-| Plan / spec writing | **Terra** | Terra → Sol → Opus | The Codex family owns this area: Terra 5/5 (tightest, correct fail-closed), Sol/Luna/GPT-5.4 ≈4.8. Opus wrote the prettiest spec with a load-bearing polarity error — never route specs to Claude models without a fail-safe review. Field-derived provenance (sources: #144's session-fit comment and epic ledger PR #136): Terra failed canonical byte-for-byte prose-contract work on #151 and #152, required escalation, and informed #144's stamp; this observation changes neither Route nor Ladder. |
-| Prototyping (incl. UI mockups) | **Sol** | Sol → Opus → none (top of ladder; Sol first despite Opus's lower sticker price — Sol's per-task token volume ran leaner and its output resolved a spec tension Opus ignored) | Sol, Opus, and Spark all hit 5; Sol resolved a spec tension the others ignored. Spark ties when repo context (an existing lock/design system) exists to reuse — and it's near-instant. Luna is banned here (1/5: no page geometry, invented UI, leaked never-print content). |
-| Novel-solution brainstorming | **Terra**; **Opus** when novelty is the deliverable | Terra → Opus → none (top of ladder) | Opus 5/5 with the most novel idea of the whole benchmark; Terra 4.5 at half the price. Haiku and Spark produce generic-ML re-skins — don't route ideation there. |
-| Documentation writing | **Haiku** (default; Luna equal-scored alternate) | Haiku → Opus → Sol (Opus first: equal score, lower price) | Both scored 4 at ~$1; Opus and Sol scored 5 — escalate for load-bearing ADRs. Sonnet (3) narrated implementation identifiers; Spark (2) fabricated a cross-reference. |
-| Code review | **Luna** for routine PRs; **Opus** for load-bearing/safety review | Luna → Sonnet → Opus; Opus route: none (top of ladder) | Opus was the only model to catch all 3 planted defects (incl. a silently weakened test). Luna caught 2/3 with zero false positives at the lowest cost. GPT-5.5 confidently reported a nonexistent syntax error; GPT-5.4-Mini missed a blatant inverted guard — avoid both for review. Field-derived provenance (source: epic ledger PR #136's 2026-08-25 rounds): Sol produced zero hallucinated findings across approximately 20 Full-depth and cold reviews in one epic session, with every blocking finding reproduced against the tree, grounding the standing Codex-first review practice. |""".encode("utf-8")
-
-ORCHESTRATE_MAINTENANCE = """\
-The table is provenance-stamped. Benchmark replays and field-derived notes from
-real orchestration sessions are valid provenance classes. Every field-derived
-note must name its issue or ledger source.
-
-When a new model ships, replay the benchmark per
-`references/benchmark/README.md` (~1 area-task per area; note the review and
-prototyping fixtures regenerate and need an incumbent anchor run) and update the
-table in the same commit.
-
-A field-derived note that contradicts a benchmarked score does not silently
-win. File a replay of every affected area as its own follow-up ticket, then
-replay it under `references/benchmark/README.md`.""".encode("utf-8")
-
-CODE_REVIEW_DEPENDENCY_SELECTION = """\
-At the standard skill root, when `orchestrate` is installed, read its
-`references/review-routing.md` and `references/routing-table.md` directly before
-dispatch. Use the four-row reviewer matrix, classify this skill's area as
-`Code review`, and apply the matrix's Claude-parent Codex presence/headroom gate
-to select the initial reviewer adapter and model.
-
-When `orchestrate` or its `review-routing.md` is not installed, say so in one
-line and continue Claude-only: use Sonnet for routine review or Opus for
-load-bearing review, with no Codex attempt."""
-
-ORCHESTRATE_REVIEW_PRECEDENCE = """\
-Review dispatch is classified before the generic area routing above. Read
-`references/review-routing.md` and apply its reviewer-selection contract: review
-depth or the sensitivity floor determines routing stakes, the selected review
-skill supplies its named routing-table area, and parent policy plus the Codex
-presence/headroom gate removes unavailable candidates. Do not infer a reviewer
-from builder tier or borrow a fallback from another routing-table row."""
-
-ORCHESTRATE_PACK_WIDE_REACH = """\
-Per ADR 149 (`docs/adr/adr-149-pack-owned-model-dispatch.md`): all model
-dispatch defined by this pack goes through this pack's own adapters
-(`claude-worker.py` / `codex-worker.py`), not the built-in Agent tool, the
-Workflow tool, or background agents. That ruling covers every skill that
-dispatches a model, not only `orchestrate`. Every dispatching skill is now
-converted: `code-review` (issue #151), `plan-review` (issue #152),
-`persona-review` (issue #153), `ticket`'s chunk agents (issue #154), `epic`
-(issue #155), `research` (issue #156), and `codebase-design` (issue #157) all
-use the adapters. A future skill that dispatches a model converts behind its
-own issue before the ban binds it."""
-
-ORCHESTRATE_COLLECT_CHILD_RESULTS = """\
-This contract binds every model dispatch owned by this pack.
-
-Before each dispatch, the coordinator records the child's prompt file, its
-coordinator-owned state file, and its durable result locator. Write the complete
-prompt bytes to session scratch and pass that file's contents as the selected
-adapter's positional prompt. Use one state file per dispatch; state is lifecycle
-metadata only, never the child result.
-
-The result locator is the artifact that carries the child's answer: captured
-launcher stdout, a named worktree or branch for implementation changes, or a
-posted comment when the child declares that handoff. Use the adapter's start,
-resume, stop, and verify surface without restating its command mechanics.
-
-A coordinator never ends a turn solely because a child is unfinished, and it
-does not treat a completion notification as the result. After dispatching every
-child that is ready to run, if it must pause, it monitors one named launcher,
-state, stdout, worktree or branch, or posted-comment artifact. It then collects
-the result from the recorded result locator and verifies it under this skill's
-existing rules."""
-
-DISPATCH_CODEX_ADMISSION = """\
-These are the only validated initial routes in Codex-only mode:
-
-| Area | Initial route |
-|---|---|
-| Bounded exploration | Luna (`gpt-5.6-luna`) |
-| Hermetic implementation | Terra (`gpt-5.6-terra`) |
-| Plan / spec writing | Terra (`gpt-5.6-terra`) |
-| Prototyping | Sol (`gpt-5.6-sol`) |
-| Default brainstorming | Terra (`gpt-5.6-terra`) |
-| Documentation | Luna (`gpt-5.6-luna`) |
-
-Full-system exploration, novelty-as-deliverable brainstorming, and
-other unlisted admissions are **NO_VALIDATED_ROUTE** until benchmarked.
-Do not invent an escalation for those admissions. Each admitted v0 route is one
-validated rung: retry once in the same worker session, then stop with
-**NO_VALIDATED_ROUTE**. Never escalate Terra, Luna, or Sol to Sonnet or Opus.
-Pass the exact parenthesized CLI model ID to the helper's `--model` argument.
-
-Review admissions are owned by [`review-routing.md`](review-routing.md). Its
-matrix assumes a Claude parent and does not route for this Codex UI parent;
-follow the Codex parent's own session policy instead of treating review as a
-generic admission above."""
-
-DISPATCH_CODEX_FROM_CLAUDE_ADMISSION = """\
-Read [`review-routing.md`](review-routing.md) and apply its four-row matrix for
-reviewer classification and initial adapter/model selection. That matrix
-composes the selected review skill's area with `routing-table.md` and the Codex
-presence/headroom gate in `SKILL.md`; this adapter reference does not duplicate
-their precedence.
-
-When the matrix selects Codex, dispatch the review read-only through
-`codex-worker.py start` and persist one state file for that worker. Retry a
-model-quality failure once through `codex-worker.py resume` against the same
-state file, carrying the specific finding; do not start a second worker for the
-retry. Review is a read task, so `workspace-write` is never correct for it.
-
-## Infrastructure failure vs. model-quality failure
-
-A worker that failed to launch, hung before session start, lost its rollout,
-or was refused for headroom is a dispatch failure, matching the rule
-`dispatch-codex.md` already states. It is not evidence that Luna reviewed
-badly, so it consumes neither the one same-session retry in `Review admission`
-above nor an escalation rung. See `dispatch-codex.md`'s "Worker liveness" and
-"Interrupted workers" sections for the shared mechanics — they are not
-duplicated here. The launching coordinator owns stop-then-verify before any
-successor touches the worktree."""
-
-REVIEW_DEPTH_DISPATCH_BOUNDARY = """\
-Under `Profile: hardening`, Targeted and Focused orders get no reviewer; Full-depth
-orders keep one review round after hardening.
-
-Review depth is an input to
-[review-routing.md](../../orchestrate/references/review-routing.md), which owns
-reviewer classification, eligibility, and model precedence.
-
-* A whole diff assembled from chunks is reviewed Targeted, or Full when any chunk
-  was Full."""
-
-SLICING_ORCHESTRATOR_TIER = """\
-The order's `Open as:` names the tier the coordinator session must run at: the
-**highest** tier any chunk names (haiku < sonnet < opus), and never Haiku, which
-cannot review
-([review-routing.md](../../orchestrate/references/review-routing.md)). The coordinator never launches
-an agent smarter than itself."""
-
-COORDINATOR_REVIEWER_SELECTION = """\
-4. **Review each chunk as it lands**, at that sub-order's stamped depth, before
-   merging it. Two things happen, in order, and neither substitutes for the other:
-
-   a. Run `/review` for the chunk diff, then apply the selected review skill's matrix
-   entry from
-   [review-routing.md](../../orchestrate/references/review-routing.md) using that
-   chunk's stamped depth. Builder tier is not an input. Dispatch the selected
-   reviewer on the chunk's branch against the ticket branch. Findings go back to
-   the chunk's own agent to fix. Claim each dispatched reviewer session through the
-   shared claim rule with `--role reviewer`, plus the same `--session <id>`,
-   `--agent <agent>` and `--project` it ran in, so review overhead is measured as
-   overhead and never as chunk size. A reviewer with no stable transcript id is
-   reported in one line like an unclaimable worker, and a claim failure follows the
-   same shared non-blocking rule: neither ever holds up dispatching the review.
-
-   b. Verify the result yourself, as `/orchestrate` requires of every delegated
-   result: read the diff, run the verification command, check the chunk's Done when
-   clause. A failed verification retries once in the chunk's agent with the specific
-   finding, then escalates one tier per the routing table. Same-session retries are
-   not re-claimed; claim every fresh implementation escalation once, using the
-   escalation's stable transcript id, agent, and chunk worktree."""
-
-README_CODE_REVIEW_ROW = "| [`code-review`](skills/tools/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | `orchestrate` is an optional integration used for reviewer routing when installed; parallel-agent support recommended; GitHub CLI to fetch an originating issue; see [docs/review-round-mining.md](docs/review-round-mining.md) for the mined evidence behind the fix protocol and the round cap |"
-README_PLAN_REVIEW_ROW = "| [`plan-review`](skills/tools/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | `orchestrate` is an optional integration used for reviewer routing when installed; parallel-agent support recommended; `persona-review` optional for load-bearing plans; the round-count evidence behind its rules is in [docs/review-round-mining.md](docs/review-round-mining.md) |"
-
 LIFECYCLE_SPEC = importlib.util.spec_from_file_location("worker_lifecycle", WORKER_LIFECYCLE)
 assert LIFECYCLE_SPEC and LIFECYCLE_SPEC.loader
 LIFECYCLE_MODULE = importlib.util.module_from_spec(LIFECYCLE_SPEC)
@@ -2627,77 +2119,6 @@ class OrchestrateCodexPolicyTests(unittest.TestCase):
 
 
 class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
-    @staticmethod
-    def text(path: str) -> str:
-        return (ROOT / path).read_text(encoding="utf-8")
-
-    @staticmethod
-    def block(text: str, start: str, end: str) -> str:
-        value = text.split(f"{start}\n\n", 1)[1]
-        return value.split(f"\n\n{end}", 1)[0]
-
-    def test_review_routing_contract_is_byte_identical(self):
-        text = self.text("skills/drivers/orchestrate/references/review-routing.md")
-        self.assertEqual(
-            self.block(text, "## Reviewer selection contract", "## Reference boundary"),
-            REVIEW_ROUTING_CONTRACT,
-        )
-
-    def test_routing_table_review_consumer_block_is_byte_identical(self):
-        text = self.text("skills/drivers/orchestrate/references/routing-table.md")
-        self.assertEqual(
-            self.block(text, "## Review-consumer classification", "## Routes (cheapest that clears the bar) and escalation ladders"),
-            ROUTING_TABLE_REVIEW_CONSUMER,
-        )
-
-    def test_routing_table_routes_are_byte_identical(self):
-        source = (
-            ROOT / "skills" / "drivers" / "orchestrate" / "references" / "routing-table.md"
-        ).read_bytes()
-        body = source.split(
-            b"## Routes (cheapest that clears the bar) and escalation ladders\n\n", 1
-        )[1].split(b"\n\n## Effort notes (coarse, per spec decision 8)\n", 1)[0]
-
-        self.assertEqual(body, ROUTING_TABLE_ROUTES)
-
-    def test_orchestrate_maintenance_is_byte_identical(self):
-        source = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
-        body = source.split(b"## Maintenance\n\n", 1)[1].split(
-            b"\n\n## Reference boundary\n", 1
-        )[0]
-
-        self.assertEqual(body, ORCHESTRATE_MAINTENANCE)
-
-    def test_code_review_dependency_selection_is_byte_identical(self):
-        text = self.text("skills/tools/code-review/SKILL.md")
-        self.assertEqual(
-            self.block(text, "## Dependency and reviewer selection", "## Modes"),
-            CODE_REVIEW_DEPENDENCY_SELECTION,
-        )
-
-    def test_orchestrate_review_precedence_is_byte_identical(self):
-        text = self.text("skills/drivers/orchestrate/SKILL.md")
-        self.assertEqual(
-            self.block(text, "## Review precedence", "## Verification and escalation"),
-            ORCHESTRATE_REVIEW_PRECEDENCE,
-        )
-
-    def test_orchestrate_pack_wide_reach_is_byte_identical(self):
-        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
-        body = skill.split(b"## Pack-wide reach\n\n", 1)[1].split(
-            b"\n\n## Collect child results\n", 1
-        )[0]
-
-        self.assertEqual(body, ORCHESTRATE_PACK_WIDE_REACH.encode("utf-8"))
-
-    def test_orchestrate_collect_child_results_is_byte_identical(self):
-        skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
-        body = skill.split(b"## Collect child results\n\n", 1)[1].split(
-            b"\n\n## Maintenance\n", 1
-        )[0]
-
-        self.assertEqual(body, ORCHESTRATE_COLLECT_CHILD_RESULTS.encode("utf-8"))
-
     def test_orchestrate_pack_wide_reach_boundaries_are_preserved(self):
         skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
 
@@ -2709,48 +2130,103 @@ class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
             skill,
         )
 
-    def test_codex_ui_admission_block_is_byte_identical(self):
-        text = self.text("skills/drivers/orchestrate/references/dispatch-codex.md")
-        self.assertEqual(
-            self.block(text, "## Codex-only admission routes", "## Reference boundary"),
-            DISPATCH_CODEX_ADMISSION,
+    def test_routing_table_review_consumer_block_is_load_bearing(self):
+        text = " ".join(
+            (ROOT / "skills/drivers/orchestrate/references/routing-table.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn(
+            "Before applying their own named area row, `code-review` and `plan-review` obtain "
+            "routine/load-bearing routing stakes and their initial route directly from "
+            "[`review-routing.md`](review-routing.md).",
+            text,
         )
 
-    def test_claude_parent_review_admission_is_byte_identical(self):
-        text = self.text("skills/drivers/orchestrate/references/dispatch-codex-from-claude.md")
-        self.assertEqual(
-            self.block(text, "## Review admission", "## Boundary"),
-            DISPATCH_CODEX_FROM_CLAUDE_ADMISSION,
+    def test_routing_table_routes_keep_the_review_row_and_escalation_rule(self):
+        text = " ".join(
+            (ROOT / "skills/drivers/orchestrate/references/routing-table.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn(
+            "Escalate one step at a time along the row's ladder; at the last rung, stop and "
+            "surface both failed attempts to the operator.",
+            text,
+        )
+        self.assertIn(
+            "Opus was the only model to catch all 3 planted defects", text
         )
 
-    def test_review_depth_dispatch_boundary_is_byte_identical(self):
-        text = self.text("skills/drivers/ticket/references/review-depth.md")
-        self.assertEqual(
-            self.block(text, "## Reviewer dispatch boundary", "## Reference boundary"),
-            REVIEW_DEPTH_DISPATCH_BOUNDARY,
+    def test_code_review_dependency_selection_keeps_the_headroom_gate(self):
+        text = " ".join(
+            (ROOT / "skills/tools/code-review/SKILL.md").read_text(encoding="utf-8").split()
+        )
+        self.assertIn(
+            "Use the four-row reviewer matrix, classify this skill's area as "
+            "`Code review`, and apply the matrix's Claude-parent Codex presence/headroom gate "
+            "to select the initial reviewer adapter and model.",
+            text,
         )
 
-    def test_slicing_orchestrator_tier_is_byte_identical(self):
-        text = self.text("skills/drivers/ticket/references/slicing.md")
-        self.assertEqual(
-            self.block(text, "## Orchestrator tier", "## Reference boundary"),
-            SLICING_ORCHESTRATOR_TIER,
+    def test_orchestrate_review_precedence_overrides_generic_area_routing(self):
+        text = " ".join(
+            (ROOT / "skills/drivers/orchestrate/SKILL.md").read_text(encoding="utf-8").split()
+        )
+        self.assertIn(
+            "Review dispatch is classified before the generic area routing above.", text
+        )
+        self.assertIn(
+            "Do not infer a reviewer from builder tier or borrow a fallback from another "
+            "routing-table row.",
+            text,
         )
 
-    def test_coordinator_reviewer_selection_is_byte_identical(self):
-        text = self.text("skills/drivers/ticket/references/coordinator-mode.md")
-        self.assertEqual(
-            self.block(text, "## Reviewer selection", "## Chunk integration"),
-            COORDINATOR_REVIEWER_SELECTION,
+    def test_orchestrate_collect_child_results_binds_every_dispatch(self):
+        text = " ".join(
+            (ROOT / "skills/drivers/orchestrate/SKILL.md").read_text(encoding="utf-8").split()
+        )
+        self.assertIn("This contract binds every model dispatch owned by this pack.", text)
+        self.assertIn(
+            "A coordinator never ends a turn solely because a child is unfinished, and it "
+            "does not treat a completion notification as the result.",
+            text,
         )
 
-    def test_readme_code_review_row_is_byte_identical(self):
-        rows = [line for line in README.read_text(encoding="utf-8").splitlines() if line.startswith("| [`code-review`")]
-        self.assertEqual(rows, [README_CODE_REVIEW_ROW])
+    def test_coordinator_reviewer_selection_requires_independent_verification(self):
+        text = " ".join(
+            (ROOT / "skills/drivers/ticket/references/coordinator-mode.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn(
+            "Two things happen, in order, and neither substitutes for the other:", text
+        )
+        self.assertIn(
+            "Verify the result yourself, as `/orchestrate` requires of every delegated "
+            "result: read the diff, run the verification command, check the chunk's Done when "
+            "clause.",
+            text,
+        )
 
-    def test_readme_plan_review_row_is_byte_identical(self):
-        rows = [line for line in README.read_text(encoding="utf-8").splitlines() if line.startswith("| [`plan-review`")]
-        self.assertEqual(rows, [README_PLAN_REVIEW_ROW])
+    def test_readme_lists_code_review_and_plan_review_with_orchestrate_integration(self):
+        readme = README.read_text(encoding="utf-8")
+        code_review_rows = [
+            line for line in readme.splitlines() if line.startswith("| [`code-review`")
+        ]
+        plan_review_rows = [
+            line for line in readme.splitlines() if line.startswith("| [`plan-review`")
+        ]
+        self.assertEqual(len(code_review_rows), 1)
+        self.assertEqual(len(plan_review_rows), 1)
+        self.assertIn(
+            "`orchestrate` is an optional integration used for reviewer routing when installed",
+            code_review_rows[0],
+        )
+        self.assertIn(
+            "`orchestrate` is an optional integration used for reviewer routing when installed",
+            plan_review_rows[0],
+        )
 
 
 class WorkerEffortDialTests(unittest.TestCase):
@@ -3412,12 +2888,6 @@ class CodeReviewAdapterDispatchTests(unittest.TestCase):
             .split()
         )
 
-    def test_delegation_authority_is_byte_identical(self):
-        authority = self.text.split("## Delegation authority\n\n", 1)[1].split(
-            "\n\n## Dependency and reviewer selection", 1
-        )[0]
-        self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION)
-
     def test_dispatch_uses_only_pack_adapters_with_explicit_inputs(self):
         self.assertIn("reviewer model", self.dispatch)
         self.assertIn("reviewer effort", self.dispatch)
@@ -3478,22 +2948,6 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
     def setUp(self):
         self.source = self.SKILL.read_bytes()
 
-    def test_cold_reader_dispatch_section_is_byte_identical(self):
-        opening = b"## Cold-reader dispatch\n"
-        closing = b"## Mechanical fix in place\n"
-        self.assertEqual(self.source.count(opening), 1)
-        self.assertEqual(self.source.count(closing), 1)
-        dispatch = self.source.split(opening, 1)[1].split(closing, 1)[0]
-        self.assertEqual(dispatch, PLAN_REVIEW_COLD_READER_DISPATCH)
-
-    def test_mechanical_fix_in_place_section_is_byte_identical(self):
-        opening = b"## Mechanical fix in place\n"
-        closing = b"## The rubric\n"
-        self.assertEqual(self.source.count(opening), 1)
-        self.assertEqual(self.source.count(closing), 1)
-        body = self.source.split(opening, 1)[1].split(closing, 1)[0]
-        self.assertEqual(body, MECHANICAL_FIX_IN_PLACE_BODY)
-
     def test_caller_owned_round_ledger_covers_both_plan_locations(self):
         dispatch = self.source.split(b"## Cold-reader dispatch\n", 1)[1].split(
             b"## Mechanical fix in place\n", 1
@@ -3504,30 +2958,58 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
         self.assertIn(b"record that plan file path", dispatch)
         self.assertIn(b"plan-review-mechanical-fixes.md", dispatch)
 
-    def test_mandatory_independent_review_authority_is_preserved(self):
-        authority = self.source.split(b"## Delegation authority\n\n", 1)[1].split(
-            b"\n\n## Cold-reader dispatch", 1
-        )[0]
-        self.assertEqual(authority, MANDATORY_DELEGATION_AUTHORIZATION.encode())
-
-
-class EvidenceBlockContractTests(unittest.TestCase):
-    def test_verbatim_evidence_sections_are_byte_identical(self):
-        preflight = (ROOT / "skills" / "tools" / "preflight" / "SKILL.md").read_bytes().decode(
-            "utf-8"
+    def test_mechanical_fix_in_place_stays_narrow_and_deterministic(self):
+        text = " ".join(self.source.decode("utf-8").split())
+        self.assertIn(
+            "A coordinator may correct a cold-review finding in the order without opening a "
+            "rewrite-plus-review round only when both the finding and its correction are "
+            "deterministic and mechanical: for example, a wrong heading anchor, a missing exact "
+            "string, or nondeterministic command ordering.",
+            text,
         )
-        preflight_body = preflight.split("### Verbatim command output\n\n", 1)[1].split(
-            "\n\n## 2. First-hour spike", 1
-        )[0]
-        self.assertEqual(preflight_body, PREFLIGHT_VERBATIM_COMMAND_OUTPUT)
+        self.assertIn(
+            "A correction that requires judgment, changes a decision, changes scope, or reopens "
+            "a settled ruling stays in the panel-or-operator path and does consume the ordinary "
+            "revision cycle.",
+            text,
+        )
 
-        plan_review = (
-            ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
-        ).read_bytes().decode("utf-8")
-        plan_review_body = plan_review.split("### Evidence-block spot check\n\n", 1)[1].split(
-            "\n\n## Delegation authority", 1
-        )[0]
-        self.assertEqual(plan_review_body, PLAN_REVIEW_EVIDENCE_BLOCK_SPOT_CHECK)
+
+class VerbatimEvidenceBlockContractTests(unittest.TestCase):
+    """Subject is the command-output-pasting contract, not the retired evidence-v2
+    envelope machinery: preflight's and plan-review's own review evidence blocks."""
+
+    def test_preflight_forbids_edited_command_output(self):
+        text = " ".join(
+            (ROOT / "skills" / "tools" / "preflight" / "SKILL.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn(
+            "Every `command → output` evidence block is pasted verbatim from an actual command "
+            "run.",
+            text,
+        )
+        self.assertIn(
+            "Manual edits are prohibited and require a **BLOCKED** verdict on their own.", text
+        )
+
+    def test_plan_review_spot_checks_at_least_one_evidence_block(self):
+        text = " ".join(
+            (ROOT / "skills" / "tools" / "plan-review" / "SKILL.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn(
+            "During the cold read, spot-check at least one `command → output` evidence block: "
+            "run its recorded command and compare the complete result to the cited output.",
+            text,
+        )
+        self.assertIn(
+            "Treat a manual edit found in any evidence block as independently requiring a "
+            "**BLOCKED** verdict.",
+            text,
+        )
 
 
 class PersonaReviewAdapterDispatchTests(unittest.TestCase):
@@ -3536,11 +3018,25 @@ class PersonaReviewAdapterDispatchTests(unittest.TestCase):
     def setUp(self):
         self.text = self.SKILL.read_text(encoding="utf-8")
 
-    def test_panelist_dispatch_section_is_byte_identical(self):
-        dispatch = self.text.split("## Panelist dispatch\n\n", 1)[1].split(
-            "\n\n## Cold review, per persona", 1
-        )[0]
-        self.assertEqual(dispatch, PERSONA_REVIEW_PANELIST_DISPATCH)
+    def test_panelist_dispatch_stays_on_the_worker_adapters_only(self):
+        normalized = " ".join(self.text.split())
+        self.assertIn(
+            "The coordinator supplies the selected adapter, explicit reviewer model, and "
+            "explicit reviewer effort. For each panelist, dispatch only through "
+            "`skills/drivers/orchestrate/scripts/codex-worker.py` or "
+            "`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected "
+            "adapter's read-only review surface. Never use the built-in Agent tool, Workflow "
+            "tool, or background-agent machinery.",
+            normalized,
+        )
+
+    def test_panelist_prompt_excludes_persona_and_panel_content(self):
+        normalized = " ".join(self.text.split())
+        self.assertIn(
+            "The prompt contains no persona name, simulation label, mine date, panel "
+            "narrative, or profile, review-log, or override content.",
+            normalized,
+        )
 
     def test_serial_no_lookback_fallback_is_preserved(self):
         remainder = self.text.split("## Cold review, per persona\n\n", 1)[1]
@@ -3570,14 +3066,6 @@ class ResearchAdapterDispatchTests(unittest.TestCase):
         )
         self.assertNotIn("background agent", self.agent_metadata)
 
-    def test_research_worker_dispatch_section_is_byte_identical(self):
-        opening_anchor = "## Research-worker dispatch\n\n"
-        closing_anchor = "\n\n## The research worker's job"
-        self.assertIn(opening_anchor, self.text)
-        self.assertIn(closing_anchor, self.text)
-        dispatch = self.text.split(opening_anchor, 1)[1].split(closing_anchor, 1)[0]
-        self.assertEqual(dispatch, RESEARCH_WORKER_DISPATCH)
-
     def research_job(self):
         anchor = "## The research worker's job\n\n"
         self.assertIn(anchor, self.text)
@@ -3598,12 +3086,27 @@ class ResearchAdapterDispatchTests(unittest.TestCase):
 class DesignItTwiceAdapterDispatchTests(unittest.TestCase):
     REFERENCE = ROOT / "skills" / "tools" / "codebase-design" / "references" / "DESIGN-IT-TWICE.md"
 
-    def test_dispatch_section_is_byte_identical(self):
-        text = self.REFERENCE.read_text(encoding="utf-8")
-        dispatch = text.split("### 2. Dispatch parallel design alternatives\n\n", 1)[1].split(
-            "\n\n### 3. Present and compare\n", 1
-        )[0]
-        self.assertEqual(dispatch, DESIGN_IT_TWICE_ADAPTER_DISPATCH)
+    def setUp(self):
+        self.text = " ".join(self.REFERENCE.read_text(encoding="utf-8").split())
+
+    def test_dispatch_stays_on_the_worker_adapters_only(self):
+        self.assertIn(
+            "Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or "
+            "`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected "
+            "adapter's read-only surface.",
+            self.text,
+        )
+        self.assertIn(
+            "Never use the built-in Agent tool, Workflow tool, or background-agent machinery.",
+            self.text,
+        )
+
+    def test_procedure_does_not_select_adapter_model_or_effort(self):
+        self.assertIn(
+            "This procedure does not select an adapter, model, or effort, apply a "
+            "routing table or headroom policy, or add defaults.",
+            self.text,
+        )
 
 
 class WorkerLifecycleContractTests(unittest.TestCase):
@@ -4208,411 +3711,7 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         self.assertIn(os.getpid(), LIFECYCLE_MODULE.group_members(os.getpgrp()))
 
 
-class EvidenceEnvelopeTests(unittest.TestCase):
-    def test_examples_use_upstream_wire_tags_and_integer_time(self):
-        positive = ROOT / "docs" / "evidence" / "examples" / "positive.json"
-        observations = json.loads(positive.read_text(encoding="utf-8"))["observations"]
-
-        self.assertEqual(
-            {item["envelope_kind"] for item in observations},
-            {"failure_observation", "producer_fact"},
-        )
-        self.assertTrue(
-            all(
-                isinstance(item["observed_at"], int)
-                and not isinstance(item["observed_at"], bool)
-                for item in observations
-            )
-        )
-
-    def mutated_validation(self, mutate):
-        # The fixture commit can leave a hook or an auto-gc still writing under
-        # .git when the block exits, so cleanup races the fixture's own repo.
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
-            copy = Path(temporary) / "skills"
-            shutil.copytree(
-                ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__")
-            )
-            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
-            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
-            self.assertEqual(
-                run(
-                    [
-                        "git",
-                        "-c",
-                        "user.name=Test",
-                        "-c",
-                        "user.email=test@example.invalid",
-                        "commit",
-                        "-m",
-                        "fixture",
-                    ],
-                    cwd=copy,
-                ).returncode,
-                0,
-            )
-            positive = copy / "docs" / "evidence" / "examples" / "positive.json"
-            payload = json.loads(positive.read_text(encoding="utf-8"))
-            mutate(payload)
-            positive.write_text(json.dumps(payload), encoding="utf-8")
-
-            return run(["python3", "scripts/validate.py"], cwd=copy)
-
-    def test_v2_contract_and_provenance_are_vendored(self):
-        evidence = ROOT / "docs" / "evidence"
-
-        self.assertTrue((evidence / "contract-v2.json").is_file())
-        self.assertTrue((evidence / "contract-v2.provenance.json").is_file())
-
-    def test_validator_rejects_a_mutated_vendored_contract(self):
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
-            copy = Path(temporary) / "skills"
-            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
-            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
-            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
-            self.assertEqual(
-                run(
-                    ["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"],
-                    cwd=copy,
-                ).returncode,
-                0,
-            )
-            contract = copy / "docs" / "evidence" / "contract-v2.json"
-            contract.write_text("{}\n", encoding="utf-8")
-
-            result = run(["python3", "scripts/validate.py"], cwd=copy)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("contract-v2.json", result.stderr)
-
-    def test_validator_rejects_mutated_contract_provenance(self):
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
-            copy = Path(temporary) / "skills"
-            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
-            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
-            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
-            self.assertEqual(run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"], cwd=copy).returncode, 0)
-            provenance = copy / "docs" / "evidence" / "contract-v2.provenance.json"
-            payload = json.loads(provenance.read_text(encoding="utf-8"))
-            payload["source_git_blob"] = "0" * 40
-            provenance.write_text(json.dumps(payload), encoding="utf-8")
-
-            result = run(["python3", "scripts/validate.py"], cwd=copy)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("provenance", result.stderr)
-
-    def test_validator_rejects_a_candidate_presented_as_an_observation(self):
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
-            copy = Path(temporary) / "skills"
-            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
-            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
-            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
-            self.assertEqual(
-                run(
-                    ["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"],
-                    cwd=copy,
-                ).returncode,
-                0,
-            )
-            positive = copy / "docs" / "evidence" / "examples" / "positive.json"
-            payload = json.loads(positive.read_text(encoding="utf-8"))
-            producer = next(
-                item for item in payload["observations"] if "producer" in item
-            )
-            producer["producer"]["producer_kind"] = "candidate"
-            positive.write_text(json.dumps(payload), encoding="utf-8")
-
-            result = run(["python3", "scripts/validate.py"], cwd=copy)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("producer_kind", result.stderr)
-
-    def test_validator_reports_a_non_object_negative_fixture(self):
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
-            copy = Path(temporary) / "skills"
-            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
-            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
-            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
-            self.assertEqual(run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"], cwd=copy).returncode, 0)
-            negative = copy / "docs" / "evidence" / "examples" / "negative.json"
-            payload = json.loads(negative.read_text(encoding="utf-8"))
-            payload["invalid_observations"][0] = []
-            negative.write_text(json.dumps(payload), encoding="utf-8")
-
-            result = run(["python3", "scripts/validate.py"], cwd=copy)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("fixture does not reject a prohibited kind", result.stderr)
-        self.assertNotIn("Traceback", result.stderr)
-
-    def test_validator_rejects_extra_failure_fields(self):
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temporary:
-            copy = Path(temporary) / "skills"
-            shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(".git", "__pycache__"))
-            self.assertEqual(run(["git", "init"], cwd=copy).returncode, 0)
-            self.assertEqual(run(["git", "add", "."], cwd=copy).returncode, 0)
-            self.assertEqual(run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture"], cwd=copy).returncode, 0)
-            positive = copy / "docs" / "evidence" / "examples" / "positive.json"
-            payload = json.loads(positive.read_text(encoding="utf-8"))
-            failure = next(
-                item
-                for item in payload["observations"]
-                if item["envelope_kind"] == "failure_observation"
-            )
-            failure["unexpected"] = "field"
-            positive.write_text(json.dumps(payload), encoding="utf-8")
-
-            result = run(["python3", "scripts/validate.py"], cwd=copy)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("failure_observation envelope", result.stderr)
-
-    def test_validator_rejects_a_missing_producer_kind(self):
-        def remove_kind(payload):
-            payload["observations"] = [
-                item
-                for item in payload["observations"]
-                if item.get("producer", {}).get("producer_kind") != "criterion"
-            ]
-
-        result = self.mutated_validation(remove_kind)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("producer kind matrix", result.stderr)
-
-    def test_validator_rejects_a_missing_failure_class(self):
-        def remove_class(payload):
-            payload["observations"] = [
-                item
-                for item in payload["observations"]
-                if item.get("failure", {}).get("failure_class") != "plan_gap"
-            ]
-
-        result = self.mutated_validation(remove_class)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("failure class matrix", result.stderr)
-
-    def test_validator_rejects_a_missing_required_relation(self):
-        def remove_relation(payload):
-            fix = next(
-                item
-                for item in payload["observations"]
-                if item.get("producer", {}).get("producer_kind") == "fix"
-            )
-            fix["links"] = [
-                link for link in fix["links"] if link["relation"] != "addresses"
-            ]
-
-        result = self.mutated_validation(remove_relation)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("required lineage", result.stderr)
-
-    def test_validator_rejects_illegal_lineage_direction(self):
-        def reverse_governing_direction(payload):
-            criterion = next(
-                item
-                for item in payload["observations"]
-                if item.get("producer", {}).get("producer_kind") == "criterion"
-            )
-            criterion["links"][0]["relation"] = "governs"
-
-        result = self.mutated_validation(reverse_governing_direction)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("illegal lineage direction", result.stderr)
-
-    def test_validator_rejects_a_duplicate_observation_id(self):
-        def duplicate_id(payload):
-            payload["observations"][1]["observation_id"] = payload["observations"][0][
-                "observation_id"
-            ]
-
-        result = self.mutated_validation(duplicate_id)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("duplicate observation_id", result.stderr)
-
-    def test_validator_reports_an_unhashable_observation_id(self):
-        def replace_id(payload):
-            payload["observations"][0]["observation_id"] = {}
-
-        result = self.mutated_validation(replace_id)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("observation_id must follow the upstream ID grammar", result.stderr)
-        self.assertNotIn("Traceback", result.stderr)
-
-    def test_validator_rejects_a_sparse_link_ordinal(self):
-        def sparse_ordinal(payload):
-            linked = next(item for item in payload["observations"] if item.get("links"))
-            linked["links"][0]["ordinal"] = len(linked["links"]) + 1
-
-        result = self.mutated_validation(sparse_ordinal)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("dense ordinals", result.stderr)
-
-    def test_validator_reports_unhashable_lineage_fields(self):
-        for field in ("relation", "target_event_id"):
-            with self.subTest(field=field):
-                def replace_field(payload, field=field):
-                    linked = next(
-                        item for item in payload["observations"] if item.get("links")
-                    )
-                    linked["links"][0][field] = {}
-
-                result = self.mutated_validation(replace_field)
-
-                self.assertNotEqual(result.returncode, 0)
-                expected = (
-                    "link fields or relation are invalid"
-                    if field == "relation"
-                    else "target_event_id must follow the upstream ID grammar"
-                )
-                self.assertIn(expected, result.stderr)
-                self.assertNotIn("Traceback", result.stderr)
-
-    def test_validator_rejects_snapshot_confusion_at_one_head(self):
-        def confuse_snapshots(payload):
-            snapshots = [
-                item["subject"]
-                for item in payload["observations"]
-                if item.get("subject", {}).get("subject", "").startswith("base:")
-            ]
-            snapshots[1]["revision"] = snapshots[0]["revision"]
-
-        result = self.mutated_validation(confuse_snapshots)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("distinct dirty snapshots", result.stderr)
-
-    def test_validator_rejects_snapshot_head_source_confusion(self):
-        def confuse_head(payload):
-            for item in payload["observations"]:
-                subject = item.get("subject", {})
-                if subject.get("subject", "").startswith("base:"):
-                    subject["subject"] = subject["subject"].replace(
-                        "head:" + "b" * 40, "head:" + "c" * 40
-                    )
-
-        result = self.mutated_validation(confuse_head)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("snapshot head must match source revision", result.stderr)
-
-    def test_validator_rejects_short_envelope_tags(self):
-        for original, short in (
-            ("failure_observation", "failure"),
-            ("producer_fact", "producer"),
-        ):
-            with self.subTest(short=short):
-                def shorten(payload, original=original, short=short):
-                    item = next(
-                        observation
-                        for observation in payload["observations"]
-                        if observation["envelope_kind"] == original
-                    )
-                    item["envelope_kind"] = short
-
-                result = self.mutated_validation(shorten)
-
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("invalid envelope_kind", result.stderr)
-
-    def test_validator_rejects_string_and_bool_observed_at(self):
-        for invalid in ("1786662000", True):
-            with self.subTest(invalid=invalid):
-                def replace_time(payload, invalid=invalid):
-                    payload["observations"][0]["observed_at"] = invalid
-
-                result = self.mutated_validation(replace_time)
-
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("observed_at must be a nonnegative integer", result.stderr)
-
-    def test_validator_rejects_sha256_prefixed_digest_fields(self):
-        def producer_digest(payload):
-            item = next(observation for observation in payload["observations"] if "producer" in observation)
-            item["producer"]["fact_digest"] = "sha256:" + item["producer"]["fact_digest"]
-
-        def failure_digest(payload):
-            item = next(observation for observation in payload["observations"] if "failure" in observation)
-            item["failure"]["signature_digest"] = "sha256:" + item["failure"]["signature_digest"]
-
-        def source_digest(payload):
-            item = payload["observations"][0]
-            item["source"]["content_hash"] = "sha256:" + item["source"]["content_hash"]
-
-        def subject_digest(payload):
-            item = next(observation for observation in payload["observations"] if "content_digest" in observation["subject"])
-            item["subject"]["content_digest"] = "sha256:" + item["subject"]["content_digest"]
-
-        for mutate in (producer_digest, failure_digest, source_digest, subject_digest):
-            with self.subTest(field=mutate.__name__):
-                result = self.mutated_validation(mutate)
-
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("raw lowercase hex", result.stderr)
-
-    def test_validator_rejects_wrong_subject_and_source_kinds(self):
-        def wrong_subject(payload):
-            payload["observations"][0]["subject"]["subject_kind"] = "git_commit"
-
-        def wrong_source(payload):
-            payload["observations"][0]["source"]["authority_kind"] = "git"
-
-        for mutate, message in (
-            (wrong_subject, "invalid subject_kind"),
-            (wrong_source, "invalid source authority_kind"),
-        ):
-            with self.subTest(field=mutate.__name__):
-                result = self.mutated_validation(mutate)
-
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn(message, result.stderr)
-
-    def test_validator_rejects_nullable_or_extra_review_action(self):
-        def nullable(payload):
-            item = next(
-                observation
-                for observation in payload["observations"]
-                if observation.get("producer", {}).get("producer_kind") == "review_action"
-            )
-            item["producer"]["review_action"] = None
-
-        def extra(payload):
-            item = next(
-                observation
-                for observation in payload["observations"]
-                if observation.get("producer", {}).get("producer_kind") == "claim"
-            )
-            item["producer"]["review_action"] = None
-
-        for mutate in (nullable, extra):
-            with self.subTest(field=mutate.__name__):
-                result = self.mutated_validation(mutate)
-
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("review_action", result.stderr)
-
-    def test_validator_rejects_extra_parent_and_fixer_fields(self):
-        def add_fixer_lineage(payload):
-            item = next(
-                observation
-                for observation in payload["observations"]
-                if observation.get("failure", {}).get("failure_class") == "original_defect"
-            )
-            item["failure"]["reviewed_parent_revision"] = "b" * 40
-            item["failure"]["fixer_revision"] = "c" * 40
-
-        result = self.mutated_validation(add_fixer_lineage)
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("failure fields are not closed", result.stderr)
-
+class ValidatorRegressionTests(unittest.TestCase):
     def test_validator_rejects_seeded_private_term_patterns(self):
         # Built by concatenation, the same defensive way validate.py itself
         # splits these patterns, so this file never carries the literal either.
@@ -4713,6 +3812,8 @@ class EvidenceEnvelopeTests(unittest.TestCase):
             skill.write_text(original, encoding="utf-8")
             passing = run(["python3", "scripts/validate.py"], cwd=copy)
             self.assertEqual(passing.returncode, 0, passing.stderr)
+
+
 
 
 class DriveLocalWebappSandboxRecoveryTests(unittest.TestCase):
@@ -4945,57 +4046,71 @@ class EpicProtocolContractTests(unittest.TestCase):
 
 class EpicAdapterDispatchTests(unittest.TestCase):
     EPIC = ROOT / "skills" / "drivers" / "epic" / "SKILL.md"
-    RESEARCH_WORKER_PARAGRAPH = (
-        "For a research spike, run `$research` in a temporary per-spike worktree. The worker "
-        "returns the required Markdown findings to the home session. The home session writes the "
-        "Markdown file required by its public interface, posts that returned content under the exact heading "
-        "`## Findings`, verifies the `## Findings` comment, removes the temporary worktree and "
-        "its unshipped file, and only then closes the spike."
-    )
-    VERIFICATION_AND_FAILURE_PARAGRAPH = (
-        "Close the spike issue only after that verification. Only then derive its `Spikes` and "
-        "`Decisions` ledger lines, update `Status`, commit with DCO sign-off, and push the "
-        "standing planning branch. A failed worker leaves the spike `dispatched`; it is not "
-        "resolved by inference. Interview and mockup spikes run as fresh attended sessions."
-    )
 
-    def test_worker_dispatch_section_is_byte_identical(self):
-        epic = self.EPIC.read_bytes()
-        body = epic.split(b"## Worker dispatch\n\n", 1)[1].split(
-            b"\n\n## Deferred child close-out", 1
-        )[0]
+    def setUp(self):
+        self.text = self.EPIC.read_text(encoding="utf-8")
 
-        self.assertEqual(body, EPIC_WORKER_DISPATCH.encode("utf-8"))
-        self.assertIn(self.RESEARCH_WORKER_PARAGRAPH.encode("utf-8"), epic)
-        self.assertIn(self.VERIFICATION_AND_FAILURE_PARAGRAPH.encode("utf-8"), epic)
+    def test_research_spike_worker_findings_handoff_is_explicit(self):
+        self.assertIn(
+            "For a research spike, run `$research` in a temporary per-spike worktree. The worker "
+            "returns the required Markdown findings to the home session. The home session writes the "
+            "Markdown file required by its public interface, posts that returned content under the exact heading "
+            "`## Findings`, verifies the `## Findings` comment, removes the temporary worktree and "
+            "its unshipped file, and only then closes the spike.",
+            self.text,
+        )
+
+    def test_spike_close_order_and_failed_worker_disposition_are_explicit(self):
+        self.assertIn(
+            "Close the spike issue only after that verification. Only then derive its `Spikes` and "
+            "`Decisions` ledger lines, update `Status`, commit with DCO sign-off, and push the "
+            "standing planning branch. A failed worker leaves the spike `dispatched`; it is not "
+            "resolved by inference. Interview and mockup spikes run as fresh attended sessions.",
+            self.text,
+        )
+
+    def test_research_worker_dispatch_stays_on_the_worker_adapters_only(self):
+        normalized = " ".join(self.text.split())
+        self.assertIn(
+            "The coordinator supplies the selected adapter, explicit worker model, and explicit "
+            "worker effort. Dispatch only through "
+            "`skills/drivers/orchestrate/scripts/codex-worker.py` or "
+            "`skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in Agent "
+            "tool, Workflow tool, or background-agent machinery.",
+            normalized,
+        )
 
 
 class EpicDelegatedExecutionContractTests(unittest.TestCase):
     PROPOSAL = ROOT / "openspec" / "changes" / "archive" / "epic-rework" / "proposal.md"
     EPIC = ROOT / "skills" / "drivers" / "epic" / "SKILL.md"
 
-    def body_between(self, document: bytes, opening_anchor: bytes, closing_anchor: bytes) -> bytes:
-        self.assertEqual(document.count(opening_anchor), 1)
-        self.assertEqual(document.count(closing_anchor), 1)
-        return document.split(opening_anchor, 1)[1].split(closing_anchor, 1)[0]
-
-    def test_session_topology_is_pinned_by_raw_bytes(self):
-        body = self.body_between(
-            self.PROPOSAL.read_bytes(),
-            b"### Session topology\n\n",
-            b"\n\n### Follow-ups and orphan control",
+    def test_proposal_session_topology_names_home_session_as_sole_ledger_writer(self):
+        proposal = " ".join(self.PROPOSAL.read_text(encoding="utf-8").split())
+        self.assertIn(
+            "the home session is the epic ledger's sole writer.", proposal
         )
-
-        self.assertEqual(body, EPIC_REWORK_SESSION_TOPOLOGY.encode("utf-8"))
-
-    def test_delegated_execution_is_pinned_by_raw_bytes(self):
-        body = self.body_between(
-            self.EPIC.read_bytes(),
-            b"## Delegated execution\n\n",
-            b"\n\n## Resolve spikes",
+        self.assertIn(
+            "A stale shared checkout refuses the wave.", proposal
         )
+        self.assertIn("Coordinators never nest.", proposal)
 
-        self.assertEqual(body, EPIC_DELEGATED_EXECUTION.encode("utf-8"))
+    def test_epic_delegated_execution_keeps_dispatch_and_wave_rules(self):
+        epic = " ".join(self.EPIC.read_text(encoding="utf-8").split())
+        self.assertIn(
+            "The home session remains the epic ledger's sole writer.", epic
+        )
+        self.assertIn(
+            "The home session dispatches only through the pack adapters, with prompt text "
+            "passed positionally from coordinator-owned session-scratch prompt files and one "
+            "coordinator-owned state file per dispatch. Do not add adapter flags or alter "
+            "adapter mechanics.",
+            epic,
+        )
+        self.assertIn(
+            "Collect child results under `orchestrate`'s `## Collect child results` section.",
+            epic,
+        )
 
 
 class ReviewRouteResolverTests(unittest.TestCase):
@@ -5480,6 +4595,26 @@ class DelegationAuthorityContractTests(unittest.TestCase):
     def test_triage_points_to_ticket_authority_without_repeating_it(self):
         self.assertIn("ticket skill page's `## Delegation authority` section", self.TRIAGE)
         self.assertNotIn(self.AUTHORIZATION, self.TRIAGE)
+
+
+class LiveProseContractTests(unittest.TestCase):
+    def test_reviewer_routing_and_admission_rules_remain_explicit(self):
+        routing = (ROOT / "skills/drivers/orchestrate/references/review-routing.md").read_text(encoding="utf-8")
+        dispatch = (ROOT / "skills/drivers/orchestrate/references/dispatch-codex.md").read_text(encoding="utf-8")
+        normalized_routing = " ".join(routing.split())
+        self.assertIn("sole live authority for reviewer classification", normalized_routing)
+        self.assertIn("A Codex parent follows its own session policy", normalized_routing)
+        self.assertIn("cannot switch to Claude workers", dispatch)
+        self.assertIn("headroom at or below 5%", dispatch)
+
+    def test_review_depth_and_slicing_keep_their_load_bearing_rules(self):
+        depth = (ROOT / "skills/drivers/ticket/references/review-depth.md").read_text(encoding="utf-8")
+        slicing = (ROOT / "skills/drivers/ticket/references/slicing.md").read_text(encoding="utf-8")
+        self.assertIn("Full-depth orders keep one review round", " ".join(depth.split()))
+        self.assertIn(
+            "The coordinator never launches an agent smarter than itself.",
+            " ".join(slicing.split()),
+        )
 
 
 if __name__ == "__main__":

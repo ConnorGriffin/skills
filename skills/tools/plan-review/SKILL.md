@@ -17,17 +17,6 @@ what to review — don't guess.
 independently edits the order. It produces objections and a verdict. The caller-owned
 exception is defined in [Mechanical fix in place](#mechanical-fix-in-place).
 
-## Evidence v2
-
-When the reviewed plan has a durable locator and immutable revision, follow [the shared
-envelope reference](../../../docs/evidence/envelope-v2.md): an objection may `revises`
-its affected revision-scoped criterion; the revision may `revises` that objection; a
-reproduction or refutation uses a verification link only to an admissible claim,
-criterion, decision, finding, fix, or verification; and the verdict may
-`derives_from` the revision and govern the check. Preserve the cold-review sequence
-and three-panel cap. An
-unrevised chat plan has no eligible authority, so emit nothing.
-
 ## Cold means cold
 
 The reviewer must have no stake in the plan. If this session authored or
