@@ -3078,6 +3078,60 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
         )
 
 
+class AssuranceLevelMatchingContractTests(unittest.TestCase):
+    PROFILE = ROOT / "profile" / "base.md"
+    PLAN_REVIEW = ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
+
+    def setUp(self):
+        self.profile = " ".join(self.PROFILE.read_text(encoding="utf-8").split())
+        self.plan_review = " ".join(
+            self.PLAN_REVIEW.read_text(encoding="utf-8").split()
+        )
+
+    def test_working_preference_matches_mechanism_to_requested_assurance(self):
+        self.assertIn(
+            "**Match the mechanism to the assurance level that was asked for.** Do not introduce "
+            "parsers, formal grammars, provenance records, state machines, content filtering, "
+            "or runtime enforcement for a prose contract unless explicitly asked. Treat a "
+            "review finding that demands stronger assurance than the requested behavior, or "
+            "than the admitted risk contract where one exists, as scope expansion rather than "
+            "a blocker, except when it names a documented rule of the repo (including "
+            "`profile/CHARTER.md`) or a must-prevent outcome in the admitted risk contract. "
+            "Prefer ordinary semantic interpretation and the smallest change that works.",
+            self.profile,
+        )
+
+    def test_axis_four_keeps_the_reviewer_within_the_assurance_boundary(self):
+        self.assertIn(
+            "A reviewer may test whether the proposed mechanism satisfies the stated risk "
+            "contract, but may not raise that contract or demand a parser, formal grammar, "
+            "provenance record, state machine, content filtering, or runtime enforcement beyond "
+            "the requested behavior, or beyond the admitted risk contract where one exists. An "
+            "objection that only holds if the assurance bar rises is scope expansion and is "
+            "discarded, unless evidence, not judgment, changes the assumed likelihood, "
+            "consequence, or recoverability; then the evidence-reopen rule earlier in this axis "
+            "governs and the objection stands. A finding that names a documented rule of the "
+            "repo (including `profile/CHARTER.md`) or a must-prevent outcome in the admitted risk "
+            "contract is never discarded on this ground. The cycle's step 0 generated-facts "
+            "demand and the evidence-block spot check's **BLOCKED** verdict are this skill's own "
+            "triage and evidence obligations, not assurance escalation, and are unaffected.",
+            self.plan_review,
+        )
+
+    def test_cycle_rereads_settled_decisions_after_compaction(self):
+        self.assertIn(
+            "If the coordinator session running the review has its context compacted mid-review, "
+            "it re-reads the settled decisions in the plan's scope ledger wherever `/scope` "
+            "placed it (`docs/scope/<slug>.md` or the session scratchpad) and the risk contract "
+            "copied into the plan before evaluating the reviewer's deltas. It treats decisions "
+            "recorded there as settled rather than re-deriving them from what survived "
+            "compaction. Cold reviewers stay cold: this rule adds nothing to the cold-reader "
+            "prompt, and `plan-review-mechanical-fixes.md` remains the round ledger rather than "
+            "the settled-decision record.",
+            self.plan_review,
+        )
+
+
 class VerbatimEvidenceBlockContractTests(unittest.TestCase):
     """Subject is the command-output-pasting contract, not the retired evidence-v2
     envelope machinery: preflight's and plan-review's own review evidence blocks."""
