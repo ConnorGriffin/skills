@@ -176,13 +176,29 @@ def discover_pr_branch(repo: Path, pull_request: int) -> str:
     return str(branch)
 
 
+def configured_branch_prefix() -> str:
+    config_path = Path.home() / ".config" / "spin-worktree" / "config.json"
+    try:
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return ""
+    prefix = config.get("branchPrefix") if isinstance(config, dict) else None
+    return prefix if isinstance(prefix, str) else ""
+
+
+def issue_branch(issue: int, slug: Optional[str], prefix: str) -> str:
+    branch_slug = slugify(slug or f"issue-{issue}")
+    branch_name = f"{issue}-{branch_slug}" if slug else f"issue-{issue}"
+    return f"{prefix}/{branch_name}" if prefix else branch_name
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", default=".", help="control checkout")
     parser.add_argument("--worktree-root", default=str(DEFAULT_ROOT))
     parser.add_argument("--remote", default=DEFAULT_REMOTE)
     parser.add_argument("--base", help="base branch for new issue work")
-    parser.add_argument("--branch-prefix", default="codex")
+    parser.add_argument("--branch-prefix", default=None)
     parser.add_argument("--issue", type=int)
     parser.add_argument("--slug")
     parser.add_argument("--pr", type=int)
@@ -215,12 +231,12 @@ def main() -> int:
         if arguments.issue is not None:
             git(repo, "fetch", arguments.remote, dry_run=arguments.dry_run)
             base = arguments.base or remote_default_branch(repo, arguments.remote)
-            branch_slug = slugify(arguments.slug or f"issue-{arguments.issue}")
-            branch = (
-                f"{arguments.branch_prefix}/{arguments.issue}-{branch_slug}"
-                if arguments.slug
-                else f"{arguments.branch_prefix}/issue-{arguments.issue}"
+            prefix = (
+                arguments.branch_prefix
+                if arguments.branch_prefix is not None
+                else configured_branch_prefix()
             )
+            branch = issue_branch(arguments.issue, arguments.slug, prefix)
             task_name = safe_leaf(arguments.name or str(arguments.issue))
             start_point = f"{arguments.remote}/{base}"
             new_branch = True

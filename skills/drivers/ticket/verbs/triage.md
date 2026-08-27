@@ -42,8 +42,10 @@ the branch, and its change record already belongs to the parent epic.
    ```
 
    c. `<prefix>` is whatever `spin-worktree` resolves: its `--branch-prefix` flag,
-   else its built-in default. Never invent a prefix here, and keep both paths on the
-   same one so the branch name does not depend on which path ran.
+   then `branchPrefix` in `~/.config/spin-worktree/config.json`, else no prefix.
+   When no prefix resolves, omit `<prefix>/` entirely. Never invent a prefix here,
+   and keep both paths on the same one so the branch name does not depend on which
+   path ran.
 
    d. Use the worktree path the helper printed as the working directory for every
    step below. If the ticket's worktree already exists, verify it is on the
