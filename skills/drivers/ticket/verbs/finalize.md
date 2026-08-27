@@ -43,17 +43,30 @@ the code host back to the tracker; this verb is that sync.
    `git push origin --delete <ticket branch>` only if it is still there, since the
    code host usually deletes it on merge.
 
-3. **Record the actuals.** On the merged path only, after cleanup. Read the order's
-   shape off the ticket comment (flat or chunked, chunk count, which rubric traits
-   triage said fired, the stamped depths), then:
+3. **Record the actuals.** On the merged path only. When record needs a target
+   worktree, do this before cleanup; otherwise it may follow cleanup. Read the
+   order's shape off the ticket comment (flat or chunked, chunk count, which rubric
+   traits triage said fired, the stamped depths), then:
 
    ```sh
    python3 <ticket-skill-directory>/scripts/ticket.py record <ticket-id> \
      --verb <verb that ran, repeated> \
      --trait <trait that fired, repeated> \
      --depth <stamped depth> \
-     [--chunked --chunks <n>]
+     [--chunked --chunks <n>] \
+     [--project <target-worktree>]
    ```
+
+   When the ticket ran outside the coordinator's own checkout, pass its target
+   worktree through `--project` on both `record` and any preceding `scan`:
+
+   ```sh
+   python3 <ticket-skill-directory>/scripts/ticket.py scan <ticket-id> \
+     --project <target-worktree>
+   ```
+
+   Record before removing that target worktree in step 2f, so its repository
+   identity is still available to the helper.
 
    The helper appends one record under `~/.config/ticket/` and returns one verdict.
    A sandboxed session that cannot write that record sees the same one-line
@@ -68,6 +81,8 @@ the code host back to the tracker; this verb is that sync.
      coordinator peaked past the degradation band.
    * `coordinator-only`: a chunked order where no implementation worker was
      measured, so its cost was recorded but chunk size was not measured.
+   * `unmeasurable`: claimed sessions supplied no usable peak, so no slicing
+     call was made.
    * `no-data`: no session claimed this ticket, so nothing measured it.
 
    The helper reads the sessions that claimed this ticket, so nothing is inferred
@@ -102,10 +117,12 @@ the code host back to the tracker; this verb is that sync.
    pull request they approve. The skill never amends its own rubric, and never edits
    `references/slicing.md` itself.
 
-   `no-data`, `coordinator-only`, and `coordination-degraded` are not
+   `no-data`, `unmeasurable`, `coordinator-only`, and `coordination-degraded` are not
    mispredictions, and none drafts an amendment. `no-data` has two readings the
    report keeps apart: no session claimed the ticket, so it ran outside this
-   machine's transcripts, or sessions claimed it and their transcripts are gone.
+   machine's transcripts, or claims for another repository were excluded.
+   `unmeasurable` means this repository had claims but their transcripts or Codex
+   rollouts supplied no usable peak; say which reason the helper names.
    `coordinator-only` means the ticket's cost was recorded but its chunk size was
    not measured, so say that plainly — the reason names how many worker claims
    existed and how many were readable, which is the difference between a forgotten

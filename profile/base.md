@@ -88,6 +88,15 @@ categories that don't apply.
   something, carry it to done rather than ending on optional follow-ups or
   unverified loose ends. If part of it is genuinely blocked, say which part and
   why — that's different from parking the rest.
+- **Match the mechanism to the assurance level that was asked for.** Do not
+  introduce parsers, formal grammars, provenance records, state machines, content
+  filtering, or runtime enforcement for a prose contract unless explicitly asked.
+  Treat a review finding that demands stronger assurance than the requested
+  behavior, or than the admitted risk contract where one exists, as scope expansion
+  rather than a blocker, except when it names a documented rule of the repo
+  (including `profile/CHARTER.md`) or a must-prevent outcome in the admitted risk
+  contract. Prefer ordinary semantic interpretation and the smallest change that
+  works.
 - **No background-task chips.** Don't use `spawn_task`. File a tracked issue
   instead.
 

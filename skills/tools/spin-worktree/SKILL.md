@@ -50,12 +50,27 @@ Existing branch:
 ```sh
 python3 <spin-worktree-skill-directory>/scripts/spin-worktree.py \
   --repo /path/to/repository \
-  --branch codex/issue-316 \
+  --branch issue-316 \
   --name pr321
 ```
 
 Use `--dry-run` to inspect commands. Override defaults with
 `--worktree-root`, `--remote`, `--base`, or `--branch-prefix`.
+
+## Branch prefix
+
+New issue branches resolve their prefix in this order: an explicitly supplied
+`--branch-prefix` flag, then the string `branchPrefix` in
+`~/.config/spin-worktree/config.json`, then no prefix. For example:
+
+```json
+{"branchPrefix": "my-prefix"}
+```
+
+With no resolved prefix, issue branches are `issue-317` or
+`317-rescue-context`; they never begin with `/`. Pass `--branch-prefix ''` to
+request that bare form for one invocation. Missing, unreadable, malformed, or
+otherwise unsuitable config files silently resolve to no prefix.
 
 ## Guardrails
 

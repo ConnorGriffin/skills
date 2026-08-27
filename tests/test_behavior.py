@@ -1338,13 +1338,15 @@ class SpinWorktreeTests(unittest.TestCase):
     def tearDown(self):
         self.temporary.cleanup()
 
-    def spin(self, *arguments: str):
-        return self.spin_from(self.repo, *arguments)
+    def spin(self, *arguments: str, env: Optional[dict[str, str]] = None):
+        return self.spin_from(self.repo, *arguments, env=env)
 
-    def spin_from(self, repo: Path, *arguments: str):
+    def spin_from(
+        self, repo: Path, *arguments: str, env: Optional[dict[str, str]] = None
+    ):
         return run(
             [
-                "python3",
+                sys.executable,
                 str(SPIN_SCRIPT),
                 "--repo",
                 str(repo),
@@ -1353,7 +1355,21 @@ class SpinWorktreeTests(unittest.TestCase):
                 *arguments,
             ],
             cwd=ROOT,
+            env=env,
         )
+
+    def config_environment(
+        self, contents: Optional[str | bytes] = None
+    ) -> dict[str, str]:
+        home = self.scratch / "home"
+        if contents is not None:
+            config = home / ".config" / "spin-worktree" / "config.json"
+            config.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(contents, bytes):
+                config.write_bytes(contents)
+            else:
+                config.write_text(contents, encoding="utf-8")
+        return {**os.environ, "HOME": str(home)}
 
     def configure_origin(self):
         remote = self.scratch / "origin.git"
@@ -1413,7 +1429,7 @@ class SpinWorktreeTests(unittest.TestCase):
         worktree = self.scratch / "worktrees" / "repo" / "13"
         self.assertTrue((worktree / ".git").exists())
         branch = run(["git", "branch", "--show-current"], cwd=worktree)
-        self.assertEqual(branch.stdout.strip(), "codex/13-isf-safety-predicate")
+        self.assertEqual(branch.stdout.strip(), "13-isf-safety-predicate")
         self.assertEqual(untracked.read_text(encoding="utf-8"), "keep me\n")
         status = run(["git", "status", "--short"], cwd=self.repo)
         self.assertEqual(status.stdout, "?? unfinished-notes.md\n")
@@ -1440,6 +1456,93 @@ class SpinWorktreeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue((self.scratch / "worktrees" / "repo" / "13" / ".git").exists())
         self.assertFalse((self.scratch / "worktrees" / "52").exists())
+
+    def test_branch_prefix_flag_wins_over_config(self):
+        self.configure_origin()
+
+        result = self.spin(
+            "--issue",
+            "13",
+            "--slug",
+            "flag-wins",
+            "--branch-prefix",
+            "flag",
+            env=self.config_environment('{"branchPrefix": "config"}'),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        branch = run(
+            ["git", "branch", "--show-current"],
+            cwd=self.scratch / "worktrees" / "repo" / "13",
+        )
+        self.assertEqual(branch.stdout.strip(), "flag/13-flag-wins")
+
+    def test_branch_prefix_uses_config_when_flag_is_absent(self):
+        self.configure_origin()
+
+        result = self.spin(
+            "--issue",
+            "13",
+            "--slug",
+            "from-config",
+            env=self.config_environment('{"branchPrefix": "config"}'),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        branch = run(
+            ["git", "branch", "--show-current"],
+            cwd=self.scratch / "worktrees" / "repo" / "13",
+        )
+        self.assertEqual(branch.stdout.strip(), "config/13-from-config")
+
+    def test_branch_prefix_defaults_to_bare_issue_branch(self):
+        self.configure_origin()
+
+        result = self.spin("--issue", "13", env=self.config_environment())
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        branch = run(
+            ["git", "branch", "--show-current"],
+            cwd=self.scratch / "worktrees" / "repo" / "13",
+        )
+        self.assertEqual(branch.stdout.strip(), "issue-13")
+
+    def test_empty_branch_prefix_flag_requests_bare_slug_branch(self):
+        self.configure_origin()
+
+        result = self.spin(
+            "--issue",
+            "13",
+            "--slug",
+            "bare-branch",
+            "--branch-prefix",
+            "",
+            env=self.config_environment('{"branchPrefix": "config"}'),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        branch = run(
+            ["git", "branch", "--show-current"],
+            cwd=self.scratch / "worktrees" / "repo" / "13",
+        )
+        self.assertEqual(branch.stdout.strip(), "13-bare-branch")
+
+    def test_unusable_branch_prefix_config_resolves_to_no_prefix(self):
+        self.configure_origin()
+        for contents in (None, "not json", b"\xff", "{}", '{"branchPrefix": 13}'):
+            with self.subTest(contents=contents):
+                result = self.spin(
+                    "--issue",
+                    "13",
+                    "--slug",
+                    "no-prefix",
+                    "--dry-run",
+                    env=self.config_environment(contents),
+                )
+
+                self.assertEqual(result.returncode, 0, result.stderr)
+                output = json.loads(result.stdout[result.stdout.index("{") :])
+                self.assertEqual(output["branch"], "13-no-prefix")
 
 
 class CodexWorkerTests(unittest.TestCase):
@@ -2985,6 +3088,60 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
             "a settled ruling stays in the panel-or-operator path and does consume the ordinary "
             "revision cycle.",
             text,
+        )
+
+
+class AssuranceLevelMatchingContractTests(unittest.TestCase):
+    PROFILE = ROOT / "profile" / "base.md"
+    PLAN_REVIEW = ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
+
+    def setUp(self):
+        self.profile = " ".join(self.PROFILE.read_text(encoding="utf-8").split())
+        self.plan_review = " ".join(
+            self.PLAN_REVIEW.read_text(encoding="utf-8").split()
+        )
+
+    def test_working_preference_matches_mechanism_to_requested_assurance(self):
+        self.assertIn(
+            "**Match the mechanism to the assurance level that was asked for.** Do not introduce "
+            "parsers, formal grammars, provenance records, state machines, content filtering, "
+            "or runtime enforcement for a prose contract unless explicitly asked. Treat a "
+            "review finding that demands stronger assurance than the requested behavior, or "
+            "than the admitted risk contract where one exists, as scope expansion rather than "
+            "a blocker, except when it names a documented rule of the repo (including "
+            "`profile/CHARTER.md`) or a must-prevent outcome in the admitted risk contract. "
+            "Prefer ordinary semantic interpretation and the smallest change that works.",
+            self.profile,
+        )
+
+    def test_axis_four_keeps_the_reviewer_within_the_assurance_boundary(self):
+        self.assertIn(
+            "A reviewer may test whether the proposed mechanism satisfies the stated risk "
+            "contract, but may not raise that contract or demand a parser, formal grammar, "
+            "provenance record, state machine, content filtering, or runtime enforcement beyond "
+            "the requested behavior, or beyond the admitted risk contract where one exists. An "
+            "objection that only holds if the assurance bar rises is scope expansion and is "
+            "discarded, unless evidence, not judgment, changes the assumed likelihood, "
+            "consequence, or recoverability; then the evidence-reopen rule earlier in this axis "
+            "governs and the objection stands. A finding that names a documented rule of the "
+            "repo (including `profile/CHARTER.md`) or a must-prevent outcome in the admitted risk "
+            "contract is never discarded on this ground. The cycle's step 0 generated-facts "
+            "demand and the evidence-block spot check's **BLOCKED** verdict are this skill's own "
+            "triage and evidence obligations, not assurance escalation, and are unaffected.",
+            self.plan_review,
+        )
+
+    def test_cycle_rereads_settled_decisions_after_compaction(self):
+        self.assertIn(
+            "If the coordinator session running the review has its context compacted mid-review, "
+            "it re-reads the settled decisions in the plan's scope ledger wherever `/scope` "
+            "placed it (`docs/scope/<slug>.md` or the session scratchpad) and the risk contract "
+            "copied into the plan before evaluating the reviewer's deltas. It treats decisions "
+            "recorded there as settled rather than re-deriving them from what survived "
+            "compaction. Cold reviewers stay cold: this rule adds nothing to the cold-reader "
+            "prompt, and `plan-review-mechanical-fixes.md` remains the round ledger rather than "
+            "the settled-decision record.",
+            self.plan_review,
         )
 
 
