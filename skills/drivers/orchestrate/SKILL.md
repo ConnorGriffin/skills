@@ -180,6 +180,8 @@ evidence.
 
 ## Verification and escalation
 
+**Worker completion reports:** A claim that the brief's verification passed names the exact command from the brief, states that it completed successfully, and includes that command's complete, unedited output. Focused, targeted, or subset checks are supplemental evidence and never stand in for the named verification command. A hook run or `git push --no-verify` does not substitute for that command; disclose any bypass with the completion report. Report a command that was not started, failed, or was interrupted as unverified, with its available output and reason, rather than as a successful full-gate result.
+
 Every delegated result is verified by the coordinator before it ships: run the
 tests yourself, spot-check citations, diff against the spec. On failed
 verification:
