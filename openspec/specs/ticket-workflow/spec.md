@@ -31,9 +31,12 @@ How one tracked ticket moves from arrival to resolution.
 * Telemetry: sessions claim tickets as they work (`ticket.py claim`), and
   `finalize` runs `ticket.py record`, appending verdict, role-tagged peaks,
   chunk count, rubric traits, and repo to `~/.config/ticket/telemetry.jsonl`.
-  Every record carries counts and labels supplied on the command line, never
-  prose from a session. A `no-data` verdict appends nothing. A denied write
-  is reported in one visible line and never blocks the verb.
+  `scan` and `record` accept `--project` to resolve the target repository when
+  they run outside its worktree. Every record carries counts and labels supplied
+  on the command line, never prose from a session. A `no-data` or
+  `unmeasurable` verdict appends nothing: the latter names claims for this
+  repository that supplied no usable peak. A denied write is reported in one
+  visible line and never blocks the verb.
 * On a misprediction verdict, `finalize` drafts an amendment against the
   slicing rubric and shows it to the user; prose and the helper's constants
   move together.
