@@ -56,6 +56,12 @@ sub-case, keep the test green, fix the hunk header) — and write an answer key
 `$BENCH_ROOT/fixtures/`. The key is scored mechanically: catches out of 3, minus
 confident false positives. Keep both files out of this public pack.
 
+**2026-08-27 calibration record.** An N=1 regenerated private review fixture
+used Luna as its anchor: Luna reproduced its 2/3, zero-false-positive profile.
+Sol caught the same two defects and added one false positive (mechanical score
+1 against Luna's 2), so no review route changed. The fixture and answer key
+remain outside this pack.
+
 ## Judging rubrics (score 1–5 per area)
 
 - **Exploration**: spot-check ≥3 file:line claims per output; any fabricated

@@ -199,8 +199,12 @@ verification:
 Field-derived provenance (source: #130; **field-validated (provisional)**): the
 Codex UI exception is hermetic implementation only. After Terra's same-session
 retry fails, it may escalate to Sol once; after Sol, stop and surface. This does
-not promote Sol to Codex-only load-bearing review, which remains
-**NO_VALIDATED_ROUTE** pending the planted-defect fixture replay.
+not promote Sol to Codex-only load-bearing review.
+
+**Benchmarked replay (2026-08-27; N=1 regenerated review fixture).** Luna
+calibrated the fixture at 2/3 and zero false positives; Sol caught the same two
+defects and one false positive for a mechanical score of 1 against Luna's 2.
+Codex-only load-bearing review remains **NO_VALIDATED_ROUTE**.
 
 Watch-items the benchmark confirmed per model family: Claude models may report
 success from reasoning rather than a green run (demand command output) and can

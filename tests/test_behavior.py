@@ -4648,6 +4648,14 @@ class FieldRoutingFindingsContractTests(unittest.TestCase):
         self.assertIn("served projection and rendered DOM", instructions)
         self.assertIn("environment preflight", instructions)
 
+    def test_completed_sol_replay_keeps_the_benchmarked_review_routes(self):
+        table = " ".join(self.ROUTING_TABLE.read_text(encoding="utf-8").split())
+
+        self.assertIn("Benchmarked replay (2026-08-27", table)
+        self.assertIn("Sol's mechanical score was 1 against Luna's 2", table)
+        self.assertIn("neither Codex model caught the subtle boundary defect", table)
+        self.assertIn("does not out-detect Luna on planted defects at five times the price", table)
+
 
 if __name__ == "__main__":
     unittest.main()

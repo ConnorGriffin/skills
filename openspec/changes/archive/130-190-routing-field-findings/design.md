@@ -14,7 +14,13 @@ authority. The change records the rendered-evidence and Codex-only limits in the
 routing table and Codex-parent dispatch reference, while explicitly deferring
 selection precedence to that existing authority.
 
-## Deferred measurement
+## Completed benchmark replay
 
-Sol's planted-defect review-fixture replay remains owed. The field observations
-are insufficient to promote Sol to a Codex-only load-bearing review rung.
+The 2026-08-27 N=1 replay used a regenerated private review fixture and a Luna
+anchor. Luna reproduced its 2026-08-03 2/3, zero-false-positive profile; Sol
+matched its catches but added one false positive, for a mechanical score of 1
+against Luna's 2. This is sufficient to settle the promotion question:
+Sol remains outside the Codex-only load-bearing review rung, which stays
+**NO_VALIDATED_ROUTE**. It is not a full re-benchmark and does not contradict
+the separate field observation of zero hallucinated Sol findings across roughly
+20 reviews.

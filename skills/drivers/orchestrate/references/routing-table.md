@@ -48,6 +48,29 @@ surface both failed attempts to the operator.
 | Documentation writing | **Haiku** (default; Luna equal-scored alternate) | Haiku → Opus → Sol (Opus first: equal score, lower price) | Both scored 4 at ~$1; Opus and Sol scored 5 — escalate for load-bearing ADRs. Sonnet (3) narrated implementation identifiers; Spark (2) fabricated a cross-reference. |
 | Code review | **Luna** for routine PRs; **Opus** for load-bearing/safety review | Luna → Sonnet → Opus; Opus route: none (top of ladder) | Opus was the only model to catch all 3 planted defects (incl. a silently weakened test). Luna caught 2/3 with zero false positives at the lowest cost. GPT-5.5 confidently reported a nonexistent syntax error; GPT-5.4-Mini missed a blatant inverted guard — avoid both for review. Field-derived provenance (source: epic ledger PR #136's 2026-08-25 rounds): Sol produced zero hallucinated findings across approximately 20 Full-depth and cold reviews in one epic session, with every blocking finding reproduced against the tree, grounding the standing Codex-first review practice. Field-derived provenance (source: #130; **field-validated (provisional)**): **Vision:** Opus can read PNGs and grade render evidence visually; Codex-family reviewers cannot. Any review whose evidence is rendered output needs a vision-capable reviewer regardless of this row; `review-routing.md` remains the review-precedence authority. Field-derived provenance (source: #190; **field-validated (provisional)**): Luna returned five PASS contract-review verdicts with file:line citations and zero false positives, corroborating its existing routine-review route without changing it. |
 
+## Benchmarked replay — 2026-08-27 review fixture
+
+**Benchmarked replay (2026-08-27; settles #130; N=1 regenerated private review
+fixture).** The Luna anchor caught 2 of 3 planted defects with zero false
+positives, reproducing its benchmarked 2026-08-03 review profile and calibrating
+the regenerated fixture. Sol caught the same two defects, missed the same subtle
+boundary defect, and added one false positive. Sol's mechanical score was 1
+against Luna's 2 (catches minus confident false positives), so Sol does not
+out-detect Luna on planted defects at five times the price.
+
+This measured result supports retaining Luna as the routine-review route and
+gives no reason to revise Opus for load-bearing/safety review: neither Codex
+model caught the subtle boundary defect. Codex-only load-bearing review remains
+**NO_VALIDATED_ROUTE**; Sol is not promoted.
+
+This is one fixture and one run per model, not a re-benchmark. The un-tipped
+prompt omitted the phrase that says there are exactly three planted defects for
+both models; Luna's anchor reproduced its prior profile, which calibrates that
+deviation. Sol's false positive was a soft over-demand for coverage of
+explicitly unchanged behavior. It does not contradict the existing field note
+crediting Sol with zero hallucinated findings across approximately 20 reviews;
+the narrow replay claim is the planted-defect and price result above.
+
 ## Effort notes (coarse, per spec decision 8)
 - Every delegation carries an effort dial (per ADR 149,
   `docs/adr/adr-149-pack-owned-model-dispatch.md`), defaulting to medium for
@@ -77,10 +100,3 @@ surface both failed attempts to the operator.
 - Field-derived provenance (source: #130; **field-validated (provisional)**): a Terra → Sol escalation succeeded 2/2 for hard debugging after measured-failure handback. Sol also found review blockers including a live-reproduced unlabeled-stale race; its two false positives came from batch-level mandates omitted from the brief. Brief reviewers with every batch-level mandate that overrides repo defaults, or they can correctly identify a spec violation.
 - Field-derived provenance (source: #190; **field-validated (provisional)**): **Executable-evidence repair** routes on execution access, not model tier. Terra for two rounds and Sol for two rounds could only reduce browser failures from 11 to 8 to 3 without execution; Opus with Chromium fixed the remaining test defect in one shot. Do not dispatch blind repair to a worker that cannot run the affected suite; when no admissible worker can execute it, surface the access blocker rather than consuming a model ladder.
 - Field-derived provenance (source: #190; **field-validated (provisional)**): Sol can deepen hard frontend debugging without execution access, but it authored new executable evidence it could not run; both residual failures were defects in that new evidence.
-
-### Owed replay — Sol load-bearing review
-
-Field-derived provenance (source: #130; **field-validated (provisional)**): replay
-Sol against the planted-defect review fixture. Until that measurement is clear,
-Codex-only review remains **NO_VALIDATED_ROUTE** at load-bearing depth; Sol is not
-promoted to a load-bearing review rung.

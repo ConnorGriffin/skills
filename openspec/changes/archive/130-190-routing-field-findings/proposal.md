@@ -8,8 +8,9 @@ Record the production findings from #130 and #190 without replacing the
 ## Risk contract
 
 The new rules are visibly field-validated and provisional. They name their
-source issues, preserve existing ladders, and leave Codex-only load-bearing
-review unadmitted until Sol completes the planted-defect fixture replay.
+source issues and preserve existing ladders. The completed 2026-08-27 N=1
+benchmark replay retained Codex-only load-bearing review as unadmitted: Sol's
+mechanical score was 1 against Luna's 2 on the calibrated fixture.
 
 ## Scope
 
