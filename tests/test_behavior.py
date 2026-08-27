@@ -2246,12 +2246,16 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.state = self.scratch / "worker-state.json"
         self.arguments = self.scratch / "arguments.json"
         self.stdin_capture = self.scratch / "stdin.txt"
+        self.codex_home = self.scratch / "codex-home"
+        self.codex_home_marker = self.scratch / "codex-home-marker"
 
         self.codex_binary = self.scratch / "fake-codex"
         self.codex_binary.write_text(
             "#!/usr/bin/env python3\n"
             "import json, os, pathlib, sys\n"
             "pathlib.Path(os.environ['FAKE_ARGUMENTS']).write_text(json.dumps(sys.argv[1:]))\n"
+            "if os.environ.get('FAKE_EXPECTED_CODEX_HOME'):\n"
+            "    pathlib.Path(os.environ['FAKE_CODEX_HOME_MARKER']).write_text('fixture' if os.environ.get('CODEX_HOME') == os.environ['FAKE_EXPECTED_CODEX_HOME'] else 'wrong')\n"
             "sys.stdout.write(os.environ.get('FAKE_OUTPUT', ''))\n"
             "sys.exit(int(os.environ.get('FAKE_EXIT', '0')))\n",
             encoding="utf-8",
@@ -2271,8 +2275,11 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.claude_binary.chmod(0o755)
 
         self.environment = os.environ.copy()
+        self.environment["CODEX_HOME"] = str(self.codex_home)
         self.environment["FAKE_ARGUMENTS"] = str(self.arguments)
         self.environment["FAKE_STDIN"] = str(self.stdin_capture)
+        self.environment["FAKE_EXPECTED_CODEX_HOME"] = str(self.codex_home)
+        self.environment["FAKE_CODEX_HOME_MARKER"] = str(self.codex_home_marker)
 
     def tearDown(self):
         self.temporary.cleanup()
@@ -2284,6 +2291,15 @@ class WorkerEffortDialTests(unittest.TestCase):
         return run(["python3", str(CLAUDE_WORKER), *arguments], cwd=ROOT, env=self.environment)
 
     # --- codex-worker.py -------------------------------------------------
+
+    def test_codex_worker_subprocess_uses_the_fixture_session_home(self):
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+        result = self.run_codex(
+            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--model", "Terra", "--sandbox", "read-only", "--cwd", str(self.worktree), "do the work",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.codex_home_marker.read_text(encoding="utf-8"), "fixture")
 
     def test_codex_start_defaults_to_medium_effort_in_argv(self):
         self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'

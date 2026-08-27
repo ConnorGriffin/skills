@@ -6,3 +6,5 @@
 - [x] Archive the completed change in this pull request.
 - [x] Keep a non-checkout Codex worker resumable with start's checkout-check
   bypass, without duplicating lifecycle cwd handling.
+- [x] Isolate worker-effort tests from the operator's Codex session store and
+  pin that subprocess boundary.
