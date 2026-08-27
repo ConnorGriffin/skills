@@ -133,8 +133,19 @@ definitions below are the fallback.
    that the risk decision must reopen; do not silently prescribe hardening. Require
    evidence only for acceptance criteria, must-prevent outcomes, enforced invariants,
    and observed regressions — never for a target test count or an exhaustive failure
-   matrix. The right change is the smallest one that meets acceptance and the risk
-   contract.
+   matrix. A reviewer may test whether the proposed mechanism satisfies the stated
+   risk contract, but may not raise that contract or demand a parser, formal grammar,
+   provenance record, state machine, content filtering, or runtime enforcement beyond
+   the requested behavior, or beyond the admitted risk contract where one exists. An
+   objection that only holds if the assurance bar rises is scope expansion and is
+   discarded, unless evidence, not judgment, changes the assumed likelihood,
+   consequence, or recoverability; then the evidence-reopen rule earlier in this axis
+   governs and the objection stands. A finding that names a documented rule of the
+   repo (including `profile/CHARTER.md`) or a must-prevent outcome in the admitted risk
+   contract is never discarded on this ground. The cycle's step 0 generated-facts
+   demand and the evidence-block spot check's **BLOCKED** verdict are this skill's own
+   triage and evidence obligations, not assurance escalation, and are unaffected. The
+   right change is the smallest one that meets acceptance and the risk contract.
 5. **Cost.** Is the effort implied by the plan sane for the ask? Flag a plan
    whose blast radius (files touched, migrations, new machinery) is out of
    proportion to its outcome.
@@ -186,6 +197,15 @@ definitions below are the fallback.
    revisions routinely introduce fresh defects (a fix that patches the
    objected hole and opens a different one), and objections whose "cheapest
    fix" was applied verbatim still need verifying against the real machinery.
+
+   If the coordinator session running the review has its context compacted mid-review,
+   it re-reads the settled decisions in the plan's scope ledger wherever `/scope`
+   placed it (`docs/scope/<slug>.md` or the session scratchpad) and the risk contract
+   copied into the plan before evaluating the reviewer's deltas. It treats decisions
+   recorded there as settled rather than re-deriving them from what survived
+   compaction. Cold reviewers stay cold: this rule adds nothing to the cold-reader
+   prompt, and `plan-review-mechanical-fixes.md` remains the round ledger rather than
+   the settled-decision record.
 5. **Terminate by stakes, not by pass count.**
    - **Ordinary plan** (modest blast radius, downstream review exists as a
      backstop): one panel. If it drew blood, fix and have the same reviewer
