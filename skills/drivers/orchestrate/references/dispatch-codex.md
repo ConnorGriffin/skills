@@ -64,9 +64,24 @@ failures block a Codex UI parent: stop dispatching and report the blocker. It
 cannot switch to Claude workers. Infrastructure failures (including a missing
 rollout) are dispatch failures, not evidence that a model tier failed its task.
 
+## Served evidence and the exec bridge
+
+Field-derived provenance (source: #130; **field-validated (provisional)**): the
+exec bridge reaps long-lived and detached processes, so a server started in one
+invocation is gone by the next. Instruct workers to use one invocation to start
+the server, wait for LISTEN, run the check, and kill the server. Do not read
+repeated served-evidence failure as a model-tier weakness; it can bias workers
+toward bounded runs instead of full replays.
+
+Field-derived provenance (source: #130; **field-validated (provisional)**): a
+worker lost to `invalid JSONL on line <n>` is a dispatch failure. Its session is
+unrecoverable but committed on-disk work survives; recover the worktree under
+"Interrupted workers" and resume it. Do not re-route.
+
 ## Codex-only admission routes
 
-These are the only validated initial routes in Codex-only mode:
+These are the only validated initial routes in Codex-only mode, plus the one
+provisional implementation-escalation exception below:
 
 | Area | Initial route |
 |---|---|
@@ -76,6 +91,7 @@ These are the only validated initial routes in Codex-only mode:
 | Prototyping | Sol (`gpt-5.6-sol`) |
 | Default brainstorming | Terra (`gpt-5.6-terra`) |
 | Documentation | Luna (`gpt-5.6-luna`) |
+| Implementation escalation (not an initial admission) | Sol (`gpt-5.6-sol`) — field-validated (provisional; source: #130) |
 
 Full-system exploration, novelty-as-deliverable brainstorming, and
 other unlisted admissions are **NO_VALIDATED_ROUTE** until benchmarked.
@@ -84,7 +100,18 @@ validated rung: retry once in the same worker session, then stop with
 **NO_VALIDATED_ROUTE**. Never escalate Terra, Luna, or Sol to Sonnet or Opus.
 Pass the exact parenthesized CLI model ID to the helper's `--model` argument.
 
+Field-derived provenance (source: #130; **field-validated (provisional)**): for
+hermetic implementation only, Terra may escalate to Sol once after its
+in-session retry fails. At Sol, stop and surface. This exception changes no
+benchmarked ladder.
+
 Review admissions are owned by [`review-routing.md`](review-routing.md). Its
 matrix assumes a Claude parent and does not route for this Codex UI parent;
 follow the Codex parent's own session policy instead of treating review as a
 generic admission above.
+
+Field-derived provenance (source: #130; **field-validated (provisional)**):
+Codex-only load-bearing review remains **NO_VALIDATED_ROUTE**. Review whose
+evidence is rendered output has no Codex-only route at any depth; surface it to
+the operator for a vision-capable reviewer. `review-routing.md` remains the
+sole authority for review precedence.
