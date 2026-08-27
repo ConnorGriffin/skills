@@ -230,6 +230,10 @@ invoked.
 
 ### Effort outside each adapter's enum
 
+The Codex output below is the 2026-08-24 historical result. It is superseded
+by the 2026-08-27 live API probe in `effort-enums.md`; the current local guard
+accepts `none|low|medium|high|xhigh|max`.
+
 Command:
 
 ```
