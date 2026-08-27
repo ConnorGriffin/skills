@@ -1338,13 +1338,15 @@ class SpinWorktreeTests(unittest.TestCase):
     def tearDown(self):
         self.temporary.cleanup()
 
-    def spin(self, *arguments: str):
-        return self.spin_from(self.repo, *arguments)
+    def spin(self, *arguments: str, env: Optional[dict[str, str]] = None):
+        return self.spin_from(self.repo, *arguments, env=env)
 
-    def spin_from(self, repo: Path, *arguments: str):
+    def spin_from(
+        self, repo: Path, *arguments: str, env: Optional[dict[str, str]] = None
+    ):
         return run(
             [
-                "python3",
+                sys.executable,
                 str(SPIN_SCRIPT),
                 "--repo",
                 str(repo),
@@ -1353,7 +1355,21 @@ class SpinWorktreeTests(unittest.TestCase):
                 *arguments,
             ],
             cwd=ROOT,
+            env=env,
         )
+
+    def config_environment(
+        self, contents: Optional[str | bytes] = None
+    ) -> dict[str, str]:
+        home = self.scratch / "home"
+        if contents is not None:
+            config = home / ".config" / "spin-worktree" / "config.json"
+            config.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(contents, bytes):
+                config.write_bytes(contents)
+            else:
+                config.write_text(contents, encoding="utf-8")
+        return {**os.environ, "HOME": str(home)}
 
     def configure_origin(self):
         remote = self.scratch / "origin.git"
@@ -1413,7 +1429,7 @@ class SpinWorktreeTests(unittest.TestCase):
         worktree = self.scratch / "worktrees" / "repo" / "13"
         self.assertTrue((worktree / ".git").exists())
         branch = run(["git", "branch", "--show-current"], cwd=worktree)
-        self.assertEqual(branch.stdout.strip(), "codex/13-isf-safety-predicate")
+        self.assertEqual(branch.stdout.strip(), "13-isf-safety-predicate")
         self.assertEqual(untracked.read_text(encoding="utf-8"), "keep me\n")
         status = run(["git", "status", "--short"], cwd=self.repo)
         self.assertEqual(status.stdout, "?? unfinished-notes.md\n")
@@ -1440,6 +1456,93 @@ class SpinWorktreeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue((self.scratch / "worktrees" / "repo" / "13" / ".git").exists())
         self.assertFalse((self.scratch / "worktrees" / "52").exists())
+
+    def test_branch_prefix_flag_wins_over_config(self):
+        self.configure_origin()
+
+        result = self.spin(
+            "--issue",
+            "13",
+            "--slug",
+            "flag-wins",
+            "--branch-prefix",
+            "flag",
+            env=self.config_environment('{"branchPrefix": "config"}'),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        branch = run(
+            ["git", "branch", "--show-current"],
+            cwd=self.scratch / "worktrees" / "repo" / "13",
+        )
+        self.assertEqual(branch.stdout.strip(), "flag/13-flag-wins")
+
+    def test_branch_prefix_uses_config_when_flag_is_absent(self):
+        self.configure_origin()
+
+        result = self.spin(
+            "--issue",
+            "13",
+            "--slug",
+            "from-config",
+            env=self.config_environment('{"branchPrefix": "config"}'),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        branch = run(
+            ["git", "branch", "--show-current"],
+            cwd=self.scratch / "worktrees" / "repo" / "13",
+        )
+        self.assertEqual(branch.stdout.strip(), "config/13-from-config")
+
+    def test_branch_prefix_defaults_to_bare_issue_branch(self):
+        self.configure_origin()
+
+        result = self.spin("--issue", "13", env=self.config_environment())
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        branch = run(
+            ["git", "branch", "--show-current"],
+            cwd=self.scratch / "worktrees" / "repo" / "13",
+        )
+        self.assertEqual(branch.stdout.strip(), "issue-13")
+
+    def test_empty_branch_prefix_flag_requests_bare_slug_branch(self):
+        self.configure_origin()
+
+        result = self.spin(
+            "--issue",
+            "13",
+            "--slug",
+            "bare-branch",
+            "--branch-prefix",
+            "",
+            env=self.config_environment('{"branchPrefix": "config"}'),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        branch = run(
+            ["git", "branch", "--show-current"],
+            cwd=self.scratch / "worktrees" / "repo" / "13",
+        )
+        self.assertEqual(branch.stdout.strip(), "13-bare-branch")
+
+    def test_unusable_branch_prefix_config_resolves_to_no_prefix(self):
+        self.configure_origin()
+        for contents in (None, "not json", b"\xff", "{}", '{"branchPrefix": 13}'):
+            with self.subTest(contents=contents):
+                result = self.spin(
+                    "--issue",
+                    "13",
+                    "--slug",
+                    "no-prefix",
+                    "--dry-run",
+                    env=self.config_environment(contents),
+                )
+
+                self.assertEqual(result.returncode, 0, result.stderr)
+                output = json.loads(result.stdout[result.stdout.index("{") :])
+                self.assertEqual(output["branch"], "13-no-prefix")
 
 
 class CodexWorkerTests(unittest.TestCase):
