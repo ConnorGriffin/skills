@@ -1,6 +1,6 @@
-# GitHub tracker operations
+# Binding: GitHub issues
 
-Epic planning uses authenticated GitHub Issues. Before a mutation, run `gh version` and `gh auth status`; pass `--repo OWNER/REPO` explicitly. The current GitHub CLI must support native sub-issues and dependencies. Live tracker state is truth; re-read it after every mutation that changes relationships or labels.
+The reference binding for [the epic tracker contract](../references/tracker-contract.md), shipped with the skill. Epic planning uses authenticated GitHub Issues. Before a mutation, run `gh version` and `gh auth status`; pass `--repo OWNER/REPO` explicitly. The current GitHub CLI must support native sub-issues and dependencies. Live tracker state is truth; re-read it after every mutation that changes relationships or labels.
 
 ## Bootstrap labels
 

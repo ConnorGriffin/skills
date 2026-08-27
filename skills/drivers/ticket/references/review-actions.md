@@ -7,7 +7,7 @@ Ground each finding before choosing exactly one disposition.
 * **Necessary follow-up.** It is real but outside the order; file a ticket with
   evidence, desired outcome, and a checked duplicate search. Keep it out of this
   pull request. Under an epic, read
-  [the epic tracker reference](../../epic/references/github-tracker.md): when the
+  [the epic tracker contract](../../epic/references/tracker-contract.md): when the
   epic destination requires it, file the follow-up as an in-scope native child;
   otherwise file it as a native child with its `spike` or `build` type plus
   `deferred`, and report it on the originating ticket.
