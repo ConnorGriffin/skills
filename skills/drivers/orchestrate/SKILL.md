@@ -164,6 +164,20 @@ skill supplies its named routing-table area, and parent policy plus the Codex
 presence/headroom gate removes unavailable candidates. Do not infer a reviewer
 from builder tier or borrow a fallback from another routing-table row.
 
+## Browser-failure dispatch
+
+Field-derived provenance (source: #190; **field-validated (provisional)**):
+Before any browser-failure dispatch, the coordinator probes the page in place
+and records both the served projection and rendered DOM. Put the resulting
+scope-specific discrepancy in the worker brief rather than sending a vague
+timeout.
+
+Field-derived provenance (source: #190; **field-validated (provisional)**): the
+worker brief states an environment preflight: the required dependency extras,
+the intended executable suite, and any cache or network constraint. In
+fixture-heavy repos, do not treat a partial environment as model-capability
+evidence.
+
 ## Verification and escalation
 
 Every delegated result is verified by the coordinator before it ships: run the
@@ -181,6 +195,16 @@ verification:
    the same-session retry fails, stop with **NO_VALIDATED_ROUTE** and surface
    both attempts. Never escalate Terra, Luna, or Sol to Sonnet or Opus.
 4. Never unbounded retries, tier-skips, or silent deviations.
+
+Field-derived provenance (source: #130; **field-validated (provisional)**): the
+Codex UI exception is hermetic implementation only. After Terra's same-session
+retry fails, it may escalate to Sol once; after Sol, stop and surface. This does
+not promote Sol to Codex-only load-bearing review.
+
+**Benchmarked replay (2026-08-27; N=1 regenerated review fixture).** Luna
+calibrated the fixture at 2/3 and zero false positives; Sol caught the same two
+defects and one false positive for a mechanical score of 1 against Luna's 2.
+Codex-only load-bearing review remains **NO_VALIDATED_ROUTE**.
 
 Watch-items the benchmark confirmed per model family: Claude models may report
 success from reasoning rather than a green run (demand command output) and can

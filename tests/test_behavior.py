@@ -4774,5 +4774,45 @@ class LiveProseContractTests(unittest.TestCase):
         )
 
 
+class FieldRoutingFindingsContractTests(unittest.TestCase):
+    ROUTING_TABLE = ROOT / "skills/drivers/orchestrate/references/routing-table.md"
+    ORCHESTRATE = ROOT / "skills/drivers/orchestrate/SKILL.md"
+
+    def test_field_findings_keep_benchmark_routes_and_provenance_distinct(self):
+        table = self.ROUTING_TABLE.read_text(encoding="utf-8")
+
+        self.assertIn("## Provenance labels", table)
+        self.assertIn("field-validated (provisional)", table)
+        self.assertIn("may not displace a benchmarked route's ordering", table)
+
+    def test_render_evidence_requires_a_vision_capable_reviewer(self):
+        table = self.ROUTING_TABLE.read_text(encoding="utf-8")
+
+        self.assertIn("Any review whose evidence is rendered output needs a vision-capable reviewer", table)
+        self.assertIn("Codex-family reviewers cannot", table)
+
+    def test_executable_evidence_repairs_route_on_execution_access(self):
+        table = self.ROUTING_TABLE.read_text(encoding="utf-8")
+
+        self.assertIn("Executable-evidence repair", table)
+        self.assertIn("execution access", table)
+        self.assertIn("not model tier", table)
+
+    def test_browser_failure_briefs_include_probe_and_environment_preflight(self):
+        instructions = self.ORCHESTRATE.read_text(encoding="utf-8")
+
+        self.assertIn("Before any browser-failure dispatch", instructions)
+        self.assertIn("served projection and rendered DOM", instructions)
+        self.assertIn("environment preflight", instructions)
+
+    def test_completed_sol_replay_keeps_the_benchmarked_review_routes(self):
+        table = " ".join(self.ROUTING_TABLE.read_text(encoding="utf-8").split())
+
+        self.assertIn("Benchmarked replay (2026-08-27", table)
+        self.assertIn("Sol's mechanical score was 1 against Luna's 2", table)
+        self.assertIn("neither Codex model caught the subtle boundary defect", table)
+        self.assertIn("does not out-detect Luna on planted defects at five times the price", table)
+
+
 if __name__ == "__main__":
     unittest.main()
