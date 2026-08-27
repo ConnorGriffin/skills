@@ -1601,7 +1601,8 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertEqual(payload["final_message"], "worker answer")
         self.assertEqual(payload["headroom_status"], "unknown")
 
-    def test_resume_reapplies_persisted_model_and_sandbox(self):
+    def test_resume_in_a_non_checkout_reapplies_persisted_model_and_sandbox(self):
+        self.assertFalse((self.worktree / ".git").exists())
         started = self.start(
             '{"type":"thread.started","thread_id":"worker-1"}\n',
             sandbox="workspace-write",
@@ -1635,6 +1636,7 @@ class CodexWorkerTests(unittest.TestCase):
                 'sandbox_mode="workspace-write"',
                 "-c",
                 "model_reasoning_effort=medium",
+                "--skip-git-repo-check",
                 "--json",
                 "continue with the failing test",
             ],

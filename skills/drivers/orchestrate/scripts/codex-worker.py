@@ -123,7 +123,7 @@ def resume(args: argparse.Namespace) -> int:
         return fail(error)
     assert fresh is not None and expected is not None
     effort = effort_of(fresh)
-    command = [args.codex, "exec", "resume", fresh["session_id"], "-m", fresh["model"], "-c", f'sandbox_mode="{fresh["sandbox"]}"', "-c", f"model_reasoning_effort={effort}", "--json", args.prompt]
+    command = [args.codex, "exec", "resume", fresh["session_id"], "-m", fresh["model"], "-c", f'sandbox_mode="{fresh["sandbox"]}"', "-c", f"model_reasoning_effort={effort}", "--skip-git-repo-check", "--json", args.prompt]
     return lifecycle.run_lifecycle(
         args, command, fresh, expected=expected, parse=parse, emit=emit, fail=fail,
         stdin_text=None, effort_levels=EFFORT_LEVELS,
