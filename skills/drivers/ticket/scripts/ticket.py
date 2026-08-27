@@ -388,8 +388,19 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
     """
     if actual["session_count"] == 0:
         if actual["claim_count"]:
+            unreadable_codex = [
+                session
+                for session in actual["sessions"]
+                if session["agent"] == "codex" and not session["transcripts"]
+            ]
+            if unreadable_codex:
+                return (
+                    "unmeasurable",
+                    f"{len(unreadable_codex)} Codex session(s) claimed this ticket, but their "
+                    "rollout files could not be read, so nothing could be measured",
+                )
             return (
-                "no-data",
+                "unmeasurable",
                 f"{actual['claim_count']} session(s) claimed this ticket and their "
                 "transcripts are gone, so nothing could be measured",
             )
@@ -411,6 +422,12 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
     judged = [session for session in actual["sessions"] if session["role"] != "reviewer"]
     own = max((session["peak_context"] for session in judged), default=0)
     if not chunked:
+        if own == 0:
+            if judged:
+                shape = f"{len(judged)} non-review session(s) recorded no usable context peak"
+            else:
+                shape = "only review-only sessions were measured"
+            return "unmeasurable", f"flat order could not be measured: {shape}"
         if own >= DEGRADE_PEAK:
             return (
                 "under-sliced",
@@ -418,8 +435,14 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
             )
         return "ok", f"peaked at {own:,} tokens across {actual['session_count']} session(s)"
 
-    worker_peaks = actual["worker_peaks"]
+    worker_peaks = [peak for peak in actual["worker_peaks"] if peak]
     if not worker_peaks:
+        if actual["peak_context"] == 0:
+            return (
+                "unmeasurable",
+                f"{chunks} chunk(s), but no usable context peak was measured, so chunk size "
+                "could not be measured",
+            )
         measured_roles = {
             session["role"] for session in actual["sessions"] if session["transcripts"]
         }
@@ -495,7 +518,7 @@ def append_record(record: dict) -> Path:
 
 def command_scan(arguments: argparse.Namespace) -> int:
     ticket_id = validate_ticket_id(arguments.ticket_id)
-    current_repo = resolve_repo(Path.cwd())
+    current_repo = resolve_repo(Path(arguments.project) if arguments.project else Path.cwd())
     result = scan(ticket_id, arguments.projects_dir, current_repo)
     print(json.dumps(result, indent=2))
     return 0
@@ -503,7 +526,7 @@ def command_scan(arguments: argparse.Namespace) -> int:
 
 def command_record(arguments: argparse.Namespace) -> int:
     ticket_id = validate_ticket_id(arguments.ticket_id)
-    current_repo = resolve_repo(Path.cwd())
+    current_repo = resolve_repo(Path(arguments.project) if arguments.project else Path.cwd())
     actual = scan(ticket_id, arguments.projects_dir, current_repo)
     call, reason = verdict(actual, arguments.chunked, arguments.chunks)
     record = {
@@ -533,7 +556,7 @@ def command_record(arguments: argparse.Namespace) -> int:
         "reason": reason,
         "recorded_at": datetime.now(timezone.utc).isoformat(),
     }
-    if call != "no-data":
+    if call not in ("no-data", "unmeasurable"):
         try:
             append_record(record)
         except OSError as error:
@@ -610,12 +633,18 @@ def parse_arguments() -> argparse.Namespace:
         "scan", help="report peak context per session that worked this ticket id"
     )
     add_common_flags(scan_parser)
+    scan_parser.add_argument(
+        "--project", default=None, help="working directory to record (default: this one)"
+    )
     scan_parser.set_defaults(handler=command_scan)
 
     record_parser = subparsers.add_parser(
         "record", help="append this ticket's measured cost and print the verdict"
     )
     add_common_flags(record_parser)
+    record_parser.add_argument(
+        "--project", default=None, help="working directory to record (default: this one)"
+    )
     record_parser.add_argument(
         "--verb", action="append", required=True, help="workflow verb that ran; repeatable"
     )
