@@ -3094,11 +3094,15 @@ class PlanReviewAdapterDispatchTests(unittest.TestCase):
 class AssuranceLevelMatchingContractTests(unittest.TestCase):
     PROFILE = ROOT / "profile" / "base.md"
     PLAN_REVIEW = ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
+    ORCHESTRATE = ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md"
 
     def setUp(self):
         self.profile = " ".join(self.PROFILE.read_text(encoding="utf-8").split())
         self.plan_review = " ".join(
             self.PLAN_REVIEW.read_text(encoding="utf-8").split()
+        )
+        self.orchestrate = " ".join(
+            self.ORCHESTRATE.read_text(encoding="utf-8").split()
         )
 
     def test_working_preference_matches_mechanism_to_requested_assurance(self):
@@ -3129,6 +3133,13 @@ class AssuranceLevelMatchingContractTests(unittest.TestCase):
             "demand and the evidence-block spot check's **BLOCKED** verdict are this skill's own "
             "triage and evidence obligations, not assurance escalation, and are unaffected.",
             self.plan_review,
+        )
+
+    def test_partial_checks_are_supplemental_not_full_verification(self):
+        self.assertIn(
+            "Focused, targeted, or subset checks are supplemental evidence and never stand "
+            "in for the named verification command.",
+            self.orchestrate,
         )
 
     def test_cycle_rereads_settled_decisions_after_compaction(self):
