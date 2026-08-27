@@ -474,11 +474,11 @@ class TicketSkillContractTests(unittest.TestCase):
             encoding="utf-8"
         )
         tracker_path = (
-            ROOT / "skills" / "drivers" / "epic" / "references" / "github-tracker.md"
+            ROOT / "skills" / "drivers" / "epic" / "bindings" / "github-issues.md"
         )
         tracker = tracker_path.read_text(encoding="utf-8")
 
-        self.assertIn("../../epic/references/github-tracker.md", actions)
+        self.assertIn("../../epic/references/tracker-contract.md", actions)
         self.assertIn("Necessary follow-up", actions)
         self.assertRegex(
             tracker,

@@ -4123,7 +4123,7 @@ class EpicProtocolContractTests(unittest.TestCase):
         encoding="utf-8"
     )
     TRACKER = (
-        ROOT / "skills" / "drivers" / "epic" / "references" / "github-tracker.md"
+        ROOT / "skills" / "drivers" / "epic" / "bindings" / "github-issues.md"
     ).read_text(encoding="utf-8")
 
     def require(self, text, pattern):
