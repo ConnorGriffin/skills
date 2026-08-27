@@ -51,8 +51,9 @@ surface both failed attempts to the operator.
   effort dial.
 - The two adapters validate different enums, each a literal in its own
   script: `claude-worker.py` accepts `low|medium|high|xhigh|max`;
-  `codex-worker.py` accepts `minimal|low|medium|high|xhigh` (unvalidated
-  locally by the Codex CLI itself). See
+  `codex-worker.py` accepts `none|low|medium|high|xhigh|max` (unvalidated
+  locally by the Codex CLI itself). A live Codex 5.6 API probe recorded this
+  set on 2026-08-27. See
   `docs/scope/149-probes/effort-enums.md`.
 - Spark's value is latency: use for tight edit-test loops and mockup iteration, not judgment.
 - Opus spends ~4–5× Haiku's tokens on the same exploration prompt; route it only where the depth is the point.

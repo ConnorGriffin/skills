@@ -2306,15 +2306,11 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertIn("model_reasoning_effort=high", argv)
         self.assertEqual(json.loads(self.state.read_text(encoding="utf-8"))["effort"], "high")
 
-    def test_codex_rejects_an_effort_outside_its_own_enum(self):
-        result = self.run_codex(
-            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
-            "--model", "Terra", "--sandbox", "read-only", "--effort", "max",
-            "--cwd", str(self.worktree), "do the work",
+    def test_codex_effort_enum_matches_the_live_api_probe(self):
+        self.assertEqual(
+            WORKER_MODULE.EFFORT_LEVELS,
+            {"none", "low", "medium", "high", "xhigh", "max"},
         )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("--effort", result.stderr)
-        self.assertFalse(self.state.exists())
 
     def test_codex_replays_persisted_effort_on_resume(self):
         legacy = {
@@ -2371,8 +2367,7 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertEqual(json.loads(result.stdout)["effort"], "xhigh")
 
     def test_claude_rejects_an_effort_outside_its_own_enum(self):
-        # "minimal" is valid for codex but not claude — the two adapters do not
-        # share one enum.
+        # "minimal" is invalid for both adapters, although their enums differ.
         result = self.run_claude(
             "start", "--claude", str(self.claude_binary), "--state", str(self.state),
             "--model", "sonnet", "--sandbox", "read-only", "--effort", "minimal",
@@ -2591,7 +2586,7 @@ class OrchestrateAdapterDispatchTests(unittest.TestCase):
             ROOT / "skills" / "drivers" / "orchestrate" / "references" / "routing-table.md"
         ).read_text(encoding="utf-8")
         self.assertIn("low|medium|high|xhigh|max", table)
-        self.assertIn("minimal|low|medium|high|xhigh", table)
+        self.assertIn("none|low|medium|high|xhigh|max", table)
         self.assertIn("defaulting to medium", table)
 
 

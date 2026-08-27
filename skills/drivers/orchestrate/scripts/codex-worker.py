@@ -15,11 +15,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import worker_lifecycle as lifecycle
 
 
-# Effort enum captured in docs/scope/149-probes/effort-enums.md: the Codex CLI
-# validates nothing locally (a bogus value starts the session and fails at the
-# API), so this set is documentation plus this adapter's own guard, not a
-# discovered constraint. Not shared with claude-worker.py's enum.
-EFFORT_LEVELS = {"minimal", "low", "medium", "high", "xhigh"}
+# The 2026-08-27 live API probe recorded in docs/scope/149-probes/effort-enums.md
+# accepted none, low, medium, high, xhigh, and max for Codex 5.6. The Codex CLI
+# validates nothing locally, so this adapter owns the local guard. Not shared
+# with claude-worker.py's enum.
+EFFORT_LEVELS = {"none", "low", "medium", "high", "xhigh", "max"}
 DEFAULT_EFFORT = "medium"
 
 

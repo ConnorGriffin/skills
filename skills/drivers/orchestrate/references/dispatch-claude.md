@@ -82,7 +82,8 @@ Every delegation carries `--effort`, defaulting to `medium` for every model
 because no effort benchmarking exists yet (see `references/routing-table.md`
 Effort notes). `claude-worker.py`'s enum is `low|medium|high|xhigh|max`,
 captured in `docs/scope/149-probes/effort-enums.md` from `claude --help`; it
-is not the same set as `codex-worker.py`'s `minimal|low|medium|high|xhigh`.
+is not the same set as `codex-worker.py`'s `none|low|medium|high|xhigh|max`
+(probed against the live API on 2026-08-27).
 The chosen effort is persisted in state and replayed on `resume`.
 
 ## Liveness is process identity only
