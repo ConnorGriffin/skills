@@ -915,7 +915,7 @@ class TicketTelemetryTests(unittest.TestCase):
             "record", "TICKET-6", "--verb", "start", "--trait", "any", "--depth", "deep"
         )
 
-        self.assertEqual(json.loads(gone.stdout)["verdict"], "no-data")
+        self.assertEqual(json.loads(gone.stdout)["verdict"], "unmeasurable")
         self.assertIn("transcripts are gone", json.loads(gone.stdout)["reason"])
         self.assertEqual(self.telemetry_records(), [])
 
@@ -1017,6 +1017,36 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)["verdict"], "ok")
         self.assertEqual(self.telemetry_records()[0]["verdict"], "ok")
+
+    def test_record_without_a_usable_peak_is_unmeasurable(self):
+        # A rollout can name its session yet contain no token-count event. It
+        # is not evidence that a flat order cost zero tokens.
+        self.write_codex_session("codex-no-peak", [codex_meta_line("codex-no-peak")])
+        self.claim("TICKET-129A", "codex-no-peak", agent="codex")
+
+        result = self.ticket(
+            "record", "TICKET-129A", "--verb", "start", "--trait", "any", "--depth", "light"
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "unmeasurable")
+        self.assertIn("no usable context peak", payload["reason"])
+        self.assertEqual(self.telemetry_records(), [])
+
+    def test_missing_codex_rollout_is_unmeasurable_not_no_data(self):
+        self.claim("TICKET-129B", "codex-gone", agent="codex")
+
+        result = self.ticket(
+            "record", "TICKET-129B", "--verb", "start", "--trait", "any", "--depth", "light"
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "unmeasurable")
+        self.assertIn("Codex session", payload["reason"])
+        self.assertIn("rollout files", payload["reason"])
+        self.assertEqual(self.telemetry_records(), [])
 
     def test_record_chunked_order_still_degraded_when_a_chunk_peaks_high(self):
         # The chunk's cost is its own claimed worker session, not a sidechain
@@ -1483,6 +1513,44 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(payload_b["peak_context"], 70_000)
         self.assertEqual(payload_b["excluded_claims"], 1)
         self.assertEqual(payload_b["unattributable"], [])
+
+    def test_scan_and_record_can_target_a_claimed_worktree_from_another_checkout(self):
+        repo_a = self.make_repo_checkout("target-repo", "https://example.com/org/target.git")
+        repo_b = self.make_repo_checkout("coordinator-repo", "https://example.com/org/coordinator.git")
+        self.write_session("proj-a", "target-session", [assistant_line(200_000)])
+
+        claimed = self.ticket(
+            "claim", "TICKET-129C", "--session", "target-session", "--agent", "claude",
+            "--project", str(repo_a),
+        )
+        self.assertEqual(claimed.returncode, 0, claimed.stderr)
+
+        wrong_scan = self.ticket("scan", "TICKET-129C", cwd=repo_b)
+        self.assertEqual(wrong_scan.returncode, 0, wrong_scan.stderr)
+        self.assertEqual(json.loads(wrong_scan.stdout)["excluded_claims"], 1)
+        self.assertEqual(json.loads(wrong_scan.stdout)["session_count"], 0)
+
+        scan = self.ticket("scan", "TICKET-129C", "--project", str(repo_a), cwd=repo_b)
+        self.assertEqual(scan.returncode, 0, scan.stderr)
+        self.assertEqual(json.loads(scan.stdout)["session_count"], 1)
+        self.assertEqual(json.loads(scan.stdout)["excluded_claims"], 0)
+
+        wrong_record = self.ticket(
+            "record", "TICKET-129C", "--verb", "start", "--trait", "any", "--depth", "deep",
+            cwd=repo_b,
+        )
+        self.assertEqual(wrong_record.returncode, 0, wrong_record.stderr)
+        self.assertEqual(json.loads(wrong_record.stdout)["verdict"], "no-data")
+
+        record = self.ticket(
+            "record", "TICKET-129C", "--verb", "start", "--trait", "any", "--depth", "deep",
+            "--project", str(repo_a), cwd=repo_b,
+        )
+        self.assertEqual(record.returncode, 0, record.stderr)
+        payload = json.loads(record.stdout)
+        self.assertEqual(payload["verdict"], "under-sliced")
+        self.assertEqual(payload["excluded_claims"], 0)
+        self.assertEqual(self.telemetry_records()[0]["repo"], "example.com/org/target")
 
     def test_unlabelled_legacy_claim_is_unattributable_not_counted(self):
         # A claim written before `repo` existed carries no such key at all.
