@@ -16,6 +16,8 @@ rules:
 operations:
   archive:
     guidance:
-      - After a change pull request merges, a human checks out current main and runs openspec archive <change-name> --json --yes.
-      - Commit the resulting baseline merge and archived change directly to main with a Signed-off-by trailer, then push.
-      - Do not archive in the finishing pull request or push archive work to an approved pull request.
+      - After a verified merge, update a clean main checkout to origin/main.
+      - Run openspec archive <change-name> --json --yes.
+      - Run openspec validate --all --strict.
+      - Create a Signed-off-by archive commit for the resulting baseline merge and archived change.
+      - Push main directly; do not archive in the finishing pull request or push archive work to an approved pull request.

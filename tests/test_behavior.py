@@ -4037,8 +4037,11 @@ class OpenSpecAdoptionContractTests(unittest.TestCase):
         self.assertIn("operations.archive.guidance", adoption)
         self.assertNotIn("archived in the pull request", adoption)
         self.assertIn("operations:\n  archive:\n    guidance:\n      -", config)
-        self.assertIn("After a change pull request merges", config)
-        self.assertIn("directly to main", config)
+        self.assertIn("After a verified merge, update a clean main checkout to origin/main", config)
+        self.assertIn("openspec archive <change-name> --json --yes", config)
+        self.assertIn("openspec validate --all --strict", config)
+        self.assertIn("Signed-off-by archive commit", config)
+        self.assertIn("Push main directly", config)
 
     def test_readme_and_site_require_the_global_pinned_cli(self):
         readme = README.read_text(encoding="utf-8")
