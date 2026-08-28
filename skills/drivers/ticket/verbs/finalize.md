@@ -16,32 +16,23 @@ the code host back to the tracker; this verb is that sync.
    b. Confirm the post-merge workflow succeeded (`gh run list` on the repo). If it
    failed, stop and report; the ticket is not done while the post-merge run is red.
 
-   c. Comment on the ticket (attribution first): the merged pull request link, a
-   one-line outcome, and the post-merge evidence.
+   c. **Archive an ordinary OpenSpec change after the verified merge.** Follow
+   `operations.archive.guidance` exactly. In this repository, start from a clean
+   `main` checkout updated to `origin/main`, run
+   `openspec archive <change-name> --json --yes`, verify its archive JSON, run
+   `openspec validate --all --strict`, create a Signed-off-by archive commit, push
+   `main` directly, and verify the post-push workflow succeeded. OpenSpec is
+   Git-unaware: this verb trusts the verified GitHub merge state and adds no
+   enforcement layer. An archive, validation, commit, push, or post-push workflow
+   failure stops finalization before the completion comment and done transition.
+   An epic child leaves archive ownership with the parent epic and creates no child
+   change record; it skips this ordinary-change archive procedure.
 
-   d. Move the ticket to done. Report a failed move; do not retry.
+   d. Comment on the ticket (attribution first): the merged pull request link, a
+   one-line outcome, the post-merge evidence, and, for an ordinary change, the
+   completed archive evidence.
 
-   e. Outside an epic, verify the change record landed in the ticket's last pull
-   request, per the skill page's change-record rule. Missed: flag it in the report
-   as sweep debt, never as a per-ticket follow-up pull request and never as a push
-   to an approved pull request. An epic child neither verifies a per-child change
-   record nor incurs sweep debt; the parent epic's existing change/archive flow is
-   its record.
-
-   f. Tear the worktree and branch down:
-
-   ```sh
-   <cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <worktree path>
-   git -C <control checkout> worktree remove <worktree path>
-   git -C <control checkout> branch -D <ticket branch>
-   git -C <control checkout> worktree prune
-   ```
-
-   A dirty worktree makes `worktree remove` fail. Report that and stop; never force
-   it. Then check the remote branch with
-   `git ls-remote --heads origin <ticket branch>` and delete it with
-   `git push origin --delete <ticket branch>` only if it is still there, since the
-   code host usually deletes it on merge.
+   e. Move the ticket to done. Report a failed move; do not retry.
 
 3. **Record the actuals.** On the merged path only. When record needs a target
    worktree, do this before cleanup; otherwise it may follow cleanup. Read the
@@ -132,11 +123,27 @@ the code host back to the tracker; this verb is that sync.
    advise carrying less in that session, with fewer review rounds held in its own
    context or a handoff between chunks, never more chunks.
 
-4. **Abandoned path** (pull request closed unmerged, or the work cancelled): comment
-   why, then on explicit user confirmation run the same teardown as step 2f. Never
+4. **Tear the worktree and branch down.** On the merged path only, after recording
+   actuals:
+
+   ```sh
+   <cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <worktree path>
+   git -C <control checkout> worktree remove <worktree path>
+   git -C <control checkout> branch -D <ticket branch>
+   git -C <control checkout> worktree prune
+   ```
+
+   A dirty worktree makes `worktree remove` fail. Report that and stop; never force
+   it. Then check the remote branch with
+   `git ls-remote --heads origin <ticket branch>` and delete it with
+   `git push origin --delete <ticket branch>` only if it is still there, since the
+   code host usually deletes it on merge.
+
+5. **Abandoned path** (pull request closed unmerged, or the work cancelled): comment
+   why, then on explicit user confirmation run the same teardown as step 4. Never
    pick this path without the user confirming. Move the ticket wherever the user
    says, and never pick the terminal state yourself.
 
-5. **Report.** The ticket's state, the comment link, the recorded verdict, and
-   anything left open (a red post-merge run, a missing change record, a surviving
-   branch or worktree).
+6. **Report.** The ticket's state, the comment link, the recorded verdict, and
+   anything left open (a red post-merge or post-push run, a failed archive, a
+   surviving branch or worktree).

@@ -7,6 +7,12 @@ This is the operator's path from an idea to merged code. The flow has two levels
 
 The primary contracts are [`epic`](../skills/drivers/epic/SKILL.md), [`ticket`](../skills/drivers/ticket/SKILL.md), and [`orchestrate`](../skills/drivers/orchestrate/SKILL.md). GitHub Issues are the reference tracker binding; see [`github-issues.md`](../skills/drivers/ticket/bindings/github-issues.md).
 
+## OpenSpec change lifecycle
+
+- **Before merge:** an ordinary ticket keeps its active change and deltas in the pull request for review; it does not fold or archive them.
+- **After merge:** `/ticket finalize` verifies the human merge and CI, follows `operations.archive.guidance`, verifies archive JSON and strict validation, commits and pushes the archive on `main`, then verifies post-push CI before it comments completion or moves the ticket to done.
+- **Epic children:** they create no child change and leave their parent epic's active change and archive ownership untouched.
+
 ## The map from idea to merge
 
 1. Start or resume an epic when the effort needs multiple sessions, decisions, spikes, or independently shippable builds.
@@ -18,7 +24,7 @@ The primary contracts are [`epic`](../skills/drivers/epic/SKILL.md), [`ticket`](
 7. A human reviews and merges the pull request after green CI and passed review. Agents do not merge, self-approve, or answer reviews outside `revise`.
 8. Run `/ticket finalize <id>` after the human merge. It verifies the post-merge workflow, comments the outcome, moves the ticket to done, records measured cost, and tears down the ticket worktree.
 
-An epic closes only after its live GitHub state proves that no spike child is open, every build child has a merged closing pull request or is closed `NOT_PLANNED`, and no deferred child remains open. After the human-merged work is verified, follow the repository's archive guidance for the active change and close the epic issue.
+An epic closes only after its live GitHub state proves that no spike child is open, every build child has a merged closing pull request or is closed `NOT_PLANNED`, and no deferred child remains open; then close the epic issue.
 
 ## One ticket in detail
 
@@ -55,7 +61,7 @@ The stamp is not only a model name. It records the execution shape, selected rev
 
 Run `/ticket start <id>` in a fresh session. It claims the session as the ticket's `coordinator`, locates the newest order, checks the model contract, reuses the triage worktree, moves the issue to in progress, and binds that worktree's Codebase Memory identity before reading code. A fresh session does not rely on triage memory. If the order no longer matches the repository or its chunks overlap, it stops for re-triage.
 
-The builder follows the order's `Do` section and repository rules. Before declaring readiness it probes external CLI or API surfaces, runs new tests against the pre-change behavior, proves boundary claims by execution, and sweeps affected paths after late fixes. It runs the order's verification command until its output matches the stated expectation. It records the repository's existing change convention on the same branch, except that an epic child does not create a per-child change record.
+The builder follows the order's `Do` section and repository rules. Before declaring readiness it probes external CLI or API surfaces, runs new tests against the pre-change behavior, proves boundary claims by execution, and sweeps affected paths after late fixes. It runs the order's verification command until its output matches the stated expectation. It records the repository's existing change convention on the same branch.
 
 ### Review
 
@@ -78,8 +84,6 @@ Under `Profile: hardening`, `start` runs `/clean` and the repository's `Harden:`
 
 ### Ship
 
-The builder folds the change record into the baseline in the order's last pull request when the repository convention requires it. This happens before opening or marking the pull request ready, because a post-approval push invalidates approval.
-
 It opens the pull request against the default branch with the repository or organization template when available. The body contains what changed, the verification output, and the ticket link. It then moves the issue to pending review and comments the pull request link. UI work also carries the required mock-versus-build or base-versus-revision evidence and its corresponding ledger. Missing lifecycle evidence blocks the handoff.
 
 Opening the pull request ends `start`. Human merge is the boundary.
@@ -88,7 +92,7 @@ Opening the pull request ends `start`. Human merge is the boundary.
 
 Run `/ticket revise <id>` for one round on an open pull request. It reloads the ticket, order, pull request reviews, and checks; reuses or respins the correct worktree; collects every unresolved comment and failure; fixes only grounded items within the order; re-verifies; re-audits; rebases once onto the current base; pushes the same branch; and responds to addressed pull request comments. It does not revise an already merged or closed pull request.
 
-After a human merge, run `/ticket finalize <id>`. It verifies `mergedAt` and the post-merge workflow, posts the merge outcome, moves the issue to done, checks the change record outside an epic, tears down the worktree and branch, and records actual session cost. The cost verdict can identify a good slice, under-slicing, over-slicing, degraded chunks, degraded coordination, missing data, or unreadable transcripts. Under- or over-slicing produces an amendment proposal for the rubric; the skill does not silently edit the rubric.
+After a human merge, run `/ticket finalize <id>`. It performs the applicable OpenSpec lifecycle above, then tears down the worktree and branch and records actual session cost. The cost verdict can identify a good slice, under-slicing, over-slicing, degraded chunks, degraded coordination, missing data, or unreadable transcripts. Under- or over-slicing produces an amendment proposal for the rubric; the skill does not silently edit the rubric.
 
 ## Delegated execution and waves
 
@@ -167,7 +171,7 @@ The procedures automatically claim sessions, cut or reuse worktrees, bind graph 
 - A stale or overlapping target is a preflight failure. Refresh from the origin default-branch tip and re-triage when the order no longer matches the tree.
 - A model or effort mismatch is a launch failure. Compare the session's actual model and confirmed effort to the stamped `Session fit` or `Open as` line.
 - A review dispute is resolved against the order's `Done when` clause, the stamped depth, and the cited repository rule. Reopen scope only when evidence changes a settled risk assumption.
-- A failed post-merge workflow blocks finalization. A missing change record is sweep debt outside an epic, not a push onto an approved pull request.
+- A failed post-merge workflow blocks finalization. For ordinary OpenSpec changes, an archive, validation, commit, push, or post-push-CI failure also blocks finalization before completion is posted or the ticket moves to done.
 - A finalize verdict of under-sliced, over-sliced, or still-degraded calls for a proposed amendment to `references/slicing.md`; `finalize` does not edit that rubric itself.
 
 For complete mechanics, start with [`ticket/SKILL.md`](../skills/drivers/ticket/SKILL.md), then the verb page for the current phase. For orchestration, read [`orchestrate/SKILL.md`](../skills/drivers/orchestrate/SKILL.md) and its routing references. For planning objections, read [`plan-review/SKILL.md`](../skills/tools/plan-review/SKILL.md).
