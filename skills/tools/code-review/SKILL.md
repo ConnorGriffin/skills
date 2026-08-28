@@ -198,6 +198,11 @@ prompt. The prompt must say that the reviewer must not modify, patch, or stash. 
 receives the positional prompt with inherited stdin closed; Claude adapter receives
 the positional prompt and delivers it to the child on stdin.
 
+When a verdict depends on rendered evidence, include every required image in each
+relevant Codex axis invocation with the repeated `--image` option required by
+orchestrate's reviewer-routing contract. Do not substitute prompt text containing
+image paths for actual attachments.
+
 Create one coordinator-owned `<review-state-dir>` and use deterministic state paths
 `<review-state-dir>/standards.json` and `<review-state-dir>/spec.json`. Capture each
 axis's launcher stdout and stderr separately in `standards.stdout`, `standards.stderr`,
