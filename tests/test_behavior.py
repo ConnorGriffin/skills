@@ -3995,6 +3995,22 @@ class ValidatorRegressionTests(unittest.TestCase):
             self.assertEqual(passing.returncode, 0, passing.stderr)
 
 
+class OpenSpecCiContractTests(unittest.TestCase):
+    WORKFLOW = ROOT / ".github" / "workflows" / "validate.yml"
+
+    def test_ci_installs_the_pinned_openspec_cli(self):
+        workflow = self.WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn("actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020", workflow)
+        self.assertIn('node-version: "20.19.0"', workflow)
+        self.assertIn("npm install --global @fission-ai/openspec@1.11.0", workflow)
+
+    def test_ci_strictly_validates_every_openspec_artifact(self):
+        workflow = self.WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn("openspec validate --all --strict", workflow)
+
+
 
 
 class DriveLocalWebappSandboxRecoveryTests(unittest.TestCase):
