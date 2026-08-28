@@ -87,18 +87,30 @@ whether npx is supported remains unconfirmed and is not assumed here.
 ## ADR 218 — Migrate the OpenSpec tree through v1.x initialization
 
 Replace the pre-1.0 legacy `openspec/AGENTS.md` and `project.md` practice with
-the v1.x tree produced by `openspec init`: `openspec/config.yaml` plus the
-tool-generated skills `openspec-apply-change`, `openspec-archive-change`,
-`openspec-bulk-archive-change`, `openspec-continue-change`,
-`openspec-explore`, `openspec-ff-change`, `openspec-new-change`,
-`openspec-onboard`, `openspec-propose`, `openspec-sync-specs`,
-`openspec-update-change`, and `openspec-verify-change`. Migrate useful
-`project.md` context manually into `config.yaml`; init removes
-`openspec/AGENTS.md` but leaves `project.md` for that manual migration.
+the v1.x tree produced by `openspec init`, whose core artifact is
+`openspec/config.yaml`. Init can also generate twelve per-tool agent skills
+(`openspec-propose`, `openspec-apply-change`, `openspec-archive-change`,
+`openspec-explore`, and the rest of that set); this repository declines them,
+for the reason recorded below. Migrate useful `project.md` context manually
+into `config.yaml`; init removes `openspec/AGENTS.md` but leaves `project.md`
+for that manual migration.
+
+The migration runs `openspec init --tools none`. The CLI is adopted for its
+deterministic checks, `validate --strict` and `archive`, not for its agent
+workflow. Generating the twelve skills would install a second planning
+lifecycle (`/opsx:propose`, `apply`, `archive`) that duplicates what the pack's
+own `ticket` and `epic` drivers already do against the same repository, and a
+duplicated lifecycle is a maintenance liability rather than a convenience.
 
 ### Consequences
 
-Select a tool, or select none, during migration. A selected tool's generated
-skills are untracked, per-machine artifacts under the ignored tool directory;
-contributors regenerate them with `openspec update`. They are not vendored
-pack skills and do not conflict with the pinned-copy hazard.
+`openspec/config.yaml` is the only artifact the migration adds. No `.claude/`,
+`.codex/`, or root `AGENTS.md` content is generated, so no tracked file gains a
+tool marker block and no per-machine artifact needs ignoring. `.claude/` and
+`.agents/` are already ignored, but `.codex/` is not, so selecting a tool later
+would require a `.gitignore` change first.
+
+Agents continue to learn this repository's OpenSpec practice from its own
+instructions and from `config.yaml`'s `context:` and `rules:` fields, which the
+CLI injects into every planning request. Adopting the generated skills later
+remains available and reversible; it is a `--tools` value, not a migration.
