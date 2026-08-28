@@ -92,7 +92,7 @@ Opening the pull request ends `start`. Human merge is the boundary.
 
 Run `/ticket revise <id>` for one round on an open pull request. It reloads the ticket, order, pull request reviews, and checks; reuses or respins the correct worktree; collects every unresolved comment and failure; fixes only grounded items within the order; re-verifies; re-audits; rebases once onto the current base; pushes the same branch; and responds to addressed pull request comments. It does not revise an already merged or closed pull request.
 
-After a human merge, run `/ticket finalize <id>`. It performs the applicable OpenSpec lifecycle above, then tears down the worktree and branch and records actual session cost. The cost verdict can identify a good slice, under-slicing, over-slicing, degraded chunks, degraded coordination, missing data, or unreadable transcripts. Under- or over-slicing produces an amendment proposal for the rubric; the skill does not silently edit the rubric.
+After a human merge, run `/ticket finalize <id>`. It performs the applicable OpenSpec lifecycle above, then records actual session cost and tears down the worktree and branch. The cost verdict can identify a good slice, under-slicing, over-slicing, degraded chunks, degraded coordination, missing data, or unreadable transcripts. Under- or over-slicing produces an amendment proposal for the rubric; the skill does not silently edit the rubric.
 
 ## Delegated execution and waves
 

@@ -56,7 +56,7 @@ the code host back to the tracker; this verb is that sync.
      --project <target-worktree>
    ```
 
-   Record before removing that target worktree in step 2f, so its repository
+   Record before removing that target worktree in step 4, so its repository
    identity is still available to the helper.
 
    The helper appends one record under `~/.config/ticket/` and returns one verdict.
