@@ -1,0 +1,14 @@
+schema: spec-driven
+
+context: |
+  This repository is Connor Griffin's public, portable skill pack for coding agents.
+  Skill sources live at skills/<category>/<name>/, where <category> is drivers, tools, or workflows.
+  Keep the pack usable with stock Python 3 and Node 20; the browser driver's development setup is the sanctioned dependency exception.
+  scripts/validate.py is the structural gate for skill layout, metadata, links, and forbidden patterns.
+
+rules:
+  proposal:
+    - Preserve the pack's stock Python 3 and Node 20 portability.
+    - Identify affected source skills by their skills/<category>/<name>/ paths, not generated copies.
+  tasks:
+    - For changes to pack behavior, name scripts/validate.py and the applicable tests in the verification steps.
