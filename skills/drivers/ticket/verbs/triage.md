@@ -4,7 +4,8 @@ Turn a ticket into a locked work order, or establish why it cannot be one yet.
 Runs in the ticket's worktree. Outside an epic it writes the tracker and the
 applicable scope and spec documents there. An **epic child** writes only its work
 order to the tracker; its review instrumentation is untracked session scratch outside
-the branch, and its change record already belongs to the parent epic.
+the branch, and its parent epic keeps the active change record through its own
+post-merge archive.
 
 ## Procedure
 
