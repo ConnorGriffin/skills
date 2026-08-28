@@ -45,6 +45,15 @@ Shared specs advance only for merged work. Until this change specifies an
 automation or other enforcement mechanism, a human must remember to archive;
 the archive command does not establish that responsibility itself.
 
+State that repository convention once, as `openspec/config.yaml` advisory
+guidance under `operations.archive`. OpenSpec defines that field for
+operation-specific repository guidance, while its team workflow recommends
+post-merge archive but deliberately leaves Git timing unenforced. Skills may
+tell an adopter to configure the operation; they do not retain parallel copies
+of this repository's timing rule. The convention remains human-enforced: no
+hook, workflow, or agent guard pretends that the Git-unaware CLI can prove the
+merge boundary.
+
 ## ADR 218 — Design files carry new ADRs
 
 Record new load-bearing decisions in each OpenSpec change's `design.md` under
@@ -70,6 +79,18 @@ in the `epic` skill.
 
 An epic retains tracker-native child ownership while OpenSpec retains the
 single checked-in implementation checklist and change history.
+
+The useful ledger concerns move to their vanilla authorities instead of into a
+replacement index. Unsettled questions live under `Open Questions` in the
+epic's `design.md`; task drafting resolves any question that could change the
+build, and a precise investigation becomes a tracker spike when it needs
+independent work. Durable decisions remain in `design.md`; child type, status,
+dependencies, and deferral remain in the tracker; the checked implementation
+sequence and child links remain in `tasks.md`; session cost remains ticket
+telemetry. The ledger's derived status line, pointer-only notes, duplicated
+child summaries, and round narrative are dropped because those facts already
+have authoritative homes. This is the deliberate replacement for `Fog`, not a
+new ledger under another name.
 
 ## ADR 218 — The OpenSpec CLI is repository tooling, not pack runtime
 
