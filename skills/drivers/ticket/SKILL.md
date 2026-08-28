@@ -49,10 +49,11 @@ model dispatch.
   opens the pull request, and stops. Agents never merge.
 * `revise` actions one review round on the open pull request: reload the ticket
   and the order, fix, re-verify, push.
-* `finalize` runs after a human merged: close the ticket with a comment linking
-  the pull request, tear the worktree down, and record what the ticket actually
-  cost in context, so the slicing rubric is tuned against measured numbers rather
-  than intuition.
+* `finalize` runs after a human merged: verify the merge and post-merge workflow,
+  complete the repository's post-merge archive guidance for an ordinary OpenSpec
+  change, then close the ticket with a comment linking the pull request, record
+  what the ticket actually cost in context, and tear the worktree down, so the
+  slicing rubric is tuned against measured numbers rather than intuition.
 
 ## The tracker contract
 

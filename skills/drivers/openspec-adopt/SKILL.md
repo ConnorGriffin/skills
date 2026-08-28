@@ -21,7 +21,9 @@ One-time OpenSpec adoption for a repo. Scaffolds the documentation baseline befo
 
 6. **Write baseline specs.** For each domain, `specs/<domain>/spec.md` describing current behavior and contracts: what exists, what invariants hold, what other systems depend on. Ground every claim in code you read or history you checked; a baseline is worthless if it guesses. Reference concrete files only where the file is the contract (a schema, a versions manifest).
 
-7. **Deliver as a PR.** Branch, commit the initialized tree and baselines, `gh pr create`, documentation-only, no code changes. The PR body states the baseline is a starting point and invites corrections from the people who know the system.
+7. **Validate the result.** Run `openspec validate --all --strict` at the target repository root and fix every reported issue; do not deliver a baseline the CLI rejects.
+
+8. **Deliver as a PR.** Branch, commit the initialized tree and baselines, `gh pr create`, documentation-only, no code changes. The PR body states the baseline is a starting point and invites corrections from the people who know the system.
 
 ## Rules
 

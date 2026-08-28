@@ -1,5 +1,9 @@
 # Scope ledger — issue 142 epic skill content
 
+> Historical record. The epic ledger, planning worktree, and standing planning
+> pull request this document describes were retired by #228; the epic's OpenSpec
+> `proposal.md`, `design.md`, and `tasks.md` now hold durable planning state.
+
 ## Decisions
 
 - A deferred child receives its `spike` or `build` type label when it is filed,

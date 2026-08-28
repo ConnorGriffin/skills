@@ -22,7 +22,7 @@ The primary contracts are [`epic`](../skills/drivers/epic/SKILL.md), [`ticket`](
 5. Run `/ticket start <id>` in a fresh session. It executes the work order, verifies the result, reviews the change, and opens the pull request.
 6. Run `/ticket revise <id>` once per review round when the open pull request needs changes. It reloads the order, fixes and verifies the round, rebases once, and pushes the same branch.
 7. A human reviews and merges the pull request after green CI and passed review. Agents do not merge, self-approve, or answer reviews outside `revise`.
-8. Run `/ticket finalize <id>` after the human merge. It verifies the post-merge workflow, comments the outcome, moves the ticket to done, records measured cost, and tears down the ticket worktree.
+8. Run `/ticket finalize <id>` after the human merge. It verifies the post-merge workflow, completes the repository's post-merge archive guidance for an ordinary OpenSpec change, comments the outcome, moves the ticket to done, records measured cost, and tears down the ticket worktree.
 
 An epic closes only after its live GitHub state proves that no spike child is open, every build child has a merged closing pull request or is closed `NOT_PLANNED`, and no deferred child remains open; then close the epic issue.
 
