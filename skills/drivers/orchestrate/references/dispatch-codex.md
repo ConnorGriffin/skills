@@ -13,6 +13,13 @@ control checkout. Persist one state file per worker. Use `resume` with that
 state file for retry findings and ordinary follow-ups; it restores the captured
 model, sandbox, and canonical cwd rather than taking replacements.
 
+When the worker must judge rendered evidence, pass every evidence image as a
+repeated `--image /absolute/path/to/file` argument on `start`. A path mentioned
+only in the prompt is not an attachment. `resume` accepts the same repeated
+option when a follow-up introduces new or revised evidence. Do not dispatch a
+rendered-evidence review until the selected model accepts image input and every
+image the verdict depends on is attached.
+
 The helper closes a worker's stdin itself. Any hand-rolled background `codex
 exec` must redirect stdin from /dev/null (or pipe a prompt deliberately and let
 it reach EOF): an inherited open stdin is a permanent pre-session hang, because
@@ -106,12 +113,14 @@ in-session retry fails. At Sol, stop and surface. This exception changes no
 benchmarked ladder.
 
 Review admissions are owned by [`review-routing.md`](review-routing.md). Its
-matrix assumes a Claude parent and does not route for this Codex UI parent;
-follow the Codex parent's own session policy instead of treating review as a
-generic admission above.
+matrix includes the Codex UI parent's routine routes and explicit-operator
+exception; do not treat review as a generic admission above.
 
 Field-derived provenance (source: #130; **field-validated (provisional)**):
-Codex-only load-bearing review remains **NO_VALIDATED_ROUTE**. Review whose
-evidence is rendered output has no Codex-only route at any depth; surface it to
-the operator for a vision-capable reviewer. `review-routing.md` remains the
-sole authority for review precedence.
+Codex-only load-bearing review remains **NO_VALIDATED_ROUTE** by default. An
+operator may explicitly choose the unvalidated Codex exception in
+`review-routing.md`; label the resulting review unvalidated rather than
+silently promoting it into the benchmark table. Rendered evidence is a transport
+constraint, not a model-family ban: use the adapter's `--image` arguments and
+require image-input support from the selected model. `review-routing.md` remains
+the sole authority for review precedence.

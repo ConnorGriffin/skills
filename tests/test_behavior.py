@@ -2448,6 +2448,47 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertIn("model_reasoning_effort=high", argv)
         self.assertEqual(json.loads(result.stdout)["effort"], "high")
 
+    def test_codex_start_attaches_each_image_through_the_cli_interface(self):
+        first = self.scratch / "before.png"
+        second = self.scratch / "after.png"
+        first.write_bytes(b"before")
+        second.write_bytes(b"after")
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+
+        result = self.run_codex(
+            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--model", "Luna", "--sandbox", "read-only", "--cwd", str(self.worktree),
+            "--image", str(first), "--image", str(second), "review the renders",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertEqual(argv.count("--image"), 2)
+        self.assertIn(str(first.resolve()), argv)
+        self.assertIn(str(second.resolve()), argv)
+
+    def test_codex_resume_can_attach_revised_evidence(self):
+        image = self.scratch / "revised.png"
+        image.write_bytes(b"revised")
+        legacy = {
+            "version": LIFECYCLE_MODULE.STATE_VERSION, "lifecycle": "exited",
+            "session_id": "worker-1", "model": "Luna", "sandbox": "read-only",
+            "cwd": str(self.worktree.resolve()),
+            "family_semantics": "unsupported", "generation": 1,
+        }
+        self.state.write_text(json.dumps(legacy), encoding="utf-8")
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+
+        result = self.run_codex(
+            "resume", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--image", str(image), "review the revision",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn("--image", argv)
+        self.assertIn(str(image.resolve()), argv)
+
     # --- claude-worker.py -------------------------------------------------
 
     def test_claude_start_puts_prompt_on_stdin_not_argv(self):
@@ -4830,7 +4871,9 @@ class LiveProseContractTests(unittest.TestCase):
         dispatch = (ROOT / "skills/drivers/orchestrate/references/dispatch-codex.md").read_text(encoding="utf-8")
         normalized_routing = " ".join(routing.split())
         self.assertIn("sole live authority for reviewer classification", normalized_routing)
-        self.assertIn("A Codex parent follows its own session policy", normalized_routing)
+        self.assertIn("For a Codex UI parent, routine `code-review` uses Luna", normalized_routing)
+        self.assertIn("explicitly directs the workflow to use Codex anyway", normalized_routing)
+        self.assertIn("codex-worker.py --image", normalized_routing)
         self.assertIn("cannot switch to Claude workers", dispatch)
         self.assertIn("headroom at or below 5%", dispatch)
 
@@ -4855,11 +4898,12 @@ class FieldRoutingFindingsContractTests(unittest.TestCase):
         self.assertIn("field-validated (provisional)", table)
         self.assertIn("may not displace a benchmarked route's ordering", table)
 
-    def test_render_evidence_requires_a_vision_capable_reviewer(self):
+    def test_render_evidence_requires_capability_and_transport(self):
         table = self.ROUTING_TABLE.read_text(encoding="utf-8")
 
-        self.assertIn("Any review whose evidence is rendered output needs a vision-capable reviewer", table)
-        self.assertIn("Codex-family reviewers cannot", table)
+        self.assertIn("require an image-capable reviewer", table)
+        self.assertIn("codex-worker.py --image", table)
+        self.assertNotIn("Codex-family reviewers cannot", table)
 
     def test_executable_evidence_repairs_route_on_execution_access(self):
         table = self.ROUTING_TABLE.read_text(encoding="utf-8")

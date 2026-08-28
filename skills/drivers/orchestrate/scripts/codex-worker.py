@@ -82,6 +82,17 @@ def effort_of(state: dict[str, Any]) -> str:
     return state.get("effort", DEFAULT_EFFORT)
 
 
+def existing_file(value: str) -> Path:
+    path = Path(value).resolve(strict=True)
+    if not path.is_file():
+        raise argparse.ArgumentTypeError("must be an existing file")
+    return path
+
+
+def image_arguments(paths: list[Path]) -> list[str]:
+    return [value for path in paths for value in ("--image", str(path))]
+
+
 def parse(output: str) -> tuple[str | None, str | None, Any, str | None]:
     items, error = parse_jsonl(output)
     if error:
@@ -108,7 +119,7 @@ def start(args: argparse.Namespace) -> int:
         return fail(error)
     assert state is not None
     effort = effort_of(state)
-    command = [args.codex, "exec", "-m", args.model, "-c", f"model_reasoning_effort={effort}", "--sandbox", args.sandbox, "--skip-git-repo-check", "-C", str(args.cwd), "--json", args.prompt]
+    command = [args.codex, "exec", "-m", args.model, "-c", f"model_reasoning_effort={effort}", "--sandbox", args.sandbox, "--skip-git-repo-check", "-C", str(args.cwd), "--json", *image_arguments(getattr(args, "image", [])), args.prompt]
     return lifecycle.run_lifecycle(
         args, command, state, parse=parse, emit=emit, fail=fail,
         stdin_text=None, effort_levels=EFFORT_LEVELS,
@@ -123,7 +134,7 @@ def resume(args: argparse.Namespace) -> int:
         return fail(error)
     assert fresh is not None and expected is not None
     effort = effort_of(fresh)
-    command = [args.codex, "exec", "resume", fresh["session_id"], "-m", fresh["model"], "-c", f'sandbox_mode="{fresh["sandbox"]}"', "-c", f"model_reasoning_effort={effort}", "--skip-git-repo-check", "--json", args.prompt]
+    command = [args.codex, "exec", "resume", fresh["session_id"], "-m", fresh["model"], "-c", f'sandbox_mode="{fresh["sandbox"]}"', "-c", f"model_reasoning_effort={effort}", "--skip-git-repo-check", "--json", *image_arguments(getattr(args, "image", [])), args.prompt]
     return lifecycle.run_lifecycle(
         args, command, fresh, expected=expected, parse=parse, emit=emit, fail=fail,
         stdin_text=None, effort_levels=EFFORT_LEVELS,
@@ -146,6 +157,7 @@ def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--codex", default="codex")
     common.add_argument("--state", type=Path, required=True)
+    common.add_argument("--image", action="append", default=[], type=existing_file)
     common.add_argument("prompt", nargs="?")
     start_parser = commands.add_parser("start", parents=[common]); start_parser.add_argument("--model", required=True); start_parser.add_argument("--sandbox", choices=("read-only", "workspace-write"), required=True); start_parser.add_argument("--effort", default=DEFAULT_EFFORT); start_parser.add_argument("--cwd", type=lifecycle.resolved_directory, required=True); start_parser.add_argument("--control-checkout", type=lifecycle.resolved_directory); start_parser.set_defaults(handler=start)
     resume_parser = commands.add_parser("resume", parents=[common]); resume_parser.set_defaults(handler=resume)
