@@ -42,34 +42,6 @@ session scratch and rely on its parent epic and stamped work order.
 - **THEN** its specialist uses untracked session scratch and creates no child
   scope ledger or `docs/scope` artifact
 
-### Requirement: Epic authority and labels
-
-An Epic MUST use its OpenSpec proposal and design as the durable destination,
-scope, risk, and decision authority; native tracker children as its work units;
-and the independent `epic`, `spike`, `build`, and `deferred` labels as its type
-protocol. Live tracker state MUST win over the Epic's derived ledger.
-
-#### Scenario: The ledger disagrees with a child issue
-
-- **WHEN** an Epic home session reads a child whose live state or labels differ
-  from its ledger line
-- **THEN** the live tracker state governs and the home session updates the derived
-  ledger rather than treating the ledger as authoritative
-
-### Requirement: Epic planning lifecycle
-
-The Epic home session MUST be the sole writer of the derived ledger on its
-standing draft planning pull request, MUST admit a build only when no open spike
-or fog can invalidate it, and MUST verify completion from live child and merge
-state before archiving and closing the Epic.
-
-#### Scenario: An Epic is ready for close-out
-
-- **WHEN** no spike child is open, every build child is merged or closed not
-  planned, and no open deferred child remains
-- **THEN** the home session may prepare the final ledger-and-archive change and
-  wait for human merge before closing the Epic
-
 ### Requirement: Review routing and containment
 
 `/review` MUST classify a review subject and route it to exactly one registered
@@ -113,3 +85,48 @@ become the home for new decisions in that repository.
   the session
 - **THEN** the decision is recorded in that change's `design.md` and no parallel
   sequential or new `docs/adr/` record is created
+
+### Requirement: Epic OpenSpec authority
+
+An Epic MUST use its OpenSpec proposal, design, and tasks as the durable
+destination, scope, risk, decision, and implementation-sequence authority:
+`tasks.md` links every tracker child issue in checked implementation order.
+Native tracker children remain its work units under the independent `epic`,
+`spike`, `build`, and `deferred` type labels, and live tracker state MUST be
+authoritative for child type, status, dependencies, deferral, and closing pull
+requests. The Epic MUST NOT maintain a derived ledger or other parallel index
+of tracker state.
+
+#### Scenario: Planning state is read in a fresh session
+
+- **WHEN** an Epic home session resumes and needs current planning and child
+  state
+- **THEN** it reads the active change's proposal, design, and tasks for durable
+  planning and live tracker state for child work state, with no derived ledger
+  to reconcile
+
+### Requirement: Epic lifecycle without a ledger
+
+The Epic home session MUST keep the active change coherent from planning
+altitude without a dedicated planning worktree or standing planning pull
+request. Imprecise concerns MUST be kept as named open questions in the
+change's `design.md`, cleared only by recording a decision there or promoting
+the question to a tracker spike, and a build MUST NOT be admitted while an open
+spike or named open question can invalidate its outcome, constraints, or
+acceptance criteria. Completion MUST be verified from live child and merge
+state, after which close-out follows the repository's archive guidance for the
+active change.
+
+#### Scenario: An imprecise concern arrives during planning
+
+- **WHEN** the home session captures a concern too imprecise to ticket
+- **THEN** it records a named open question in `design.md` and clears it only
+  through a recorded decision or a promoted spike, never by silent deletion
+
+#### Scenario: An Epic is ready for close-out
+
+- **WHEN** no spike child is open, every build child is merged or closed not
+  planned, and no open deferred child remains
+- **THEN** the home session verifies those predicates from live tracker state,
+  follows the repository's archive guidance for the active change after the
+  human-merged work is verified, and closes the Epic issue
