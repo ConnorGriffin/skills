@@ -4011,6 +4011,60 @@ class OpenSpecCiContractTests(unittest.TestCase):
         self.assertIn("openspec validate --all --strict", workflow)
 
 
+class OpenSpecAdoptionContractTests(unittest.TestCase):
+    ADOPTION = ROOT / "skills" / "drivers" / "openspec-adopt" / "SKILL.md"
+    ADR_FORMAT = ROOT / "skills" / "tools" / "domain-modeling" / "references" / "ADR-FORMAT.md"
+    CHARTER = ROOT / "profile" / "CHARTER.md"
+    CONFIG = ROOT / "openspec" / "config.yaml"
+
+    def test_adoption_requires_the_pinned_cli_and_v1_initialization(self):
+        adoption = self.ADOPTION.read_text(encoding="utf-8")
+
+        self.assertIn("@fission-ai/openspec@1.11.0", adoption)
+        self.assertIn("openspec init --tools none", adoption)
+        self.assertIn("stop visibly", adoption)
+        self.assertNotIn("npx openspec", adoption)
+        self.assertNotIn("by hand", adoption)
+        self.assertIn("Do not add generated agent integrations", adoption)
+        self.assertIn("`openspec/AGENTS.md`", adoption)
+        self.assertIn("`openspec/project.md`", adoption)
+
+    def test_adoption_keeps_baselines_and_makes_archive_guidance_local(self):
+        adoption = self.ADOPTION.read_text(encoding="utf-8")
+        config = self.CONFIG.read_text(encoding="utf-8")
+
+        self.assertIn("specs/<domain>/spec.md", adoption)
+        self.assertIn("operations.archive.guidance", adoption)
+        self.assertNotIn("archived in the pull request", adoption)
+        self.assertIn("operations:\n  archive:\n    guidance:\n      -", config)
+        self.assertIn("After a change pull request merges", config)
+        self.assertIn("directly to main", config)
+
+    def test_readme_and_site_require_the_global_pinned_cli(self):
+        readme = README.read_text(encoding="utf-8")
+        relationships = (ROOT / "site" / "relationships.py").read_text(encoding="utf-8")
+
+        readme_entry = next(line for line in readme.splitlines() if "openspec-adopt" in line)
+        relationships_entry = next(
+            line for line in relationships.splitlines() if '"openspec-adopt"' in line
+        )
+        self.assertIn("@fission-ai/openspec@1.11.0", readme_entry)
+        self.assertIn("@fission-ai/openspec@1.11.0", relationships_entry)
+        self.assertNotIn("npx openspec", readme)
+        self.assertNotIn("npx openspec", relationships)
+
+    def test_active_openspec_changes_are_the_single_adr_home(self):
+        charter = self.CHARTER.read_text(encoding="utf-8")
+        adr_format = self.ADR_FORMAT.read_text(encoding="utf-8")
+
+        for surface in (charter, adr_format):
+            self.assertIn("active OpenSpec changes", surface)
+            self.assertIn("design.md", surface)
+            self.assertIn("frozen legacy history", surface)
+            self.assertIn("Without active OpenSpec changes", surface)
+            self.assertNotIn("established `docs/adr/` tree wins", surface)
+
+
 
 
 class DriveLocalWebappSandboxRecoveryTests(unittest.TestCase):
