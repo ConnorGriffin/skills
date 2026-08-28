@@ -49,10 +49,11 @@ model dispatch.
   opens the pull request, and stops. Agents never merge.
 * `revise` actions one review round on the open pull request: reload the ticket
   and the order, fix, re-verify, push.
-* `finalize` runs after a human merged: close the ticket with a comment linking
-  the pull request, tear the worktree down, and record what the ticket actually
-  cost in context, so the slicing rubric is tuned against measured numbers rather
-  than intuition.
+* `finalize` runs after a human merged: verify the merge and post-merge workflow,
+  complete the repository's post-merge archive guidance for an ordinary OpenSpec
+  change, then close the ticket with a comment linking the pull request, record
+  what the ticket actually cost in context, and tear the worktree down, so the
+  slicing rubric is tuned against measured numbers rather than intuition.
 
 ## The tracker contract
 
@@ -127,7 +128,8 @@ This authority covers triage's mandatory `/plan-review` and start/revise's `/rev
    reuse them; `finalize` tears them down. The first repository action after the
    summary-and-claim opening, before grounding or any repo read, is to cut or
    reuse the ticket's worktree. Outside an epic child, grounding, scope ledgers, and
-   change records all happen and get committed there; an epic child keeps its
+   the active change record are written and committed there; post-merge archiving
+   follows `operations.archive.guidance` on `main`. An epic child keeps its
    instrumentation in session scratch and relies on its parent record. The control checkout may be dirty, stale, or
    on another branch: its working tree is never read or written, and it never
    switches branches. Never commit, stash, move, or clean its files, and never
@@ -243,18 +245,20 @@ want of it.
 
 The skill records the change where the target repo already records changes.
 
-An **epic child** neither creates, folds, revises, records, nor incurs sweep debt
-for a per-child change record. Its parent epic's existing change/archive flow is
-the record, including its already-settled baseline timing and standing planning
-pull-request contents.
+An **epic child** creates, revises, and records no per-child change record. Its
+parent epic owns the active change and its post-merge archive; the child leaves
+that change active and records no child change.
 
 Outside an epic, follow this per-ticket rule:
 
 1. The repo has an OpenSpec layout (`openspec/`): write the change folder on the
    ticket branch (`proposal.md`, `tasks.md`, and `design.md` when the work
-   embodies a real decision), and fold it into the baseline in the order's last
-   pull request. `/openspec-adopt`, when it is installed, is what adopts OpenSpec
-   in a repo that lacks it. OpenSpec is the worked example, never a requirement.
+   embodies a real decision). Start and revise keep the active change and its
+   deltas reviewable in the ticket pull request; they do not fold or archive it
+   before merge. The repository's `operations.archive.guidance` determines when
+   finalization archives a verified merge. `/openspec-adopt`, when it is installed,
+   is what adopts OpenSpec in a repo that lacks it. OpenSpec is the worked example,
+   never a requirement.
 2. The repo has a different convention (a changelog, a decision-record tree, a
    design log): follow that convention exactly as the repo already uses it.
 3. The repo has no convention: write down what changed and why, where that repo's

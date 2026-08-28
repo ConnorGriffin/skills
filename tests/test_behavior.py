@@ -3995,6 +3995,79 @@ class ValidatorRegressionTests(unittest.TestCase):
             self.assertEqual(passing.returncode, 0, passing.stderr)
 
 
+class OpenSpecCiContractTests(unittest.TestCase):
+    WORKFLOW = ROOT / ".github" / "workflows" / "validate.yml"
+
+    def test_ci_installs_the_pinned_openspec_cli(self):
+        workflow = self.WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn("actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020", workflow)
+        self.assertIn('node-version: "20.19.0"', workflow)
+        self.assertIn("npm install --global @fission-ai/openspec@1.11.0", workflow)
+
+    def test_ci_strictly_validates_every_openspec_artifact(self):
+        workflow = self.WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn("openspec validate --all --strict", workflow)
+
+
+class OpenSpecAdoptionContractTests(unittest.TestCase):
+    ADOPTION = ROOT / "skills" / "drivers" / "openspec-adopt" / "SKILL.md"
+    ADR_FORMAT = ROOT / "skills" / "tools" / "domain-modeling" / "references" / "ADR-FORMAT.md"
+    CHARTER = ROOT / "profile" / "CHARTER.md"
+    CONFIG = ROOT / "openspec" / "config.yaml"
+
+    def test_adoption_requires_the_pinned_cli_and_v1_initialization(self):
+        adoption = self.ADOPTION.read_text(encoding="utf-8")
+
+        self.assertIn("@fission-ai/openspec@1.11.0", adoption)
+        self.assertIn("openspec init --tools none", adoption)
+        self.assertIn("stop visibly", adoption)
+        self.assertNotIn("npx openspec", adoption)
+        self.assertNotIn("by hand", adoption)
+        self.assertIn("Do not add generated agent integrations", adoption)
+        self.assertIn("`openspec/AGENTS.md`", adoption)
+        self.assertIn("`openspec/project.md`", adoption)
+
+    def test_adoption_keeps_baselines_and_makes_archive_guidance_local(self):
+        adoption = self.ADOPTION.read_text(encoding="utf-8")
+        config = self.CONFIG.read_text(encoding="utf-8")
+
+        self.assertIn("specs/<domain>/spec.md", adoption)
+        self.assertIn("operations.archive.guidance", adoption)
+        self.assertNotIn("archived in the pull request", adoption)
+        self.assertIn("operations:\n  archive:\n    guidance:\n      -", config)
+        self.assertIn("After a verified merge, update a clean main checkout to origin/main", config)
+        self.assertIn("openspec archive <change-name> --json --yes", config)
+        self.assertIn("openspec validate --all --strict", config)
+        self.assertIn("Signed-off-by archive commit", config)
+        self.assertIn("Push main directly", config)
+
+    def test_readme_and_site_require_the_global_pinned_cli(self):
+        readme = README.read_text(encoding="utf-8")
+        relationships = (ROOT / "site" / "relationships.py").read_text(encoding="utf-8")
+
+        readme_entry = next(line for line in readme.splitlines() if "openspec-adopt" in line)
+        relationships_entry = next(
+            line for line in relationships.splitlines() if '"openspec-adopt"' in line
+        )
+        self.assertIn("@fission-ai/openspec@1.11.0", readme_entry)
+        self.assertIn("@fission-ai/openspec@1.11.0", relationships_entry)
+        self.assertNotIn("npx openspec", readme)
+        self.assertNotIn("npx openspec", relationships)
+
+    def test_active_openspec_changes_are_the_single_adr_home(self):
+        charter = self.CHARTER.read_text(encoding="utf-8")
+        adr_format = self.ADR_FORMAT.read_text(encoding="utf-8")
+
+        for surface in (charter, adr_format):
+            self.assertIn("active OpenSpec changes", surface)
+            self.assertIn("design.md", surface)
+            self.assertIn("frozen legacy history", surface)
+            self.assertIn("Without active OpenSpec changes", surface)
+            self.assertNotIn("established `docs/adr/` tree wins", surface)
+
+
 
 
 class DriveLocalWebappSandboxRecoveryTests(unittest.TestCase):
@@ -4138,32 +4211,24 @@ class EpicProtocolContractTests(unittest.TestCase):
             r"(never|do not) spawn (a |another )?(nested|background )?(agent|worker)",
         )
 
-    def test_epic_names_proposal_and_design_as_authority(self):
-        self.require(self.EPIC, r"proposal\.md.*design\.md.*authoritative")
+    def test_epic_names_proposal_design_and_tasks_as_authority(self):
+        self.require(self.EPIC, r"proposal\.md.*design\.md.*tasks\.md.*authority")
 
-    def test_epic_change_folder_uses_tracker_children_and_the_planning_pr_ledger(self):
-        self.require(self.EPIC, r"tracker children substitute for `tasks\.md`")
-        self.require(self.EPIC, r"ledger\.md.*standing planning pull request")
+    def test_epic_change_folder_uses_openspec_authority_and_task_linked_children(self):
+        self.require(self.EPIC, r"proposal\.md.*design\.md.*tasks\.md.*authority")
+        self.require(self.EPIC, r"tasks\.md.*link.*child issue")
+        self.require(self.EPIC, r"live tracker state.*truth.*child")
+        self.assertNotIn("ledger.md", self.EPIC)
 
-    def test_epic_ledger_template_has_all_normative_sections(self):
-        for heading in ("Status", "Notes", "Fog", "Decisions", "Spikes", "Builds", "Deferred", "Rounds"):
-            self.assertIn(f"## {heading}", self.EPIC)
+    def test_named_design_open_questions_replace_fog(self):
+        self.require(self.EPIC, r"design\.md.*named open question")
+        self.require(self.EPIC, r"open question.*decision.*spike")
+        self.assertIn("Do not add pointer-only Notes", self.EPIC)
+        self.assertNotIn("## Fog", self.EPIC)
 
-    def test_epic_ledger_preserves_pointer_only_notes_and_derived_decisions(self):
-        self.require(self.EPIC, r"Notes.*pointers?.*never.*rules")
-        self.require(self.EPIC, r"Decisions.*derived")
-
-    def test_home_session_is_the_sole_ledger_writer_and_tracker_wins(self):
-        self.require(self.EPIC, r"home session.*only.*ledger writer")
-        self.require(self.EPIC, r"live GitHub.*truth.*ledger")
-
-    def test_epic_uses_one_draft_planning_pr_and_signed_off_pushes(self):
-        self.require(self.EPIC, r"one standing draft planning pull request")
-        self.require(self.EPIC, r"signed-off.*push")
-
-    def test_build_admission_refuses_open_spikes_or_fog(self):
-        self.require(self.EPIC, r"refuse.*build.*open spike.*Fog")
-        self.require(self.EPIC, r"Fog.*Decisions.*spike")
+    def test_build_admission_refuses_open_spikes_or_design_questions(self):
+        self.require(self.EPIC, r"refuse.*build.*open spike.*open question")
+        self.require(self.EPIC, r"invalidate.*outcome.*constraints.*acceptance criteria")
 
     def test_build_admission_requires_adrs_and_locked_surface_spec(self):
         self.require(self.EPIC, r"load-bearing.*ADR")
@@ -4175,12 +4240,9 @@ class EpicProtocolContractTests(unittest.TestCase):
         self.require(self.EPIC, r"verif.*Findings.*close")
         self.require(self.EPIC, r"removes.*temporary.*unshipped.*only then closes")
 
-    def test_failed_ledger_push_reports_staleness_and_recovers_from_tracker_truth(self):
-        self.require(self.EPIC, r"ledger push fails.*visible ledger staleness.*recover.*live GitHub")
-
-    def test_research_close_updates_tracker_before_derived_ledger(self):
+    def test_research_close_uses_verified_tracker_evidence(self):
         self.require(self.EPIC, r"close.*spike.*only after.*verification")
-        self.require(self.EPIC, r"Only then derive.*Spikes.*Decisions.*Status.*DCO sign-off.*push")
+        self.require(self.EPIC, r"failed worker.*spike.*dispatched")
 
     def test_deferred_children_have_explicit_close_out_dispositions(self):
         self.require(self.EPIC, r"promote.*remove.*deferred")
@@ -4218,11 +4280,11 @@ class EpicProtocolContractTests(unittest.TestCase):
         self.require(self.TRACKER, r"merged.*NOT_PLANNED")
         self.require(self.TRACKER, r"no open deferred child")
 
-    def test_epic_close_waits_for_final_push_human_merge_and_verification(self):
-        self.require(self.EPIC, r"final ledger.*archive.*push")
-        self.require(self.EPIC, r"planning pull request.*human-merged")
-        self.require(self.EPIC, r"verify.*merge")
-        self.require(self.EPIC, r"then close.*epic.*tear down")
+    def test_epic_close_uses_live_checks_and_repository_archive_guidance(self):
+        self.require(self.EPIC, r"completion predicates.*directly from GitHub")
+        self.require(self.EPIC, r"repository.*archive guidance")
+        self.require(self.EPIC, r"child work.*human-merged")
+        self.assertNotIn("planning pull request", self.EPIC.lower())
 
 
 class EpicAdapterDispatchTests(unittest.TestCase):
@@ -4242,13 +4304,9 @@ class EpicAdapterDispatchTests(unittest.TestCase):
         )
 
     def test_spike_close_order_and_failed_worker_disposition_are_explicit(self):
-        self.assertIn(
-            "Close the spike issue only after that verification. Only then derive its `Spikes` and "
-            "`Decisions` ledger lines, update `Status`, commit with DCO sign-off, and push the "
-            "standing planning branch. A failed worker leaves the spike `dispatched`; it is not "
-            "resolved by inference. Interview and mockup spikes run as fresh attended sessions.",
-            self.text,
-        )
+        self.assertIn("Close the spike issue only after that verification.", self.text)
+        self.assertIn("Record the resulting decision in `design.md`", self.text)
+        self.assertIn("A failed worker leaves the spike `dispatched`", self.text)
 
     def test_research_worker_dispatch_stays_on_the_worker_adapters_only(self):
         normalized = " ".join(self.text.split())
@@ -4263,24 +4321,12 @@ class EpicAdapterDispatchTests(unittest.TestCase):
 
 
 class EpicDelegatedExecutionContractTests(unittest.TestCase):
-    PROPOSAL = ROOT / "openspec" / "changes" / "archive" / "epic-rework" / "proposal.md"
     EPIC = ROOT / "skills" / "drivers" / "epic" / "SKILL.md"
-
-    def test_proposal_session_topology_names_home_session_as_sole_ledger_writer(self):
-        proposal = " ".join(self.PROPOSAL.read_text(encoding="utf-8").split())
-        self.assertIn(
-            "the home session is the epic ledger's sole writer.", proposal
-        )
-        self.assertIn(
-            "A stale shared checkout refuses the wave.", proposal
-        )
-        self.assertIn("Coordinators never nest.", proposal)
 
     def test_epic_delegated_execution_keeps_dispatch_and_wave_rules(self):
         epic = " ".join(self.EPIC.read_text(encoding="utf-8").split())
-        self.assertIn(
-            "The home session remains the epic ledger's sole writer.", epic
-        )
+        self.assertIn("It stays at planning altitude", epic)
+        self.assertIn("Coordinators do not nest.", epic)
         self.assertIn(
             "The home session dispatches only through the pack adapters, with prompt text "
             "passed positionally from coordinator-owned session-scratch prompt files and one "

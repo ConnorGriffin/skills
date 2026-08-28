@@ -4,7 +4,8 @@ Turn a ticket into a locked work order, or establish why it cannot be one yet.
 Runs in the ticket's worktree. Outside an epic it writes the tracker and the
 applicable scope and spec documents there. An **epic child** writes only its work
 order to the tracker; its review instrumentation is untracked session scratch outside
-the branch, and its change record already belongs to the parent epic.
+the branch, and its parent epic keeps the active change record through its own
+post-merge archive.
 
 ## Procedure
 
@@ -121,7 +122,7 @@ the branch, and its change record already belongs to the parent epic.
    step. Resolved answers go into the order. For an epic child, every `/scope`
    specialist keeps its instrumentation in untracked session scratch outside the branch, discards it
    after the final order, and creates no scope ledger or docs/scope state. `/epic` alone owns the
-   proposal, design, and ledger. If triage discovers a required spec amendment,
+   proposal, design, and tasks. If triage discovers a required spec amendment,
    land it first as a separate docs-only pull request to main, then stamp the
    order; the child branch never writes that amendment or any other spec state.
 
@@ -217,7 +218,7 @@ For a chunked order, select one coordinator execution row with the same grounded
     blockers found, each tagged `authoring` (present since the draft) or
     `injected` (introduced by a prior fix round). For an epic child, keep the same
     instrumentation in untracked session scratch outside the branch and discard it after the final
-    order; create no scope ledger or docs/scope state, and do not write the epic ledger. Injected
+    order; create no scope ledger or docs/scope state, and do not write a parent planning artifact. Injected
     blockers climbing across rounds is the rewrite-clean signal firing.
 
     c. Reviewers get the facts already verified live this session and the user's

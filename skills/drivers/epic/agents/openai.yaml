@@ -1,4 +1,4 @@
 interface:
   display_name: "Epic"
-  short_description: "Maintain an epic ledger and work clear child tickets"
-  default_prompt: "Use $epic to maintain this effort's ledger, resolve its open spikes, and file clear child tickets."
+  short_description: "Coordinate an OpenSpec epic and clear child tickets"
+  default_prompt: "Use $epic to maintain this effort's OpenSpec authority, resolve its open spikes, and file clear child tickets."

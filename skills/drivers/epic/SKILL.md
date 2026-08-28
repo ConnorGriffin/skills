@@ -1,6 +1,6 @@
 ---
 name: epic
-description: "Maintain an epic ledger and work clear child tickets through a GitHub-backed planning lifecycle. Use when an effort needs multiple attended sessions, recorded decisions, spikes, or independently shippable builds."
+description: "Coordinate an OpenSpec epic and clear child tickets through a GitHub-backed planning lifecycle. Use when an effort needs multiple attended sessions, recorded decisions, spikes, or independently shippable builds."
 ---
 
 # Epic
@@ -9,61 +9,22 @@ description: "Maintain an epic ledger and work clear child tickets through a Git
 
 ## Authority and boundaries
 
-An epic lives at `openspec/changes/<epic-slug>/`. Its `proposal.md` and `design.md` are authoritative for destination, scope, risk, and durable decisions. Tracker children substitute for `tasks.md`; `ledger.md` rides the standing planning pull request. The epic ledger is a derived index, not another source of truth. Live GitHub is truth whenever it disagrees with the ledger.
+An epic lives at `openspec/changes/<epic-slug>/`. Its `proposal.md`, `design.md`, and `tasks.md` form the OpenSpec authority: proposal owns destination and scope; design owns risk, durable decisions, and named open questions; tasks owns the checked implementation sequence and links to every child issue. Live tracker state is truth for child type, status, dependencies, deferral, and closing pull requests. Do not create a derived index of that state.
 
-Route every tracker operation through the installed binding. [bindings/github-issues.md](bindings/github-issues.md) is the shipped default. Read [the tracker contract](references/tracker-contract.md) before the first tracker action. A tracker, authentication, or Git failure stops the current operation visibly; do not guess or repair authoritative state from the ledger.
+Route every tracker operation through the installed binding. [bindings/github-issues.md](bindings/github-issues.md) is the shipped default. Read [the tracker contract](references/tracker-contract.md) before the first tracker action. A tracker, authentication, or Git failure stops the current operation visibly; do not guess or repair authoritative state locally.
 
-The home session owns the epic. It stays at planning altitude, files and reads issues, and is the only epic-ledger writer. Build and triage sessions report in their ticket comments and pull requests; the home session syncs the ledger after they return. Coordinators do not nest.
-
-## The epic ledger
-
-Keep `ledger.md` on one standing draft planning pull request, in a dedicated planning worktree. Every planning commit is signed-off, pushed as work proceeds, and the branch merges from main only when necessary. The close-out commit moves the OpenSpec change to the archive in that same pull request. After human merge verification, tear down the planning worktree.
-
-This template and grammar are normative:
-
-```markdown
-# Ledger — <epic title>
-
-## Status
-next: <the single next action, one line>
-updated: <YYYY-MM-DD>
-
-## Notes
-- <pointer only: a skill to invoke, or the location of an existing rule>
-
-## Fog
-- <something not yet precise enough to ticket>
-
-## Decisions
-- #<n> <title> — <one-line gist of the resolved spike's ruling>
-
-## Spikes
-- #<n> <title> — open | dispatched | resolved — <one-line gist>
-
-## Builds
-- #<n> <title> — filed | triaged | in-progress | pr:#<n> | merged
-
-## Deferred
-- #<n> <title> — <one-line reason it can wait>
-
-## Rounds
-- <YYYY-MM-DD> #<n> — <sessions used, outcome, one line>
-```
-
-Titles never contain ` — `. `Spikes` and `Builds` split at the first delimiter whose next field is a listed state token; free text follows a second delimiter. `Decisions` and `Deferred` have only free text after their first delimiter. `Rounds` lead with date, issue reference, and free text. `Notes` and `Fog` are plain lines.
-
-`Notes` contains pointers and never rules; new standing instructions belong in the repository's ADR home. `Decisions` is derived from resolved spikes, one line for each ruling that still stands. GitHub state, including the `deferred` label, wins over every ledger line.
+The home session owns the epic. It stays at planning altitude, files and reads issues, and keeps the active change coherent. Build and triage sessions report in ticket comments and pull requests. Coordinators do not nest.
 
 ## Start and maintain an epic
 
 1. Confirm the target repository already has OpenSpec. Otherwise run `$openspec-adopt` as a separate documentation-only pull request.
-2. Land the proposal and design on main before opening child work. Create the epic issue with the `epic` label, its native child issues, and the standing draft planning pull request carrying the ledger.
-3. Re-read relevant live GitHub state before each mutation. Sync derived ledger lines and `Status`, commit with DCO sign-off, and push. If that ledger push fails, report visible ledger staleness and recover its derived state from live GitHub before continuing.
-4. Keep Fog as the operator's prompt. Remove a Fog line only through a `Decisions` line or a spike; never silently delete it.
+2. Create one active change with its proposal, design, and tasks. Create the epic issue with the `epic` label and its native child issues. Add each child issue link to `tasks.md` in the implementation sequence; do not duplicate live tracker fields there.
+3. Re-read relevant live tracker state before each mutation. Update the change when destination, design, or checked sequence changes; preserve child type, status, dependencies, deferral, and closing-pull-request facts on the tracker.
+4. Keep every imprecise concern as a named open question in `design.md`. Clear an open question only by recording its decision in `design.md` or promoting it to a tracker spike; never silently delete it. Do not add pointer-only Notes: owning skills and repository rules remain discoverable at their authoritative homes.
 
 ## Admit work deliberately
 
-File a spike when a question is precise but not yet resolved. A spike can be research, interview, mockup, or a human prerequisite. File a build only as a bounded refusal: refuse to file a build while an open spike or standing Fog line can invalidate its outcome, constraints, or acceptance criteria.
+File a spike when an open question is precise but not yet resolved. A spike can be research, interview, mockup, or a human prerequisite. File a build only as a bounded refusal: refuse to file a build while an open spike or named open question can invalidate its outcome, constraints, or acceptance criteria.
 
 Before filing a build, require every relevant load-bearing ruling in the repository's ADR home. User-facing work also requires a locked `/ui-craft` spec. The build issue must stand alone and receive the normal `$ticket` triage flow; the epic does not manufacture a work order.
 
@@ -76,8 +37,7 @@ the home session when every order is stamped or every needed ruling is settled.
 Attended sessions remain the default; any newly opened decision returns that
 subtree to attended mode.
 
-The home session remains the epic ledger's sole writer. For delegated triage it
-dispatches a worker through the existing `$ticket triage` interface; for a
+For delegated triage the home session dispatches a worker through the existing `$ticket triage` interface; for a
 delegated build it dispatches a worker through the existing `$ticket start`
 interface. Those workers use their existing ticket contracts and post stamped
 work orders, session-fit, and completed work products through tracker comments.
@@ -105,7 +65,7 @@ after the applicable routing ladder is exhausted; do not retry past that ladder.
 
 For a research spike, run `$research` in a temporary per-spike worktree. The worker returns the required Markdown findings to the home session. The home session writes the Markdown file required by its public interface, posts that returned content under the exact heading `## Findings`, verifies the `## Findings` comment, removes the temporary worktree and its unshipped file, and only then closes the spike.
 
-Close the spike issue only after that verification. Only then derive its `Spikes` and `Decisions` ledger lines, update `Status`, commit with DCO sign-off, and push the standing planning branch. A failed worker leaves the spike `dispatched`; it is not resolved by inference. Interview and mockup spikes run as fresh attended sessions.
+Close the spike issue only after that verification. Record the resulting decision in `design.md` when it settles a named open question. A failed worker leaves the spike `dispatched`; it is not resolved by inference. Interview and mockup spikes run as fresh attended sessions.
 
 ## Worker dispatch
 
@@ -150,6 +110,6 @@ Refuse to archive while an open child carries `deferred`.
 
 ## Completion and close-out
 
-Read the three completion predicates directly from GitHub: no open spike child; every build child has a merged closing pull request or is closed `NOT_PLANNED`; and no open deferred child remains. Do not infer any predicate from a ledger line.
+Read the three completion predicates directly from GitHub: no open spike child; every build child has a merged closing pull request or is closed `NOT_PLANNED`; and no open deferred child remains. Do not infer any predicate from a local summary.
 
-Only after all predicates pass, make the final ledger-and-archive commit and push it. Take the planning pull request out of draft, wait for the planning pull request to be human-merged, and verify that merge. Then close the epic issue and tear down the planning worktree. Report the issue and planning pull request URLs, the three direct checks, and any visible ledger staleness.
+Only after all predicates pass and the child work is human-merged, follow the repository's archive guidance for the active change. Then close the epic issue. Report the issue URL, the three direct checks, and the archive result.

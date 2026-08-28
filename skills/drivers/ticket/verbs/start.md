@@ -118,17 +118,11 @@ Before declaring the change ready, run each check below.
     missing evidence, and never a pass. Targeted and Focused orders run no
     `/review`; Full orders run one `/review` round after hardening.
 
-11. **Fold the change record into the baseline in the order's last pull request.**
-    This step applies outside an epic. An epic child does not fold a per-child
-    change record; it leaves the parent epic's settled baseline timing and standing
-    planning-pull-request contents unchanged.
-    When the pull request being opened is the order's final one (single-pull-request
-    orders: the only one), the same diff completes whatever the repo's convention
-    asks for at landing time. This lands before the pull request is opened or marked
-    ready, never as a post-approval push: a push after approval invalidates the
-    approval, and reducing approval churn outranks tidiness. If the last pull
-    request is already approved and this was missed, leave it for a later sweep and
-    flag it; do not push it onto the approved pull request.
+11. **Preserve the change record for merge.** Outside an epic, the active change
+    and its deltas remain reviewable in the pull request. Do not fold or archive
+    them before merge. An epic child creates no per-child change record and leaves
+    its parent epic's active change untouched. After a human merge, `finalize`
+    follows the repository's archive guidance.
 
 12. **Open the pull request.** `gh pr create` against the default branch. The body
     follows an existing template when one exists, in this order: the repo's

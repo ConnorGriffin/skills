@@ -51,9 +51,13 @@ Record new load-bearing decisions in each OpenSpec change's `design.md` under
 `## ADR <issue> — Title`. `docs/adr/` is frozen as legacy history: its existing
 records, names, and links remain, but no new records land there.
 
-The repository charter already states this OpenSpec ADR-home rule. Only
-`openspec/AGENTS.md` contradicts it by directing ADRs to `docs/adr/`; the
-charter does not require an edit for this decision.
+The charter did require an edit for this decision: its earlier text made an
+established `docs/adr/` tree win over OpenSpec. Issue #228 amended
+`profile/CHARTER.md` and the installed domain-modeling ADR reference so a
+repository with active OpenSpec changes records new ADRs in the change's
+`design.md` while existing `docs/adr/` files stay frozen legacy history.
+`openspec/AGENTS.md`, which also contradicted the rule, was deleted by the
+tree migration.
 
 ## ADR 218 — Epics use vanilla change task lists
 

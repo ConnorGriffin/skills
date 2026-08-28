@@ -572,8 +572,8 @@ class TicketSkillContractTests(unittest.TestCase):
         expected = {
             "start.md": "creates no change record",
             "revise.md": "revises neither a per-child change record",
-            "finalize.md": "nor incurs sweep debt",
-            "coordinator-mode.md": "creates, folds, revises, and records no per-child",
+            "finalize.md": "leaves archive ownership with the parent epic",
+            "coordinator-mode.md": "creates, revises, and records no per-child",
         }
 
         for filename, boundary in expected.items():
@@ -583,7 +583,48 @@ class TicketSkillContractTests(unittest.TestCase):
                 else TICKET_DIRECTORY / "verbs" / filename
             )
             with self.subTest(consumer=filename):
-                self.assertIn(boundary, path.read_text(encoding="utf-8").lower())
+                self.assertIn(
+                    boundary,
+                    " ".join(path.read_text(encoding="utf-8").lower().split()),
+                )
+
+    def test_openspec_changes_remain_active_through_pr_review_and_archive_after_merge(self):
+        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+        start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")
+        revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")
+        finalize = (TICKET_DIRECTORY / "verbs" / "finalize.md").read_text(encoding="utf-8")
+        coordinator = (
+            TICKET_DIRECTORY / "references" / "coordinator-mode.md"
+        ).read_text(encoding="utf-8")
+        shared_contract = " ".join(shared.split())
+        start_contract = " ".join(start.split())
+        revise_contract = " ".join(revise.split())
+        finalize_contract = " ".join(finalize.split())
+        coordinator_contract = " ".join(coordinator.split())
+
+        self.assertIn("keep the active change and its deltas reviewable", shared_contract)
+        self.assertIn("do not fold or archive it before merge", shared_contract)
+        self.assertIn("active change and its deltas remain reviewable", start_contract)
+        self.assertIn("its active change and deltas remain reviewable", revise_contract)
+        self.assertIn("operations.archive.guidance", finalize_contract)
+        self.assertIn("clean `main` checkout updated to `origin/main`", finalize_contract)
+        self.assertIn("openspec archive <change-name> --json --yes", finalize_contract)
+        self.assertIn("openspec validate --all --strict", finalize_contract)
+        self.assertIn("Signed-off-by archive commit", finalize_contract)
+        self.assertIn("push `main` directly", finalize_contract)
+        self.assertIn("post-push workflow", finalize_contract)
+        self.assertLess(finalize_contract.index("openspec archive"), finalize_contract.index("Comment on the ticket"))
+        self.assertLess(finalize_contract.index("post-push workflow"), finalize_contract.index("Move the ticket to done"))
+        self.assertLess(finalize_contract.index("Move the ticket to done"), finalize_contract.index("**Record the actuals.**"))
+        self.assertLess(finalize_contract.index("**Record the actuals.**"), finalize_contract.index("**Tear the worktree and branch down.**"))
+        self.assertIn("leaves archive ownership with the parent epic", finalize_contract)
+        self.assertIn("no child change", finalize_contract)
+        self.assertIn("active change", coordinator_contract)
+        self.assertNotIn("standing planning-pull-request", coordinator_contract)
+
+        live = "\n".join((shared, start, revise, finalize, coordinator)).lower()
+        self.assertNotRegex(live, r"fold.{0,100}(?:last|finishing).{0,100}pull request")
+        self.assertNotRegex(live, r"archive.{0,100}(?:last|finishing).{0,100}pull request")
 
     def test_status_binding_orders_code_prerequisites_before_triaged_and_excludes_them_otherwise(self):
         binding = " ".join(
@@ -599,7 +640,7 @@ class TicketSkillContractTests(unittest.TestCase):
         for classification in ("investigation", "manual"):
             self.assertIn(f"`{classification}` does not create or attach `build`", binding)
 
-    def test_epic_child_triage_keeps_spec_and_review_state_off_the_child_branch(self):
+    def test_epic_child_triage_keeps_parent_planning_authority_off_the_child_branch(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
         contract = " ".join(triage.lower().split())
 
@@ -608,7 +649,7 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertIn("untracked session scratch", contract)
         self.assertIn("outside the branch", contract)
         self.assertIn("discard it after the final order", contract)
-        self.assertIn("do not write the epic ledger", contract)
+        self.assertIn("do not write a parent planning artifact", contract)
 
     def test_revise_requires_a_base_currency_and_mergeability_refresh(self):
         revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")

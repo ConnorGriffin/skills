@@ -8,8 +8,8 @@
 - [x] [#222](https://github.com/ConnorGriffin/skills/issues/222) Migrate the
   OpenSpec tree through `openspec init --tools none`, move useful `project.md`
   content into `config.yaml`, and remove the legacy files. Landed in #226. This
-  also discharged the charter ADR-home contradiction, which lived in the
-  deleted `openspec/AGENTS.md`.
+  removed the `openspec/AGENTS.md` side of the ADR-home contradiction; the
+  charter's own contrary precedence rule remained and was amended in #228.
 
 - [ ] [#228](https://github.com/ConnorGriffin/skills/issues/228) Finish the
   adoption in one pass: the deterministic CI gate, `openspec-adopt` scaffolding
