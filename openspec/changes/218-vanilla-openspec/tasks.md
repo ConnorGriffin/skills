@@ -2,30 +2,34 @@
 
 ## Independent baseline work
 
-- [ ] [#221](https://github.com/ConnorGriffin/skills/issues/221) Reformat and
-  backfill the three baseline specs into the CLI-enforced shape, correcting
-  them against current source. This is independent because `openspec init`
-  leaves `openspec/specs/` untouched.
+- [x] [#221](https://github.com/ConnorGriffin/skills/issues/221) Reformat and
+  backfill the three baseline specs into the
+  CLI-enforced shape, correcting them against current source. Landed in #227;
+  `openspec validate --specs --strict` now reports 3 passed, 0 failed.
 
 ## v1.x migration
 
-- [ ] [#222](https://github.com/ConnorGriffin/skills/issues/222) Migrate the
-  OpenSpec tree through `openspec init`, move useful `project.md` content to
-  `config.yaml`, choose whether to select a tool, and remove `project.md`
-  manually. This has no dependency; it also resolves the charter ADR-home
-  contradiction because init deletes the legacy `openspec/AGENTS.md` that
-  contains it.
+- [x] [#222](https://github.com/ConnorGriffin/skills/issues/222) Migrate the
+  OpenSpec tree through `openspec init --tools
+  none`, move useful `project.md` content to `config.yaml`, and remove the
+  legacy files. Landed in #226. This also discharged the charter ADR-home
+  contradiction, which lived in the deleted `openspec/AGENTS.md`.
 
-- [ ] [#TBD](#TBD) Adopt the CLI as development and CI tooling, including a
-  strict-validation gate in `.github/workflows/validate.yml`. This depends on
-  the v1.x tree migration.
+- [ ] [#228](https://github.com/ConnorGriffin/skills/issues/228) Adopt the CLI
+  as development and CI tooling, including a
+  strict-validation gate in `.github/workflows/validate.yml`. Unblocked.
 
-- [ ] [#TBD](#TBD) Rework `openspec-adopt` to scaffold through `openspec init`
-  rather than by hand. This depends on the v1.x tree migration.
+- [ ] [#229](https://github.com/ConnorGriffin/skills/issues/229) Rework
+  `openspec-adopt` to scaffold through `openspec
+  init` rather than by hand. Unblocked. Shares
+  `skills/drivers/openspec-adopt/` with #230; sequence them.
 
-- [ ] [#TBD](#TBD) Update `openspec-adopt`, `epic`, `ticket`, and the v1.x
-  replacement for the legacy OpenSpec instructions for post-merge archiving.
-  This depends on the v1.x tree migration.
+- [ ] [#231](https://github.com/ConnorGriffin/skills/issues/231) Drop
+  `ledger.md` from the `epic` skill and use the vanilla
+  tracker-linked `tasks.md` shape. Unblocked. #218 already runs this way, so it
+  is the worked example.
 
-- [ ] [#TBD](#TBD) Drop `ledger.md` from the `epic` skill and use the vanilla
-  tracker-linked `tasks.md` shape. This depends on the v1.x tree migration.
+- [ ] [#230](https://github.com/ConnorGriffin/skills/issues/230) Switch the
+  pack to post-merge OpenSpec archiving across
+  `epic`, `ticket`, and `openspec-adopt`. Blocked by #231, which removes the
+  standing planning pull request the current archiving rule depends on.
