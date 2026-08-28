@@ -1,0 +1,104 @@
+# Design
+
+This change replaces local OpenSpec conventions with the v1.x CLI workflow.
+The tree migration precedes convention edits: `openspec init` deletes
+`openspec/AGENTS.md`, the file the former conventions would otherwise edit.
+It does not wait on tool selection. The baseline backfill is independent
+because init leaves `openspec/specs/` untouched, so it may proceed in parallel.
+
+## ADR 218 — Change-local deltas become the path to the baseline
+
+Adopt `changes/<id>/specs/<capability>/spec.md` delta specs and merge them into
+`openspec/specs/` on archive. Backfill all three current baseline specs, both
+to reflect their lagging behavior and to replace their `## Behavior` shape with
+the CLI-required `## Purpose` and `## Requirements` structure, including
+scenario-bearing requirements.
+
+### Consequences
+
+The baseline becomes the current behavioral source of truth and a qualifying
+behavior change has a reviewable delta. The CLI rejects malformed main specs
+and requires scenarios for added or modified delta requirements; the existing
+baseline cannot pass that contract until the reformat lands.
+
+### Open question — Capability discovery at scale
+
+OpenSpec has no manifest, YAML frontmatter, or cross-linked concept index for
+baseline specs: discovery is by capability directory under
+`openspec/specs/<capability>/`, plus `openspec list`, `openspec show --diff`,
+and the generated `openspec-explore` skill. Upstream uses 35 capability specs
+for one CLI while this repository starts with three. How an agent reliably
+finds the right capability as that count grows remains unresolved; it bears on
+vanilla epics that span many capabilities, but does not block this adoption.
+
+## ADR 218 — Archive after merge
+
+Archive a completed change after its pull request merges, replacing the
+in-PR archival rule in the legacy OpenSpec instructions and the `openspec-adopt`
+and `epic` skills. The CLI is Git-unaware; timing is therefore this repository's
+workflow decision, while `openspec archive --json --yes` performs the validated
+delta merge and move.
+
+### Consequences
+
+Shared specs advance only for merged work. Until this change specifies an
+automation or other enforcement mechanism, a human must remember to archive;
+the archive command does not establish that responsibility itself.
+
+## ADR 218 — Design files carry new ADRs
+
+Record new load-bearing decisions in each OpenSpec change's `design.md` under
+`## ADR <issue> — Title`. `docs/adr/` is frozen as legacy history: its existing
+records, names, and links remain, but no new records land there.
+
+The repository charter already states this OpenSpec ADR-home rule. Only
+`openspec/AGENTS.md` contradicts it by directing ADRs to `docs/adr/`; the
+charter does not require an edit for this decision.
+
+## ADR 218 — Epics use vanilla change task lists
+
+Model an epic as one OpenSpec change whose `tasks.md` entries link the tracker
+child issues. Remove the `ledger.md` convention from the `epic` skill rather
+than preserving a parallel epic state artifact.
+
+Issue #218 applies this decision to itself as the first epic run this way. It
+uses `tasks.md` as its child index and deliberately has neither `ledger.md` nor
+a standing planning pull request, so the decision is exercised before it ships
+in the `epic` skill.
+
+### Consequences
+
+An epic retains tracker-native child ownership while OpenSpec retains the
+single checked-in implementation checklist and change history.
+
+## ADR 218 — The OpenSpec CLI is repository tooling, not pack runtime
+
+Use `@fission-ai/openspec` 1.11.0, which requires Node >=20.19.0, as pinned
+development and CI tooling for this repository. Use its deterministic strict
+validation and non-interactive JSON archive command; do not add it as a pack
+dependency.
+
+### Consequences
+
+The pack continues to install and run on stock Python 3 and Node 20 with no
+package-manager step. The documented CLI installation path is global install;
+whether npx is supported remains unconfirmed and is not assumed here.
+
+## ADR 218 — Migrate the OpenSpec tree through v1.x initialization
+
+Replace the pre-1.0 legacy `openspec/AGENTS.md` and `project.md` practice with
+the v1.x tree produced by `openspec init`: `openspec/config.yaml` plus the
+tool-generated skills `openspec-apply-change`, `openspec-archive-change`,
+`openspec-bulk-archive-change`, `openspec-continue-change`,
+`openspec-explore`, `openspec-ff-change`, `openspec-new-change`,
+`openspec-onboard`, `openspec-propose`, `openspec-sync-specs`,
+`openspec-update-change`, and `openspec-verify-change`. Migrate useful
+`project.md` context manually into `config.yaml`; init removes
+`openspec/AGENTS.md` but leaves `project.md` for that manual migration.
+
+### Consequences
+
+Select a tool, or select none, during migration. A selected tool's generated
+skills are untracked, per-machine artifacts under the ignored tool directory;
+contributors regenerate them with `openspec update`. They are not vendored
+pack skills and do not conflict with the pinned-copy hazard.
