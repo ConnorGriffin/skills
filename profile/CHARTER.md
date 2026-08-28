@@ -61,15 +61,15 @@ and enforced at review: a violation below is a blocking finding.
   security or adversarial input, or observed behavior grounds.
 - Domain terms come from **`CONTEXT.md`**; record load-bearing, hard-to-reverse
   decisions as **ADRs** — and don't re-litigate settled ones.
-- **An ADR's home is wherever the repo already records decisions.** A repo
-  tracking design with OpenSpec records the decision in its change's
-  `design.md` under a `## ADR <issue> — Title` heading (the change already names
-  the work, so the issue id is the record's identity); do not add a parallel
-  `docs/adr/` tree beside it. An established `docs/adr/` tree wins over
-  OpenSpec: keep adding records where the history already is, rather than
-  forking it. A repo with no existing home
-  gets `docs/adr/adr-<issue>-<slug>.md`, heading
+- **An ADR's home follows the active workflow.** A repository with active
+  OpenSpec changes records a new decision in that change's `design.md` under a
+  `## ADR <issue> — Title` heading; the change already names the work, so the
+  issue id is the record's identity. Its existing `docs/adr/` files are frozen
+  legacy history while that workflow is active: retain their names and links,
+  but do not add a parallel record there. Without active OpenSpec changes, an
+  established `docs/adr/` tree remains the decision home. A repository with no
+  existing home gets `docs/adr/adr-<issue>-<slug>.md`, heading
   `# ADR <issue> — Title`, where `<issue>` is the id of the issue, ticket, or PR
   that originated the decision. Two records from one issue use distinct slugs.
-  Existing sequentially numbered ADRs are legacy records: keep their names and
-  links; do not add new ones in that format.
+  Existing sequentially numbered ADRs remain frozen legacy history: keep their
+  names and links; do not add new ones in that format.

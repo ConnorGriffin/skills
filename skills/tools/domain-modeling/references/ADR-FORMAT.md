@@ -1,15 +1,17 @@
 # ADR Format
 
-Resolve the ADR's home before anything else: a decision goes wherever the repo
-already records decisions. A repo tracking design with OpenSpec records it in
-that change's `design.md` (no parallel `docs/adr/` tree, and the file-naming
-rule below does not apply there). A repo with an established `docs/adr/` tree
-keeps using it.
+Resolve the ADR's home before anything else. A repository with active OpenSpec
+changes records a new decision in that change's `design.md` (no parallel
+`docs/adr/` tree, and the file-naming rule below does not apply there). Existing
+`docs/adr/` files are frozen legacy history while that workflow is active:
+retain their names and links, but do not add a record there.
 
-Only a repo with no existing home gets one: `docs/adr/adr-<issue>-<slug>.md`,
-heading `# ADR <issue> — Title`, where `<issue>` is the id of the issue,
-ticket, or PR that originated the decision. Two records from one issue use
-distinct slugs, so one decision's file never overwrites another's.
+Without active OpenSpec changes, an established `docs/adr/` tree remains the
+decision home. Only a repository with no existing home gets one:
+`docs/adr/adr-<issue>-<slug>.md`, heading `# ADR <issue> — Title`, where
+`<issue>` is the id of the issue, ticket, or PR that originated the decision.
+Two records from one issue use distinct slugs, so one decision's file never
+overwrites another's.
 
 Create the `docs/adr/` directory lazily, only when the first ADR needs it.
 

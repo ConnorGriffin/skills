@@ -12,3 +12,12 @@ rules:
     - Identify affected source skills by their skills/<category>/<name>/ paths, not generated copies.
   tasks:
     - For changes to pack behavior, name scripts/validate.py and the applicable tests in the verification steps.
+
+operations:
+  archive:
+    guidance:
+      - After a verified merge, update a clean main checkout to origin/main.
+      - Run openspec archive <change-name> --json --yes.
+      - Run openspec validate --all --strict.
+      - Create a Signed-off-by archive commit for the resulting baseline merge and archived change.
+      - Push main directly; do not archive in the finishing pull request or push archive work to an approved pull request.

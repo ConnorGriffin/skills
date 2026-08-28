@@ -5,7 +5,7 @@ RELATIONSHIPS = {
     "review": {"uses": ["code-review", "persona-review", "plan-review"], "requirements": ""},
     "epic": {"uses": ["research", "scope", "ui-craft", "ticket"], "requirements": "GitHub CLI; composes with `research`, `scope`'s interview mode, `ui-craft`"},
     "implement": {"uses": ["tdd", "code-review"], "requirements": "`tdd` and `code-review` from this pack"},
-    "openspec-adopt": {"uses": [], "requirements": "GitHub CLI; `npx openspec init` optional"},
+    "openspec-adopt": {"uses": [], "requirements": "GitHub CLI; global `@fission-ai/openspec@1.11.0`"},
     "orchestrate": {"uses": ["ticket", "ui-craft", "code-review", "plan-review", "persona-review", "research"], "requirements": "Codex CLI for GPT-tier sub-agents; table re-benchmarked per its bundled procedure"},
     "ticket": {"uses": ["scope", "plan-review", "review", "spin-worktree", "orchestrate"], "requirements": "GitHub CLI for the bundled issues binding, one binding page per other tracker; composes with `scope`, `plan-review`, `review`, `spin-worktree`, `orchestrate`"},
     "ui-craft": {"uses": ["drive-local-webapp", "spin-worktree"], "requirements": "`drive-local-webapp` for rendered review; `spin-worktree` for live base comparison; parallel-agent support is recommended"},
