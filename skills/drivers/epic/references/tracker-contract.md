@@ -3,8 +3,8 @@
 Four operations, and nothing else. Epic calls these; it never calls a tracker's
 API directly, and it never reaches a second tracker when the first one is
 unreachable. A tracker, authentication, or Git failure stops the current
-operation visibly; epic never guesses or repairs authoritative state from the
-ledger when a call fails.
+operation visibly; epic never guesses or repairs authoritative state from a
+local summary when a call fails.
 
 One binding page supplies all four for one tracker.
 [bindings/github-issues.md](../bindings/github-issues.md) is the reference
@@ -40,7 +40,7 @@ binding and ships with the skill.
   `deferred`, and the merge state of any pull request that closed it.
 * **Failure:** the parent id does not exist, or the transport fails. Epic stops
   and names the id and the transport that failed; it never proceeds on a partial
-  read, and a ledger line never substitutes for this read.
+  read, and a local summary never substitutes for this read.
 
 ## 4. File a review follow-up as a native child
 

@@ -599,7 +599,7 @@ class TicketSkillContractTests(unittest.TestCase):
         for classification in ("investigation", "manual"):
             self.assertIn(f"`{classification}` does not create or attach `build`", binding)
 
-    def test_epic_child_triage_keeps_spec_and_review_state_off_the_child_branch(self):
+    def test_epic_child_triage_keeps_parent_planning_authority_off_the_child_branch(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
         contract = " ".join(triage.lower().split())
 
@@ -608,7 +608,7 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertIn("untracked session scratch", contract)
         self.assertIn("outside the branch", contract)
         self.assertIn("discard it after the final order", contract)
-        self.assertIn("do not write the epic ledger", contract)
+        self.assertIn("do not write a parent planning artifact", contract)
 
     def test_revise_requires_a_base_currency_and_mergeability_refresh(self):
         revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")

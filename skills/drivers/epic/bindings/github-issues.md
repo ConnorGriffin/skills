@@ -77,7 +77,7 @@ Perform these direct reads before close-out, and report each as pass or fail:
 2. **Build completion:** every child with label `build` either has a closing pull request whose `mergedAt` is non-null, or is closed with `stateReason` `NOT_PLANNED`.
 3. **No open deferred child:** no open child carries `deferred`.
 
-Only these live reads decide whether the epic may close. A ledger mismatch is visible staleness for the home session to correct, never a completion pass.
+Only these live reads decide whether the epic may close. A local summary never substitutes for a completion pass.
 
 ## Deferred dispositions
 

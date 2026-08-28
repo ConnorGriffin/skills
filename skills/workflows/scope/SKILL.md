@@ -9,8 +9,8 @@ Diagnose why work isn't buildable yet, route to exactly one specialist skill, an
 a ledger the moment routing happens. Never do the specialist's work yourself — a
 correct route with no other output is a complete session. For an epic child, every
 specialist instead uses untracked session scratch outside the child branch, discarded after the final order;
-it creates no scope ledger or docs/scope ledger. `/epic` alone owns proposal/design
-and its ledger.
+it creates no scope ledger or docs/scope ledger. `/epic` alone owns the parent
+proposal, design, and tasks.
 
 ## Routing table
 
