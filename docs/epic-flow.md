@@ -2,7 +2,7 @@
 
 This is the operator's path from an idea to merged code. The flow has two levels:
 
-- An epic holds uncertainty, decisions, child tickets, and the planning ledger.
+- An epic holds uncertainty and decisions in one active OpenSpec change; its child tickets hold live work state.
 - A child ticket becomes a locked work order, is implemented and reviewed, and stops at an open pull request until a human merges it.
 
 The primary contracts are [`epic`](../skills/drivers/epic/SKILL.md), [`ticket`](../skills/drivers/ticket/SKILL.md), and [`orchestrate`](../skills/drivers/orchestrate/SKILL.md). GitHub Issues are the reference tracker binding; see [`github-issues.md`](../skills/drivers/ticket/bindings/github-issues.md).
@@ -10,15 +10,15 @@ The primary contracts are [`epic`](../skills/drivers/epic/SKILL.md), [`ticket`](
 ## The map from idea to merge
 
 1. Start or resume an epic when the effort needs multiple sessions, decisions, spikes, or independently shippable builds.
-2. Record the epic's proposal and design in `openspec/changes/<epic-slug>/`. Its `proposal.md` and `design.md` are authoritative for destination, scope, risk, and durable decisions.
-3. File a spike for a precise unresolved question. File a build only when no open spike or standing Fog line can invalidate its outcome, constraints, or acceptance criteria.
+2. Record the epic in `openspec/changes/<epic-slug>/`. Its `proposal.md`, `design.md`, and `tasks.md` are authoritative: tasks link child issues in checked implementation sequence, while the tracker keeps their live type, status, dependencies, and deferral.
+3. Keep imprecise concerns as named open questions in `design.md`; record a decision there or promote the question to a spike. File a build only when no open spike or named open question can invalidate its outcome, constraints, or acceptance criteria.
 4. Run `/ticket triage <id>` on each build ticket. Triage grounds the ticket, runs `/scope`, chooses flat or chunked execution, stamps review depth and session fit, and posts one locked work order comment.
 5. Run `/ticket start <id>` in a fresh session. It executes the work order, verifies the result, reviews the change, and opens the pull request.
 6. Run `/ticket revise <id>` once per review round when the open pull request needs changes. It reloads the order, fixes and verifies the round, rebases once, and pushes the same branch.
 7. A human reviews and merges the pull request after green CI and passed review. Agents do not merge, self-approve, or answer reviews outside `revise`.
 8. Run `/ticket finalize <id>` after the human merge. It verifies the post-merge workflow, comments the outcome, moves the ticket to done, records measured cost, and tears down the ticket worktree.
 
-An epic closes only after its live GitHub state proves that no spike child is open, every build child has a merged closing pull request or is closed `NOT_PLANNED`, and no deferred child remains open. The planning pull request is then human-merged before the epic issue and planning worktree are closed.
+An epic closes only after its live GitHub state proves that no spike child is open, every build child has a merged closing pull request or is closed `NOT_PLANNED`, and no deferred child remains open. After the human-merged work is verified, follow the repository's archive guidance for the active change and close the epic issue.
 
 ## One ticket in detail
 
@@ -26,7 +26,7 @@ An epic closes only after its live GitHub state proves that no spike child is op
 
 File a GitHub Issue under the epic when the work is a native child. Use a `spike` child for research, interview, mockup, or a human prerequisite. Use a `build` child for bounded implementation. Actual dependencies use native `blocked-by` edges. A follow-up needed for the epic destination is an in-scope child; work outside the destination can be a deferred native child.
 
-The epic home session owns the epic ledger and is its only writer. The ledger is derived state. Live GitHub wins when it disagrees with `ledger.md`. Keep the ledger on one standing draft planning pull request in a dedicated planning worktree; planning commits are signed off and pushed as work proceeds. See [`epic/SKILL.md`](../skills/drivers/epic/SKILL.md#the-epic-ledger).
+The epic home session keeps the active change coherent and stays at planning altitude. `proposal.md`, `design.md`, and `tasks.md` hold durable planning state; live GitHub is authoritative for child work state. Pointer-only notes are deliberately omitted: owning skills and repository rules remain discoverable at their authoritative homes.
 
 ### Triage
 
@@ -92,7 +92,7 @@ After a human merge, run `/ticket finalize <id>`. It verifies `mergedAt` and the
 
 ## Delegated execution and waves
 
-Delegation is explicit and revocable. The home session may take a locked epic subtree when every order is stamped or every needed ruling is settled. A newly opened decision returns that subtree to attended mode. The home session remains the sole epic-ledger writer.
+Delegation is explicit and revocable. The home session may take a locked epic subtree when every order is stamped or every needed ruling is settled. A newly opened decision returns that subtree to attended mode. The home session keeps the parent change coherent.
 
 Delegated triage uses the existing `/ticket triage` interface. Delegated builds use `/ticket start`. The home session collects worker comments, pull requests, and worktree results; it does not invent a parallel lifecycle.
 
@@ -133,7 +133,7 @@ Every delegation names the selected adapter, model, and effort. Dispatch goes th
 
 ## Load-bearing rules
 
-- One authority owns each fact. The epic proposal and design own epic scope and decisions. The ticket comment owns the executable work order. The ledger is a derived index, and live GitHub wins over it.
+- One authority owns each fact. The epic proposal, design, and tasks own durable epic planning. The ticket comment owns the executable work order. Live GitHub owns child work state.
 - A work order is the only entry to execution. It must be the newest fenced `WORK ORDER` comment and must be self-sufficient for a fresh session.
 - Canonical prose is byte-pinned. A canonical constant is the bytes strictly between named opening and closing full-heading-line anchors. Compare raw bytes with `Path.read_bytes()`, not normalized text. Generated-facts appendices pair deterministic commands with their complete literal output.
 - Review depth is stamped at triage, has a sensitivity floor, and never downgrades. Missing depth defaults to Targeted as a triage defect.
@@ -154,13 +154,13 @@ The operator types `/epic` to open or resume an epic, files or answers tracked i
 - `/ticket revise <id>` handles one review round.
 - `/ticket finalize <id>` closes the loop after human merge.
 
-The operator may explicitly say to delegate a settled epic subtree. The operator also supplies decisions that `/scope` identifies as human-only. The operator reviews and merges pull requests and approves the planning pull request.
+The operator may explicitly say to delegate a settled epic subtree. The operator also supplies decisions that `/scope` identifies as human-only and reviews and merges pull requests.
 
 The procedures automatically claim sessions, cut or reuse worktrees, bind graph identity, read and post through the tracker contract, move ticket labels, run mandatory plan and code review dispatches, verify worker results, create chunk waves, write and collect adapter state, run verification commands, open pull requests, and record finalize actuals. Those actions remain subject to visible failure reporting. A failed status move is non-fatal and is not retried. A tracker, authentication, or Git failure stops the operation that needs it.
 
 ## Where to look when something is off
 
-- The epic's `ledger.md` `Status` section has the single `next` action. Check live GitHub before trusting any derived ledger line.
+- Read the active change's proposal, design, and tasks for planning context, then check live GitHub for child work state.
 - The ticket's issue comments contain the newest work order, amendments, and session fit. If no order is found, return to `/ticket triage <id>`.
 - The pull request contains the implementation evidence, verification output, review conversation, and known residue. Use `/ticket revise <id>` for an open pull request, not manual patching in the control checkout.
 - A silent or unfinished delegated worker is diagnosed from its named adapter state, launcher stdout, worktree or branch, or posted comment. Use the adapter's scoped `verify`; do not search for or stop unknown processes.
