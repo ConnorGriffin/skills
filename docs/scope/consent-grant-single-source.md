@@ -21,8 +21,8 @@
   orchestrate skills.
 - Evidence owed: a test proving every surface carries its required clauses from the
   canonical source; a test proving deleting the safe-fixture qualifier from any
-  surface fails; byte-cap check for both agents/openai.yaml descriptions.
-- Why: the grant is a prose consent contract with twelve live copies; drift is the
+  surface fails; byte-cap check for both SKILL.md frontmatter descriptions.
+- Why: the grant is a prose consent contract with thirteen live copies; drift is the
   harm. Disposition: copied into the work order on ticket 258.
 
 ## Open questions

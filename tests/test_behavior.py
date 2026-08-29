@@ -30,6 +30,8 @@ SPIN_SCRIPT = ROOT / "skills" / "tools" / "spin-worktree" / "scripts" / "spin-wo
 CODEX_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "codex-worker.py"
 CLAUDE_WORKER = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "claude-worker.py"
 WORKER_LIFECYCLE = ROOT / "skills" / "drivers" / "orchestrate" / "scripts" / "worker_lifecycle.py"
+CONSENT_GRANT_SYNC = ROOT / "scripts" / "sync_consent_grant.py"
+CONSENT_GRANT_SOURCE = ROOT / "scripts" / "consent_grant.py"
 UI_CRAFT_AUDIT = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "audit.md"
 UI_CRAFT_CRITIQUE = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "critique.md"
 UI_CRAFT_SWEEP = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "behavior-sweep.md"
@@ -52,6 +54,13 @@ CLAUDE_WORKER_SPEC = importlib.util.spec_from_file_location("orchestrate_claude_
 assert CLAUDE_WORKER_SPEC and CLAUDE_WORKER_SPEC.loader
 CLAUDE_WORKER_MODULE = importlib.util.module_from_spec(CLAUDE_WORKER_SPEC)
 CLAUDE_WORKER_SPEC.loader.exec_module(CLAUDE_WORKER_MODULE)
+
+CONSENT_GRANT_SPEC = importlib.util.spec_from_file_location(
+    "consent_grant", CONSENT_GRANT_SOURCE
+)
+assert CONSENT_GRANT_SPEC and CONSENT_GRANT_SPEC.loader
+CONSENT_GRANT_MODULE = importlib.util.module_from_spec(CONSENT_GRANT_SPEC)
+CONSENT_GRANT_SPEC.loader.exec_module(CONSENT_GRANT_MODULE)
 
 
 def run(
@@ -5036,24 +5045,166 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         ),
     }
 
-    DISPATCH_STEPS = {
-        "triage": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "triage.md",
-        "start": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "start.md",
-        "revise": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "revise.md",
-        "chunked": ROOT
-        / "skills"
-        / "drivers"
-        / "ticket"
-        / "references"
-        / "coordinator-mode.md",
-    }
-    DISPATCH_GRANT = "The literal invocation already granted this dispatch's transfer"
-    SAFE_FIXTURE_QUALIFIERS = (
-        "safe-fixture ui fidelity evidence",
-        "ui fidelity evidence rendered from manufactured or synthetic fixtures "
-        "(tracked in the repository or not, never real user, production, or "
-        "patient data)",
+    SURFACE_PATHS = tuple(
+        sorted(
+            {
+                surface["path"]
+                for surface in (
+                    *CONSENT_GRANT_MODULE.GENERATED_SURFACES.values(),
+                    *CONSENT_GRANT_MODULE.CLAUSE_SURFACES.values(),
+                )
+            }
+        )
     )
+
+    def copy_consent_surfaces(self, repository: Path) -> None:
+        for relative_path in self.SURFACE_PATHS:
+            destination = repository / relative_path
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / relative_path, destination)
+
+    @staticmethod
+    def replace_in_surface(source: str, surface: dict, old: str, new: str) -> str:
+        prefix, tail = source.split(surface["before"], 1)
+        current, suffix = tail.split(surface["after"], 1)
+        if old not in current:
+            raise AssertionError(f"fixture term {old!r} is absent from {surface['path']}")
+        current = current.replace(old, new, 1)
+        return prefix + surface["before"] + current + surface["after"] + suffix
+
+    @classmethod
+    def remove_fixture_bound(cls, source: str, surface: dict, compact: bool) -> str:
+        if compact:
+            return cls.replace_in_surface(source, surface, "safe-fixture ", "")
+        source = cls.replace_in_surface(source, surface, "manufactured", "")
+        return cls.replace_in_surface(source, surface, "synthetic", "")
+
+    def test_consent_grant_checker_accepts_current_surfaces(self):
+        result = run(
+            [sys.executable, str(CONSENT_GRANT_SYNC), "check", "--repo", str(ROOT)],
+            cwd=ROOT,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_consent_grant_checker_names_a_surface_that_loses_its_fixture_bound(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary)
+            self.copy_consent_surfaces(repository)
+            surfaces = {
+                **CONSENT_GRANT_MODULE.GENERATED_SURFACES,
+                **CONSENT_GRANT_MODULE.CLAUSE_SURFACES,
+            }
+            for name, surface in surfaces.items():
+                with self.subTest(surface=name):
+                    target = repository / surface["path"]
+                    original = target.read_text(encoding="utf-8")
+                    target.write_text(
+                        self.remove_fixture_bound(
+                            original, surface, name.endswith("description")
+                        ),
+                        encoding="utf-8",
+                    )
+                    result = run(
+                        [
+                            sys.executable,
+                            str(CONSENT_GRANT_SYNC),
+                            "check",
+                            "--repo",
+                            str(repository),
+                        ],
+                        cwd=ROOT,
+                    )
+                    target.write_text(original, encoding="utf-8")
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(name, result.stderr)
+
+    def test_consent_grant_checker_enforces_both_description_byte_caps(self):
+        descriptions = {
+            "ticket skill description": "skills/drivers/ticket/SKILL.md",
+            "orchestrate skill description": "skills/drivers/orchestrate/SKILL.md",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary)
+            self.copy_consent_surfaces(repository)
+            for name, relative_path in descriptions.items():
+                with self.subTest(surface=name):
+                    target = repository / relative_path
+                    original = target.read_text(encoding="utf-8")
+                    target.write_text(
+                        original.replace('description: "', 'description: "' + "x" * 1025, 1),
+                        encoding="utf-8",
+                    )
+                    result = run(
+                        [
+                            sys.executable,
+                            str(CONSENT_GRANT_SYNC),
+                            "check",
+                            "--repo",
+                            str(repository),
+                        ],
+                        cwd=ROOT,
+                    )
+                    target.write_text(original, encoding="utf-8")
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(name, result.stderr)
+                    self.assertIn("1024 UTF-8 bytes", result.stderr)
+
+    def test_consent_grant_checker_rejects_an_unsynced_canonical_edit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            scripts = Path(temporary)
+            temporary_source = scripts / CONSENT_GRANT_SOURCE.name
+            temporary_sync = scripts / CONSENT_GRANT_SYNC.name
+            shutil.copyfile(CONSENT_GRANT_SOURCE, temporary_source)
+            shutil.copyfile(CONSENT_GRANT_SYNC, temporary_sync)
+            source = temporary_source.read_text(encoding="utf-8")
+            temporary_source.write_text(
+                source.replace("The literal invocation", "A literal invocation", 1),
+                encoding="utf-8",
+            )
+            result = run(
+                [sys.executable, str(temporary_sync), "check", "--repo", str(ROOT)],
+                cwd=ROOT,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("generated block differs from canonical source", result.stderr)
+
+    def test_consent_grant_sync_repairs_only_a_generated_surface(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary)
+            self.copy_consent_surfaces(repository)
+            originals = {
+                path: (repository / path).read_text(encoding="utf-8")
+                for path in self.SURFACE_PATHS
+            }
+            name, surface = next(iter(CONSENT_GRANT_MODULE.GENERATED_SURFACES.items()))
+            target = repository / surface["path"]
+            target.write_text(
+                self.replace_in_surface(
+                    originals[surface["path"]], surface, "The literal", "A literal"
+                ),
+                encoding="utf-8",
+            )
+            result = run(
+                [
+                    sys.executable,
+                    str(CONSENT_GRANT_SYNC),
+                    "sync",
+                    "--repo",
+                    str(repository),
+                ],
+                cwd=ROOT,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                target.read_text(encoding="utf-8"), originals[surface["path"]], name
+            )
+            for clause_surface in CONSENT_GRANT_MODULE.CLAUSE_SURFACES.values():
+                path = clause_surface["path"]
+                self.assertEqual(
+                    (repository / path).read_text(encoding="utf-8"), originals[path]
+                )
 
     @staticmethod
     def text(path: Path) -> str:
@@ -5078,62 +5229,12 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         body = source.split(anchor, 1)[1]
         return body.split("\n\n## ", 1)[0]
 
-    def dispatch_statement(self, source: str) -> str:
-        self.assertIn(self.DISPATCH_GRANT, source)
-        tail = source.split(self.DISPATCH_GRANT, 1)[1].split("\n\n", 1)[0]
-        return self.DISPATCH_GRANT + tail
-
-    def assert_payload_boundary(self, text: str) -> None:
-        compact = self.compact(text)
-        for term in (
-            "work order or task prompt",
-            "repository code, documentation, and",
-            "ui fidelity evidence",
-            "credentials",
-            "secrets",
-            "patient data",
-            "`.env`",
-            "real database contents",
-        ):
-            with self.subTest(term=term):
-                self.assertIn(term.lower(), compact)
-        self.assertIn(
-            "credentials, secrets, patient data, `.env`, and real database contents are excluded",
-            compact,
-        )
-        self.assertTrue(
-            any(qualifier in compact for qualifier in self.SAFE_FIXTURE_QUALIFIERS),
-            "payload names UI fidelity evidence without bounding it to safe fixtures",
-        )
-
-    def assert_material_boundary(self, text: str, destination: str) -> None:
-        self.assert_payload_boundary(text)
-        with self.subTest(term=destination):
-            self.assertIn(destination.lower(), self.compact(text))
-
-    def assert_cross_parent_boundary(self, text: str) -> None:
-        self.assert_material_boundary(text, "OpenAI's Codex model service")
-        compact = self.compact(text)
-        self.assertIn("anthropic's claude model service", compact)
-        self.assertIn("codex ui parent", compact)
-        self.assertIn("claude code parent", compact)
-
-    def test_coordinator_dispatch_steps_restate_the_granted_payload(self):
-        for name, path in self.DISPATCH_STEPS.items():
-            with self.subTest(step=name):
-                statement = self.dispatch_statement(self.text(path))
-                self.assert_payload_boundary(statement)
-                compact = self.compact(statement)
-                self.assertIn("literal invocation already granted", compact)
-                self.assertIn("does not re-ask", compact)
-
     def test_ticket_catalog_and_invocation_declare_bounded_consent(self):
         source = self.text(self.TICKET_SKILL)
         description = self.frontmatter_description(source)
         invocation = self.section(source, "## Invocation")
 
         for surface in (description, invocation):
-            self.assert_cross_parent_boundary(surface)
             surface = self.compact(surface)
             self.assertIn("mandatory worker dispatch", surface)
             self.assertIn("nested review", surface)
@@ -5155,7 +5256,6 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         invocation = self.section(source, "## Invocation")
 
         for surface in (description, invocation):
-            self.assert_cross_parent_boundary(surface)
             surface = self.compact(surface)
             self.assertIn("mandatory worker dispatch", surface)
             self.assertIn("nested review", surface)
@@ -5173,7 +5273,7 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         for path in (self.TICKET_PROMPT, self.ORCHESTRATE_PROMPT):
             with self.subTest(path=path):
                 prompt = self.text(path)
-                self.assert_material_boundary(prompt, "OpenAI's Codex model service")
+                self.assertIn("openai's codex model service", self.compact(prompt))
                 self.assertIn("mandatory worker dispatch", prompt)
                 self.assertNotIn("Anthropic's Claude model service", prompt)
         ticket_prompt = self.compact(self.text(self.TICKET_PROMPT))
@@ -5185,7 +5285,7 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         for name, (path, destination) in self.DISPATCH_REFERENCES.items():
             with self.subTest(reference=name):
                 rationale = self.section(self.text(path), "## Approval rationale")
-                self.assert_material_boundary(rationale, destination)
+                self.assertIn(destination.lower(), self.compact(rationale))
                 rationale = self.compact(rationale)
                 self.assertIn("invoked ticket or orchestrate workflow", rationale)
                 self.assertIn("every mandatory worker dispatch", rationale)
