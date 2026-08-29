@@ -74,8 +74,9 @@ Before declaring the change ready, run each check below.
    repo has none, work to the user's global standards. Follow the order's Do section.
    Match the repo's existing idioms, reading neighboring code first. Record the
    change where the repo already records changes, on the same branch, per the skill
-   page's change-record rule. An epic child creates no change record: the parent
-   epic's existing change record is authoritative.
+   page's change-record rule. An epic child creates no per-child change record: the
+   parent epic's existing change record is authoritative, and implementation
+   preserves the parent-plan bytes already committed by triage.
 
    **Route by shape of the change.** `Surface lifecycle: build` runs `/ui-craft
    build` against the named locked manifest. `Surface lifecycle: revise` runs
@@ -127,9 +128,9 @@ Before declaring the change ready, run each check below.
 
 11. **Preserve the change record for merge.** Outside an epic, the active change
     and its deltas remain reviewable in the pull request. Do not fold or archive
-    them before merge. An epic child creates no per-child change record and leaves
-    its parent epic's active change untouched. After a human merge, `finalize`
-    follows the repository's archive guidance.
+    them before merge. An epic child creates no per-child change record and
+    preserves the parent-plan bytes with implementation in the pull request. After
+    a human merge, `finalize` leaves the parent active for epic-owned archive.
 
 12. **Open the pull request.** `gh pr create` against the default branch. The body
     follows an existing template when one exists, in this order: the repo's
