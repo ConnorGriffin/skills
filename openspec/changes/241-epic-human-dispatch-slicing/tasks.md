@@ -6,6 +6,8 @@
   executable lock handoff without adding a second execution entry.
 - [ ] Pin each child draft to a pushed remote epic-plan branch/commit and make
   ticket triage fail closed when that branch no longer resolves to the pinned commit.
+- [ ] Permit only one in-flight epic child; require human merge and planning-branch
+  advancement from the updated default branch before handing off the next child.
 - [ ] Add the three-child default and require a `design.md` justification before
   filing a fourth or later child.
 - [ ] State that epic planning artifacts ship with implementation and that the
