@@ -115,3 +115,5 @@ None.
   initial chunk's `parallel` mode is the schema's predecessor-free form, not a
   concurrency claim; there is no `serial after 0`, and the successor remains
   `serial after 1`.
+- Renewed cycle, panel 2 re-check: no blockers; both corrections passed and the
+  scheduling refutation was confirmed. A final fresh cold pass remains required.
