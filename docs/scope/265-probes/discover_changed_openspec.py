@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import subprocess
+import sys
 from pathlib import Path, PurePosixPath
 
 
@@ -15,8 +16,28 @@ def main() -> int:
     args = parser.parse_args()
 
     repo = args.repo.resolve()
+    resolved = subprocess.run(
+        [
+            "git",
+            "rev-parse",
+            "--verify",
+            "--end-of-options",
+            f"{args.base_ref}^{{commit}}",
+        ],
+        cwd=repo,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if resolved.returncode:
+        print(
+            f"base ref does not resolve to a local commit: {args.base_ref}",
+            file=sys.stderr,
+        )
+        return 2
+    base_commit = resolved.stdout.strip()
     merge_base = subprocess.run(
-        ["git", "merge-base", "HEAD", args.base_ref],
+        ["git", "merge-base", "HEAD", base_commit],
         cwd=repo,
         text=True,
         capture_output=True,

@@ -26,6 +26,10 @@
   parsed `archive: null` and `archive_spec_update_failed` shape is load-bearing
   third-party behavior and the existing generated facts suppress those bytes.
   Disposition: inline.
+- Resolve the caller-owned base ref locally with Git's end-of-options form to a
+  verified commit object ID, then use only that object ID for merge-base and export.
+  Why: an option-shaped public argument must not become `git archive --remote` or
+  another Git option. Disposition: inline.
 - Slice implementation into two serial chunks: the public CLI and executable
   contract evidence first; its three workflow consumers and OpenSpec contract
   alignment second. Why: both multiple-deliverable-artifacts and lockstep-copies-of-
@@ -48,8 +52,9 @@
 - **Evidence owed:** public-command tests for historical #259, changed-path
   discovery, JSON shapes, current-base composition, fetch timing/failure, ordinary
   delta kinds, source/base immutability, executable launch failure, base export
-  failure, overlay failure, and temporary-directory cleanup on every recovery path;
-  strict OpenSpec and full repository verification.
+  failure, overlay failure, an option-shaped base ref rejected locally without a
+  remote invocation, and temporary-directory cleanup on every recovery path; strict
+  OpenSpec and full repository verification.
 
 Why: this prices the smallest non-mutating gate that prevents the observed
 post-merge failure. Disposition: inline.
@@ -103,3 +108,10 @@ None.
   eligibility, ordering, base refs, bypass, and outbound boundaries.
 - Renewed cycle, panel 1 re-check: no blockers; same-reviewer `PASS`. A fresh cold
   pass remains required for the load-bearing countersign.
+- Renewed cycle, panel 2 fresh cold pass: two verified `authoring` blockers and one
+  refuted claim. Verified: both chunks claimed portions of `tests/test_ticket.py`,
+  violating start's disjoint-ownership sufficiency check; caller-owned base refs
+  lacked an end-of-options/local-commit boundary before Git archive. Refuted: the
+  initial chunk's `parallel` mode is the schema's predecessor-free form, not a
+  concurrency claim; there is no `serial after 0`, and the successor remains
+  `serial after 1`.

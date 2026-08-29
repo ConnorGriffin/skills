@@ -48,4 +48,5 @@ delta repair before ticket finalization can complete.
   compare separate before/after digests for the ticket worktree and base-ref
   OpenSpec trees on both success and archive failure; boundary-fake tests cover
   executable launch, base export, and overlay failure with nonzero diagnostics and
-  temporary-directory cleanup; OpenSpec validation and the repository gate pass.
+  temporary-directory cleanup; an option-shaped base ref is rejected locally without
+  a remote invocation; OpenSpec validation and the repository gate pass.

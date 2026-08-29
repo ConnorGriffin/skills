@@ -108,6 +108,21 @@ ticket: ticket-workflow MODIFIED failed for header "### Requirement: Four-verb l
 ticket: if this requirement was renamed, add a `## RENAMED Requirements` mapping from its current baseline header to the unmatched delta header; otherwise correct the MODIFIED header.
 ```
 
+## Option-shaped base ref stays local
+
+Command:
+
+```sh
+/opt/homebrew/bin/python3.14 docs/scope/265-probes/discover_changed_openspec.py --repo . --base-ref=--remote=ssh://example.invalid/repo; probe_status=$?; printf 'exit=%s\n' "$probe_status"
+```
+
+Output:
+
+```text
+base ref does not resolve to a local commit: --remote=ssh://example.invalid/repo
+exit=2
+```
+
 ## Current OpenSpec validation
 
 Command:

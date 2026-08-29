@@ -34,6 +34,14 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
 - **THEN** it fetches the remote immediately before exporting the current default-
   branch OpenSpec tree, and a fetch or base-ref failure stops pull-request creation
 
+#### Scenario: A base ref resembles a Git option
+
+- **WHEN** the public applicability command receives a base-ref value that could be
+  parsed as a Git option rather than a local revision
+- **THEN** it resolves the value with Git's end-of-options form to a verified local
+  commit before merge-base or export, and an unresolved value stops locally without
+  invoking a remote
+
 #### Scenario: A structurally valid delta cannot apply
 
 - **WHEN** strict validation passes but a disposable archive reports an unmatched

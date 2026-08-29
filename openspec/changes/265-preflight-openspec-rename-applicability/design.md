@@ -2,7 +2,8 @@
 
 `ticket.py` remains the ticket workflow's command interface and gains one
 applicability-preflight command. Its workflow form receives the checkout and a
-caller-owned base ref, resolves the merge base with the ticket branch, and derives
+caller-owned base ref, resolves that ref locally with Git's end-of-options form to a
+verified commit object ID, resolves the merge base with the ticket branch, and derives
 non-archive `openspec/changes/<name>/` directories changed by that diff and still
 present in the ticket tree. No changed active directory is a successful no-op;
 exactly one is preflighted; more than one stops visibly because this ordinary-ticket
@@ -20,11 +21,11 @@ failure emits exactly two ordered `ticket:` lines: the CLI's unmatched requireme
 then rename/header correction guidance. Workflow callers invoke the command only
 after selecting the existing ordinary OpenSpec change-record route.
 
-The command exports the resolved base ref's current `openspec/` tree into a fresh
+The command exports the resolved commit object's current `openspec/` tree into a fresh
 temporary directory, overlays only the ticket worktree's one active change
 directory, and runs the pinned external interface there: `openspec archive
-<change> --json --yes`. It does not emulate OpenSpec's merge rules. Using the base
-ref rather than the ticket branch's stale baseline catches an applicability change
+<change> --json --yes`. It does not emulate OpenSpec's merge rules. Using the locally
+resolved base commit rather than the ticket branch's stale baseline catches an applicability change
 that landed after branch cut without rebasing or mutating the ticket branch.
 Success requires process exit zero, a top-level JSON object with a non-null archive
 object, and no error-severity entry in an optional status list of objects.

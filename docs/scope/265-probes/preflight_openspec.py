@@ -28,9 +28,29 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="ticket-openspec-preflight-") as scratch:
         root = Path(scratch)
         if args.base_ref:
+            resolved = subprocess.run(
+                [
+                    "git",
+                    "rev-parse",
+                    "--verify",
+                    "--end-of-options",
+                    f"{args.base_ref}^{{commit}}",
+                ],
+                cwd=args.repo.resolve(),
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            if resolved.returncode:
+                print(
+                    f"ticket: base ref does not resolve to a local commit: {args.base_ref}",
+                    file=sys.stderr,
+                )
+                return 2
+            base_commit = resolved.stdout.strip()
             archive_path = root / "openspec.tar"
             exported = subprocess.run(
-                ["git", "archive", "--format=tar", f"--output={archive_path}", args.base_ref, "openspec"],
+                ["git", "archive", "--format=tar", f"--output={archive_path}", base_commit, "openspec"],
                 cwd=args.repo.resolve(),
                 text=True,
                 capture_output=True,
