@@ -66,6 +66,23 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    denial as the claim step, naming the path and the fix: rerun the same
    record command outside the sandbox or with escalated permissions.
 
+   Retain a successful record command's standard output in `record_json` and
+   print it once for the coordinator. Then pipe those same captured bytes, without
+   rerunning `record`, into reviewer memory:
+
+   ```sh
+   printf '%s\n' "$record_json" |
+     python3 <reviewer-memory-skill-directory>/scripts/memory.py append-slicing <repo>
+   ```
+
+   `<repo>` is the ticket's target repository, matching the repository identity
+   resolved from `--project` when that option is present. Obey the
+   [reviewer-memory failure rule](../../../tools/reviewer-memory/SKILL.md#failure-rule),
+   including its not-installed carve-out.
+
+   Keep the record and store content local; never copy them into a tracker comment,
+   work order, pull request body, or target-repository file.
+
    * `ok`: the shape matched what the ticket cost.
    * `under-sliced`: a flat order that peaked past the degradation band.
    * `still-degraded`: a chunked order whose chunks were themselves too big.

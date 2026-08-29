@@ -182,6 +182,17 @@ not a code finding.
 
 ### 4. Run both axes in parallel
 
+Before composing either positional prompt, run:
+
+```sh
+python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>
+```
+
+Obey the [reviewer-memory failure rule](../reviewer-memory/SKILL.md#failure-rule),
+including its not-installed carve-out. Keep the pointer and store content inside
+worker positional prompts only; never copy them into the review report, a tracker
+comment, work order, pull request body, or target-repository file.
+
 The coordinator supplies three explicit seam inputs: the adapter appropriate to the
 coordinator's existing parent policy, reviewer model, and reviewer effort. Pass model
 and effort through unchanged to the selected helper. This process does not choose a
@@ -193,8 +204,10 @@ Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or
 the selected helper's `start` command with `--sandbox read-only`, the explicit
 coordinator-supplied `--model` and `--effort`, `--cwd` set to the reviewed checkout,
 and one state file. Give the shared brief, the axis brief, the diff command, commit
-list, enumeration, and risk contract when one exists as the helper's positional
-prompt. The prompt must say that the reviewer must not modify, patch, or stash. Codex
+list, enumeration, risk contract when one exists, and the store index path printed by
+`python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>` as the
+helper's positional prompt. The prompt must say that the reviewer must not modify,
+patch, or stash. Codex
 receives the positional prompt with inherited stdin closed; Claude adapter receives
 the positional prompt and delivers it to the child on stdin.
 
@@ -233,7 +246,10 @@ that worker's retained PID. Do not discover, stop, verify, or join an unlaunched
 
 **Shared brief** — give this to both:
 
-> Trace every claim to the code before reporting it. For each finding state a
+> Reviewer memory index: the path printed by
+> `python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>`.
+> Read that bundle before reviewing. Trace every claim to the code before reporting
+> it. For each finding state a
 > failure scenario: the concrete input or state, and the wrong output, crash, or
 > false statement that results. If you cannot construct one, put the item under
 > `unverified` instead of `findings`. Do not report anything the linter
@@ -302,6 +318,18 @@ Close with the termination state, explicitly:
 A re-review that returns no new violated items on the same enumeration is the
 signal to stop, and the skill should say so rather than leaving the reader to
 guess whether another round would find more.
+
+After stating the round's termination state, send one raw JSON object on standard
+input to:
+
+```sh
+python3 <reviewer-memory-skill-directory>/scripts/memory.py append-review <repo>
+```
+
+The object contains the ticket, round, verdict, findings summary, and reviewer
+model. Obey the
+[reviewer-memory failure rule](../reviewer-memory/SKILL.md#failure-rule), including
+its not-installed carve-out.
 
 ## Reporting rules
 
