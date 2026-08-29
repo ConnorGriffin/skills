@@ -83,3 +83,14 @@ enters a new fresh review cycle before posting.
 The cycle starts from commit `c1d3554`, with every blocker from the first cycle
 resolved in the active change and work order. Round instrumentation continues below
 when the fresh cold pass returns.
+
+### Round 1
+
+- Refuted before authoring: the worker claimed its own already-approved successful
+  dispatch lacked authorization. The running isolated session and the operator's
+  explicit approval disproved the claim; it did not travel into the draft.
+- `authoring` — the regression-test instruction replaced the existing triage-only
+  assertion but did not require one assertion surface spanning the shared ticket
+  pipeline and triage procedure. Resolved by requiring the public-contract test to
+  aggregate both files and reject the old instruction across the combined text.
+- Injected blockers: none.
