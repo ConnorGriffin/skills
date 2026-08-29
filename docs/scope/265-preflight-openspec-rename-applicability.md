@@ -117,3 +117,8 @@ None.
   `serial after 1`.
 - Renewed cycle, panel 2 re-check: no blockers; both corrections passed and the
   scheduling refutation was confirmed. A final fresh cold pass remains required.
+- Renewed cycle, panel 3 fresh cold pass: one `authoring` blocker — the pre-PR or
+  pre-push gate cannot guarantee the baseline stays unchanged until human merge,
+  while the risk contract says stale-base approval is must-prevent. The three-panel
+  cap was reached; the draft is frozen pending an operator choice between accepting
+  that post-gate/pre-merge race or adding a merge-time enforcement owner.
