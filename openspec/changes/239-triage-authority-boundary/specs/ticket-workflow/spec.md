@@ -4,18 +4,20 @@
 
 ### Requirement: Triage mutation authority
 
-Ticket triage MUST confine repository and tracker mutations to a closed allowance:
-local control-checkout remote-tracking-ref refresh needed to resolve and verify the
-selected ticket's base, the selected ticket's worktree and branch, an ordinary
-ticket's active change record, the selected ticket's comment and status, its
-lifecycle claim and exact Codebase Memory worktree index, and the defined Epic-child
-parent-plan amendment carried by that child's implementation pull request. The local
-ref refresh MUST create no remote repository or tracker state. Anything outside that allowance
+Ticket triage MUST confine writes by ownership and purpose. It MAY initialize,
+update, and read operator-local state that the installed workflow requires to
+execute the selected ticket lifecycle. Repository and tracker writes MUST remain in
+the selected ticket's worktree and branch, an ordinary ticket's active change, and
+the selected ticket's comment and status, except for the defined Epic-child
+parent-plan amendment carried by that child's implementation pull request.
+
+Creating or mutating state for a distinct concern outside that selected lifecycle
 MUST require explicit operator authorization to the previously disclosed external
-target and exact mutation. Reading a
-parent, linked ticket, live service, or repository record for grounding MUST NOT
-grant authority to create a branch, commit, push, pull request, or tracker item for
-that external concern.
+target and exact mutation. Reading a parent, linked ticket, live service, or
+repository record for grounding MUST NOT grant authority to create or change a
+separate branch, commit, push, pull request, tracker item, or repository artifact
+for that external concern. A newly added operator-local workflow mechanism MUST NOT
+be misclassified as ancillary solely because an older order did not enumerate it.
 
 The selected-ticket active change allowance MUST apply directly only to an ordinary
 ticket. An Epic child MUST create no per-child change record and MUST NOT claim its
@@ -51,11 +53,13 @@ decision in the selected ticket's work order.
   external mutation, and waits for an operator response that explicitly authorizes
   that previously disclosed target and exact mutation
 
-#### Scenario: Required local lifecycle state is written
+#### Scenario: Required operator-local workflow state is written
 
-- **WHEN** triage claims its session or binds the ticket worktree's exact Codebase
-  Memory identity
-- **THEN** those ticket-scoped local writes proceed without ancillary-work approval
+- **WHEN** the installed triage workflow requires a claim, exact-worktree Codebase
+  Memory state, reviewer-memory state, or local ref refresh to execute the selected
+  lifecycle
+- **THEN** that operator-local workflow state proceeds without ancillary-work
+  approval and does not authorize a distinct repository or tracker concern
 
 #### Scenario: An Epic child carries a required parent-plan amendment
 

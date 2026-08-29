@@ -18,6 +18,12 @@
   parent's active plan may travel in the selected child's worktree and implementation
   pull request. Why: PR #249 made that parent-owned amendment path the governing
   contract after the first issue-239 scope was written. `→ ADR`
+- The boundary is semantic rather than an exhaustive artifact list: required
+  operator-local workflow state and selected-ticket artifacts may be written,
+  while state for a distinct external concern still requires exact disclosure and
+  a subsequent authorization. Why: merged reviewer-memory support added a valid
+  local triage write after the prior list was locked, reproducing the same omission
+  pattern already seen with remote-tracking refs. `→ ADR`
 
 ### Risk contract
 
@@ -30,9 +36,9 @@
 - **Unsupported:** automatic parent repair, cleanup of PR #237 or its branch, a
   general authorization engine, and runtime parsing or enforcement of the prose
   contract.
-- **Evidence owed:** public-contract tests for the continuation, prerequisite,
-  explicit-authorization, telemetry, and Codebase Memory paths; full repository and
-  strict OpenSpec validation.
+- **Evidence owed:** public-contract tests for required operator-local workflow
+  state, selected-ticket artifacts, the continuation, prerequisite, and
+  explicit-authorization paths; full repository and strict OpenSpec validation.
 - **Why:** this admits a narrow authority fix without replacing prose workflow with
   enforcement machinery.
 - **Disposition:** copied into the issue-239 work order.
@@ -52,6 +58,24 @@ None.
   files from all other child-branch files.
 - No human decision remains: recorded current-main scope governs, and issue 239 must
   integrate with it.
+
+## Re-triage after reviewer memory landed
+
+- `origin/main` at `ecb7c0e` made reviewer-memory initialization and reading a
+  required triage step. The issue-239 branch already contains that merge, and the
+  current closed list omits the store even though the selected lifecycle requires
+  it.
+- `origin/main` then advanced through `d780ab9` to `5372dda`. A real merge
+  simulation against the current tip completed without conflicts, so the branch
+  and its planning records remain reusable.
+- The previous exhaustive artifact list is superseded by a stable distinction:
+  required operator-local workflow state and state belonging to the selected
+  ticket lifecycle are allowed; creating or mutating state for a separate concern
+  remains external and requires exact disclosure plus a subsequent explicit
+  authorization.
+- No human decision remains. Adding only `reviewer-memory` to the list would retain
+  the omission defect and fail again when another legitimate local lifecycle
+  mechanism lands.
 
 ## Spawned tasks
 

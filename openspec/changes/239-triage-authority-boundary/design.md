@@ -4,13 +4,20 @@
 
 `/ticket triage <id>` may read the selected ticket's parent, linked work, live
 state, and repository records to ground a correct order. Without explicit operator
-authorization, its repository and tracker mutations are limited to a closed set:
-local control-checkout remote-tracking-ref refresh needed to resolve and verify the
-selected ticket's base, the selected ticket's branch and worktree, an ordinary
-ticket's active change record, the selected ticket's tracker comment and status,
-its lifecycle claim and exact Codebase Memory worktree index, and the defined
-Epic-child parent-plan amendment carried by that child's implementation pull
-request. The local ref refresh creates no remote repository or tracker state.
+authorization, its writes are limited by ownership and purpose rather than an
+exhaustive list of today's mechanisms. Operator-local state that the installed
+workflow requires to execute the selected lifecycle may be initialized, updated,
+and read; this includes claims, exact-worktree Codebase Memory state, reviewer
+memory, and local remote-tracking refs used to verify the ticket base. Repository
+and tracker writes may affect only the selected ticket's branch, worktree, active
+change when ordinary, comment, and status, plus the defined Epic-child parent-plan
+amendment carried by that child's implementation pull request.
+
+The boundary does not authorize a new independently addressable concern. Creating
+or mutating another branch, pull request, issue, ticket, repository artifact outside
+the selected branch, or equivalent external work remains ancillary even when
+triage believes it would help. This distinction survives additions to the
+operator-local workflow without silently broadening repository or tracker authority.
 
 The selected-ticket active-change allowance applies directly only to an ordinary
 ticket. An Epic child creates no per-child change record and never claims its
@@ -45,4 +52,5 @@ detail of triage.
 
 This is a prose-contract boundary, not a parser or runtime policy engine. Regression
 tests exercise the installed skill text as the ticket driver's public interface and
-preserve its existing telemetry and Codebase Memory lifecycle.
+preserve its existing telemetry, Codebase Memory, reviewer-memory, and Epic-child
+lifecycles.

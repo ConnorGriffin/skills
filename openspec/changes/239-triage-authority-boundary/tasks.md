@@ -1,11 +1,13 @@
 # Tasks
 
-- [x] Reconcile the issue branch with current `main` and add a fail-first public-
-      contract test for the ancillary-mutation boundary.
-- [x] Add the selected-ticket write boundary and explicit-authorization path without
-      weakening the pinned-parent-plan or child-carried-amendment contract.
-- [x] Update triage so compatible decisions stay in the selected ticket lifecycle,
-      while unrelated ancillary mutations stop for exact, response-based approval.
-- [x] Keep the active change delta and task state aligned with the implemented
-      contract.
-- [x] Run the repository verification command and OpenSpec strict validation.
+- [ ] Refresh the branch from current `main` and replace the exhaustive artifact
+      list without discarding valid issue-239 planning or implementation history.
+- [ ] Define the selected-ticket boundary by ownership and purpose, preserving
+      required operator-local workflow state, the pinned-parent-plan lifecycle, and
+      the child-carried-amendment contract.
+- [ ] Update the aggregate public-contract test so it fails against the exhaustive
+      list and proves both required local state and exact authorization for a
+      distinct external concern.
+- [ ] Keep the scope ledger and active change aligned with the revised contract.
+- [ ] Run strict OpenSpec validation, the full repository verification command, and
+      the required Full-depth review.

@@ -16,8 +16,9 @@ broad while writes stay confined to the ticket the operator selected.
 
 ## What changes
 
-- Define the selected-ticket lifecycle as a closed mutation allowance and treat
-  every repository or tracker mutation outside it as external.
+- Define a stable mutation boundary: required operator-local workflow state and
+  selected-ticket lifecycle artifacts remain in scope, while state for a distinct
+  external concern requires separate authorization.
 - Preserve the current Epic-child lifecycle: an Epic child creates no per-child
   change record, while a required amendment to the parent's active plan may travel
   in the selected child's worktree and implementation pull request under parent
@@ -41,8 +42,8 @@ broad while writes stay confined to the ticket the operator selected.
 
 ## Impact
 
-The change affects the ticket driver's shared pipeline, triage procedure, and
-contract tests. It does not alter Epic ownership of parent planning artifacts, the
-current pinned-parent-plan handoff, ticket session claims, Codebase Memory indexing,
-OpenSpec adoption for repositories that lack OpenSpec, or cleanup of PR #237's
-closed branch.
+The change affects the ticket driver's shared pipeline, triage procedure, active
+change record, and contract tests. It does not alter Epic ownership of parent
+planning artifacts, the current pinned-parent-plan handoff, ticket session claims,
+Codebase Memory indexing, reviewer-memory behavior, OpenSpec adoption for
+repositories that lack OpenSpec, or cleanup of PR #237's closed branch.
