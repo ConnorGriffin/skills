@@ -35,6 +35,15 @@ Route: scope → interview mode (plan exists in operator's head, untested).
 - Keying (request type / module / change type)
 - Epic vs one chunked ticket
 
+## Review rounds
+
+- Round 1 (cold Opus, read-only, load-bearing): BLOCKED — six blockers + one note, all `authoring`: missing interpreter-substitution sentence; skill-registration allowlist deadlock (validate.py EXPECTED, agents/openai.yaml, site/relationships.py, README, skill-count prose); CLAUDE.md-is-a-symlink allowlist error; code-review edit anchor pointed at forbidden review-routing.md; append-slicing stdin contract mismatched ticket.py's indent=2 output and real keys; no test_behavior regression pin; repo-key example contradicted _normalize_remote. Every claim reproduced against the tree before fixing; all fixed in the draft.
+
+- Round 2 (fresh cold Opus): BLOCKED — four blockers, all `authoring` (none injected): write/permission-denial posture unspecified where sandboxes deny ~/ writes (resolved: loud stop naming the fix, deliberate divergence from ticket.py's continue); chunk 1 Done-when didn't run the suite guarding README/AGENTS.md/validate.py/site edits (resolved: full command); index frontmatter check prosed with no stdlib YAML (resolved: spiked as a two-delimiter check); plan-review fifth input contradicted the adjacent exclusion sentence (resolved: amend the sentence in the same step). Three notes folded in: frozen fidelity rows, verdict-states anchor, PUBLISHED_SKILLS install deferral. All citations reproduced before fixing.
+
+- Round 3 (fresh cold Opus, panel cap): BLOCKED — three blockers, all `authoring`, zero injected across all rounds: no not-installed carve-out (a genuine unsettled decision, routed back through scope as Q8; operator chose one-line-and-continue for a missing script, loud stop only for a store that exists but cannot be used); plan-review line 54's "four allowed inputs" count missed by the edit list (fixed, added to pin); empty-bundle carve-out had no consumer (fixed: triage calls ensure, pointer's callers are the two review skills). Notes folded in: relationships.py uses edges + README Requires moved to sub-order 2's boundary; placeholder command form spiked into the call sites. Cap reached; posting proceeds on operator approval per triage step 13.
+- Q8: reviewer-memory not installed (script path absent) = say one line and continue; loud stop reserved for an existing-but-unusable store. Why: per-skill installs are supported and halting would brick the inherited workflow everywhere the skill isn't installed. (inline)
+
 ## Spawned tasks
 
 (none)
