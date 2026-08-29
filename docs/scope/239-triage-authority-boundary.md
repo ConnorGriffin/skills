@@ -85,21 +85,24 @@ None.
 
 - Chunk 1 reconciled the ticket branch with current `origin/main` while preserving
   the pinned-parent-plan handoff, one executable child lock, parent change and
-  archive ownership, and child-carried required amendment. The ticket-focused suite
-  passed 87 tests before integration.
-- Chunk 2 added the shared closed allowance, the triage consumer, and one aggregate
-  public-contract test. The test failed first against reconciled current-main text
-  for the missing authority boundary and passed after the two live contract files
-  changed.
+  archive ownership, and child-carried required amendment. After one reproduced
+  current-main drift correction, the ticket-focused suite passed 325 tests with one
+  skip before integration.
+- Chunk 2 added the shared ownership-and-purpose boundary, the triage consumer, and
+  one aggregate public-contract test. The test failed first against reconciled
+  current-main text for the missing authority boundary and passed after the two live
+  contract files changed. The deterministic inventory matched all 29 assigned paths.
 - The integrated contract remains prose-only: no parser, state machine, tracker
   operation, automatic repair, or runtime authorization enforcement was added.
 - Strict OpenSpec validation passed all four discovered items. Structural validation
-  covered 27 skills and 401 files; the documented unittest selection passed 472
+  covered 28 skills and 416 files; the documented unittest selection passed 487
   tests with 23 skips; Python compilation completed silently.
 - Each chunk received the required Full-depth review through the operator-selected,
-  unvalidated GPT-5.6-Sol exception. Chunk 1 checked 13 Standards and 15 Spec items;
-  chunk 2 checked 15 Standards and 20 Spec/risk/evidence items. All verdicts were
-  clean, and coordinator verification reproduced the required evidence.
+  unvalidated Codex exception, routed to GPT-5.6-Luna by the review matrix. Chunk 1's
+  first round checked 12 Standards items and 10 Spec/risk items, found one moving-main
+  drift, then converged after correction on 14 Standards items and 12 Spec/risk/fix
+  items. Chunk 2 checked 15 Standards items and 16 Spec/risk/evidence items with no
+  findings. Coordinator verification reproduced the required executable evidence.
 
 ## Original review rounds
 
