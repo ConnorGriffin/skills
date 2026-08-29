@@ -24,6 +24,7 @@ RELATIONSHIPS = {
     "preflight": {"uses": ["plan-review"], "requirements": ""},
     "prototype": {"uses": [], "requirements": ""},
     "research": {"uses": [], "requirements": ""},
+    "reviewer-memory": {"uses": [], "requirements": ""},
     "say-less": {"uses": [], "requirements": "Optional prompt hook for always-on digest; see [docs/overlay.md](docs/overlay.md) and the [measured comparison](docs/before-after.md)"},
     "spin-worktree": {"uses": [], "requirements": "Git; GitHub CLI only for `--pr` discovery"},
     "tdd": {"uses": [], "requirements": ""},
