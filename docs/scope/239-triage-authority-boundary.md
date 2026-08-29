@@ -13,9 +13,11 @@
   recorded destination, constraint, acceptance criterion, risk, or sequence; the
   request cites that clause. Why: a visible artifact predicate prevents the triager
   from expanding scope by private judgment. `→ ADR`
-- The selected-ticket active change allowance is ordinary-ticket-only; Epic children
-  remain work-order-only and their parent owns the active change. Why: the existing
-  Epic-child lifecycle is already explicit and is the governing default. `→ ADR`
+- The selected-ticket write boundary preserves the current Epic-child lifecycle:
+  the child creates no per-child change record, but a required amendment to the
+  parent's active plan may travel in the selected child's worktree and implementation
+  pull request. Why: PR #249 made that parent-owned amendment path the governing
+  contract after the first issue-239 scope was written. `→ ADR`
 
 ### Risk contract
 
@@ -39,11 +41,23 @@
 
 None.
 
+## Re-triage after main advanced
+
+- `origin/main` at `7d4cdd6` contains merged PR #249, which replaced the former
+  work-order-only child branch rule with a parent-owned amendment carried by the
+  selected child's implementation pull request.
+- The former issue-239 decision that a child branch carries no parent planning
+  artifact is superseded. The authority boundary now distinguishes selected-ticket
+  lifecycle state from ancillary state, rather than distinguishing child planning
+  files from all other child-branch files.
+- No human decision remains: recorded current-main scope governs, and issue 239 must
+  integrate with it.
+
 ## Spawned tasks
 
 None.
 
-## Review rounds
+## Original review rounds
 
 ### Round 1
 
@@ -69,20 +83,19 @@ None.
 
 - `authoring` — the selected-ticket active-change allowance did not say it applied
   only to ordinary tickets, contradicting the Epic-child work-order-only rule.
-  `/scope` found no open decision: the existing Epic-child exception governs.
+  `/scope` found no open decision: the existing Epic-child exception governed.
   Resolved by stating the ordinary-ticket limit and preserving parent ownership.
 - Injected blockers: none.
 
 The three-panel hard cap was reached with the authoring blocker above. No work order
-may be posted from that review cycle. After the blocker was resolved and committed,
-the operator directed triage to keep going; the clean rewritten draft therefore
-enters a new fresh review cycle before posting.
+could be posted from that review cycle. After the blocker was resolved and committed,
+the operator directed triage to keep going; the clean rewritten draft entered a new
+fresh review cycle.
 
-## Review cycle 2
+## Original review cycle 2
 
-The cycle starts from commit `c1d3554`, with every blocker from the first cycle
-resolved in the active change and work order. Round instrumentation continues below
-when the fresh cold pass returns.
+The cycle started from commit `c1d3554`, with every blocker from the first cycle
+resolved in the active change and work order.
 
 ### Round 1
 
@@ -94,11 +107,72 @@ when the fresh cold pass returns.
   pipeline and triage procedure. Resolved by requiring the public-contract test to
   aggregate both files and reject the old instruction across the combined text.
 - Injected blockers: none.
-
-The same reviewer reproduced the correction and returned `COUNTERSIGNED`.
+- The same reviewer reproduced the correction and returned `COUNTERSIGNED`.
 
 ### Round 2
 
 - A context-free fresh cold pass returned no blocking objections.
 - Injected blockers: none.
 - Verdict: `COUNTERSIGNED`.
+
+## Re-triage review cycle
+
+### Round 1
+
+- `authoring` — the first sub-order used the nonexistent `serial after 0` mode.
+  Resolved with the schema's initial `parallel` mode and `serial after 1` successor.
+- `authoring` — Done-when pinned an OpenSpec item count despite refreshing moving
+  `main`. Resolved by requiring every discovered item to pass with zero failures.
+- `injected` — the first correction left the slicing rationale saying `two serial
+  chunks`. Resolved by naming the initial predecessor and serial successor exactly.
+- Injected blockers after correction: none.
+- Same-reviewer verdict: `COUNTERSIGNED`.
+
+### Round 2
+
+- Refuted before authoring: the reviewer treated initial `Mode: parallel` as
+  concurrent execution. The slicing schema offers only `parallel` for a chunk with
+  no predecessor and `serial after <n>` for a real dependency; there is no chunk 0.
+  The order now also states that sub-order 1 runs alone and sub-order 2 is cut only
+  after it merges.
+- `authoring` — the authorization response did not explicitly repeat approval of
+  the previously disclosed target and mutation. Resolved in the risk contract,
+  test obligation, triage instruction, and acceptance criteria.
+- `authoring` — selected-ticket lifecycle work was not a reviewer-decidable closed
+  set. Resolved with the exact allowed artifact list; anything else is external.
+- `authoring` — the generic confinement self-check could be misread to require a
+  real external mutation despite the admitted prose-only assurance level. Resolved
+  by defining the aggregate public-contract test as the real run and forbidding
+  external proof mutations.
+- Injected blockers: none.
+
+### Round 3
+
+- `authoring` — sub-order 1 told its worker to merge upstream into the
+  coordinator-owned ticket branch. Resolved by merging upstream into the chunk
+  branch and returning the reviewed reconciliation for the coordinator to merge.
+- `authoring` — the inventory step said `Repeat`, leaving protected records'
+  write status ambiguous. Resolved by making it a read-only verification and
+  assigning active-change edits only to the coordinator.
+- `authoring` — the closed allowance omitted the control checkout's local
+  remote-tracking-ref refresh required to verify an Epic child's pinned base before
+  its worktree exists. Resolved by admitting only that local synchronization and
+  stating that it creates no remote repository or tracker state.
+- Injected blockers: none.
+- The three-panel cap routed back through `/scope`. No human decision was open:
+  current coordinator ownership and Epic-child pre-worktree rules settled all three
+  corrections. The clean rewritten draft therefore started a new review cycle.
+
+## Re-triage review cycle 2
+
+The cycle started from the rewritten draft that resolved every reproduced blocker
+above. A fresh cold pass received no prior findings.
+
+### Round 1
+
+- A context-free fresh cold pass returned no blocking objections.
+- The reviewer reproduced the branch facts, PR #237 and PR #249 grounding, strict
+  OpenSpec validation, and the need for reconciliation; F1 matched byte-for-byte.
+- Injected blockers: none.
+- Verdict: `COUNTERSIGNED` (unvalidated Codex exception selected by the invoked
+  ticket workflow).

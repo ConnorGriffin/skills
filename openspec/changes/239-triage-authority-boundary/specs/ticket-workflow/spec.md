@@ -4,25 +4,33 @@
 
 ### Requirement: Triage mutation authority
 
-Ticket triage MUST confine repository and tracker mutations to the selected
-ticket's worktree, branch, active change record, comment, and status unless the
-operator explicitly authorizes ancillary work. This boundary MUST preserve
-ticket-scoped lifecycle telemetry and local tooling state required by the workflow,
-including the session claim and the exact Codebase Memory worktree index. Reading a
+Ticket triage MUST confine repository and tracker mutations to a closed allowance:
+local control-checkout remote-tracking-ref refresh needed to resolve and verify the
+selected ticket's base, the selected ticket's worktree and branch, an ordinary
+ticket's active change record, the selected ticket's comment and status, its
+lifecycle claim and exact Codebase Memory worktree index, and the defined Epic-child
+parent-plan amendment carried by that child's implementation pull request. The local
+ref refresh MUST create no remote repository or tracker state. Anything outside that allowance
+MUST require explicit operator authorization to the previously disclosed external
+target and exact mutation. Reading a
 parent, linked ticket, live service, or repository record for grounding MUST NOT
 grant authority to create a branch, commit, push, pull request, or tracker item for
 that external concern.
 
-The selected-ticket active change allowance MUST apply only to an ordinary ticket.
-An Epic child MUST retain the existing work-order-only exception: its parent owns the
-active change, and the child MUST NOT write or claim that parent record as its own.
+The selected-ticket active change allowance MUST apply directly only to an ordinary
+ticket. An Epic child MUST create no per-child change record and MUST NOT claim its
+parent's active change as its own. A parent-plan amendment required by the selected
+child's implementation MAY be committed in that child's worktree and travel with its
+implementation pull request under parent ownership; this MUST count as selected-ticket
+lifecycle work rather than ancillary work.
 
 An external amendment MUST be treated as a prerequisite only when omitting it would
 make the current order contradict a recorded destination, constraint, acceptance
 criterion, risk, or sequence in the selected ticket or its governing parent. Triage
 MUST cite that clause, name the exact ancillary target and mutation, stop before the
-mutation, and accept authorization only from the operator's response to that
-disclosure. The original triage invocation MUST NOT count as that authorization.
+mutation, and accept authorization only from an operator response that explicitly
+authorizes the previously disclosed target and exact mutation. Acknowledgment alone
+and the original triage invocation MUST NOT count as that authorization.
 When no such contradiction exists, triage MUST continue and carry the implementation
 decision in the selected ticket's work order.
 
@@ -41,7 +49,7 @@ decision in the selected ticket's work order.
   destination, constraint, acceptance, risk, or sequencing clauses
 - **THEN** triage cites the clause, names the exact target and mutation, stops before
   external mutation, and waits for an operator response that explicitly authorizes
-  that disclosed work
+  that previously disclosed target and exact mutation
 
 #### Scenario: Required local lifecycle state is written
 
@@ -49,9 +57,10 @@ decision in the selected ticket's work order.
   Memory identity
 - **THEN** those ticket-scoped local writes proceed without ancillary-work approval
 
-#### Scenario: An Epic child is triaged
+#### Scenario: An Epic child carries a required parent-plan amendment
 
-- **WHEN** the selected ticket is a confirmed Epic child
-- **THEN** triage writes only the child's work order, leaves the parent's active
-  change untouched, and does not treat that parent record as the selected ticket's
-  active change allowance
+- **WHEN** the selected ticket is a confirmed Epic child and its implementation
+  requires an amendment to the pinned parent plan
+- **THEN** triage may commit that amendment in the child worktree for the child's
+  implementation pull request, creates no per-child change record, and leaves
+  ownership and archive responsibility with the parent

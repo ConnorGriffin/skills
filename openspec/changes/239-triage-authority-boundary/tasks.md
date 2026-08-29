@@ -1,10 +1,11 @@
 # Tasks
 
-- [x] Add a fail-first ticket contract test for the ancillary-mutation boundary.
-- [x] Replace the shared pipeline's automatic Epic-amendment pull request rule with
-      the selected-ticket write boundary and explicit-authorization path.
-- [x] Update triage's Epic-child procedure so it continues when the current work
-      order can carry the decision and otherwise stops before ancillary mutation.
-- [x] Keep the active change delta and task state aligned with the implemented
+- [ ] Reconcile the issue branch with current `main` and add a fail-first public-
+      contract test for the ancillary-mutation boundary.
+- [ ] Add the selected-ticket write boundary and explicit-authorization path without
+      weakening the pinned-parent-plan or child-carried-amendment contract.
+- [ ] Update triage so compatible decisions stay in the selected ticket lifecycle,
+      while unrelated ancillary mutations stop for exact, response-based approval.
+- [ ] Keep the active change delta and task state aligned with the implemented
       contract.
-- [x] Run the repository verification command and OpenSpec strict validation.
+- [ ] Run the repository verification command and OpenSpec strict validation.
