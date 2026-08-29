@@ -97,3 +97,7 @@ None.
   both multiple-artifact and lockstep-copy traits. The three-panel cap was reached,
   so the order was not countersigned or posted and these decisions returned to
   scope.
+- Renewed cycle, panel 1 cold pass: one `authoring` blocker — the order assigned
+  executable stale-remote proof to three Markdown workflow consumers. The public
+  command owns that fixture; consumer evidence is prose-contract assertions for
+  eligibility, ordering, base refs, bypass, and outbound boundaries.
