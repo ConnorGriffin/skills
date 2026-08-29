@@ -36,6 +36,7 @@ EXPECTED = {
     "tools/preflight",
     "tools/prototype",
     "tools/research",
+    "tools/reviewer-memory",
     "tools/say-less",
     "tools/spin-worktree",
     "tools/tdd",

@@ -48,6 +48,7 @@ Browse the pack at <https://connorgriffin.github.io/skills/>.
 | [`preflight`](skills/tools/preflight/SKILL.md) | Ground a plan's facts, spike its first hour, and single-source its rules before review or execution | — |
 | [`prototype`](skills/tools/prototype/SKILL.md) | Build a throwaway prototype — a terminal app for logic questions or switchable UI variants in the real app | — |
 | [`research`](skills/tools/research/SKILL.md) | Investigate a question against primary sources and capture findings as Markdown in the repo | — |
+| [`reviewer-memory`](skills/tools/reviewer-memory/SKILL.md) | Store durable review and slicing observations as append-only JSON plus an OKF digest | — |
 | [`say-less`](skills/tools/say-less/SKILL.md) | Answer-first output shaping with a per-repo glossary of approved terms; adapted from i-have-adhd, merged with this pack's reader-preference rules and an ASD-STE100 subset | Optional prompt hook for always-on digest; see [docs/overlay.md](docs/overlay.md) and the [measured comparison](docs/before-after.md) |
 | [`spin-worktree`](skills/tools/spin-worktree/SKILL.md) | Create isolated Git worktrees for issue and PR work | Git; GitHub CLI only for `--pr` discovery |
 | [`tdd`](skills/tools/tdd/SKILL.md) | Test-driven development through public interfaces, red-green-refactor | — |
