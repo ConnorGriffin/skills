@@ -15,8 +15,10 @@ The public command is `ticket.py preflight-openspec --repo <ticket-worktree>
 --base-ref <ref>`. Both options are required. It returns success for zero changed
 active changes, success with the checked name for one applicable change, a usage-
 class stop naming sorted changes for more than one, and one `ticket:` diagnostic on
-stderr for base/export/CLI/JSON/applicability failures. Workflow callers invoke it
-only after selecting the existing ordinary OpenSpec change-record route.
+stderr for every failure except `archive_spec_update_failed`. That applicability
+failure emits exactly two ordered `ticket:` lines: the CLI's unmatched requirement,
+then rename/header correction guidance. Workflow callers invoke the command only
+after selecting the existing ordinary OpenSpec change-record route.
 
 The command exports the resolved base ref's current `openspec/` tree into a fresh
 temporary directory, overlays only the ticket worktree's one active change
@@ -26,10 +28,11 @@ ref rather than the ticket branch's stale baseline catches an applicability chan
 that landed after branch cut without rebasing or mutating the ticket branch.
 Success requires process exit zero, a top-level JSON object with a non-null archive
 object, and no error-severity entry in an optional status list of objects.
-The reproduced 1.11.0 failure returns exit 1 and a JSON body with `archive: null`
-and `archive_spec_update_failed`; parsing the JSON before branching on process
-status preserves the actionable mismatch diagnostic. Temporary-directory cleanup
-is automatic on success and failure.
+The generated-facts reproduction captures the complete OpenSpec 1.11.0 stdout,
+stderr, and exit status: exit 1, `archive: null`, and an error status whose code is
+`archive_spec_update_failed`. Parsing the JSON before branching on process status
+preserves the actionable mismatch diagnostic. Temporary-directory cleanup is
+automatic on success and every launch, export, overlay, CLI, or parse failure.
 
 For an ordinary OpenSpec-backed ticket, flat `start` and chunked coordinator mode
 fetch `origin` immediately before passing `refs/remotes/origin/HEAD`, whose merge

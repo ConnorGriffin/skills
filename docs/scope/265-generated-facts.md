@@ -21,11 +21,32 @@ exit=0
 $ openspec validate 259-remove-unused-ticket-telemetry --strict
 Change '259-remove-unused-ticket-telemetry' is valid
 exit=0
+$ openspec archive 259-remove-unused-ticket-telemetry --json --yes
+stdout:
+{
+  "archive": null,
+  "root": {
+    "path": "/private/tmp/ticket-265-reproduce-259/raw-archive",
+    "source": "nearest"
+  },
+  "status": [
+    {
+      "severity": "error",
+      "code": "archive_spec_update_failed",
+      "message": "ticket-workflow MODIFIED failed for header \"### Requirement: Role-aware measurement and review depth\" - not found",
+      "fix": "Fix the change delta specs and rerun. No files were changed."
+    }
+  ]
+}
+stderr:
+<empty>
+exit=1
 $ /opt/homebrew/opt/python@3.14/bin/python3.14 docs/scope/265-probes/preflight_openspec.py 259-remove-unused-ticket-telemetry --repo .
 ticket: ticket-workflow MODIFIED failed for header "### Requirement: Role-aware measurement and review depth" - not found
 ticket: if this requirement was renamed, add a `## RENAMED Requirements` mapping from its current baseline header to the unmatched delta header; otherwise correct the MODIFIED header.
 exit=1
 source_unchanged=true
+raw_failure_shape_matches=true
 ```
 
 ## Archive command surface
@@ -99,11 +120,12 @@ Output:
 
 ```text
 - Validating...
+✓ change/258-consent-grant-single-source
 ✓ change/265-preflight-openspec-rename-applicability
 ✓ spec/pack-integrity
 ✓ spec/planning-and-review
 ✓ spec/ticket-workflow
-Totals: 4 passed, 0 failed (4 items)
+Totals: 5 passed, 0 failed (5 items)
 ```
 
 ## Host Python runtimes

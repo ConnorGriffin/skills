@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import shutil
 import subprocess
 import sys
 import tarfile
-import tempfile
 from pathlib import Path
 
 
@@ -39,11 +40,37 @@ def tree_digest(root: Path) -> str:
     return digest.hexdigest()
 
 
+def run_raw_archive(source: Path, scratch: Path) -> subprocess.CompletedProcess[str]:
+    root = scratch / "raw-archive"
+    shutil.copytree(source / "openspec", root / "openspec")
+    command = ["openspec", "archive", CHANGE, "--json", "--yes"]
+    result = subprocess.run(
+        command,
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    print(f"$ {' '.join(command)}")
+    print("stdout:")
+    print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
+    print("stderr:")
+    print(result.stderr if result.stderr else "<empty>", end="" if result.stderr.endswith("\n") else "\n")
+    print(f"exit={result.returncode}")
+    return result
+
+
 def main() -> int:
     repo = Path(__file__).resolve().parents[3]
     probe = Path(__file__).with_name("preflight_openspec.py")
-    with tempfile.TemporaryDirectory(prefix="ticket-265-reproduce-") as scratch:
-        fixture = Path(scratch)
+    fixture = Path("/private/tmp/ticket-265-reproduce-259")
+    try:
+        fixture.mkdir()
+    except FileExistsError:
+        print(f"fixture already exists: {fixture}", file=sys.stderr)
+        return 2
+
+    try:
         archive_path = fixture / "repo.tar"
         archived = subprocess.run(
             ["git", "archive", "--format=tar", f"--output={archive_path}", REGRESSION_COMMIT],
@@ -61,6 +88,7 @@ def main() -> int:
 
         version = run(["openspec", "--version"], fixture)
         validation = run(["openspec", "validate", CHANGE, "--strict"], fixture)
+        raw_archive = run_raw_archive(fixture, fixture)
         before = tree_digest(fixture / "openspec")
         preflight = run(
             [sys.executable, str(probe), CHANGE, "--repo", "."],
@@ -70,7 +98,34 @@ def main() -> int:
         after = tree_digest(fixture / "openspec")
         print(f"source_unchanged={str(before == after).lower()}")
 
-    return 0 if version.returncode == 0 and validation.returncode == 0 and preflight.returncode == 1 and before == after else 1
+        try:
+            raw_payload = json.loads(raw_archive.stdout)
+        except json.JSONDecodeError:
+            raw_payload = None
+        raw_errors = raw_payload.get("status", []) if isinstance(raw_payload, dict) else []
+        raw_shape_matches = (
+            isinstance(raw_payload, dict)
+            and raw_payload.get("archive") is None
+            and isinstance(raw_errors, list)
+            and any(
+                isinstance(item, dict)
+                and item.get("code") == "archive_spec_update_failed"
+                for item in raw_errors
+            )
+        )
+        print(f"raw_failure_shape_matches={str(raw_shape_matches).lower()}")
+        success = (
+            version.returncode == 0
+            and validation.returncode == 0
+            and raw_archive.returncode == 1
+            and raw_shape_matches
+            and preflight.returncode == 1
+            and before == after
+        )
+    finally:
+        shutil.rmtree(fixture)
+
+    return 0 if success else 1
 
 
 if __name__ == "__main__":

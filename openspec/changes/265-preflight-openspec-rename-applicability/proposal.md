@@ -35,8 +35,9 @@ delta repair before ticket finalization can complete.
   archive JSON reports no archive or an error; secret exposure, irreversible loss
   of authoritative data, accepting an unexpected JSON shape, or silent incorrect
   success.
-- **Must recover:** temporary-copy creation or CLI execution failure must stop the
-  workflow visibly and clean up the disposable copy.
+- **Must recover:** executable launch, base export, overlay, temporary-copy, or CLI
+  execution failure must stop the workflow visibly and clean up the disposable
+  copy.
 - **Accepted failure:** malformed or unexpected third-party CLI output stops the
   pull request with the raw diagnostic available for manual investigation; no
   automatic recovery is required.
@@ -45,5 +46,6 @@ delta repair before ticket finalization can complete.
 - **Evidence owed:** public-command tests reproduce strict-validation success
   followed by archive applicability failure, prove a correct rename passes, and
   compare separate before/after digests for the ticket worktree and base-ref
-  OpenSpec trees on both success and archive failure; OpenSpec validation and the
-  repository gate pass.
+  OpenSpec trees on both success and archive failure; boundary-fake tests cover
+  executable launch, base export, and overlay failure with nonzero diagnostics and
+  temporary-directory cleanup; OpenSpec validation and the repository gate pass.

@@ -38,9 +38,18 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
 
 - **WHEN** strict validation passes but a disposable archive reports an unmatched
   modified requirement and no archive result
-- **THEN** the workflow stops before the pull request, names the unmatched
-  requirement, directs the author to add the missing rename mapping or correct the
-  modified header, and leaves the active change and baseline unchanged
+- **THEN** the workflow stops before the pull request and emits exactly two ordered
+  `ticket:` stderr lines: the unmatched requirement first, then direction to add
+  the missing rename mapping or correct the modified header; it leaves the active
+  change and baseline unchanged
+
+#### Scenario: Applicability infrastructure fails
+
+- **WHEN** executable launch, base export, active-change overlay, or archive CLI
+  execution fails during the disposable applicability proof
+- **THEN** the public command exits nonzero with one `ticket:` stderr diagnostic,
+  removes its temporary directory, and leaves the ticket worktree and base-ref
+  OpenSpec trees unchanged
 
 #### Scenario: A correctly renamed requirement is preflighted
 
