@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reviewer Memory"
+  short_description: "Store durable reviewer observations and OKF digests"
+  default_prompt: "Use $reviewer-memory to capture or distill this repository's reviewer memory."
