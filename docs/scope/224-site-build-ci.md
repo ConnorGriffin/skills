@@ -44,6 +44,10 @@
 - Panel 1: GPT-5.6-Terra returned `SHIP` with 0 blocking objections and 0
   notes after reproducing both generated evidence blocks. Authoring blockers: 0.
   Injected blockers: 0.
+- Approval-copy re-check: shortening the reviewed draft injected 2 blockers: the
+  host interpreter substitution was missing and the OpenSpec paths were no longer
+  a closed allowlist. Both corrections were reproduced by the same reviewer, which
+  returned `SHIP` with no new blocker. Authoring blockers: 0. Injected blockers: 2.
 
 ## Open questions
 
