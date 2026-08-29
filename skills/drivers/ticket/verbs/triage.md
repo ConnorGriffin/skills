@@ -190,8 +190,13 @@ For a flat order, copy the already-selected execution row's `Ladder` value from 
 For a chunked order, select one coordinator execution row with the same grounded, fail-closed classification rule that selects a flat order's execution row. Copy that row's `Ladder` value into exactly one `Session fit:` paragraph in every sub-order fence, keeping each model's display name and ladder order, and annotate each paragraph with exactly one `selected Agent rung: <Rung>`. A missing, duplicate, malformed, unresolved, or ineligible ladder or selected rung returns through `/scope` and produces no draft or comment.
 
 12. **Adversarial review, mandatory.** Every draft order gets reviewed before it is
-    shown to the user or posted; there is no unreviewed path to step 13. Run
-    `/plan-review` against the draft: it spawns cold reviewer agents with the
+    shown to the user or posted; there is no unreviewed path to step 13. A
+    delegated `triage` worker returns its review-ready draft to its coordinator
+    through the coordinator-recorded durable result locator, then stops at this
+    boundary. Its coordinator dispatches `/plan-review`, verifies the verdict, and
+    resumes the same worker with actionable findings or a verified clean verdict.
+    The worker must not launch a nested reviewer. A coordinator-run triage runs
+    `/plan-review` against the draft directly: it spawns cold reviewer agents with the
     five-axis rubric (grounding, acceptance, interface shape, scope, cost) and
     returns objections and a verdict. Review depth follows that skill's stakes
     tiering: an ordinary order gets one panel, and a load-bearing one ends only

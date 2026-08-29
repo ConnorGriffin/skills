@@ -62,7 +62,12 @@ long ago and the pull request is one diff.
    changes and rebase, same rules as `start`: the output must match the order's
    expectation. Re-read the repo's `AGENTS.md` or `CLAUDE.md` and audit the changes
    you are about to push against it, including any completion checklist it defines.
-   Fix violations. Under `Profile: hardening`, re-run the repo's `Harden:` command
+   Fix violations. A delegated `revise` worker returns its review-ready revised diff
+   to its coordinator through the coordinator-recorded durable result locator,
+   then stops at this boundary. Its coordinator dispatches `/review`, verifies the
+   verdict, and resumes the same worker with actionable findings or a verified
+   clean verdict. The worker must not launch a nested reviewer. A coordinator-run
+   revise follows the profile route directly. Under `Profile: hardening`, re-run the repo's `Harden:` command
    with the same stop rule and three-pass cap as `start`, and run `/review` only
    when the stamped depth is Full. Under `Profile: none`, run `/review` at the
    order's stamped review depth. Fix confirmed findings and repeat verification if

@@ -4858,6 +4858,175 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
                 self.assertIn("stop and ask once before dispatch", rationale)
 
 
+class CoordinatorOwnedReviewContractTests(unittest.TestCase):
+    TICKET = ROOT / "skills" / "drivers" / "ticket" / "SKILL.md"
+    ORCHESTRATE = ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md"
+    TICKET_VERBS = {
+        "triage": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "triage.md",
+        "start": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "start.md",
+        "revise": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "revise.md",
+    }
+    OPENAI_PROMPTS = (
+        ROOT / "skills" / "drivers" / "ticket" / "agents" / "openai.yaml",
+        ROOT / "skills" / "drivers" / "orchestrate" / "agents" / "openai.yaml",
+    )
+    DELTA_SPECS = (
+        ROOT
+        / "openspec"
+        / "changes"
+        / "233-coordinator-owned-review"
+        / "specs"
+        / "ticket-workflow"
+        / "spec.md",
+        ROOT
+        / "openspec"
+        / "changes"
+        / "233-coordinator-owned-review"
+        / "specs"
+        / "planning-and-review"
+        / "spec.md",
+    )
+
+    @staticmethod
+    def compact(text: str) -> str:
+        return " ".join(text.split()).lower()
+
+    @staticmethod
+    def frontmatter_description(path: Path) -> str:
+        source = path.read_text(encoding="utf-8")
+        frontmatter = source.split("---\n", 2)[1]
+        return next(
+            line.removeprefix("description:").strip().strip('"')
+            for line in frontmatter.splitlines()
+            if line.startswith("description:")
+        )
+
+    @staticmethod
+    def section(path: Path, heading: str) -> str:
+        source = path.read_text(encoding="utf-8")
+        anchor = f"{heading}\n\n"
+        assert anchor in source
+        return source.split(anchor, 1)[1].split("\n\n## ", 1)[0]
+
+    def assert_catalog_handoff(self, description: str) -> None:
+        description = self.compact(description)
+        self.assertIn("coordinator dispatches every mandatory reviewer", description)
+        self.assertIn("resumes the same worker", description)
+        self.assertNotIn("worker launches a nested reviewer", description)
+
+    def assert_unavailable_review_is_not_clean(self, contract: str) -> None:
+        contract = self.compact(contract)
+        for term in (
+            "failed launch",
+            "nonzero exit",
+            "missing result artifact",
+            "missing verdict",
+            "reported as unavailable",
+            "never interpreted as an empty finding list",
+            "blocks the workflow from advancing as reviewed",
+        ):
+            self.assertIn(term, contract)
+
+    def test_catalogs_assign_delegated_mandatory_review_to_the_coordinator(self):
+        for path in (self.TICKET, self.ORCHESTRATE):
+            with self.subTest(path=path):
+                self.assert_catalog_handoff(self.frontmatter_description(path))
+
+    def test_ticket_authority_defines_the_fail_closed_review_handoff(self):
+        ticket = self.compact(self.section(self.TICKET, "## Delegation authority"))
+        for term in (
+            "delegation prompt identifies the mandatory-review handoff",
+            "coordinator-recorded durable result locator",
+            "coordinator dispatches every mandatory reviewer",
+            "verifies the returned verdict",
+            "resumes the same worker",
+            "failed launch",
+            "nonzero exit",
+            "missing result artifact",
+            "missing verdict",
+            "reported as unavailable",
+            "blocks the workflow from advancing as reviewed",
+            "direct nested adapter dispatch by the worker is unsupported",
+        ):
+            with self.subTest(term=term):
+                self.assertIn(term, ticket)
+
+    def test_delegated_ticket_verbs_return_review_ready_work_to_the_coordinator(self):
+        for verb, path in self.TICKET_VERBS.items():
+            with self.subTest(verb=verb):
+                procedure = self.compact(path.read_text(encoding="utf-8"))
+                self.assertIn(f"delegated `{verb}` worker", procedure)
+                self.assertIn("returns its review-ready", procedure)
+                self.assertIn("coordinator-recorded durable result locator", procedure)
+                self.assertIn("to its coordinator", procedure)
+                self.assertIn("resumes the same worker", procedure)
+                self.assertIn("must not launch a nested reviewer", procedure)
+
+    def test_orchestrate_owns_and_collects_delegated_mandatory_review(self):
+        invocation = self.compact(self.section(self.ORCHESTRATE, "## Invocation"))
+        ruling = self.compact(
+            self.section(self.ORCHESTRATE, "## The coordinator ruling (behavioral core)")
+        )
+        results = self.compact(self.section(self.ORCHESTRATE, "## Collect child results"))
+        self.assertIn("coordinator owns every mandatory reviewer dispatch", invocation)
+        self.assertIn(
+            "direct adapter dispatch from inside a sandboxed worker is unsupported",
+            invocation,
+        )
+        for term in (
+            "coordinator owns every mandatory reviewer dispatch reached by delegated workflow work",
+            "delegation prompt identifies the mandatory-review handoff",
+            "coordinator-recorded durable result locator",
+        ):
+            with self.subTest(section="ruling", term=term):
+                self.assertIn(term, ruling)
+        for term in (
+            "dispatches the reviewer through the existing adapter",
+            "verifies the returned verdict",
+            "resumes the same worker",
+            "direct adapter dispatch from inside a sandboxed worker is unsupported",
+        ):
+            with self.subTest(section="results", term=term):
+                self.assertIn(term, results)
+        self.assert_unavailable_review_is_not_clean(results)
+
+    def test_openai_prompts_assign_delegated_review_to_the_coordinator(self):
+        for path in self.OPENAI_PROMPTS:
+            with self.subTest(path=path):
+                prompt = self.compact(path.read_text(encoding="utf-8"))
+                self.assert_catalog_handoff(prompt)
+                self.assertIn("missing review evidence is unavailable", prompt)
+
+    def test_delta_specs_reject_every_unavailable_review_shape(self):
+        for path in self.DELTA_SPECS:
+            with self.subTest(path=path):
+                delta = self.compact(path.read_text(encoding="utf-8"))
+                for term in (
+                    "failed launch",
+                    "nonzero exit",
+                    "missing result artifact",
+                    "missing verdict",
+                    "unavailable",
+                    "does not advance the workflow as reviewed",
+                ):
+                    self.assertIn(term, delta)
+
+    def test_old_worker_owned_and_missing_verdict_wording_fail_the_contract(self):
+        catalog = self.frontmatter_description(self.TICKET).replace(
+            "the coordinator dispatches every mandatory reviewer",
+            "the worker launches a nested reviewer",
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_catalog_handoff(catalog)
+
+        collection = self.section(self.ORCHESTRATE, "## Collect child results").replace(
+            "missing verdict is reported as unavailable,\nnever interpreted as an empty finding list",
+            "missing verdict is interpreted as an empty finding list",
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_unavailable_review_is_not_clean(collection)
+
+
 class DelegationAuthorityContractTests(unittest.TestCase):
     CODE_REVIEW = (ROOT / "skills" / "tools" / "code-review" / "SKILL.md").read_text(
         encoding="utf-8"

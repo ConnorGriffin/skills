@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: "Drive one tracked ticket from arrival to resolution through four verbs: triage, start, revise, finalize. Use when the user says triage/start/revise/finalize with a ticket id, asks to turn a ticket into a locked brief, to execute a work order, to action a review round on a ticket's pull request, or to close out a merged ticket. Literal triage, start, or revise invocation requests the work order or task prompt plus only needed repository code and documentation for every mandatory worker dispatch, including nested review and nested Orchestrate work: to OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model service or Anthropic's Claude model service for a Claude Code parent. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Automatic activation outside an invoked parent workflow asks once before dispatch; finalize grants no worker-egress consent."
+description: "Drive one tracked ticket from arrival to resolution through four verbs: triage, start, revise, finalize. Use when the user says triage/start/revise/finalize with a ticket id, asks to turn a ticket into a locked brief, to execute a work order, to action a review round on a ticket's pull request, or to close out a merged ticket. Literal triage, start, or revise invocation requests the work order or task prompt plus only needed repository code and documentation for every mandatory worker dispatch, including nested review and nested Orchestrate work: to OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model service or Anthropic's Claude model service for a Claude Code parent. For delegated workflow work, the coordinator dispatches every mandatory reviewer and resumes the same worker. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Automatic activation outside an invoked parent workflow asks once before dispatch; finalize grants no worker-egress consent."
 ---
 
 # Ticket
@@ -77,7 +77,18 @@ exception instead.
 
 ## Delegation authority
 
-This authority covers triage's mandatory `/plan-review` and start/revise's `/review` route. Invoking `/ticket` authorizes every sub-agent dispatch that this procedure marks mandatory, including a mandatory nested review skill. Do not ask again solely because a session-level preference says "do not spawn agents"; apply that preference to discretionary delegation only. An explicit task-level refusal of this required review or revocation of delegation overrides this authorization: stop and state that the requested workflow cannot run without its required independent review.
+This authority covers triage's mandatory `/plan-review` and start/revise's `/review` route. Invoking `/ticket` authorizes every sub-agent dispatch that this procedure marks mandatory, including the coordinator's mandatory reviewer dispatch. Do not ask again solely because a session-level preference says "do not spawn agents"; apply that preference to discretionary delegation only. An explicit task-level refusal of this required review or revocation of delegation overrides this authorization: stop and state that the requested workflow cannot run without its required independent review.
+
+When Ticket work is delegated, the delegation prompt identifies the
+mandatory-review handoff. At that boundary the worker returns or writes its
+review-ready result through the coordinator-recorded durable result locator and
+does not launch a reviewer. The coordinator dispatches every mandatory reviewer
+through the existing adapter after collecting the result, verifies the returned
+verdict, and resumes the same worker. Actionable findings resume it for correction; a
+verified clean verdict resumes it to finish. A failed launch, nonzero exit,
+missing result artifact, or missing verdict is reported as unavailable and blocks
+the workflow from advancing as reviewed. Direct nested adapter dispatch by the
+worker is unsupported.
 
 ## Shared rules (every verb)
 
