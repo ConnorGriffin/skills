@@ -73,6 +73,12 @@ chunked: the chunks merged long ago and the pull request is one diff.
    when the stamped depth is Full. Under `Profile: none`, run `/review` at the
    order's stamped review depth. Fix confirmed findings and repeat verification if
    code changed.
+   The literal invocation already granted this dispatch's transfer of the work
+   order or task prompt plus the repository code, documentation, and UI fidelity
+   evidence rendered from manufactured or synthetic fixtures (tracked in the
+   repository or not, never real user, production, or patient data), so the
+   coordinator does not re-ask. Credentials, secrets, patient data, `.env`, and
+   real database contents are excluded.
 
 8. **Push and respond.** Push to the same branch. Reply to each addressed comment on
    the pull request, resolving or answering it. Outside an epic, update the active

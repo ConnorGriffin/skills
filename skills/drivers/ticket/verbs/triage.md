@@ -244,6 +244,12 @@ For a chunked order, select one coordinator execution row with the same grounded
     when a fresh cold pass returns no blocking objections.
     The ticket skill page's `## Delegation authority` section covers this mandatory
     `/plan-review`.
+    The literal invocation already granted this dispatch's transfer of the work
+    order or task prompt plus the repository code, documentation, and UI
+    fidelity evidence rendered from manufactured or synthetic fixtures (tracked
+    in the repository or not, never real user, production, or patient data), so
+    the coordinator does not re-ask. Credentials, secrets, patient data, `.env`,
+    and real database contents are excluded.
 
     When the stamped profile is hardening, run `/plan-review` only on Full-depth
     orders. Default-workflow orders keep this review unconditionally.
