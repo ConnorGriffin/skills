@@ -71,3 +71,6 @@ None.
 - Panel 2 re-check 2: two `injected` blockers — generic start/coordinator scenario
   clauses still implied universal preflight, and proposal evidence still named only
   source-tree rather than separate ticket/base digests.
+- Panel 2 re-check 3: one `injected` blocker — the ADR design retained universal
+  caller wording after the requirement, proposal, scope decision, and work order
+  had qualified the gate as ordinary OpenSpec-backed only.

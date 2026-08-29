@@ -31,16 +31,18 @@ and `archive_spec_update_failed`; parsing the JSON before branching on process
 status preserves the actionable mismatch diagnostic. Temporary-directory cleanup
 is automatic on success and failure.
 
-Flat `start` and chunked coordinator mode fetch `origin` immediately before passing
-`refs/remotes/origin/HEAD`, whose merge base names the default-branch base of the
-ticket worktree; a fetch or unresolved-ref failure stops. Flat start runs after
-review and any resulting change-record edits, immediately before the pull request
-opens. Chunked coordinator mode runs after merged-branch review and change
-recording, before it rejoins pull-request creation. `Revise` completes its existing
+For an ordinary OpenSpec-backed ticket, flat `start` and chunked coordinator mode
+fetch `origin` immediately before passing `refs/remotes/origin/HEAD`, whose merge
+base names the default-branch base of the ticket worktree; a fetch or unresolved-ref
+failure stops. Flat start runs after review and any resulting change-record edits,
+immediately before the pull request opens. Chunked coordinator mode runs after
+merged-branch review and change recording, before it rejoins pull-request creation.
+For an ordinary OpenSpec-backed `revise`, the workflow completes its existing
 fetch/rebase plus all active-change/checklist/decision edits, then fetches `origin`
 again immediately before passing refreshed `origin/<baseRefName>` to the gate, then
-pushes. Finalization remains the only workflow phase that archives the authoritative
-tree.
+pushes. Other or absent change-record conventions and epic children bypass this
+command unchanged. Finalization remains the only workflow phase that archives the
+authoritative tree.
 
 ## ADR 265 — Prove applicability through a disposable real archive
 
