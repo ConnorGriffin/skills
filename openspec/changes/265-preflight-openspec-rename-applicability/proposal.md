@@ -19,7 +19,8 @@ delta repair before ticket finalization can complete.
   one active change because finalization owns only one serial archive.
 - Make flat and chunked `start` run that preflight after the final
   implementation/review/change-record edits and before opening the pull request;
-  make `revise` update its change record and repeat the gate before pushing.
+  refresh the remote base immediately before that gate, and make `revise` update
+  its change record and repeat the gate after its existing fetch/rebase.
 - Report an unmatched modified requirement and direct the author to add the
   missing `RENAMED Requirements` mapping or correct the modified header.
 - Preserve the authoritative active change and baseline until the existing

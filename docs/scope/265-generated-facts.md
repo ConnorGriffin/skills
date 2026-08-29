@@ -79,9 +79,10 @@ Command:
 Output:
 
 ```text
-stale_ticket_baseline_exit=0
+before_fetch_exit=0
 ticket: OpenSpec change 265-preflight-openspec-rename-applicability applies cleanly in a disposable copy
-current_base_composite_exit=1
+fetch_exit=0
+after_fetch_exit=1
 ticket: ticket-workflow MODIFIED failed for header "### Requirement: Four-verb lifecycle" - not found
 ticket: if this requirement was renamed, add a `## RENAMED Requirements` mapping from its current baseline header to the unmatched delta header; otherwise correct the MODIFIED header.
 ```

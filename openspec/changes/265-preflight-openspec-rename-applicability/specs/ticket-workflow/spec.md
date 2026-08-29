@@ -6,7 +6,7 @@ The ticket workflow MUST expose one verb at a time: `triage` grounds the ticket 
 posts a locked work order after unconditional `/scope`; `start` executes the newest
 order in an isolated ticket worktree, proves in both flat and chunked execution
 that the one active OpenSpec change modified by the ordinary ticket branch can apply
-to the current baseline without mutating either authoritative tree, and opens a
+to a freshly fetched current baseline without mutating either authoritative tree, and opens a
 pull request; `revise` actions one review round, completes its active-change edits,
 and repeats that applicability proof before pushing; and `finalize`
 reconciles a merged or explicitly abandoned pull request with the tracker and local
@@ -25,6 +25,12 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
   ordinary ticket's active change
 - **THEN** it proves its one changed active OpenSpec delta applies before rejoining
   pull-request creation
+
+#### Scenario: The default branch advanced after ticket branch cut
+
+- **WHEN** flat or chunked `start` reaches applicability preflight
+- **THEN** it fetches the remote immediately before exporting the current default-
+  branch OpenSpec tree, and a fetch or base-ref failure stops pull-request creation
 
 #### Scenario: A structurally valid delta cannot apply
 

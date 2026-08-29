@@ -24,12 +24,13 @@ and `archive_spec_update_failed`; parsing the JSON before branching on process
 status preserves the actionable mismatch diagnostic. Temporary-directory cleanup
 is automatic on success and failure.
 
-Flat `start` and chunked coordinator mode pass
+Flat `start` and chunked coordinator mode fetch `origin` immediately before passing
 `refs/remotes/origin/HEAD`, whose merge base names the default-branch base of the
-ticket worktree; an unresolved ref stops. Flat start runs after review and any
-resulting change-record edits, immediately before the pull request opens. Chunked
-coordinator mode runs after merged-branch review and change recording, before it
-rejoins pull-request creation. After its fetch/rebase and base-ref refresh, `revise`
+ticket worktree; a fetch or unresolved-ref failure stops. Flat start runs after
+review and any resulting change-record edits, immediately before the pull request
+opens. Chunked coordinator mode runs after merged-branch review and change
+recording, before it rejoins pull-request creation. After its existing fetch/rebase
+and base-ref refresh, `revise`
 passes `origin/<baseRefName>`; it completes all active-change/checklist/decision
 edits, runs the gate, then pushes. Finalization remains the only workflow phase that
 archives the authoritative tree.
