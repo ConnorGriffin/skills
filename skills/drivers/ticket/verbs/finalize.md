@@ -61,10 +61,8 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    Record before removing that target worktree in step 4, so its repository
    identity is still available to the helper.
 
-   The helper appends one record under `~/.config/ticket/` and returns one verdict.
-   A sandboxed session that cannot write that record sees the same one-line
-   denial as the claim step, naming the path and the fix: rerun the same
-   record command outside the sandbox or with escalated permissions.
+   The helper prints one JSON record and returns one verdict. The existing next
+   step appends those same captured bytes to reviewer memory.
 
    Retain a successful record command's standard output in `record_json` and
    print it once for the coordinator. Then pipe those same captured bytes, without
