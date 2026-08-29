@@ -5034,21 +5034,9 @@ class CoordinatorOwnedReviewContractTests(unittest.TestCase):
         ROOT / "skills" / "drivers" / "ticket" / "agents" / "openai.yaml",
         ROOT / "skills" / "drivers" / "orchestrate" / "agents" / "openai.yaml",
     )
-    DELTA_SPECS = (
-        ROOT
-        / "openspec"
-        / "changes"
-        / "233-coordinator-owned-review"
-        / "specs"
-        / "ticket-workflow"
-        / "spec.md",
-        ROOT
-        / "openspec"
-        / "changes"
-        / "233-coordinator-owned-review"
-        / "specs"
-        / "planning-and-review"
-        / "spec.md",
+    BASELINE_SPECS = (
+        ROOT / "openspec" / "specs" / "ticket-workflow" / "spec.md",
+        ROOT / "openspec" / "specs" / "planning-and-review" / "spec.md",
     )
 
     @staticmethod
@@ -5161,10 +5149,10 @@ class CoordinatorOwnedReviewContractTests(unittest.TestCase):
                 self.assert_catalog_handoff(prompt)
                 self.assertIn("missing review evidence is unavailable", prompt)
 
-    def test_delta_specs_reject_every_unavailable_review_shape(self):
-        for path in self.DELTA_SPECS:
+    def test_baseline_specs_reject_every_unavailable_review_shape(self):
+        for path in self.BASELINE_SPECS:
             with self.subTest(path=path):
-                delta = self.compact(path.read_text(encoding="utf-8"))
+                spec = self.compact(path.read_text(encoding="utf-8"))
                 for term in (
                     "failed launch",
                     "nonzero exit",
@@ -5173,7 +5161,7 @@ class CoordinatorOwnedReviewContractTests(unittest.TestCase):
                     "unavailable",
                     "does not advance the workflow as reviewed",
                 ):
-                    self.assertIn(term, delta)
+                    self.assertIn(term, spec)
 
     def test_old_worker_owned_and_missing_verdict_wording_fail_the_contract(self):
         catalog = self.frontmatter_description(self.TICKET).replace(
