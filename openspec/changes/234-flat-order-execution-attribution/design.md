@@ -8,15 +8,26 @@ phase. Keeping those meanings orthogonal avoids turning “executor” into a ro
 conflicts with existing worker attribution.
 
 `session_cost` reads a missing verb as `legacy`, just as it already reads a missing
-role without guessing. `scan` reports the verb on each session and aggregates verb
-peaks beside the existing role peaks. The flat branch of `verdict` judges only
-measurable `start` sessions whose role is not reviewer. The chunked branch remains
+role without guessing. `scan` reports the verb on each session and exposes
+`verb_peaks` as five fixed scalar integer maxima (`triage`, `start`, `revise`,
+`finalize`, and `legacy`), using `0` when a phase has no measurable session. The
+flat branch of `verdict` judges only measurable `start` sessions whose role is not
+reviewer. The shared zero-claim path remains `no-data`; attributable claims without
+a measurable eligible start peak return `unmeasurable`. The chunked branch remains
 worker-role based and unchanged.
 
-The transcript is still the measurement unit. The existing fresh-session contract
-for `start` prevents a single peak from combining earlier triage context with build
-context. Segmenting one transcript by lifecycle phase is unsupported and would be a
-different telemetry system.
+The transcript is still the measurement unit. The workflow therefore permits one
+lifecycle verb per session: a same-verb resume keeps its claim, while moving from
+triage to start or from start to revise/finalize requires a fresh session. This
+prevents one peak from combining execution with lifecycle overhead. Segmenting one
+transcript by lifecycle phase is unsupported and would be a different telemetry
+system.
+
+Claim de-duplication remains idempotent for the same ticket, session, and verb. If
+the same ticket/session is submitted under a different verb, the command keeps and
+prints the persisted claim, reports one visible conflict naming the persisted and
+submitted verbs, and exits successfully under telemetry's existing non-blocking
+rule. It never prints unstored submitted metadata as though it landed.
 
 ## ADR 234 — Lifecycle verb is separate from session role
 
@@ -32,6 +43,8 @@ classification. The verb is the smallest field that names the fact already known
 every claim site and directly satisfies ADR 70's explicit-attribution rule.
 
 **Consequences:** every workflow claim site supplies its current verb; old claims
-cannot calibrate flat orders; a flat order without measurable `start` evidence is
-`unmeasurable`; chunked sizing continues to use worker roles only.
-
+cannot calibrate flat orders; a flat order with attributable claims but no
+measurable eligible `start` evidence is `unmeasurable`, while zero attributable
+claims remain `no-data`; a session is never reused across lifecycle verbs; a
+cross-verb re-claim is visible but non-blocking; chunked sizing continues to use
+worker roles only.

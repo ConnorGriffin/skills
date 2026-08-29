@@ -14,8 +14,9 @@ trigger a bad slicing-rubric amendment.
   execution evidence. Triage, revise, and finalize peaks remain reportable
   overhead and never affect that verdict.
 * Claims written before verb attribution remain readable as legacy data and are
-  never guessed into a lifecycle phase. A flat order with no measurable `start`
-  claim returns `unmeasurable`.
+  never guessed into a lifecycle phase. A flat order with attributable claims but
+  no measurable eligible `start` claim returns `unmeasurable`; zero attributable
+  claims remain `no-data`.
 * The public ticket workflow, finalization guidance, baseline specification, and
   command-line regression tests move with the helper contract.
 
@@ -25,9 +26,10 @@ trigger a bad slicing-rubric amendment.
   exposure; irreversible loss of authoritative data; silent incorrect success.
 * **Must recover:** none; telemetry is non-authoritative measurement and must not
   block ticket work.
-* **Accepted failure:** when no measurable `start` claim exists, return
-  `unmeasurable`, record no verdict, and leave manual inspection available through
-  `scan`.
+* **Accepted failure:** when attributable in-repository claims exist but no
+  measurable eligible `start` claim exists, return `unmeasurable`, record no
+  verdict, and leave manual inspection available through `scan`; when no
+  attributable claim exists, preserve `no-data`.
 * **Unsupported:** one transcript spanning more than one lifecycle verb (the
   existing `start` fresh-session contract is the attribution invariant);
   reconstructing verbs for historical claims; inferring verbs from transcript
@@ -36,4 +38,3 @@ trigger a bad slicing-rubric amendment.
 * **Evidence owed:** command-line tests prove claim serialization, closed verb
   validation, legacy readback without guessing, flat verdict isolation,
   lifecycle-overhead reporting, and unchanged chunked worker verdicts.
-
