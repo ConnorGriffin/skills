@@ -11,10 +11,11 @@ Add one opt-in adapter flag whose contract is access to provider-hosted web
 search and fetch while preserving the selected filesystem sandbox. Do not map
 the flag to arbitrary shell-command networking.
 
-For Claude, add `--allowedTools WebSearch,WebFetch` while retaining `dontAsk`
-and the existing read-only write denials. For Codex, add `-c web_search=live`
-and `-c tools.web_search=true` while retaining `--sandbox read-only`. Persist
-the boolean in worker lifecycle state and replay it on resume.
+Each provider adapter translates the capability to its hosted source tools as
+defined by that adapter's dispatch reference while retaining the selected
+filesystem sandbox. Persist the boolean in worker lifecycle state and replay it
+on resume; the dispatch references remain the sole normative home for concrete
+provider argv.
 
 ### Consequences
 
