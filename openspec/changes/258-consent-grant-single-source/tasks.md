@@ -7,5 +7,6 @@
 - [x] Prove every surface rejects removal of its safe-fixture qualifier.
 - [x] Prove unsynced canonical edits fail and both frontmatter byte caps hold.
 - [x] Run the full repository verification command.
-- [ ] Complete Full review.
+- [x] Complete Full review (capped at round 3; the verified concurrent pathname-
+      swap race is carried as a known issue in the pull request).
 - [ ] Open the pull request with the required demonstrations and evidence.
