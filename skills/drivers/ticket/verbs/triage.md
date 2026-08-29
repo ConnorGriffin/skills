@@ -249,8 +249,9 @@ For a chunked order, select one coordinator execution row with the same grounded
     blockers found, each tagged `authoring` (present since the draft) or
     `injected` (introduced by a prior fix round). For an epic child, keep the same
     instrumentation in untracked session scratch outside the branch and discard it after the final
-    order; create no scope ledger or docs/scope state, and do not write a parent planning artifact. Injected
-    blockers climbing across rounds is the rewrite-clean signal firing.
+    order; create no scope ledger or docs/scope state. The reviewed parent-plan amendment from
+    step 7 is the only planning artifact this child branch may write. Injected blockers climbing
+    across rounds is the rewrite-clean signal firing.
 
     c. Reviewers get the facts already verified live this session and the user's
     settled decisions, marked do-not-re-litigate.

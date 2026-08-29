@@ -4560,6 +4560,29 @@ class EpicHumanDispatchContractTests(unittest.TestCase):
                 self.assertNotRegex(text, r"(?i)delegate a (?:locked|settled) epic subtree")
                 self.assertNotRegex(text, r"(?i)epic.{0,120}(?:worker adapter|adapter state|execution wave)")
 
+    def test_epic_surfaces_remove_every_epic_owned_execution_mechanism(self):
+        removed_promises = (
+            "## Delegated execution",
+            "## Worker dispatch",
+            "temporary per-spike worktree",
+            "home session dispatches",
+            "pack adapters",
+            "fan-out",
+            "Collect child results",
+            "applicable routing ladder is exhausted",
+            "coordinator-owned state file",
+            "same-session retry",
+            "unfinished delegated worker",
+            "create chunk waves",
+            "write and collect adapter state",
+            "verify worker results",
+        )
+
+        for surface in ("skill", "guide"):
+            with self.subTest(surface=surface):
+                for promise in removed_promises:
+                    self.assertNotIn(promise.lower(), self.text[surface].lower())
+
     def test_epic_skill_pins_the_parent_plan_and_stops_before_the_lock(self):
         epic = self.text["skill"]
         self.assertIn("Parent plan base:", epic)
