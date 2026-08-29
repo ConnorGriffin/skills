@@ -13,12 +13,17 @@ The coordinator launched the same adapter successfully from the same checkout.
 
 ### Decision
 
-The coordinator that delegates work owns every mandatory reviewer dispatch. A
-delegated worker returns a durable draft or implementation result; the coordinator
-dispatches the reviewer through the existing adapter, verifies the returned verdict,
-and resumes the same worker with actionable findings when correction is required.
-A reviewer failure or missing result is reported as unavailable and never interpreted
-as an empty finding list.
+The coordinator that delegates work owns every mandatory reviewer dispatch. Its
+delegation prompt identifies the mandatory-review handoff. The delegated worker
+returns or writes its review-ready result through the coordinator-recorded durable
+result locator at that boundary. The coordinator collects it, dispatches the reviewer
+through the existing adapter, verifies the returned verdict, and resumes the recorded
+worker session. Findings resume it for correction, a clean
+verdict resumes it to finish the workflow, and unavailable review evidence blocks
+the workflow from advancing as reviewed. A reviewer failure or missing result is
+reported as unavailable and never interpreted as an empty finding list. This is a
+prose composition rule over Orchestrate's existing brief, coordinator-recorded result locator, and resume
+surface; it adds no role discriminator, module, or adapter seam.
 
 Direct adapter dispatch from inside a sandboxed worker is unsupported. The pack will
 not add a nested-dispatch broker, change adapter privileges, or add cleanup enforcement

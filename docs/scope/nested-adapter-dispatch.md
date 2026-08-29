@@ -24,3 +24,9 @@ Disposition: `inline`.
 ## Spawned tasks
 
 - Luna reproduction worker `01a04ad0-fcb1-72f3-9d9f-141c3fa2263c`; its one nested launch failed before session creation, then scoped `stop` and `verify` both succeeded.
+
+## Review rounds
+
+- Round 1 — unvalidated SOL cold review. Three blockers: missing exact coordinator-success evidence; an underspecified handoff; and incomplete clean/unavailable continuation rules. Accepted the evidence and continuation objections. Narrowed the handoff fix to prose over the existing brief, durable result locator, and resume surface; rejected a new role discriminator as injected complexity outside the risk contract.
+- Round 2 — unvalidated SOL cold review. Three mechanical blockers: host Python substitution was absent; locator ownership was reversed; and the task list said baseline specs instead of delta specs. Accepted and corrected all three without changing scope.
+- Round 3 — unvalidated SOL cold review. One blocker: catalog ownership was in Done but not explicitly enumerated in the contract-test step. Accepted and added assertions over both frontmatter descriptions. The same reviewer rechecked only this fix because the three-round cap had been reached, then returned `COUNTERSIGNED`.

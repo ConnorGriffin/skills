@@ -10,9 +10,13 @@ for every mandatory dispatch that verb routes, including review and orchestratio
 Automatic activation outside an invoked parent MUST ask once on the same terms,
 while `finalize` MUST grant no worker-egress consent. This declaration MUST NOT
 override platform approval policy, adapter isolation, or prompt handling. When a
-coordinator delegates ticket work, the coordinator MUST dispatch every mandatory
-reviewer and return verified findings to the same worker; the worker MUST NOT launch
-a nested reviewer.
+coordinator delegates ticket work, its prompt MUST identify the mandatory-review
+handoff. The worker MUST return or write its review-ready result through the
+coordinator-recorded durable result locator at that boundary. The coordinator MUST
+collect that result, dispatch every mandatory reviewer, and resume that same worker
+with either verified findings for correction or a verified clean verdict to finish.
+Unavailable review evidence MUST block the workflow from advancing as reviewed. The
+worker MUST NOT launch a nested reviewer.
 
 #### Scenario: Start reaches mandatory independent review
 
@@ -24,4 +28,9 @@ a nested reviewer.
 #### Scenario: Delegated start reaches mandatory independent review
 
 - **WHEN** a delegated `/ticket start` worker returns implementation ready for its required review
-- **THEN** its coordinator dispatches the bounded review through the pack adapter, treats a missing verdict as unavailable rather than clean, and returns actionable findings to the same worker
+- **THEN** its coordinator dispatches the bounded review through the pack adapter and resumes the same worker with actionable findings or a verified clean verdict
+
+#### Scenario: Delegated review evidence is unavailable
+
+- **WHEN** a delegated ticket review fails to launch or returns no verifiable verdict
+- **THEN** the coordinator reports the review as unavailable and does not advance the workflow as reviewed
