@@ -57,6 +57,13 @@ graph-identity rule.
    `skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in
    Agent tool, Workflow tool, background-agent machinery, or native agent dispatch.
 
+   While a dispatched worker is still running, re-polled unchanged worker state,
+   files, result sets, and result locators produce no update, including after three
+   batches. Elapsed time alone is no news and never a milestone. Report completion,
+   failure, an abandoned wait, and a predeclared operator-relevant external-state or
+   coordinator decision/action milestone immediately. The shared state-change rule
+   still reports any external state change the coordinator caused.
+
    For chunk `<n>` and dispatch attempt `<attempt>`, the coordinator writes the
    complete prompt bytes to
    `<session-scratch>/ticket-<ticket-id-lowercase>-chunk-<n>-attempt-<attempt>.prompt`
