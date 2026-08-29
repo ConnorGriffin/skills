@@ -11,18 +11,21 @@ The primary contracts are [`epic`](../skills/drivers/epic/SKILL.md), [`ticket`](
 
 - **Before merge:** an ordinary ticket keeps its active change and deltas in the pull request for review; it does not fold or archive them.
 - **After merge:** `/ticket finalize` verifies the human merge and CI, follows `operations.archive.guidance`, verifies archive JSON and strict validation, commits and pushes the archive on `main`, then verifies post-push CI before it comments completion or moves the ticket to done.
-- **Epic children:** they create no child change and leave their parent epic's active change and archive ownership untouched.
+- **Epic children:** they create no child change. A required parent-plan amendment is
+  committed in the child worktree and travels with implementation; the parent epic's
+  active change remains the authority and the parent retains archive ownership.
 
 ## The map from idea to merge
 
 1. Start or resume an epic when the effort needs multiple sessions, decisions, spikes, or independently shippable builds.
 2. Record the epic in `openspec/changes/<epic-slug>/`. Its `proposal.md`, `design.md`, and `tasks.md` are authoritative: tasks link child issues in checked implementation sequence, while the tracker keeps their live type, status, dependencies, and deferral.
-3. Keep imprecise concerns as named open questions in `design.md`; record a decision there or promote the question to a spike. File a build only when no open spike or named open question can invalidate its outcome, constraints, or acceptance criteria.
-4. Run `/ticket triage <id>` on each build ticket. Triage grounds the ticket, runs `/scope`, chooses flat or chunked execution, stamps review depth and session fit, and posts one locked work order comment.
-5. Run `/ticket start <id>` in a fresh session. It executes the work order, verifies the result, reviews the change, and opens the pull request.
-6. Run `/ticket revise <id>` once per review round when the open pull request needs changes. It reloads the order, fixes and verifies the round, rebases once, and pushes the same branch.
-7. A human reviews and merges the pull request after green CI and passed review. Agents do not merge, self-approve, or answer reviews outside `revise`.
-8. Run `/ticket finalize <id>` after the human merge. It verifies the post-merge workflow, completes the repository's post-merge archive guidance for an ordinary OpenSpec change, comments the outcome, moves the ticket to done, records measured cost, and tears down the ticket worktree.
+3. Keep imprecise concerns as named open questions in `design.md`; record a decision there or promote the question to a spike. File a build only when no open spike or named open question can invalidate its outcome, constraints, or acceptance criteria. Default to three or fewer child tickets; a fourth or later child requires a `design.md` justification naming the independently shippable boundary or real dependency that prevents consolidation.
+4. Maintain the active plan on one pushed epic planning branch without opening a pull request. Permit only one in-flight child. Put `Parent plan base: <branch name without the origin/ prefix>@<full commit>` in the child issue-body draft, then stop for the operator to run `/ticket triage <id>`.
+5. Ticket triage verifies that the remote parent-plan branch still resolves to the pinned full commit, starts the child worktree from that branch, grounds and reviews the draft, and posts the only locked work order comment. A stale pin posts no lock and returns to the attended epic session.
+6. Run `/ticket start <id>` in a fresh session. It executes the work order, verifies the result, reviews the change, and opens the pull request.
+7. Run `/ticket revise <id>` once per review round when the open pull request needs changes. It reloads the order, fixes and verifies the round, rebases once, and pushes the same branch.
+8. A human reviews and merges the pull request after green CI and passed review. Agents do not merge, self-approve, or answer reviews outside `revise`.
+9. Run `/ticket finalize <id>` after the human merge. It verifies the post-merge workflow, completes the repository's post-merge archive guidance for an ordinary OpenSpec change, comments the outcome, moves the ticket to done, records measured cost, and tears down the ticket worktree. An epic child leaves its parent change active for parent-owned archive.
 
 An epic closes only after its live GitHub state proves that no spike child is open, every build child has a merged closing pull request or is closed `NOT_PLANNED`, and no deferred child remains open; then close the epic issue.
 
@@ -30,13 +33,13 @@ An epic closes only after its live GitHub state proves that no spike child is op
 
 ### File
 
-File a GitHub Issue under the epic when the work is a native child. Use a `spike` child for research, interview, mockup, or a human prerequisite. Use a `build` child for bounded implementation. Actual dependencies use native `blocked-by` edges. A follow-up needed for the epic destination is an in-scope child; work outside the destination can be a deferred native child.
+File a GitHub Issue under the epic when the work is a native child. Use a `spike` child for research, interview, mockup, or a human prerequisite. Use a `build` child for bounded implementation. Default to no more than three children. Before filing a fourth or later child, record the consolidation justification in the active `design.md`. Actual dependencies use native `blocked-by` edges. A follow-up needed for the epic destination is an in-scope child; work outside the destination can be a deferred native child.
 
-The epic home session keeps the active change coherent and stays at planning altitude. `proposal.md`, `design.md`, and `tasks.md` hold durable planning state; live GitHub is authoritative for child work state. Pointer-only notes are deliberately omitted: owning skills and repository rules remain discoverable at their authoritative homes.
+The epic home session keeps the active change coherent and stays at planning altitude. `proposal.md`, `design.md`, and `tasks.md` hold durable planning state; live GitHub is authoritative for child work state. The coordinator writes a draft order and pinned parent-plan base into the issue body, then stops for operator-invoked ticket triage. It never posts the fenced lock, invokes a ticket verb, or opens a pull request. Pointer-only notes are deliberately omitted: owning skills and repository rules remain discoverable at their authoritative homes.
 
 ### Triage
 
-Run `/ticket triage <id>`. The procedure first reads the issue, parent, links, and comments, then cuts or reuses the ticket worktree before grounding in the repository. It reads standing decisions when configured, repository decisions and change records, documentation, recent history, related pull requests, and the judging CI workflows.
+Run `/ticket triage <id>`. For an epic child, triage first fetches the remote and requires the issue draft's unprefixed parent-plan branch to resolve as `origin/<branch>` at the pinned full commit. It passes that branch to `spin-worktree --base`; a mismatch posts nothing and returns to Epic. The procedure then cuts or reuses the ticket worktree before grounding in the repository. It reads standing decisions when configured, repository decisions and change records, documentation, recent history, related pull requests, and the judging CI workflows.
 
 Triage then:
 
@@ -94,46 +97,24 @@ Run `/ticket revise <id>` for one round on an open pull request. It reloads the 
 
 After a human merge, run `/ticket finalize <id>`. It performs the applicable OpenSpec lifecycle above, then records actual session cost and tears down the worktree and branch. The cost verdict can identify a good slice, under-slicing, over-slicing, degraded chunks, degraded coordination, missing data, or unreadable transcripts. Under- or over-slicing produces an amendment proposal for the rubric; the skill does not silently edit the rubric.
 
-## Delegated execution and waves
+## Human handoff and ticket-owned execution
 
-Delegation is explicit and revocable. The home session may take a locked epic subtree when every order is stamped or every needed ruling is settled. A newly opened decision returns that subtree to attended mode. The home session keeps the parent change coherent.
+The epic permits one in-flight child. Every later handoff waits for the prior
+implementation pull request to be human-merged. The attended epic session then
+advances its planning branch from the updated remote default branch, applies the
+next planning update, pushes a new full-commit pin, writes the next issue-body
+draft, and stops for the operator to invoke ticket triage.
 
-Delegated triage uses the existing `/ticket triage` interface. Delegated builds use `/ticket start`. The home session collects worker comments, pull requests, and worktree results; it does not invent a parallel lifecycle.
+Ticket owns all execution after that point. Flat implementation, mandatory review,
+verification, pull-request creation, and any chunk coordination stay inside the
+explicitly invoked ticket workflow. A chunked ticket still ends with one ticket
+branch and one pull request; see
+[`coordinator-mode.md`](../skills/drivers/ticket/references/coordinator-mode.md).
 
-Before each wave, the coordinator:
-
-- Draws a conflict map from queued expected diffs.
-- Verifies the shared checkout equals the current origin default-branch tip.
-- Verifies each target worktree is at or descends from that tip before a build or review dispatch.
-- Writes complete prompts to coordinator-owned session scratch, uses one state file per dispatch, and records a durable result locator.
-
-Read-only drafts and reviews fan out in parallel. Builds use per-issue worktrees. Write-bearing triage and builds serialize only when expected diffs overlap. Chunks that touch a shared surface merge one at a time, rebasing when needed. A chunked ticket still ends with one ticket branch and one pull request.
-
-For a chunked ticket, the ticket branch is the trunk. Each chunk branch starts from that trunk, implements only its independently executable sub-order, is reviewed at its stamped depth, and merges back with `--no-ff`. Parallel chunk worktrees are created together. Serial chunks are created only after the predecessor merges, so they include the dependency. The coordinator verifies each chunk, merges it, removes its chunk worktree, records the change itself after all chunks merge, runs the whole-ticket verification, and reviews the merged diff before opening the one pull request. See [`coordinator-mode.md`](../skills/drivers/ticket/references/coordinator-mode.md).
-
-All delegated results are verified by the coordinator. A failed result gets one same-session retry. Under a Claude parent, a second failure escalates one tier along the selected ladder; at the top, the failure is surfaced. A Codex UI parent's v0 route stops with `NO_VALIDATED_ROUTE` after the same-session retry. There are no unbounded retries, tier skips, or silent route changes.
-
-## Roles and model routing
-
-Roles describe the work, and the routing table selects a model for that area. The table is benchmarked as of 2026-08-03 and says to re-benchmark when a new model ships. It gives these initial routes and ladders:
-
-| Work area | Initial route | Escalation ladder |
-| --- | --- | --- |
-| Exploration or codebase mapping | Luna for bounded lookups, Sonnet for full-system maps | Luna, Sonnet, Opus |
-| Hermetic implementation | Terra | Terra, Sonnet, Opus |
-| Plan or spec writing | Terra | Terra, Sol, Opus |
-| Prototyping, including UI mockups | Sol | Sol, Opus, none |
-| Novel-solution brainstorming | Terra, or Opus when novelty is the deliverable | Terra, Opus, none |
-| Documentation writing | Haiku, with Luna as an equal-scored alternate | Haiku, Opus, Sol |
-| Code review | Luna for routine PRs, Opus for load-bearing or safety review | Luna, Sonnet, Opus, or Opus directly for load-bearing |
-
-The table's bans and qualifications also apply. Never delegate to Fable. Luna is banned for UI mockups. Haiku is not used for exploration whose citations will not be independently verified, and Haiku never reviews. GPT-5.5, GPT-5.4, and GPT-5.4-Mini are light-pass plan or review probes only where the table explicitly permits them; GPT-5.4 is a viable plan alternate, while GPT-5.4-Mini is not a review choice.
-
-Review routing has its own precedence. With a work order, Focused and Targeted are routine and Full is load-bearing. Without one, the sensitivity floor judges the stakes. `code-review` uses Luna with usable Codex for routine review, then Claude-only Sonnet when Codex is absent, unknown, at 5% or less headroom, or rate-limited. Load-bearing `code-review` uses Opus directly. `plan-review` uses Terra with usable Codex for routine review, then Claude-only Opus on absent, unknown, low-headroom, or rate-limited Codex. Load-bearing `plan-review` uses Opus directly. Reviewer selection never comes from the builder tier and never borrows a fallback from another row. See [`review-routing.md`](../skills/drivers/orchestrate/references/review-routing.md).
-
-The Codex headroom gate runs when `/orchestrate` is invoked. A Claude parent checks for both CLIs, probes Codex with a Luna read-only run, and enters Claude-only mode when headroom is unknown, at most 5%, or the probe is rate-limited. A Codex UI parent stops dispatching in that condition and does not switch to Claude workers. If neither CLI exists, the coordinator cannot dispatch. Claude-only routing uses the Claude rungs in each applicable row.
-
-Every delegation names the selected adapter, model, and effort. Dispatch goes through the pack's `claude-worker.py` or `codex-worker.py`, never the built-in Agent tool, Workflow tool, or background-agent machinery. Both adapters default effort to `medium`, and the coordinator may set the effort explicitly. The routing table's Codex benchmark used medium effort; no per-model default is treated as a benchmark result. These rules are the accepted decision in [`adr-149-pack-owned-model-dispatch.md`](adr/adr-149-pack-owned-model-dispatch.md).
+The epic coordinator never opens a pull request, and planning-only pull requests
+are unsupported. If triage must amend the parent plan, it commits that amendment in
+the child worktree so the planning artifacts travel with the implementation pull
+request. Finalize leaves the parent change active for the epic's archive guidance.
 
 ## Load-bearing rules
 
@@ -158,16 +139,21 @@ The operator types `/epic` to open or resume an epic, files or answers tracked i
 - `/ticket revise <id>` handles one review round.
 - `/ticket finalize <id>` closes the loop after human merge.
 
-The operator may explicitly say to delegate a settled epic subtree. The operator also supplies decisions that `/scope` identifies as human-only and reviews and merges pull requests.
-
-The procedures automatically claim sessions, cut or reuse worktrees, bind graph identity, read and post through the tracker contract, move ticket labels, run mandatory plan and code review dispatches, verify worker results, create chunk waves, write and collect adapter state, run verification commands, open pull requests, and record finalize actuals. Those actions remain subject to visible failure reporting. A failed status move is non-fatal and is not retried. A tracker, authentication, or Git failure stops the operation that needs it.
+The operator invokes every ticket verb, supplies decisions that `/scope` identifies
+as human-only, and reviews and merges pull requests. Epic writes each issue-body
+draft and stops. Ticket sessions claim themselves, cut or reuse worktrees, bind graph
+identity, enforce the fenced lock, run mandatory plan and code review, verify the
+change, and open the implementation pull request. A failed status move is non-fatal
+and is not retried. A tracker, authentication, or Git failure stops the operation
+that needs it.
 
 ## Where to look when something is off
 
 - Read the active change's proposal, design, and tasks for planning context, then check live GitHub for child work state.
 - The ticket's issue comments contain the newest work order, amendments, and session fit. If no order is found, return to `/ticket triage <id>`.
 - The pull request contains the implementation evidence, verification output, review conversation, and known residue. Use `/ticket revise <id>` for an open pull request, not manual patching in the control checkout.
-- A silent or unfinished delegated worker is diagnosed from its named adapter state, launcher stdout, worktree or branch, or posted comment. Use the adapter's scoped `verify`; do not search for or stop unknown processes.
+- If an attended child session fails, leave the child open, inspect its ticket or
+  pull-request result, and let the operator explicitly resume the applicable verb.
 - A stale or overlapping target is a preflight failure. Refresh from the origin default-branch tip and re-triage when the order no longer matches the tree.
 - A model or effort mismatch is a launch failure. Compare the session's actual model and confirmed effort to the stamped `Session fit` or `Open as` line.
 - A review dispute is resolved against the order's `Done when` clause, the stamped depth, and the cited repository rule. Reopen scope only when evidence changes a settled risk assumption.

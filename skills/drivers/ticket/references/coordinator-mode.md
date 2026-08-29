@@ -10,11 +10,12 @@ report. Anything larger than mechanical goes back to a delegate.
 What follows is what this skill adds on top. It replaces `start` steps 8 through
 11, and rejoins that verb at step 12 when the last chunk has merged.
 
-An epic child creates, revises, and records no per-child change record. Coordinator
-work leaves its parent epic's active change untouched through child pull-request
-review and post-merge finalization; the parent owns the archive. Outside an epic,
-coordinator work keeps the ticket's active change and deltas reviewable until the
-human merge, then finalization follows the repository's archive guidance.
+An epic child creates no per-child change record. Coordinator work preserves the
+parent-plan bytes that triage committed, carries them through the child pull request,
+and leaves the parent active and unarchived at finalization; the parent owns the
+archive. Outside an epic, coordinator work keeps the ticket's active change and
+deltas reviewable until the human merge, then finalization follows the repository's
+archive guidance.
 
 1. **One branch, one pull request, still.** The ticket branch from `start` step 4 is
    the trunk. Each chunk gets its own branch cut from it and merges back. Nothing

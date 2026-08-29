@@ -26,8 +26,9 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    Git-unaware: this verb trusts the verified GitHub merge state and adds no
    enforcement layer. An archive, validation, commit, push, or post-push workflow
    failure stops finalization before the completion comment and done transition.
-   An epic child leaves archive ownership with the parent epic and creates no child
-   change record; it skips this ordinary-change archive procedure.
+   An epic child creates no child change record, skips this ordinary-change archive
+   procedure, and leaves the parent active and unarchived for the parent epic's
+   archive guidance.
 
    d. Comment on the ticket (attribution first): the merged pull request link, a
    one-line outcome, the post-merge evidence, and, for an ordinary change, the
