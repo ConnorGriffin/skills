@@ -44,10 +44,29 @@ and how far the rule reaches.
 - Settled: minimum mechanism (`inline`). Operator called the interview
   over-engineered for the change. No git exclusion, no new coordinator gate, no
   new template field: the convention is prose in one home plus a behavior test.
-- Settled (`inline`): the standing re-read line is appended by the coordinator to
-  the prompt bytes, and `ORDER.md` is those same bytes. An instruction that lived
-  only in a prompt preamble would die at the compaction it exists to survive, so
-  it must be inside the durable file. The work-order template needs no new field.
+- REOPENED then re-settled (`inline`), round 1 cold review, on evidence: the
+  standing re-read line cannot be appended by the coordinator. A chunk's prompt is
+  fixed as "the sub-order fence verbatim, followed only by that chunk's worktree
+  path, branch name, `root_path`, and `project` ... and never coordinator
+  commentary" (`skills/drivers/ticket/references/coordinator-mode.md:71-76`), and
+  the fence must stay "executable without coordinator commentary"
+  (`skills/drivers/ticket/templates/work-order.md:29`). The instruction still has
+  to live inside the durable file, because `ORDER.md` is the prompt bytes and an
+  instruction carried only in a preamble dies at the compaction it exists to
+  survive. So it goes in the work-order template's fence boilerplate, and
+  `skills/drivers/ticket/templates/work-order.md` joins the allowlist. This
+  reverses the earlier "the template needs no new field" reading, which rested on
+  a coordinator-appends assumption the evidence refuted.
+- Settled (`inline`), round 1 cold review: ticket chunk dispatch is currently the
+  pack's only write-mode dispatch; every other pack dispatcher runs
+  `--sandbox read-only`. The rule still belongs in the pack-wide contract so a
+  future write-mode dispatcher inherits it, but ticket is its only consumer today.
+- Settled (`inline`), round 1 cold review: a coordinator that cannot write
+  `ORDER.md` into the worker's cwd reports the dispatch unavailable and does not
+  start the worker. Without this, a sandboxed coordinator (the Codex
+  `workspace-write` case already documented at
+  `skills/drivers/ticket/SKILL.md:120-125`) silently produces exactly the
+  must-prevent outcome: a worker running with no durable order.
 - Settled (`inline`): the original-prompt-only worker-input rule
   (`openspec/specs/planning-and-review/spec.md`) is left intact. `ORDER.md` is the
   same bytes as the original prompt, placed at dispatch, not new material
