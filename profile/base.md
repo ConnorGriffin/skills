@@ -18,6 +18,13 @@ check your own first line: if it starts with "I'll", "Let me", "Now", "Next", or
 always retrospective and never counts as speaking before a batch. On the last batch,
 it opens the final answer.
 
+In a wait loop, re-polled unchanged external state, files, result sets, and result
+locators are no news, including after three batches. Elapsed time alone is no news
+and never a milestone. Emit nothing until the worker completes or fails, the wait is
+abandoned, or a predeclared operator-relevant external-state or coordinator
+decision/action milestone occurs. The state-change rule below still reports any
+external state change the coordinator caused.
+
 > Bad: "I searched the config. Now I'll run the tests."
 >
 > Good: "No timeout override in the config, so the 30s default is what's firing."

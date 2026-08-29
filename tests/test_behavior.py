@@ -2224,6 +2224,36 @@ class OrchestrateCodexPolicyTests(unittest.TestCase):
 
 
 class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
+    def test_shared_profile_keeps_unchanged_waits_silent_until_news(self):
+        text = " ".join((ROOT / "profile" / "base.md").read_text(encoding="utf-8").split())
+
+        self.assertIn(
+            "In a wait loop, re-polled unchanged external state, files, result sets, and "
+            "result locators are no news, including after three batches. Elapsed time alone "
+            "is no news and never a milestone. Emit nothing until the worker completes or "
+            "fails, the wait is abandoned, or a predeclared operator-relevant external-state "
+            "or coordinator decision/action milestone occurs. The state-change rule below "
+            "still reports any external state change the coordinator caused.",
+            text,
+        )
+
+    def test_ticket_coordinator_keeps_unchanged_worker_waits_silent(self):
+        text = " ".join(
+            (ROOT / "skills/drivers/ticket/references/coordinator-mode.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+
+        self.assertIn(
+            "While a dispatched worker is still running, re-polled unchanged worker state, "
+            "files, result sets, and result locators produce no update, including after three "
+            "batches. Elapsed time alone is no news and never a milestone. Report completion, "
+            "failure, an abandoned wait, and a predeclared operator-relevant external-state "
+            "or coordinator decision/action milestone immediately. The shared state-change "
+            "rule still reports any external state change the coordinator caused.",
+            text,
+        )
+
     def test_orchestrate_pack_wide_reach_boundaries_are_preserved(self):
         skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_bytes()
 
