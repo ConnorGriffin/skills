@@ -17,6 +17,20 @@
 - Every ordinary OpenSpec-backed caller fetches `origin` immediately before the gate
   and stops on fetch or base-ref failure. Why: the remote fixture proves a stale
   tracking ref passes before fetch and fails after refresh. Disposition: inline.
+- Archive applicability mismatch has exactly two ordered `ticket:` stderr lines:
+  the unmatched requirement first, then rename/header correction guidance; every
+  other failure has one diagnostic. Why: this preserves the already-executed public
+  behavior without contradicting the general result contract. Disposition: inline.
+- Capture the complete raw OpenSpec archive stdout, stderr, and exit status for the
+  historical failure before admitting an implementation order. Why: the command's
+  parsed `archive: null` and `archive_spec_update_failed` shape is load-bearing
+  third-party behavior and the existing generated facts suppress those bytes.
+  Disposition: inline.
+- Slice implementation into two serial chunks: the public CLI and executable
+  contract evidence first; its three workflow consumers and OpenSpec contract
+  alignment second. Why: both multiple-deliverable-artifacts and lockstep-copies-of-
+  one-fact fire, matching the repository's shared-interface-plus-consumers anchor.
+  Disposition: inline.
 
 ### Risk contract
 
@@ -33,8 +47,9 @@
   post-merge archive lifecycle.
 - **Evidence owed:** public-command tests for historical #259, changed-path
   discovery, JSON shapes, current-base composition, fetch timing/failure, ordinary
-  delta kinds, and source/base immutability; strict OpenSpec and full repository
-  verification.
+  delta kinds, source/base immutability, executable launch failure, base export
+  failure, overlay failure, and temporary-directory cleanup on every recovery path;
+  strict OpenSpec and full repository verification.
 
 Why: this prices the smallest non-mutating gate that prevents the observed
 post-merge failure. Disposition: inline.
@@ -76,3 +91,9 @@ None.
   had qualified the gate as ordinary OpenSpec-backed only.
 - Panel 2 re-check 4: no blockers; same-reviewer `PASS`. A third fresh cold panel
   remains required for the full-depth countersign.
+- Panel 3 fresh cold pass: four `authoring` blockers — contradictory one-line versus
+  two-line mismatch diagnostics; raw third-party failure JSON absent from generated
+  facts; missing launch/export/overlay cleanup acceptance; and a flat shape despite
+  both multiple-artifact and lockstep-copy traits. The three-panel cap was reached,
+  so the order was not countersigned or posted and these decisions returned to
+  scope.
