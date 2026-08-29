@@ -4,7 +4,7 @@
 
 An epic child's ticket triage MUST treat the issue body's epic-authored order as a
 draft, ground and independently review it through the ordinary triage procedure,
-fetch the named remote parent-plan branch, and require that branch to resolve to the
+fetch the named parent-plan branch as `origin/<branch name>`, and require that branch to resolve to the
 full commit pinned in the draft before cutting the child worktree from that branch.
 It MUST post the resulting fenced work order as the only execution lock. When the draft
 requires an amendment to the parent epic's active OpenSpec change, triage MUST commit
@@ -19,7 +19,7 @@ require a separate planning-only pull request.
 #### Scenario: An epic-authored child draft is ready for locking
 
 - **WHEN** the operator invokes ticket triage on an epic child whose issue contains a draft order and a parent-plan branch/commit pin
-- **THEN** triage verifies the fetched branch resolves to the pinned commit, cuts the child worktree from that branch, and grounds and reviews the draft before posting the only fenced executable work order
+- **THEN** triage resolves the unprefixed branch name as `origin/<branch name>`, verifies it resolves to the pinned commit, passes the same unprefixed name to `--base`, and grounds and reviews the draft before posting the only fenced executable work order
 
 #### Scenario: The pinned parent-plan branch advanced
 

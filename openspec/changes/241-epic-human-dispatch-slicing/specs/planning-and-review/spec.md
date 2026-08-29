@@ -18,13 +18,13 @@ invoke each later child ticket phase that proceeds to attended work.
 
 Before handing a child to the operator, an epic coordinator MUST commit and push
 the current active plan on the epic planning branch and record the remote branch
-plus full commit in the child issue draft. The epic coordinator MUST NOT open a
+name without an `origin/` prefix plus full commit in the child issue draft. The epic coordinator MUST NOT open a
 pull request for the planning branch.
 
 #### Scenario: A child draft is handed to the operator
 
 - **WHEN** the epic has finished the child's draft order
-- **THEN** the draft identifies the pushed remote parent-plan branch and the full commit it must still resolve to
+- **THEN** the draft identifies the pushed parent-plan branch name without an `origin/` prefix and the full commit it must still resolve to
 
 ### Requirement: Epic slicing defaults to three or fewer children
 

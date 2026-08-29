@@ -29,10 +29,12 @@ unchanged because it is part of a child invocation, not an epic-owned dispatch.
 The attended epic session maintains its active change on one remote epic planning
 branch but opens no pull request for that branch. Before handing off a child, it
 commits and pushes the current plan, then records `Parent plan base: <remote
-branch>@<full commit>` in the child issue's draft order.
+branch name without the origin/ prefix>@<full commit>` in the child issue's draft
+order, for example `epic/218-vanilla-openspec@0123456789abcdef0123456789abcdef01234567`.
 
-Ticket triage fetches the remote, requires the named remote branch still to resolve
-to the pinned full commit, and passes the branch name through spin-worktree's
+Ticket triage fetches the remote, resolves the field's branch name exclusively as
+`origin/<branch name>`, requires it still to resolve to the pinned full commit, and passes
+that same unprefixed branch name through spin-worktree's
 existing `--base` input. A mismatch means the child draft is stale: triage posts
 nothing and returns to the attended epic session for a refreshed draft. No new
 parser or worktree helper interface is required.
