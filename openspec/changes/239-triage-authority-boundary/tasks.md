@@ -7,4 +7,4 @@
       order can carry the decision and otherwise stops before ancillary mutation.
 - [x] Keep the active change delta and task state aligned with the implemented
       contract.
-- [ ] Run the repository verification command and OpenSpec strict validation.
+- [x] Run the repository verification command and OpenSpec strict validation.
