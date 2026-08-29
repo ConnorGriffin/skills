@@ -14,7 +14,7 @@ delta repair before ticket finalization can complete.
   ordinary ticket branch relative to a caller-owned base ref, then proves it can archive by
   overlaying that ticket change onto a disposable export of the base ref's current
   OpenSpec tree, running the pinned CLI there, and inspecting its JSON result.
-- Treat no changed active change as a non-OpenSpec no-op, ignore historical paths
+- Treat no changed active change as a command no-op, ignore historical paths
   absent from the ticket tree, and stop when one ordinary ticket changes more than
   one active change because finalization owns only one serial archive.
 - Invoke the gate only for ordinary tickets using the OpenSpec change-record path;

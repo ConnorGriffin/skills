@@ -14,9 +14,9 @@
   one stops. Why: an ordinary ticket owns one active change and finalization owns one
   archive; independent multi-change checks cannot prove serial interaction.
   Disposition: inline.
-- Every caller fetches `origin` immediately before the gate and stops on fetch or
-  base-ref failure. Why: the remote fixture proves a stale tracking ref passes before
-  fetch and fails after refresh. Disposition: inline.
+- Every ordinary OpenSpec-backed caller fetches `origin` immediately before the gate
+  and stops on fetch or base-ref failure. Why: the remote fixture proves a stale
+  tracking ref passes before fetch and fails after refresh. Disposition: inline.
 
 ### Risk contract
 
@@ -66,3 +66,5 @@ None.
 - Panel 2 fresh cold pass: three `authoring` blockers — missing non-OpenSpec caller
   bypass; incomplete shared CLI invocation/result contract; test plan promised only
   source-tree rather than separate source/base immutability evidence.
+- Panel 2 re-check 1: one `injected` blocker — the new bypass scenario conflicted
+  with universal wording retained in the requirement, proposal, and scope decision.

@@ -4,11 +4,12 @@
 
 The ticket workflow MUST expose one verb at a time: `triage` grounds the ticket and
 posts a locked work order after unconditional `/scope`; `start` executes the newest
-order in an isolated ticket worktree, proves in both flat and chunked execution
-that the one active OpenSpec change modified by the ordinary ticket branch can apply
-to a freshly fetched current baseline without mutating either authoritative tree, and opens a
-pull request; `revise` actions one review round, completes its active-change edits,
-and repeats that applicability proof before pushing; and `finalize`
+order in an isolated ticket worktree and, for an ordinary OpenSpec-backed ticket,
+proves in both flat and chunked execution that its one active change can apply to a
+freshly fetched current baseline without mutating either authoritative tree, then
+opens a pull request; `revise` actions one review round and, for an ordinary
+OpenSpec-backed ticket, completes its active-change edits and repeats that
+applicability proof before pushing; and `finalize`
 reconciles a merged or explicitly abandoned pull request with the tracker and local
 worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge.
 
