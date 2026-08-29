@@ -11,6 +11,13 @@ archive. A separate production module would have only one caller and would move 
 same discovery, subprocess, copy, and JSON handling behind another name, so it
 would not survive the deletion test.
 
+The public command is `ticket.py preflight-openspec --repo <ticket-worktree>
+--base-ref <ref>`. Both options are required. It returns success for zero changed
+active changes, success with the checked name for one applicable change, a usage-
+class stop naming sorted changes for more than one, and one `ticket:` diagnostic on
+stderr for base/export/CLI/JSON/applicability failures. Workflow callers invoke it
+only after selecting the existing ordinary OpenSpec change-record route.
+
 The command exports the resolved base ref's current `openspec/` tree into a fresh
 temporary directory, overlays only the ticket worktree's one active change
 directory, and runs the pinned external interface there: `openspec archive

@@ -17,6 +17,8 @@ delta repair before ticket finalization can complete.
 - Treat no changed active change as a non-OpenSpec no-op, ignore historical paths
   absent from the ticket tree, and stop when one ordinary ticket changes more than
   one active change because finalization owns only one serial archive.
+- Invoke the gate only for ordinary tickets using the OpenSpec change-record path;
+  leave other/no change-record conventions and epic children unchanged.
 - Make flat and chunked `start` run that preflight after the final
   implementation/review/change-record edits and before opening the pull request;
   refresh the remote base immediately before that gate in every caller, and make

@@ -60,3 +60,10 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
   present in the ticket tree
 - **THEN** preflight stops visibly because ordinary-ticket finalization owns one
   archive unit instead of independently approving interacting deltas
+
+#### Scenario: A ticket uses another change-record convention
+
+- **WHEN** flat start, chunked coordinator mode, or revise operates a repository
+  whose ordinary ticket is not backed by an OpenSpec active change
+- **THEN** it preserves that repository's existing verification and pull-request or
+  push path without invoking the OpenSpec applicability command

@@ -63,3 +63,6 @@ None.
   same stale-ref window before its gate.
 - Panel 1 re-check 5: no blockers; same-reviewer `PASS`. Fresh cold countersign still
   required.
+- Panel 2 fresh cold pass: three `authoring` blockers — missing non-OpenSpec caller
+  bypass; incomplete shared CLI invocation/result contract; test plan promised only
+  source-tree rather than separate source/base immutability evidence.

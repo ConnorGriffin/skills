@@ -4,11 +4,11 @@
       interface, including JSON-success checks and actionable diagnostics.
 - [ ] Gate flat and chunked OpenSpec-backed `start` and `revise` after their final
       change-record edits at the pre-pull-request or pre-push boundary without
-      changing finalization's archive ownership.
+      changing finalization's archive ownership or non-OpenSpec/epic-child paths.
 - [ ] Add public-command tests for base-ref, deleted/renamed path, and zero/one/
       unsupported-multiple active-change discovery; issue 259's
       validate-pass/archive-fail shape, a correct rename, unexpected output shapes,
-      a base advance after branch cut, and source-tree immutability.
+      a base advance after branch cut, and separate ticket/base-tree immutability.
 - [ ] Update the ticket-workflow baseline delta and behavior-contract tests.
 - [ ] Run `openspec validate --all --strict` and the full repository test command
       from `AGENTS.md`.
