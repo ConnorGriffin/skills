@@ -59,18 +59,21 @@ MUST remain in private data rather than this public pack.
 ### Requirement: Orchestration authorization and isolation
 
 Literal `/orchestrate` invocation MUST authorize only the work order or task
-prompt plus the repository code and documentation needed for mandatory dispatches,
-including review and orchestration. Automatic activation outside an invoked parent
-MUST ask once before dispatch, and every dispatch MUST continue to use pack-owned
-isolated adapters while excluding credentials, secrets, patient data, `.env`, and
-real database contents. The coordinator MUST own every mandatory reviewer dispatch
-reached by delegated work. Its delegation prompt MUST identify the mandatory-review
-handoff, and the worker MUST return or write its review-ready result through the
+prompt plus the repository code, documentation, and UI fidelity evidence rendered
+from manufactured or synthetic fixtures needed for mandatory dispatches, including
+review and orchestration. Evidence rendered from real user, production, or patient
+data MUST remain outside the grant, whether or not a capture is tracked in the
+repository. Automatic activation outside an invoked parent MUST ask once before
+dispatch, and every dispatch MUST continue to use pack-owned isolated adapters
+while excluding credentials, secrets, patient data, `.env`, and real database
+contents. The coordinator MUST own every mandatory reviewer dispatch reached by
+delegated work. Its delegation prompt MUST identify the mandatory-review handoff,
+and the worker MUST return or write its review-ready result through the
 coordinator-recorded durable result locator at that boundary. The coordinator MUST
-collect that result and resume the same worker with verified findings for correction
-or a verified clean verdict to finish. Unavailable review evidence MUST block the
-workflow from advancing as reviewed. Direct adapter dispatch from inside a sandboxed
-worker is unsupported.
+collect that result and resume the same worker with verified findings for
+correction or a verified clean verdict to finish. Unavailable review evidence MUST
+block the workflow from advancing as reviewed. Direct adapter dispatch from inside
+a sandboxed worker is unsupported.
 
 #### Scenario: Orchestration activates implicitly
 
@@ -78,6 +81,12 @@ worker is unsupported.
   invoked parent that already grants bounded dispatch consent
 - **THEN** it asks once with the payload, destination, and exclusions and stops if
   consent is denied
+
+#### Scenario: A dispatch carries safe-fixture fidelity evidence
+
+- **WHEN** a literally invoked coordinator dispatches a worker or reviewer with UI
+  fidelity evidence rendered from manufactured or synthetic fixtures
+- **THEN** that evidence is inside the granted payload and needs no further consent
 
 #### Scenario: Delegated work reaches mandatory review
 
