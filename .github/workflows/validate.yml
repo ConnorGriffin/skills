@@ -38,6 +38,7 @@ jobs:
           tests.test_codebase_memory_install
           tests.test_check_dco
           tests.test_ci_changed_paths
+          tests.test_site_build
       - name: Check DCO
         if: github.event_name == 'pull_request'
         run: >-
