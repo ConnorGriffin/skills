@@ -48,6 +48,24 @@ long body phrase and the compacted frontmatter form, which diverge after
 replaces: it now takes two independent regressions to pass a surface that has
 dropped the evidence clause.
 
+## What the descriptions gave up
+
+The longer payload phrase costs bytes in two frontmatter descriptions that are
+capped at 1024. The ticket description pays by dropping "to execute a work order"
+from its trigger list; that phrase is the one trigger this skill also states in
+its `## Invocation` body and in the `start` verb's own refusal path, so losing it
+from the description narrows catalog matching without losing the rule. The
+orchestrate description pays with the shorter delegation clause alone and keeps
+its full trigger prose, landing at the cap exactly.
+
+The qualifier that bounds the evidence to safe fixtures is pinned, not just the
+evidence clause itself: every payload surface must carry either the long form's
+"manufactured or synthetic fixtures" parenthetical or the description's
+"safe-fixture" compound. Without that, a surface could name UI fidelity evidence
+with no fixture bound and keep the suite green, which would authorize screenshots
+rendered from production data — the outcome this change's risk contract must
+prevent.
+
 ## Baseline specs
 
 The deltas here carry the new wording; `openspec/specs/` keeps the old phrase until

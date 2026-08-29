@@ -4942,6 +4942,12 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         / "coordinator-mode.md",
     }
     DISPATCH_GRANT = "The literal invocation already granted this dispatch's transfer"
+    SAFE_FIXTURE_QUALIFIERS = (
+        "safe-fixture ui fidelity evidence",
+        "ui fidelity evidence rendered from manufactured or synthetic fixtures "
+        "(tracked in the repository or not, never real user, production, or "
+        "patient data)",
+    )
 
     @staticmethod
     def text(path: Path) -> str:
@@ -4988,6 +4994,10 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         self.assertIn(
             "credentials, secrets, patient data, `.env`, and real database contents are excluded",
             compact,
+        )
+        self.assertTrue(
+            any(qualifier in compact for qualifier in self.SAFE_FIXTURE_QUALIFIERS),
+            "payload names UI fidelity evidence without bounding it to safe fixtures",
         )
 
     def assert_material_boundary(self, text: str, destination: str) -> None:
