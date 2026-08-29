@@ -4,6 +4,8 @@
   adapter lifecycle prose with a human-dispatch boundary and attended child flow.
 - [ ] Define the child issue's draft order → operator-invoked ticket triage → fenced
   executable lock handoff without adding a second execution entry.
+- [ ] Pin each child draft to a pushed remote epic-plan branch/commit and make
+  ticket triage fail closed when that branch no longer resolves to the pinned commit.
 - [ ] Add the three-child default and require a `design.md` justification before
   filing a fourth or later child.
 - [ ] State that epic planning artifacts ship with implementation and that the

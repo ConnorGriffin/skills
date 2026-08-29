@@ -16,6 +16,9 @@ children and two planning pull requests.
 - The operator invokes ticket triage to ground, independently review, and post that
   draft as the only executable work-order lock. A required parent-plan amendment
   stays on the child branch and ships with its implementation.
+- The epic records and pushes an immutable parent-plan branch/commit in every child
+  draft. Fresh child work starts from that remote branch only after it still resolves
+  to the pinned commit; a stale pin returns to the attended epic session.
 - Require the operator to invoke each child ticket's execution explicitly.
 - Default to no more than three child tickets. Four or more children require a
   written justification in the epic change's `design.md` explaining why fewer,
@@ -37,7 +40,7 @@ children and two planning pull requests.
   pull requests. Mandatory independent review inside an explicitly invoked ticket
   remains governed by the ticket workflow and is not epic dispatch.
 - **Evidence owed:** contract tests prove the epic and ticket skills contain the
-  human-dispatch, draft-to-lock handoff, parent-plan carrier, slicing-cap, and
+  human-dispatch, draft-to-lock handoff, pinned parent-plan base, parent-plan carrier, slicing-cap, and
   planning-PR rules and contain no epic-owned adapter, delegated execution, wave,
   or worker-lifecycle path; public docs and agent metadata are covered too; the
   repository's structural and unit gates pass.

@@ -24,6 +24,25 @@ unchanged because it is part of a child invocation, not an epic-owned dispatch.
 - Existing dispatch ADRs remain frozen history. The active epic contract no longer
   names `epic` as a dispatching consumer.
 
+## ADR 241 — Child work is based on an immutable parent-plan commit
+
+The attended epic session maintains its active change on one remote epic planning
+branch but opens no pull request for that branch. Before handing off a child, it
+commits and pushes the current plan, then records `Parent plan base: <remote
+branch>@<full commit>` in the child issue's draft order.
+
+Ticket triage fetches the remote, requires the named remote branch still to resolve
+to the pinned full commit, and passes the branch name through spin-worktree's
+existing `--base` input. A mismatch means the child draft is stale: triage posts
+nothing and returns to the attended epic session for a refreshed draft. No new
+parser or worktree helper interface is required.
+
+The first merged implementation makes the parent active change visible on the
+default branch. Before a later child starts, the epic planning branch incorporates
+the latest default-branch tip, records any next planning update, and pins a new
+commit. Parent-plan edits therefore serialize at the handoff boundary even when
+child implementations whose pinned plans do not conflict can otherwise overlap.
+
 ## ADR 241 — Prefer three or fewer independently shippable children
 
 An epic defaults to at most three child tickets. Creating a fourth or later child

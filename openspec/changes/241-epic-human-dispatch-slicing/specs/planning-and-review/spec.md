@@ -14,6 +14,18 @@ invoke each later child ticket phase that proceeds to attended work.
 - **WHEN** the epic has settled a child's decisions and written its draft order in the issue
 - **THEN** the coordinator stops for the operator to invoke ticket triage instead of posting the lock or invoking a worker adapter
 
+### Requirement: Epic child drafts pin their parent-plan base
+
+Before handing a child to the operator, an epic coordinator MUST commit and push
+the current active plan on the epic planning branch and record the remote branch
+plus full commit in the child issue draft. The epic coordinator MUST NOT open a
+pull request for the planning branch.
+
+#### Scenario: A child draft is handed to the operator
+
+- **WHEN** the epic has finished the child's draft order
+- **THEN** the draft identifies the pushed remote parent-plan branch and the full commit it must still resolve to
+
 ### Requirement: Epic slicing defaults to three or fewer children
 
 An epic MUST default to no more than three child tickets. Before creating a fourth
