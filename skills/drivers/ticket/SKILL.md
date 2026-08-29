@@ -38,8 +38,9 @@ model dispatch.
   ticket comment. Work too big for one agent's context is sliced into sub-orders
   in that same comment ([references/slicing.md](references/slicing.md)). It
   writes nothing to the repo except scope and spec documents committed in the
-  ticket's worktree. An epic child writes only its work order; a required epic
-  spec amendment is a separate docs-only pull request merged before stamping.
+  ticket's worktree. An epic child treats its issue-body order as a draft and may
+  commit a required parent-plan amendment in the child worktree before posting the
+  reviewed lock; that amendment travels with the implementation pull request.
 * `start` runs in a fresh session, fetches the work order, refuses if there is
   none, implements it on a branch in an isolated worktree (or, on a sliced order,
   coordinates one agent per chunk), iterates the verification step until the
@@ -145,7 +146,9 @@ worker is unsupported.
    cuts the branch and worktree through `spin-worktree`; `start` and `revise`
    reuse them; `finalize` tears them down. The first repository action after the
    summary-and-claim opening, before grounding or any repo read, is to cut or
-   reuse the ticket's worktree. Outside an epic child, grounding, scope ledgers, and
+   reuse the ticket's worktree. The one pre-worktree exception is fresh epic-child
+   triage: it fetches and verifies the issue body's pinned remote parent-plan base,
+   then passes that branch to the helper. Outside an epic child, grounding, scope ledgers, and
    the active change record are written and committed there; post-merge archiving
    follows `operations.archive.guidance` on `main`. An epic child keeps its
    instrumentation in session scratch and relies on its parent record. The control checkout may be dirty, stale, or
@@ -160,10 +163,11 @@ worker is unsupported.
    chunk merges back into it, so the ticket still ends with one branch and one
    pull request ([references/coordinator-mode.md](references/coordinator-mode.md)).
 
-6. **Working state lives on the ticket.** No plan files and no scratch
-   directories on the branch. Outside an epic, the branch carries shipping code plus
-   the repo's own change record; an epic child carries shipping code only and its
-   parent epic owns the record.
+6. **Working state lives on the ticket.** No scratch directories live on the branch.
+   Outside an epic, the branch carries shipping code plus the repo's own change
+   record. An epic child creates no per-child change record; its branch carries
+   implementation plus any required parent-plan amendment that triage committed,
+   while the parent epic's active change remains the authority.
 
 7. **Ground in what the repo already says.** Read the repo's own decision and
    change records, `docs/`, and recent `git log` before forming opinions. Read the
@@ -263,9 +267,11 @@ want of it.
 
 The skill records the change where the target repo already records changes.
 
-An **epic child** creates, revises, and records no per-child change record. Its
-parent epic owns the active change and its post-merge archive; the child leaves
-that change active and records no child change.
+An **epic child** creates no per-child change record. Its parent epic owns the active
+change and its post-merge archive. Triage may commit a required parent-plan
+amendment in the child worktree; start, revise, and coordinator mode preserve the
+parent-plan bytes through the implementation pull request, and finalize leaves the
+parent active and unarchived.
 
 Outside an epic, follow this per-ticket rule:
 

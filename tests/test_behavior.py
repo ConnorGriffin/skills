@@ -4488,15 +4488,13 @@ class EpicProtocolContractTests(unittest.TestCase):
         self.require(self.EPIC, r"load-bearing.*ADR")
         self.require(self.EPIC, r"user-facing.*locked.*ui-craft")
 
-    def test_research_handoff_uses_exact_findings_heading_and_temporary_worktree(self):
-        self.assertIn("## Findings", self.EPIC)
-        self.require(self.EPIC, r"temporary per-spike worktree")
-        self.require(self.EPIC, r"verif.*Findings.*close")
-        self.require(self.EPIC, r"removes.*temporary.*unshipped.*only then closes")
+    def test_research_handoff_returns_to_an_attended_operator_session(self):
+        self.require(self.EPIC, r"research.*attended.*operator")
+        self.require(self.EPIC, r"record.*tracker result.*design\.md")
 
     def test_research_close_uses_verified_tracker_evidence(self):
-        self.require(self.EPIC, r"close.*spike.*only after.*verification")
-        self.require(self.EPIC, r"failed worker.*spike.*dispatched")
+        self.require(self.EPIC, r"close.*spike.*only after.*tracker.*result")
+        self.require(self.EPIC, r"failed.*attended session.*spike.*open")
 
     def test_deferred_children_have_explicit_close_out_dispositions(self):
         self.require(self.EPIC, r"promote.*remove.*deferred")
@@ -4541,57 +4539,46 @@ class EpicProtocolContractTests(unittest.TestCase):
         self.assertNotIn("planning pull request", self.EPIC.lower())
 
 
-class EpicAdapterDispatchTests(unittest.TestCase):
-    EPIC = ROOT / "skills" / "drivers" / "epic" / "SKILL.md"
+class EpicHumanDispatchContractTests(unittest.TestCase):
+    SURFACES = {
+        "skill": ROOT / "skills" / "drivers" / "epic" / "SKILL.md",
+        "guide": ROOT / "docs" / "epic-flow.md",
+        "readme": ROOT / "README.md",
+        "metadata": ROOT / "skills" / "drivers" / "epic" / "agents" / "openai.yaml",
+    }
 
     def setUp(self):
-        self.text = self.EPIC.read_text(encoding="utf-8")
+        self.text = {
+            name: " ".join(path.read_text(encoding="utf-8").split())
+            for name, path in self.SURFACES.items()
+        }
 
-    def test_research_spike_worker_findings_handoff_is_explicit(self):
-        self.assertIn(
-            "For a research spike, run `$research` in a temporary per-spike worktree. The worker "
-            "returns the required Markdown findings to the home session. The home session writes the "
-            "Markdown file required by its public interface, posts that returned content under the exact heading "
-            "`## Findings`, verifies the `## Findings` comment, removes the temporary worktree and "
-            "its unshipped file, and only then closes the spike.",
-            self.text,
-        )
+    def test_public_surfaces_describe_operator_triage_instead_of_epic_execution(self):
+        for name, text in self.text.items():
+            with self.subTest(surface=name):
+                self.assertRegex(text, r"(?i)operator.{0,180}ticket triage")
+                self.assertNotRegex(text, r"(?i)delegate a (?:locked|settled) epic subtree")
+                self.assertNotRegex(text, r"(?i)epic.{0,120}(?:worker adapter|adapter state|execution wave)")
 
-    def test_spike_close_order_and_failed_worker_disposition_are_explicit(self):
-        self.assertIn("Close the spike issue only after that verification.", self.text)
-        self.assertIn("Record the resulting decision in `design.md`", self.text)
-        self.assertIn("A failed worker leaves the spike `dispatched`", self.text)
+    def test_epic_skill_pins_the_parent_plan_and_stops_before_the_lock(self):
+        epic = self.text["skill"]
+        self.assertIn("Parent plan base:", epic)
+        self.assertRegex(epic, r"(?i)pushed epic planning branch.{0,180}full commit")
+        self.assertRegex(epic, r"(?i)does not post.{0,120}fenced.{0,80}work order")
+        self.assertRegex(epic, r"(?i)does not invoke.{0,120}/ticket triage")
 
-    def test_research_worker_dispatch_stays_on_the_worker_adapters_only(self):
-        normalized = " ".join(self.text.split())
-        self.assertIn(
-            "The coordinator supplies the selected adapter, explicit worker model, and explicit "
-            "worker effort. Dispatch only through "
-            "`skills/drivers/orchestrate/scripts/codex-worker.py` or "
-            "`skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in Agent "
-            "tool, Workflow tool, or background-agent machinery.",
-            normalized,
-        )
+    def test_epic_skill_limits_children_and_serializes_handoffs(self):
+        epic = self.text["skill"]
+        self.assertRegex(epic, r"(?i)(?:three or fewer|at most three).{0,180}child")
+        self.assertRegex(epic, r"(?i)fourth or later.{0,180}design\.md.{0,220}(?:capability boundary|dependency)")
+        self.assertRegex(epic, r"(?i)one.{0,80}in-flight.{0,80}child")
+        self.assertRegex(epic, r"(?i)human-merged.{0,220}updated remote default")
 
-
-class EpicDelegatedExecutionContractTests(unittest.TestCase):
-    EPIC = ROOT / "skills" / "drivers" / "epic" / "SKILL.md"
-
-    def test_epic_delegated_execution_keeps_dispatch_and_wave_rules(self):
-        epic = " ".join(self.EPIC.read_text(encoding="utf-8").split())
-        self.assertIn("It stays at planning altitude", epic)
-        self.assertIn("Coordinators do not nest.", epic)
-        self.assertIn(
-            "The home session dispatches only through the pack adapters, with prompt text "
-            "passed positionally from coordinator-owned session-scratch prompt files and one "
-            "coordinator-owned state file per dispatch. Do not add adapter flags or alter "
-            "adapter mechanics.",
-            epic,
-        )
-        self.assertIn(
-            "Collect child results under `orchestrate`'s `## Collect child results` section.",
-            epic,
-        )
+    def test_epic_skill_bans_planning_only_pull_requests(self):
+        epic = self.text["skill"]
+        self.assertRegex(epic, r"(?i)never opens a pull request")
+        self.assertRegex(epic, r"(?i)planning-only pull request.{0,120}unsupported")
+        self.assertRegex(epic, r"(?i)planning artifacts.{0,180}implementation pull request")
 
 
 class ReviewRouteResolverTests(unittest.TestCase):

@@ -13,90 +13,86 @@ An epic lives at `openspec/changes/<epic-slug>/`. Its `proposal.md`, `design.md`
 
 Route every tracker operation through the installed binding. [bindings/github-issues.md](bindings/github-issues.md) is the shipped default. Read [the tracker contract](references/tracker-contract.md) before the first tracker action. A tracker, authentication, or Git failure stops the current operation visibly; do not guess or repair authoritative state locally.
 
-The home session owns the epic. It stays at planning altitude, files and reads issues, and keeps the active change coherent. Build and triage sessions report in ticket comments and pull requests. Coordinators do not nest.
+The home session owns the epic. It stays at planning altitude, files and reads issues,
+and keeps the active change coherent. It performs no child execution. Research,
+prototype, interview, triage, and build work resumes only in fresh attended sessions
+that the operator invokes. Those sessions report through tracker comments and pull
+requests; the epic records their tracker result and any resulting decision.
 
 ## Start and maintain an epic
 
 1. Confirm the target repository already has OpenSpec. Otherwise run `$openspec-adopt` as a separate documentation-only pull request.
-2. Create one active change with its proposal, design, and tasks. Create the epic issue with the `epic` label and its native child issues. Add each child issue link to `tasks.md` in the implementation sequence; do not duplicate live tracker fields there.
+2. Create one active change with its proposal, design, and tasks. Create the epic issue
+   with the `epic` label. Maintain the change on one pushed epic planning branch and
+   identify each handoff by that branch's full commit, but never open a pull request
+   from that branch. Add each filed
+   child issue link to `tasks.md` in implementation sequence; do not duplicate live
+   tracker fields there.
 3. Re-read relevant live tracker state before each mutation. Update the change when destination, design, or checked sequence changes; preserve child type, status, dependencies, deferral, and closing-pull-request facts on the tracker.
 4. Keep every imprecise concern as a named open question in `design.md`. Clear an open question only by recording its decision in `design.md` or promoting it to a tracker spike; never silently delete it. Do not add pointer-only Notes: owning skills and repository rules remain discoverable at their authoritative homes.
 
 ## Admit work deliberately
 
-File a spike when an open question is precise but not yet resolved. A spike can be research, interview, mockup, or a human prerequisite. File a build only as a bounded refusal: refuse to file a build while an open spike or named open question can invalidate its outcome, constraints, or acceptance criteria.
+File a spike when an open question is precise but not yet resolved. A spike can be
+research, interview, mockup, or a human prerequisite. File a build only as a bounded
+refusal: refuse to file a build while an open spike or named open question can
+invalidate its outcome, constraints, or acceptance criteria.
 
 Before filing a build, require every relevant load-bearing ruling in the repository's ADR home. User-facing work also requires a locked `/ui-craft` spec. The build issue must stand alone and receive the normal `$ticket` triage flow; the epic does not manufacture a work order.
 
-Use native `blocked-by` edges for actual dependencies. A follow-up required to reach the epic destination is an in-scope native child. A follow-up outside that destination is also filed as a native child, receives its `spike` or `build` type plus `deferred`, and is reported on the originating ticket. Ordinary builds still receive `build` from ticket triage.
+Use native `blocked-by` edges for actual dependencies. A follow-up required to reach
+the epic destination is an in-scope native child. A follow-up outside that
+destination is also filed as a native child, receives its `spike` or `build` type
+plus `deferred`, and is reported on the originating ticket. Ordinary builds still
+receive `build` from ticket triage.
 
-## Delegated execution
+Default to three or fewer child tickets. Before filing a fourth or later child,
+require a written justification in the active change's `design.md`. The justification
+must name the independently shippable capability boundary or real dependency that
+prevents consolidation into fewer, larger children. Apply this as semantic planning
+judgment through the existing child-filing interface; do not add a parser, counter
+script, or tracker operation.
 
-The operator may explicitly and revocably delegate a locked epic subtree to
-the home session when every order is stamped or every needed ruling is settled.
-Attended sessions remain the default; any newly opened decision returns that
-subtree to attended mode.
+## Hand a child to the operator
 
-For delegated triage the home session dispatches a worker through the existing `$ticket triage` interface; for a
-delegated build it dispatches a worker through the existing `$ticket start`
-interface. Those workers use their existing ticket contracts and post stamped
-work orders, session-fit, and completed work products through tracker comments.
+Permit only one in-flight epic child. Refuse every later handoff until the prior
+child's implementation pull request is human-merged. After that merge, fetch the
+updated remote default branch, advance the pushed epic planning branch from that
+updated remote default-branch tip, apply any next planning update, commit, and push a
+new full-commit pin before preparing another child.
 
-The home session dispatches only through the pack adapters, with prompt text
-passed positionally from coordinator-owned session-scratch prompt files and one
-coordinator-owned state file per dispatch. Do not add adapter flags or alter
-adapter mechanics.
+Before each handoff, commit and push the current active change on the epic planning
+branch. Record its unprefixed branch name and full commit in the child issue body's
+draft order as:
 
-Work delegated to the home session proceeds in waves. Before each fan-out, draw
-a conflict map from the queued expected diffs and verify that the shared checkout
-equals the current origin default-branch tip. Fan out every read-only draft and
-review in parallel. Serialize only write-bearing triage and build steps whose
-expected diffs overlap; builds use per-issue worktrees, tickets editing the same
-files run in order, and pull requests merge one at a time with a rebase when a
-shared surface is touched. Before dispatching a build or review worker, verify
-that its target worktree is at, or descends from, the current origin
-default-branch tip; refuse a stale target.
+```text
+Parent plan base: <branch name without the origin/ prefix>@<full commit>
+```
 
-Collect child results under `orchestrate`'s `## Collect child results` section.
-Permit a human merge only after green CI and passed review. Surface a failure
-after the applicable routing ladder is exhausted; do not retry past that ladder.
+The issue body is a draft, not the executable lock. The epic does not post a fenced
+`WORK ORDER` comment, does not invoke `/ticket triage`, `/ticket start`, `/ticket
+revise`, or `/ticket finalize`, and does not open a pull request. Stop and tell the
+operator to invoke `/ticket triage <id>`. Ticket triage independently grounds,
+scopes, reviews, and posts the only fenced executable work order.
 
 ## Resolve spikes
 
-For a research spike, run `$research` in a temporary per-spike worktree. The worker returns the required Markdown findings to the home session. The home session writes the Markdown file required by its public interface, posts that returned content under the exact heading `## Findings`, verifies the `## Findings` comment, removes the temporary worktree and its unshipped file, and only then closes the spike.
+Research spikes resume in fresh attended sessions that the operator invokes;
+interview and mockup spikes follow the same rule. Close a spike only after its tracker result is present and verified,
+then record the tracker result and resulting decision in `design.md` when it settles
+a named open question. A failed attended session leaves the spike open; do not infer
+a result.
 
-Close the spike issue only after that verification. Record the resulting decision in `design.md` when it settles a named open question. A failed worker leaves the spike `dispatched`; it is not resolved by inference. Interview and mockup spikes run as fresh attended sessions.
+## Pull-request boundary
 
-## Worker dispatch
-
-The coordinator supplies the selected adapter, explicit worker model, and explicit
-worker effort. Dispatch only through
-`skills/drivers/orchestrate/scripts/codex-worker.py` or
-`skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in Agent
-tool, Workflow tool, or background-agent machinery.
-
-For each research spike, the coordinator owns
-`<session-scratch>/epic-research-<spike-id>.state` and
-`<session-scratch>/epic-research-<spike-id>.prompt`. The prompt identifies its
-recipient as the already-dispatched research worker, directs that worker to research
-directly without dispatching another worker, and states the research question, required
-Markdown output, temporary-worktree boundary, and return-and-verification contract.
-Write that complete brief to the prompt file, then pass its exact contents as the
-selected adapter's positional prompt.
-
-Start the worker through the adapter's `workspace-write` surface with the temporary
-per-spike worktree as its cwd and the coordinator checkout as its control checkout.
-Use the adapter's start, resume, stop, and verify surface. Preserve adapter-owned
-state, same-worker resume, and coordinator-owned recovery; do not restate adapter argv
-or lifecycle mechanics here.
-
-Reject a nonzero adapter invocation. For a successful invocation, read its
-`final_message` as the Markdown findings returned to the home session. The home
-session writes the Markdown file required by its public interface, then follows the
-existing `## Findings` posting and verification rule. Do not close the spike as
-successful without that verified result. Remove the prompt file after the home session
-verifies the `## Findings` comment, or after it reports a failed worker. Never commit
-the prompt file or state file.
+The coordinator never opens a pull request. A planning-only pull request is
+unsupported. The epic's OpenSpec planning artifacts stay active until they travel
+with the implementation pull request that realizes them. When ticket triage finds a
+required parent-plan amendment, that attended ticket workflow commits the amendment
+in the child's worktree and carries it through review and implementation; the epic
+does not open a separate prerequisite pull request. The one-time `$openspec-adopt`
+documentation-only pull request remains outside this lifecycle because it happens
+before an epic exists.
 
 ## Deferred child close-out
 
