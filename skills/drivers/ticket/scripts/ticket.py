@@ -655,6 +655,16 @@ def command_claim(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def contains_symlink(root: Path) -> bool:
+    """Reject links before an OpenSpec subprocess can traverse a copied change."""
+    if root.is_symlink():
+        return True
+    for directory, directories, files in os.walk(root, followlinks=False):
+        if any((Path(directory) / name).is_symlink() for name in [*directories, *files]):
+            return True
+    return False
+
+
 def command_preflight_openspec(arguments: argparse.Namespace) -> int:
     """Prove the one changed active OpenSpec change applies without mutating either tree."""
     repo = arguments.repo.expanduser().resolve()
@@ -676,7 +686,7 @@ def command_preflight_openspec(arguments: argparse.Namespace) -> int:
             capture_output=True,
             check=False,
         )
-    except OSError as error:
+    except (OSError, UnicodeDecodeError) as error:
         raise OpenSpecPreflightError(f"could not resolve base ref: {error}", 2) from error
     if resolved.returncode or not resolved.stdout.strip():
         raise OpenSpecPreflightError(
@@ -699,7 +709,7 @@ def command_preflight_openspec(arguments: argparse.Namespace) -> int:
             capture_output=True,
             check=False,
         )
-    except OSError as error:
+    except (OSError, UnicodeDecodeError) as error:
         raise OpenSpecPreflightError(f"could not discover changed OpenSpec changes: {error}") from error
     if merged.returncode or not merged.stdout.strip() or changed_paths.returncode:
         raise OpenSpecPreflightError("could not discover changed OpenSpec changes")
@@ -762,11 +772,15 @@ def command_preflight_openspec(arguments: argparse.Namespace) -> int:
             disposable_change = root / "openspec" / "changes" / change
             if not (root / "openspec").is_dir() or not copied_change.is_dir():
                 raise OpenSpecPreflightError("could not overlay the active OpenSpec change", 2)
+            if contains_symlink(copied_change):
+                raise OpenSpecPreflightError("active OpenSpec change contains a symlink", 2)
             try:
                 if disposable_change.exists():
                     shutil.rmtree(disposable_change)
                 shutil.copytree(copied_change, disposable_change, symlinks=True)
-            except OSError as error:
+                if contains_symlink(disposable_change):
+                    raise OpenSpecPreflightError("active OpenSpec change contains a symlink", 2)
+            except (OSError, shutil.Error) as error:
                 raise OpenSpecPreflightError("could not overlay the active OpenSpec change") from error
 
             try:
@@ -777,9 +791,9 @@ def command_preflight_openspec(arguments: argparse.Namespace) -> int:
                     capture_output=True,
                     check=False,
                 )
-            except OSError as error:
+            except (OSError, UnicodeDecodeError) as error:
                 raise OpenSpecPreflightError(f"could not launch OpenSpec archive: {error}") from error
-    except OSError as error:
+    except (OSError, UnicodeDecodeError) as error:
         raise OpenSpecPreflightError(f"could not prepare disposable OpenSpec tree: {error}") from error
 
     try:
