@@ -93,6 +93,19 @@ with the implementation pull request; the parent epic retains archive ownership.
    before grounding in the repo. Absent, say so in one line and continue. This
    never refuses the ticket.
 
+   Then, for each target repo, run:
+
+   ```sh
+   python3 <reviewer-memory-skill-directory>/scripts/memory.py ensure <repo>
+   ```
+
+   Read the store index path it names, following links only where relevant to the
+   ticket. When it reports an empty bundle, say so in one line and continue. Keep
+   the index and store content in worker prompts only; never copy them into the
+   work order, a tracker comment, a pull request body, or the target repository.
+   Obey the [reviewer-memory failure rule](../../../tools/reviewer-memory/SKILL.md#failure-rule),
+   including its not-installed carve-out.
+
 5. **Ground.** In each target repo:
 
    a. The repo's own change and decision records, active and archived.
@@ -172,7 +185,9 @@ with the implementation pull request; the parent epic retains archive ownership.
 
 8. **Decide the shape: flat or chunked.** Read
    [references/slicing.md](../references/slicing.md) and run its trait rubric
-   against what grounding found. It decides flat or chunked and, when chunked,
+   against what grounding found. Consult this repo's reviewer-memory slicing records
+   alongside the rubric's anchor table, and say when they disagree. The rubric
+   decides flat or chunked and, when chunked,
    sizes the chunks and names each one's mode, coherent capability ownership, file
    or target ownership, shared-contract ownership, agent tier, and the orchestrator
    tier. Every capability and shared contract has exactly one owning chunk. A
