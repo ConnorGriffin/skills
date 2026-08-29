@@ -280,6 +280,35 @@ prompt bytes to session scratch and pass that file's contents as the selected
 adapter's positional prompt. Use one state file per dispatch; state is lifecycle
 metadata only, never the child result.
 
+For this rule, a worker started with `--sandbox workspace-write` is a write-mode
+dispatch, while a worker started with `--sandbox read-only` is a read-mode dispatch.
+Before starting a worker with `--sandbox workspace-write`, the coordinator writes
+the same complete prompt bytes to `ORDER.md` at the root of that worker's own cwd,
+so the order survives the worker's context compaction.
+
+Those prompt bytes carry a standing instruction telling the worker to re-read
+`ORDER.md` before each commit and again before declaring the work done, and to treat
+the order's acceptance list as closed: when it is met, the worker stops and reports,
+and proposes any further improvement rather than making it. On a dispatch whose
+prompt is a chunk sub-order fence, the fence boilerplate supplies that instruction
+because such a prompt admits no coordinator commentary. On every other write-mode
+dispatch the coordinator authors it, including a delegated worker whose prompt
+carries a flat work-order fence; that fence deliberately does not carry the line.
+
+A worker that cannot find or read `ORDER.md` stops and reports rather than continuing
+from memory. The coordinator writes the file again and resumes that same worker.
+Every resume message to a write-mode worker must restate the order's constraints or
+point it back at `ORDER.md`, because a resume is coordinator-authored and is the
+freshest context the worker has.
+
+`ORDER.md` is worktree-local scaffolding: it is never committed to the branch and
+never pushed. This instruction plus the diff the coordinator already reads before
+merging is the whole enforcement. Read-mode workers get no `ORDER.md`; this rule
+covers write-mode dispatch only. A coordinator that cannot write `ORDER.md` into a
+write-mode worker's cwd reports the dispatch unavailable and does not start the
+worker. Whichever step removes a worker's worktree deletes `ORDER.md` first, before
+`git worktree remove` and before any `status --short` cleanliness check.
+
 The result locator is the artifact that carries the child's answer: captured
 launcher stdout, a named worktree or branch for implementation changes, or a
 posted comment when the child declares that handoff. Use the adapter's start,
