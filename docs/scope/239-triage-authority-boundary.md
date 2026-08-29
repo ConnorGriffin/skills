@@ -95,7 +95,7 @@ None.
 - The integrated contract remains prose-only: no parser, state machine, tracker
   operation, automatic repair, or runtime authorization enforcement was added.
 - Strict OpenSpec validation passed all four discovered items. Structural validation
-  covered 28 skills and 416 files; the documented unittest selection passed 487
+  covered 28 skills and 420 files; the documented unittest selection passed 485
   tests with 23 skips; Python compilation completed silently.
 - Each chunk received the required Full-depth review through the operator-selected,
   unvalidated Codex exception, routed to GPT-5.6-Luna by the review matrix. Chunk 1's
