@@ -12,8 +12,8 @@ delta repair before ticket finalization can complete.
 
 - Add a ticket command that discovers the active OpenSpec change modified by an
   ordinary ticket branch relative to a caller-owned base ref, then proves it can archive by
-  running the pinned CLI against a disposable copy of the repository's OpenSpec
-  tree and inspecting its JSON result.
+  overlaying that ticket change onto a disposable export of the base ref's current
+  OpenSpec tree, running the pinned CLI there, and inspecting its JSON result.
 - Treat no changed active change as a non-OpenSpec no-op, ignore historical paths
   absent from the ticket tree, and stop when one ordinary ticket changes more than
   one active change because finalization owns only one serial archive.

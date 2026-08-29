@@ -11,11 +11,14 @@ archive. A separate production module would have only one caller and would move 
 same discovery, subprocess, copy, and JSON handling behind another name, so it
 would not survive the deletion test.
 
-The command copies only the resolved repository's `openspec/` tree into a fresh
-temporary directory and runs the pinned external interface there:
-`openspec archive <change> --json --yes`. It does not emulate OpenSpec's merge
-rules. Success requires process exit zero, a top-level JSON object with a non-null
-archive object, and no error-severity entry in an optional status list of objects.
+The command exports the resolved base ref's current `openspec/` tree into a fresh
+temporary directory, overlays only the ticket worktree's one active change
+directory, and runs the pinned external interface there: `openspec archive
+<change> --json --yes`. It does not emulate OpenSpec's merge rules. Using the base
+ref rather than the ticket branch's stale baseline catches an applicability change
+that landed after branch cut without rebasing or mutating the ticket branch.
+Success requires process exit zero, a top-level JSON object with a non-null archive
+object, and no error-severity entry in an optional status list of objects.
 The reproduced 1.11.0 failure returns exit 1 and a JSON body with `archive: null`
 and `archive_spec_update_failed`; parsing the JSON before branching on process
 status preserves the actionable mismatch diagnostic. Temporary-directory cleanup
@@ -35,9 +38,10 @@ archives the authoritative tree.
 
 **Status:** accepted
 
-**Decision:** run the pinned OpenSpec archive command against a temporary copy and
-judge its JSON result instead of implementing a second delta parser or performing
-a reversible archive in the ticket worktree.
+**Decision:** run the pinned OpenSpec archive command against a temporary composite
+of the base ref's current OpenSpec tree plus the ticket's one active change, and
+judge its JSON result instead of implementing a second delta parser or performing a
+reversible archive in the ticket worktree.
 
 **Why:** the actual archive operation is the existing authority for applicability
 and has no dry-run flag in OpenSpec 1.11.0. A disposable copy exercises that
@@ -45,7 +49,7 @@ authority while making pre-merge mutation of the active change and baseline
 impossible, and parsing its JSON preserves the precise archive failure.
 
 **Consequences:** preflight cost includes resolving a merge base, diffing the branch,
-copying the OpenSpec tree, and invoking the CLI once; deleted or renamed-away paths
+exporting the base OpenSpec tree, overlaying the active change, and invoking the CLI once; deleted or renamed-away paths
 do not become false active changes; a multi-change ordinary ticket must be
 re-scoped instead of receiving a misleading independent pass; malformed or changed
 JSON fails closed; diagnostics can identify the unmatched requirement and the

@@ -68,6 +68,24 @@ Output:
 265-preflight-openspec-rename-applicability
 ```
 
+## Base advances after branch cut
+
+Command:
+
+```sh
+/opt/homebrew/bin/python3.14 docs/scope/265-probes/reproduce_base_advance.py
+```
+
+Output:
+
+```text
+stale_ticket_baseline_exit=0
+ticket: OpenSpec change 265-preflight-openspec-rename-applicability applies cleanly in a disposable copy
+current_base_composite_exit=1
+ticket: ticket-workflow MODIFIED failed for header "### Requirement: Four-verb lifecycle" - not found
+ticket: if this requirement was renamed, add a `## RENAMED Requirements` mapping from its current baseline header to the unmatched delta header; otherwise correct the MODIFIED header.
+```
+
 ## Current OpenSpec validation
 
 Command:

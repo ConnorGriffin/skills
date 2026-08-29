@@ -8,6 +8,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 from pathlib import Path
 
@@ -16,6 +17,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("change")
     parser.add_argument("--repo", type=Path, default=Path.cwd())
+    parser.add_argument("--base-ref")
     args = parser.parse_args()
 
     source = args.repo.resolve() / "openspec"
@@ -25,7 +27,27 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory(prefix="ticket-openspec-preflight-") as scratch:
         root = Path(scratch)
-        shutil.copytree(source, root / "openspec")
+        if args.base_ref:
+            archive_path = root / "openspec.tar"
+            exported = subprocess.run(
+                ["git", "archive", "--format=tar", f"--output={archive_path}", args.base_ref, "openspec"],
+                cwd=args.repo.resolve(),
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            if exported.returncode:
+                print(exported.stderr.strip(), file=sys.stderr)
+                return exported.returncode
+            with tarfile.open(archive_path) as bundle:
+                bundle.extractall(root, filter="data")
+            change_source = source / "changes" / args.change
+            if not change_source.is_dir():
+                print(f"ticket: active OpenSpec change not found: {change_source}", file=sys.stderr)
+                return 2
+            shutil.copytree(change_source, root / "openspec" / "changes" / args.change)
+        else:
+            shutil.copytree(source, root / "openspec")
         result = subprocess.run(
             ["openspec", "archive", args.change, "--json", "--yes"],
             cwd=root,

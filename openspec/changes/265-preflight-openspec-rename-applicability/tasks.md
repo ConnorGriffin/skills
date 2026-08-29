@@ -8,7 +8,7 @@
 - [ ] Add public-command tests for base-ref, deleted/renamed path, and zero/one/
       unsupported-multiple active-change discovery; issue 259's
       validate-pass/archive-fail shape, a correct rename, unexpected output shapes,
-      and source-tree immutability.
+      a base advance after branch cut, and source-tree immutability.
 - [ ] Update the ticket-workflow baseline delta and behavior-contract tests.
 - [ ] Run `openspec validate --all --strict` and the full repository test command
       from `AGENTS.md`.

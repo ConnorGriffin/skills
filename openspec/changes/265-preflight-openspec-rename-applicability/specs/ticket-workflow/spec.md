@@ -23,7 +23,7 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
 
 - **WHEN** coordinator mode has merged and reviewed all chunks and recorded the
   ordinary ticket's active change
-- **THEN** it proves every changed active OpenSpec delta applies before rejoining
+- **THEN** it proves its one changed active OpenSpec delta applies before rejoining
   pull-request creation
 
 #### Scenario: A structurally valid delta cannot apply
