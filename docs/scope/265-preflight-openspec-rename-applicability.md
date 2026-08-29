@@ -74,3 +74,5 @@ None.
 - Panel 2 re-check 3: one `injected` blocker — the ADR design retained universal
   caller wording after the requirement, proposal, scope decision, and work order
   had qualified the gate as ordinary OpenSpec-backed only.
+- Panel 2 re-check 4: no blockers; same-reviewer `PASS`. A third fresh cold panel
+  remains required for the full-depth countersign.
