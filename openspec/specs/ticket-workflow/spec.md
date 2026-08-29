@@ -117,15 +117,16 @@ and later ticket verbs MUST move only the status axis they own.
 ### Requirement: Role-aware telemetry and review depth
 
 Each participating session MUST be claimable with both its responsibility
-(`coordinator`, `worker`, or `reviewer`) and the ticket lifecycle verb that produced
-the claim. Finalization MUST record responsibility-tagged and verb-tagged costs
-separately. Worker peaks alone MUST calibrate chunk sizing; measurable non-reviewer
-`start` claims alone MUST calibrate a flat order; triage, revise, finalize, and
-reviewer peaks MUST remain independent overhead. Claims without a lifecycle verb
-MUST remain readable as legacy data and MUST NOT be guessed into a verb. A session
-MUST NOT be reused under a different lifecycle verb; same-verb resumes remain valid,
-while a later verb requires a fresh session. Review depth MUST be stamped from
-change scope and sensitivity rather than inferred from slicing telemetry.
+(`coordinator`, `worker`, or `reviewer`) and the ticket lifecycle verb that
+produced the claim. Finalization MUST record responsibility-tagged and
+verb-tagged costs separately. Worker peaks alone MUST calibrate chunk sizing;
+measurable non-reviewer `start` claims alone MUST calibrate a flat order;
+triage, revise, finalize, and reviewer peaks MUST remain independent overhead.
+Claims without a lifecycle verb MUST remain readable as legacy data and MUST NOT
+be guessed into a verb. A session MUST NOT be reused under a different lifecycle
+verb; same-verb resumes remain valid, while a later verb requires a fresh session.
+Review depth MUST be stamped from change scope and sensitivity rather than inferred
+from slicing telemetry.
 
 #### Scenario: A flat ticket has expensive lifecycle overhead
 
