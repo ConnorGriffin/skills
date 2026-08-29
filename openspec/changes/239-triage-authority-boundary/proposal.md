@@ -13,12 +13,16 @@ broad while writes stay confined to the ticket the operator selected.
 
 ## What changes
 
-- Constrain triage writes to the current ticket's worktree and tracker state.
+- Constrain ancillary repository and tracker writes to the current ticket's
+  lifecycle while preserving required local telemetry and tooling state.
 - Require explicit operator authorization before triage creates or requires an
   ancillary branch, commit, push, pull request, or tracker item.
-- When a parent amendment is genuinely prerequisite, stop before mutation and
-  present the proposed amendment for authorization; otherwise keep triaging and
-  carry compatible decisions in the current ticket's work order.
+- Treat an external amendment as a prerequisite only when the current order would
+  contradict a recorded destination, constraint, acceptance criterion, risk, or
+  sequence; otherwise keep triaging and carry compatible decisions in the current
+  ticket's work order.
+- Require authorization to follow disclosure of the exact ancillary target and
+  mutation; the original triage invocation does not authorize it.
 - Pin the authority boundary through the ticket skill's public prose contract and
   behavior tests.
 
@@ -32,5 +36,5 @@ broad while writes stay confined to the ticket the operator selected.
 
 The change affects the ticket driver's shared pipeline, triage procedure, and
 contract tests. It does not alter Epic ownership of parent planning artifacts,
-OpenSpec adoption for repositories that lack OpenSpec, or cleanup of PR #237's
-closed branch.
+ticket session claims, Codebase Memory indexing, OpenSpec adoption for repositories
+that lack OpenSpec, or cleanup of PR #237's closed branch.
