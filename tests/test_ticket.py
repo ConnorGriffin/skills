@@ -802,14 +802,12 @@ class TicketTelemetryTests(unittest.TestCase):
         self.projects = self.scratch / "projects"
         self.projects.mkdir()
         self.codex_home = self.scratch / "codex-home"
-        self.telemetry = self.scratch / "config" / "ticket" / "telemetry.jsonl"
         self.claims = self.scratch / "config" / "ticket" / "claims.jsonl"
         self.environment = os.environ.copy()
         self.environment.pop("CLAUDE_CODE_SESSION_ID", None)
         self.environment.pop("CODEX_SESSION_ID", None)
         self.environment["CLAUDE_PROJECTS_DIR"] = str(self.projects)
         self.environment["CODEX_HOME"] = str(self.codex_home)
-        self.environment["TICKET_TELEMETRY"] = str(self.telemetry)
         self.environment["TICKET_CLAIMS"] = str(self.claims)
 
     def tearDown(self):
@@ -864,15 +862,6 @@ class TicketTelemetryTests(unittest.TestCase):
         """The ordinary case: a session ran the ticket, so it claimed it."""
         self.write_session(project, session_id, lines)
         self.claim(ticket_id, session_id, role=role, verb=verb)
-
-    def telemetry_records(self) -> list[dict]:
-        if not self.telemetry.exists():
-            return []
-        return [
-            json.loads(line)
-            for line in self.telemetry.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
 
     def test_claim_records_the_running_session_without_being_told_which(self):
         environment = self.environment.copy()
@@ -1049,7 +1038,6 @@ class TicketTelemetryTests(unittest.TestCase):
 
         self.assertEqual(json.loads(gone.stdout)["verdict"], "unmeasurable")
         self.assertIn("transcripts are gone", json.loads(gone.stdout)["reason"])
-        self.assertEqual(self.telemetry_records(), [])
 
         # A deleted transcript must not reach the durable record as a session
         # that cost nothing: that is the reading adr-70 rules out.
@@ -1059,7 +1047,7 @@ class TicketTelemetryTests(unittest.TestCase):
         )
 
         self.assertEqual(recorded.returncode, 0, recorded.stderr)
-        record = self.telemetry_records()[0]
+        record = json.loads(recorded.stdout)
         self.assertEqual(record["session_peaks"], [190_000])
         self.assertEqual(record["claim_count"], 2)
         self.assertEqual(record["unreadable"], ["session-gone"])
@@ -1130,9 +1118,7 @@ class TicketTelemetryTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(payload["verdict"], "under-sliced")
 
-        records = self.telemetry_records()
-        self.assertEqual(len(records), 1)
-        record = records[0]
+        record = payload
         self.assertEqual(record["ticket_id"], "TICKET-7")
         self.assertEqual(record["verbs"], ["start"])
         self.assertEqual(record["traits"], ["large-diff"])
@@ -1152,7 +1138,6 @@ class TicketTelemetryTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)["verdict"], "ok")
-        self.assertEqual(self.telemetry_records()[0]["verdict"], "ok")
 
     def test_flat_verdict_uses_only_non_reviewer_start_execution(self):
         self.worked(
@@ -1187,7 +1172,6 @@ class TicketTelemetryTests(unittest.TestCase):
             {"triage": 200_000, "start": 260_000, "revise": 230_000,
              "finalize": 240_000, "legacy": 0},
         )
-        self.assertEqual(self.telemetry_records()[0]["verb_peaks"], payload["verb_peaks"])
 
     def test_record_without_a_usable_peak_is_unmeasurable(self):
         # A rollout can name its session yet contain no token-count event. It
@@ -1203,7 +1187,6 @@ class TicketTelemetryTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(payload["verdict"], "unmeasurable")
         self.assertIn("no usable context peak", payload["reason"])
-        self.assertEqual(self.telemetry_records(), [])
 
     def test_flat_claims_without_measurable_start_execution_are_unmeasurable(self):
         self.worked(
@@ -1240,8 +1223,6 @@ class TicketTelemetryTests(unittest.TestCase):
                 self.assertEqual(payload["verdict"], "unmeasurable")
                 self.assertIn(reason_fragment, payload["reason"])
 
-        self.assertEqual(self.telemetry_records(), [])
-
     def test_missing_codex_rollout_is_unmeasurable_not_no_data(self):
         self.claim("TICKET-129B", "codex-gone", agent="codex")
 
@@ -1254,7 +1235,6 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(payload["verdict"], "unmeasurable")
         self.assertIn("Codex session", payload["reason"])
         self.assertIn("rollout files", payload["reason"])
-        self.assertEqual(self.telemetry_records(), [])
 
     def test_record_chunked_order_still_degraded_when_a_chunk_peaks_high(self):
         # The chunk's cost is its own claimed worker session, not a sidechain
@@ -1307,9 +1287,6 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertIn("0 claim(s) carried an implementation-worker role", payload["reason"])
         self.assertEqual(payload["coordinator_peak"], 387_156)
         self.assertEqual(payload["worker_peaks"], [])
-        # Unlike no-data, the cost is real and is kept.
-        self.assertEqual(self.telemetry_records()[0]["verdict"], "coordinator-only")
-        self.assertEqual(self.telemetry_records()[0]["coordinator_peak"], 387_156)
 
     def test_a_coordinator_over_the_band_degrades_an_otherwise_held_slice(self):
         self.worked("TICKET-25", "proj-a", "coordinator-1", [assistant_line(300_000)])
@@ -1626,28 +1603,7 @@ class TicketTelemetryTests(unittest.TestCase):
             {"triage-1": "triage", "start-1": "start", "start-2": "start", "legacy-1": "legacy"},
         )
 
-    def test_record_write_denied_by_sandbox_reports_and_exits_zero(self):
-        self.worked("TICKET-41", "proj-a", "session-1", [assistant_line(50_000)])
-        denied_root = self.scratch / "no-write-telemetry"
-        denied_root.mkdir()
-        denied_root.chmod(0o500)
-        denied_path = denied_root / "telemetry" / "telemetry.jsonl"
-        environment = self.environment.copy()
-        environment["TICKET_TELEMETRY"] = str(denied_path)
-
-        result = self.ticket(
-            "record", "TICKET-41", "--verb", "start", "--trait", "small-diff",
-            "--depth", "light", environment=environment,
-        )
-
-        self.assertEqual(result.returncode, 0, result.stderr)
-        payload = json.loads(result.stdout)
-        self.assertEqual(payload["verdict"], "ok")
-        self.assertIn(str(denied_path), result.stderr)
-        self.assertIn("escalated", result.stderr)
-        self.assertFalse((denied_root / "telemetry").exists())
-
-    def test_record_with_no_claim_is_no_data_and_writes_nothing(self):
+    def test_record_with_no_claim_is_no_data(self):
         result = self.ticket(
             "record", "TICKET-11", "--verb", "start", "--trait", "any", "--depth", "light"
         )
@@ -1655,8 +1611,6 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         self.assertEqual(payload["verdict"], "no-data")
-        self.assertEqual(self.telemetry_records(), [])
-        self.assertFalse(self.telemetry.exists())
 
     def test_subagent_peak_is_counted_separately_from_the_main_session_peak(self):
         self.worked(
@@ -1691,7 +1645,7 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(payload["session_count"], 1)
         self.assertEqual(payload["sessions"][0]["peak_context"], 70_000)
 
-    def test_empty_and_whitespace_ids_are_rejected_and_write_nothing(self):
+    def test_empty_and_whitespace_ids_are_rejected(self):
         for bad_id in ("", "TICKET 14", " "):
             with self.subTest(bad_id=bad_id):
                 result = self.ticket(
@@ -1699,23 +1653,8 @@ class TicketTelemetryTests(unittest.TestCase):
                 )
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("ticket:", result.stderr)
-                self.assertEqual(self.telemetry_records(), [])
 
-    def test_telemetry_parent_directory_is_created_when_absent(self):
-        # The claim already created the shared parent, so this asserts the
-        # record path creates what it needs from a clean directory.
-        self.worked("TICKET-15", "proj-a", "session-1", [assistant_line(10_000)])
-        self.assertFalse(self.telemetry.exists())
-
-        result = self.ticket(
-            "record", "TICKET-15", "--verb", "start", "--trait", "any", "--depth", "light"
-        )
-
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(self.telemetry.parent.exists())
-        self.assertEqual(len(self.telemetry_records()), 1)
-
-    def test_appended_record_carries_no_prose_from_the_session(self):
+    def test_record_stdout_carries_no_prose_from_the_session(self):
         secret_prose = "quietly worried this deadline is unrealistic and stressful"
         self.worked(
             "TICKET-16",
@@ -1729,9 +1668,8 @@ class TicketTelemetryTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        written = self.telemetry.read_text(encoding="utf-8")
-        self.assertNotIn("unrealistic", written)
-        self.assertNotIn(secret_prose, written)
+        self.assertNotIn("unrealistic", result.stdout)
+        self.assertNotIn(secret_prose, result.stdout)
         claimed = self.claims.read_text(encoding="utf-8")
         self.assertNotIn("unrealistic", claimed)
         self.assertNotIn(secret_prose, claimed)
@@ -1828,7 +1766,7 @@ class TicketTelemetryTests(unittest.TestCase):
         payload = json.loads(record.stdout)
         self.assertEqual(payload["verdict"], "under-sliced")
         self.assertEqual(payload["excluded_claims"], 0)
-        self.assertEqual(self.telemetry_records()[0]["repo"], "example.com/org/target")
+        self.assertEqual(payload["repo"], "example.com/org/target")
 
     def test_unlabelled_legacy_claim_is_unattributable_not_counted(self):
         # A claim written before `repo` existed carries no such key at all.
@@ -1867,12 +1805,6 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(payload["unattributable"], ["legacy-session"])
         self.assertEqual(payload["session_count"], 1)
         self.assertEqual(payload["peak_context"], 55_000)
-
-        persisted = self.telemetry_records()[0]
-        self.assertEqual(persisted["unattributable"], ["legacy-session"])
-        self.assertEqual(persisted["session_count"], 1)
-        self.assertEqual(persisted["peak_context"], 55_000)
-
 
     def test_ssh_and_https_remotes_for_one_repository_collide_to_the_same_identity(self):
         # An ssh remote and an https remote naming the same repository must
