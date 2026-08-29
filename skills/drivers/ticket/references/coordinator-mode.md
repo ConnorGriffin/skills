@@ -107,7 +107,11 @@ non-blocking rule.
    entry from
    [review-routing.md](../../orchestrate/references/review-routing.md) using that
    chunk's stamped depth. Builder tier is not an input. Dispatch the selected
-   reviewer on the chunk's branch against the ticket branch. Findings go back to
+   reviewer on the chunk's branch against the ticket branch. The literal `/ticket`
+   invocation already granted this dispatch's transfer — work order, needed
+   repository code and documentation, and manufactured-data UI fidelity evidence
+   (screenshots) — so do not re-ask; credentials, secrets, patient data, `.env`,
+   and real database contents stay excluded. Findings go back to
    the chunk's own agent to fix. Claim each dispatched reviewer session through the
    shared claim rule with `--verb start` and `--role reviewer`, plus the same `--session <id>`,
    `--agent <agent>` and `--project` it ran in, so review overhead is measured as
