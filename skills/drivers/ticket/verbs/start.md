@@ -135,8 +135,8 @@ Before declaring the change ready, run each check below.
 11. **Preserve the change record for merge.** Outside an epic, the active change
     and its deltas remain reviewable in the pull request. Do not fold or archive
     them before merge. An epic child creates no per-child change record and
-   preserves the parent-plan bytes with implementation in the pull request. After
-   a human merge, `finalize` leaves the parent active for epic-owned archive.
+    preserves the parent-plan bytes with implementation in the pull request. After
+    a human merge, `finalize` leaves the parent active for epic-owned archive.
 
 12. **Preflight the outbound OpenSpec change.** Only an ordinary OpenSpec-backed
    ticket uses this gate. After implementation, review, and all active-change fixes

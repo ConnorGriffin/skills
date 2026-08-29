@@ -1890,6 +1890,7 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
             "#!/usr/bin/env python3\n"
             "import json, os, sys\n"
             "mode = os.environ.get('FAKE_OPENSPEC_MODE', 'ok')\n"
+            "if len(sys.argv) > 1 and sys.argv[1] == 'validate': print(json.dumps({'valid': True})); sys.exit(0)\n"
             "if mode == 'launch': raise OSError('launch denied')\n"
             "if mode == 'nonjson': print('not json')\n"
             "elif mode == 'array': print('[]')\n"
@@ -1987,18 +1988,61 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         self.assertEqual(multiple.returncode, 2)
         self.assertIn("more than one changed active OpenSpec change: three, two", multiple.stderr)
 
+    def test_discovery_selects_one_active_change_for_add_modify_remove_and_rename(self):
+        added = self.preflight()
+        self.assertEqual(added.returncode, 0, added.stderr)
+        self.assertEqual(
+            added.stdout,
+            "ticket: OpenSpec change one applies cleanly in a disposable copy\n",
+        )
+
+        proposal = self.repo / "openspec/changes/one/proposal.md"
+        self.base = self.git("rev-parse", "HEAD").stdout.strip()
+        proposal.write_text("# Changed\n", encoding="utf-8")
+        self.git("add", "openspec")
+        self.git("commit", "-m", "modify change")
+        modified = self.preflight()
+        self.assertEqual(modified.returncode, 0, modified.stderr)
+        self.assertIn("OpenSpec change one applies cleanly", modified.stdout)
+
+        self.base = self.git("rev-parse", "HEAD").stdout.strip()
+        proposal.unlink()
+        self.git("add", "-A")
+        self.git("commit", "-m", "remove change content")
+        removed = self.preflight()
+        self.assertEqual(removed.returncode, 0, removed.stderr)
+        self.assertIn("OpenSpec change one applies cleanly", removed.stdout)
+
+        before = self.repo / "openspec/changes/one/before.md"
+        before.write_text("# Before\n", encoding="utf-8")
+        self.git("add", "openspec")
+        self.git("commit", "-m", "restore change content")
+        self.base = self.git("rev-parse", "HEAD").stdout.strip()
+        before.rename(before.with_name("after.md"))
+        self.git("add", "-A")
+        self.git("commit", "-m", "rename change content")
+        renamed = self.preflight()
+        self.assertEqual(renamed.returncode, 0, renamed.stderr)
+        self.assertIn("OpenSpec change one applies cleanly", renamed.stdout)
+
     def test_archive_json_contract_and_rename_diagnostic_leave_authoritative_trees_intact(self):
         for mode, diagnostic in (
-            ("nonjson", "OpenSpec archive returned invalid JSON"),
-            ("array", "OpenSpec archive JSON must be an object"),
+            ("nonjson", "ticket: OpenSpec archive returned invalid JSON\n"),
+            ("array", "ticket: OpenSpec archive JSON must be an object\n"),
             ("nostatus", None),
-            ("missing", "OpenSpec archive result must be a non-null object"),
-            ("nullarchive", "OpenSpec archive result must be a non-null object"),
-            ("badarchive", "OpenSpec archive result must be a non-null object"),
-            ("badstatus", "OpenSpec archive status must be a list of objects"),
-            ("error", "archive failed"),
-            ("nonzero", "OpenSpec archive exited with status 7"),
-            ("rename", "## RENAMED Requirements"),
+            ("missing", "ticket: OpenSpec archive result must be a non-null object\n"),
+            ("nullarchive", "ticket: OpenSpec archive result must be a non-null object\n"),
+            ("badarchive", "ticket: OpenSpec archive result must be a non-null object\n"),
+            ("badstatus", "ticket: OpenSpec archive status must be a list of objects\n"),
+            ("error", "ticket: archive failed\n"),
+            ("nonzero", "ticket: OpenSpec archive exited with status 7\n"),
+            (
+                "rename",
+                "ticket: unmatched requirement\n"
+                "ticket: if this requirement was renamed, add a `## RENAMED Requirements` "
+                "mapping from its current baseline header to the unmatched delta header; "
+                "otherwise correct the MODIFIED header.\n",
+            ),
         ):
             with self.subTest(mode=mode):
                 before = (self.tree(), self.tree(self.base))
@@ -2007,9 +2051,23 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 0, result.stderr)
                 else:
                     self.assertNotEqual(result.returncode, 0)
-                    self.assertIn(diagnostic, result.stderr)
+                    self.assertEqual(result.stderr, diagnostic)
                 self.assertEqual(before, (self.tree(), self.tree(self.base)))
                 self.assertEqual(self.git("status", "--short").stdout, "")
+
+    def test_strict_validation_can_pass_while_issue_259_archive_composition_fails(self):
+        environment = self.environment.copy()
+        environment["FAKE_OPENSPEC_MODE"] = "rename"
+        validated = run(
+            ["openspec", "validate", "--all", "--strict", "--json"],
+            cwd=self.repo,
+            env=environment,
+        )
+        self.assertEqual(validated.returncode, 0, validated.stderr)
+
+        result = self.preflight(mode="rename")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("## RENAMED Requirements", result.stderr)
 
     def test_launch_export_and_symlink_failures_are_clean_and_disposable(self):
         fake = self.bin / "openspec"
@@ -2046,6 +2104,25 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         self.assertEqual(linked.returncode, 2)
         self.assertIn("active OpenSpec change contains a symlink", linked.stderr)
         self.assertNotIn("Traceback", linked.stderr)
+
+    def test_overlay_failure_is_diagnostic_and_cleans_the_disposable_tree(self):
+        wrapper = self.bin / "git"
+        moved_change = Path(self.temporary.name) / "moved-change"
+        wrapper.write_text(
+            "#!/bin/sh\n"
+            "/usr/bin/git \"$@\"\n"
+            "status=$?\n"
+            f"if [ \"$1\" = archive ]; then mv {self.repo / 'openspec/changes/one'} {moved_change}; fi\n"
+            "exit $status\n",
+            encoding="utf-8",
+        )
+        wrapper.chmod(0o755)
+
+        result = self.preflight()
+
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stderr, "ticket: could not overlay the active OpenSpec change\n")
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_stale_tracking_base_passes_until_a_real_fetch_refreshes_it(self):
         remote = Path(self.temporary.name) / "remote.git"
@@ -2090,25 +2167,46 @@ class TicketLiveProseContractTests(unittest.TestCase):
         revise = (TICKET_DIRECTORY / "verbs/revise.md").read_text(encoding="utf-8")
         finalize = (TICKET_DIRECTORY / "verbs/finalize.md").read_text(encoding="utf-8")
 
-        for contract, base_ref, boundary in (
-            (start, "refs/remotes/origin/HEAD", "gh pr create"),
-            (coordinator, "refs/remotes/origin/HEAD", "pull request"),
-            (revise, "origin/<baseRefName>", "Push and respond"),
+        start_gate = start.split("12. **Preflight the outbound OpenSpec change.**", 1)[1].split(
+            "13. **Open the pull request.**", 1
+        )[0]
+        coordinator_gate = coordinator.split(
+            "9. **Preflight the outbound OpenSpec change.**", 1
+        )[1]
+        revise_gate = revise.split("   **Preflight the outbound OpenSpec change.**", 1)[1].split(
+            "   After the gate succeeds, push", 1
+        )[0]
+
+        for gate, base_ref in (
+            (start_gate, "refs/remotes/origin/HEAD"),
+            (coordinator_gate, "refs/remotes/origin/HEAD"),
+            (revise_gate, "origin/<baseRefName>"),
         ):
             with self.subTest(base_ref=base_ref):
-                self.assertIn("ordinary OpenSpec-backed", contract)
-                self.assertIn("other or no change-record convention", contract)
-                self.assertIn("epic child", contract)
-                self.assertIn("git fetch origin", contract)
-                self.assertIn("preflight-openspec", contract)
-                self.assertIn(base_ref, contract)
-                self.assertLess(contract.rindex("git fetch origin"), contract.rindex("preflight-openspec"))
-                self.assertLess(contract.rindex("preflight-openspec"), contract.rindex(boundary))
+                normalized_gate = " ".join(gate.split())
+                self.assertIn("ordinary OpenSpec-backed", gate)
+                self.assertIn("other or no change-record convention", gate)
+                self.assertIn("epic child", gate)
+                self.assertEqual(gate.count("git fetch origin"), 1)
+                self.assertEqual(gate.count("preflight-openspec"), 1)
+                self.assertIn(base_ref, gate)
+                self.assertLess(gate.index("git fetch origin"), gate.index("preflight-openspec"))
+                self.assertIn("fetch, ref, or preflight failure stops", gate.lower())
+                self.assertIn("sole authoritative archive owner", normalized_gate.lower())
+                self.assertNotIn("openspec archive ", gate.lower())
 
-        for contract in (start, coordinator, revise):
-            self.assertIn("fetch, ref, or preflight failure stops", contract.lower())
-        self.assertIn("finalization", finalize)
-        self.assertIn("openspec archive", finalize)
+        self.assertIn("implementation, review, and all active-change fixes", start_gate)
+        self.assertIn("immediately before the command", start_gate)
+        self.assertIn("After all chunks merge, whole-diff review and fixes finish", coordinator_gate)
+        self.assertIn("the coordinator records the active change", coordinator_gate)
+        self.assertIn("immediately\n   before", coordinator_gate)
+        self.assertIn("After the rebase and every active-change, checklist, and\n   decision edit", revise_gate)
+        self.assertIn("again immediately before", revise_gate)
+        self.assertIn("earlier rebase fetch does not satisfy this final refresh", revise_gate)
+        self.assertIn("do not open the pull\n   request", start_gate)
+        self.assertIn("do not rejoin pull\n   request creation", coordinator_gate)
+        self.assertIn("do not push", revise_gate)
+        self.assertIn("openspec archive <change-name> --json --yes", finalize.lower())
 
     def test_triage_selected_ticket_mutation_boundary_admits_lifecycle_state_and_reauthorizes_external_work(self):
         shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
