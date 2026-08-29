@@ -21,17 +21,27 @@ def split_surface(source, before, after):
     if source.count(before) != 1:
         raise ValueError("span anchors are not unique")
     prefix, tail = source.split(before, 1)
-    if after not in tail:
-        raise ValueError("closing span anchor is missing")
+    if tail.count(after) != 1:
+        raise ValueError("closing span anchor is missing or ambiguous")
     current, suffix = tail.split(after, 1)
     return prefix + before, current, after + suffix
+
+
+def surface_path(repository, relative_path):
+    path = repository / relative_path
+    resolved = path.resolve(strict=True)
+    try:
+        resolved.relative_to(repository)
+    except ValueError as error:
+        raise ValueError("surface resolves outside repository") from error
+    return path
 
 
 def process_generated_surfaces(repository, *, write):
     failures = []
     for name, surface in GENERATED_SURFACES.items():
-        path = repository / surface["path"]
         try:
+            path = surface_path(repository, surface["path"])
             source = path.read_text(encoding="utf-8")
             prefix, current, suffix = split_surface(
                 source, surface["before"], surface["after"]
@@ -56,8 +66,8 @@ def compact(source):
 def check_clause_surfaces(repository):
     failures = []
     for name, surface in CLAUSE_SURFACES.items():
-        path = repository / surface["path"]
         try:
+            path = surface_path(repository, surface["path"])
             source = path.read_text(encoding="utf-8")
             _, current, _ = split_surface(source, surface["before"], surface["after"])
         except (OSError, ValueError) as error:
@@ -74,8 +84,8 @@ def check_description_byte_caps(repository):
     failures = []
     for name, limit in DESCRIPTION_BYTE_CAPS.items():
         surface = CLAUSE_SURFACES[name]
-        path = repository / surface["path"]
         try:
+            path = surface_path(repository, surface["path"])
             source = path.read_text(encoding="utf-8")
             _, description, _ = split_surface(
                 source, surface["before"], surface["after"]

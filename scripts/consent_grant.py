@@ -54,46 +54,41 @@ def required_clauses(safe_fixture, *destinations):
     return clauses
 
 
+def cross_parent_clauses(safe_fixture):
+    clauses = required_clauses(
+        safe_fixture,
+        "OpenAI's Codex model service",
+        "Anthropic's Claude model service",
+    )
+    clauses["parent scope: Codex UI"] = "Codex UI parent"
+    clauses["parent scope: Claude Code"] = "Claude Code parent"
+    return clauses
+
+
 CLAUSE_SURFACES = {
     "ticket skill description": {
         "path": "skills/drivers/ticket/SKILL.md",
         "before": 'description: "',
         "after": '"\n---',
-        "clauses": required_clauses(
-            "safe-fixture UI fidelity evidence",
-            "OpenAI's Codex model service",
-            "Anthropic's Claude model service",
-        ),
+        "clauses": cross_parent_clauses("safe-fixture UI fidelity evidence"),
     },
     "ticket invocation": {
         "path": "skills/drivers/ticket/SKILL.md",
         "before": "## Invocation\n\n",
-        "after": "## The pipeline",
-        "clauses": required_clauses(
-            LONG_SAFE_FIXTURE,
-            "OpenAI's Codex model service",
-            "Anthropic's Claude model service",
-        ),
+        "after": "Automatic activation outside an invoked parent workflow",
+        "clauses": cross_parent_clauses(LONG_SAFE_FIXTURE),
     },
     "orchestrate skill description": {
         "path": "skills/drivers/orchestrate/SKILL.md",
         "before": 'description: "',
         "after": '"\n---',
-        "clauses": required_clauses(
-            "safe-fixture UI fidelity evidence",
-            "OpenAI's Codex model service",
-            "Anthropic's Claude model service",
-        ),
+        "clauses": cross_parent_clauses("safe-fixture UI fidelity evidence"),
     },
     "orchestrate invocation": {
         "path": "skills/drivers/orchestrate/SKILL.md",
         "before": "## Invocation\n\n",
-        "after": "## Codex headroom gate",
-        "clauses": required_clauses(
-            LONG_SAFE_FIXTURE,
-            "OpenAI's Codex model service",
-            "Anthropic's Claude model service",
-        ),
+        "after": "For delegated workflow work",
+        "clauses": cross_parent_clauses(LONG_SAFE_FIXTURE),
     },
     "ticket OpenAI prompt": {
         "path": "skills/drivers/ticket/agents/openai.yaml",

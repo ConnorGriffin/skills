@@ -5072,6 +5072,19 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         current = current.replace(old, new, 1)
         return prefix + surface["before"] + current + surface["after"] + suffix
 
+    @staticmethod
+    def replace_pattern_in_surface(
+        source: str, surface: dict, pattern: str, replacement: str
+    ) -> str:
+        prefix, tail = source.split(surface["before"], 1)
+        current, suffix = tail.split(surface["after"], 1)
+        current, replacements = re.subn(pattern, replacement, current, count=1)
+        if replacements != 1:
+            raise AssertionError(
+                f"fixture pattern {pattern!r} is absent from {surface['path']}"
+            )
+        return prefix + surface["before"] + current + surface["after"] + suffix
+
     @classmethod
     def remove_fixture_bound(cls, source: str, surface: dict, compact: bool) -> str:
         if compact:
@@ -5117,6 +5130,42 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
                     target.write_text(original, encoding="utf-8")
                     self.assertNotEqual(result.returncode, 0)
                     self.assertIn(name, result.stderr)
+
+    def test_consent_grant_checker_preserves_parent_specific_destination_scope(self):
+        names = (
+            "ticket skill description",
+            "ticket invocation",
+            "orchestrate skill description",
+            "orchestrate invocation",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary)
+            self.copy_consent_surfaces(repository)
+            for name in names:
+                with self.subTest(surface=name):
+                    surface = CONSENT_GRANT_MODULE.CLAUSE_SURFACES[name]
+                    target = repository / surface["path"]
+                    original = target.read_text(encoding="utf-8")
+                    target.write_text(
+                        self.replace_pattern_in_surface(
+                            original, surface, r"Codex\s+UI\s+parent", "parent"
+                        ),
+                        encoding="utf-8",
+                    )
+                    result = run(
+                        [
+                            sys.executable,
+                            str(CONSENT_GRANT_SYNC),
+                            "check",
+                            "--repo",
+                            str(repository),
+                        ],
+                        cwd=ROOT,
+                    )
+                    target.write_text(original, encoding="utf-8")
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(name, result.stderr)
+                    self.assertIn("parent scope", result.stderr)
 
     def test_consent_grant_checker_enforces_both_description_byte_caps(self):
         descriptions = {
@@ -5206,6 +5255,68 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
                     (repository / path).read_text(encoding="utf-8"), originals[path]
                 )
 
+    def test_consent_grant_sync_rejects_an_ambiguous_generated_span(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary)
+            self.copy_consent_surfaces(repository)
+            name, surface = next(iter(CONSENT_GRANT_MODULE.GENERATED_SURFACES.items()))
+            target = repository / surface["path"]
+            original = target.read_text(encoding="utf-8")
+            ambiguous = self.replace_in_surface(
+                original,
+                surface,
+                "The literal invocation",
+                surface["after"] + "\n\n   The literal invocation",
+            )
+            target.write_text(ambiguous, encoding="utf-8")
+            result = run(
+                [
+                    sys.executable,
+                    str(CONSENT_GRANT_SYNC),
+                    "sync",
+                    "--repo",
+                    str(repository),
+                ],
+                cwd=ROOT,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(name, result.stderr)
+            self.assertEqual(target.read_text(encoding="utf-8"), ambiguous)
+
+    def test_consent_grant_sync_refuses_a_surface_outside_the_repository(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            scratch = Path(temporary)
+            repository = scratch / "repo"
+            self.copy_consent_surfaces(repository)
+            name, surface = next(iter(CONSENT_GRANT_MODULE.GENERATED_SURFACES.items()))
+            target = repository / surface["path"]
+            external = scratch / "external.md"
+            external.write_text(
+                target.read_text(encoding="utf-8").replace(
+                    "The literal invocation", "A literal invocation", 1
+                ),
+                encoding="utf-8",
+            )
+            before = external.read_bytes()
+            target.unlink()
+            target.symlink_to(external)
+            result = run(
+                [
+                    sys.executable,
+                    str(CONSENT_GRANT_SYNC),
+                    "sync",
+                    "--repo",
+                    str(repository),
+                ],
+                cwd=ROOT,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(name, result.stderr)
+            self.assertIn("outside repository", result.stderr)
+            self.assertEqual(external.read_bytes(), before)
+
     @staticmethod
     def text(path: Path) -> str:
         return path.read_text(encoding="utf-8")
@@ -5236,6 +5347,8 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
 
         for surface in (description, invocation):
             surface = self.compact(surface)
+            self.assertIn("codex ui parent", surface)
+            self.assertIn("claude code parent", surface)
             self.assertIn("mandatory worker dispatch", surface)
             self.assertIn("nested review", surface)
             self.assertIn("nested orchestrate", surface)
@@ -5257,6 +5370,8 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
 
         for surface in (description, invocation):
             surface = self.compact(surface)
+            self.assertIn("codex ui parent", surface)
+            self.assertIn("claude code parent", surface)
             self.assertIn("mandatory worker dispatch", surface)
             self.assertIn("nested review", surface)
             self.assertIn("nested orchestrate", surface)
