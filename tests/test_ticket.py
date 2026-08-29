@@ -668,16 +668,33 @@ class TicketSkillContractTests(unittest.TestCase):
         for classification in ("investigation", "manual"):
             self.assertIn(f"`{classification}` does not create or attach `build`", binding)
 
-    def test_epic_child_triage_keeps_parent_planning_authority_off_the_child_branch(self):
+    def test_triage_keeps_ancillary_mutations_inside_its_authority_boundary(self):
+        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
-        contract = " ".join(triage.lower().split())
+        contract = " ".join(f"{shared}\n{triage}".lower().split())
 
-        self.assertIn("writes only its work order", contract)
-        self.assertIn("separate docs-only pull request to main", contract)
-        self.assertIn("untracked session scratch", contract)
-        self.assertIn("outside the branch", contract)
-        self.assertIn("discard it after the final order", contract)
+        self.assertNotIn("separate docs-only pull request", contract)
+        self.assertIn("ancillary repository and tracker mutations", contract)
+        self.assertIn("selected ticket", contract)
+        self.assertIn("ordinary ticket may write its active change record", contract)
+        self.assertIn("epic child writes only its work order", contract)
+        self.assertIn("parent owns the active change", contract)
         self.assertIn("do not write a parent planning artifact", contract)
+
+        self.assertIn("session claim", contract)
+        self.assertIn("exact codebase memory worktree index", contract)
+        self.assertIn("without ancillary-work approval", contract)
+
+        conflicts = "recorded destination, constraint, acceptance criterion, risk, or sequence"
+        self.assertIn(f"no {conflicts} conflicts", contract)
+        self.assertIn("continue triage", contract)
+        self.assertIn("carry the decision in the selected ticket's work order", contract)
+        self.assertIn(f"would contradict a {conflicts}", contract)
+        self.assertIn("cite the conflicting clause", contract)
+        self.assertIn("stop before mutation", contract)
+        self.assertIn("exact ancillary target and mutation", contract)
+        self.assertIn("operator's response after that disclosure", contract)
+        self.assertIn("original triage invocation is not authorization", contract)
 
     def test_revise_requires_a_base_currency_and_mergeability_refresh(self):
         revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")

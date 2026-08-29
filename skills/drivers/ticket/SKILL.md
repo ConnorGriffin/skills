@@ -36,10 +36,13 @@ model dispatch.
 * `triage` reads the ticket and the repo, interviews the user through `/scope`
   when scope is thin, and ends by posting the **work order**: a locked brief as a
   ticket comment. Work too big for one agent's context is sliced into sub-orders
-  in that same comment ([references/slicing.md](references/slicing.md)). It
-  writes nothing to the repo except scope and spec documents committed in the
-  ticket's worktree. An epic child writes only its work order; a required epic
-  spec amendment is a separate docs-only pull request merged before stamping.
+  in that same comment ([references/slicing.md](references/slicing.md)). Without
+  explicit operator authorization, ancillary repository and tracker mutations
+  stay inside the selected ticket's lifecycle. An ordinary ticket may write its
+  active change record; an Epic child writes only its work order, its parent owns
+  the active change, and the child branch carries no parent planning artifact.
+  Required local lifecycle state, including the session claim and exact Codebase
+  Memory worktree index, proceeds without ancillary-work approval.
 * `start` runs in a fresh session, fetches the work order, refuses if there is
   none, implements it on a branch in an isolated worktree (or, on a sliced order,
   coordinates one agent per chunk), iterates the verification step until the

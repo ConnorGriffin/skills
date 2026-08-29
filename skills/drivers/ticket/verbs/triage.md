@@ -122,9 +122,27 @@ post-merge archive.
    step. Resolved answers go into the order. For an epic child, every `/scope`
    specialist keeps its instrumentation in untracked session scratch outside the branch, discards it
    after the final order, and creates no scope ledger or docs/scope state. `/epic` alone owns the
-   proposal, design, and tasks. If triage discovers a required spec amendment,
-   land it first as a separate docs-only pull request to main, then stamp the
-   order; the child branch never writes that amendment or any other spec state.
+   proposal, design, and tasks; the child branch never writes a parent planning
+   artifact or any other spec state. An ordinary ticket may write its active change
+   record, but an Epic child writes only its work order and its parent owns the
+   active change.
+
+   **Keep mutations inside the selected ticket.** Grounding may read parents,
+   linked work, live state, and repository records broadly. Without explicit
+   operator authorization, ancillary repository and tracker mutations stay inside
+   the selected ticket: its branch and worktree, its active change record when it
+   is an ordinary ticket, and its tracker comment and status. Required local
+   lifecycle state, including the session claim and exact Codebase Memory worktree
+   index, proceeds without ancillary-work approval.
+
+   When no recorded destination, constraint, acceptance criterion, risk, or
+   sequence conflicts with the order, continue triage and carry the decision in
+   the selected ticket's work order. When the order would contradict a recorded
+   destination, constraint, acceptance criterion, risk, or sequence, cite the
+   conflicting clause, stop before mutation, and disclose the exact ancillary
+   target and mutation. Only the operator's response after that disclosure
+   authorizes the ancillary work; the original triage invocation is not
+   authorization.
 
    **Resolve the surface lifecycle.** Every order and sub-order gets one closed
    `Surface lifecycle:` value:
