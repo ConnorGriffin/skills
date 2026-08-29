@@ -1840,6 +1840,47 @@ class TicketTelemetryTests(unittest.TestCase):
 
 
 class TicketLiveProseContractTests(unittest.TestCase):
+    def test_triage_selected_ticket_mutation_boundary_admits_lifecycle_state_and_reauthorizes_external_work(self):
+        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+        triage = (TICKET_DIRECTORY / "verbs/triage.md").read_text(encoding="utf-8")
+        shared_contract = " ".join(shared.split())
+        triage_contract = " ".join(triage.split())
+
+        self.assertEqual(shared.count("## Selected-ticket mutation boundary"), 1)
+        self.assertNotIn("Everything outside this allowance is external.", shared)
+        self.assertIn("operator-local workflow state", shared_contract)
+        self.assertIn("required by the installed workflow", shared_contract)
+        for mechanism in (
+            "lifecycle claim",
+            "exact-worktree Codebase Memory state",
+            "reviewer-memory store",
+            "local remote-tracking refs",
+        ):
+            with self.subTest(mechanism=mechanism):
+                self.assertIn(mechanism, shared_contract)
+
+        self.assertIn("repository or tracker state belonging to the selected ticket lifecycle", shared_contract)
+        self.assertIn("selected worktree and branch", shared_contract)
+        self.assertIn("ordinary ticket's active change", shared_contract)
+        self.assertIn("selected ticket's comment and status", shared_contract)
+        self.assertIn("Epic-child parent-plan amendment", shared_contract)
+
+        self.assertIn("distinct external concern", shared_contract)
+        self.assertIn("Broad read-only grounding never authorizes it.", shared_contract)
+        self.assertIn("Use the shared selected-ticket mutation boundary.", triage_contract)
+        self.assertIn(
+            "destination, constraint, acceptance criterion, risk, or sequence",
+            triage_contract,
+        )
+        self.assertIn("cite that clause", triage_contract)
+        self.assertIn("exact external target and mutation", triage_contract)
+        self.assertIn("stop before mutation", triage_contract)
+        self.assertIn(
+            "subsequent operator response explicitly authorizes the previously disclosed "
+            "target and exact mutation",
+            triage_contract,
+        )
+
     def test_builder_self_check_matches_its_live_template_copy(self):
         start = (TICKET_DIRECTORY / "verbs/start.md").read_text(encoding="utf-8")
         template = (TICKET_DIRECTORY / "templates/work-order.md").read_text(encoding="utf-8")
