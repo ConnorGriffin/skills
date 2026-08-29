@@ -2,19 +2,22 @@
 
 ## Why
 
-Ticket triage can currently infer that an Epic parent needs a specification
-amendment, create a separate branch and pull request for that amendment, and stop
-the ticket it was asked to triage. Issue #239 records that behavior through closed
-PR #237: the operator did not authorize the ancillary pull request, and issue #228
-could carry the relevant decisions in its own work order without that prerequisite.
+Ticket triage has no explicit boundary separating selected-ticket lifecycle writes
+from unrelated repository and tracker mutations. Issue #239 records the resulting
+authority failure through closed PR #237: triage created an unrequested ancillary
+pull request and stopped issue #228, even though the selected ticket could carry the
+relevant decision itself. Current Epic behavior has since replaced that separate
+planning-only pull-request path with a parent-owned amendment carried by the
+selected child's implementation pull request, but the authority boundary remains
+unstated.
 
 Triage needs an explicit mutation boundary so repository-wide grounding remains
 broad while writes stay confined to the ticket the operator selected.
 
 ## What changes
 
-- Constrain ancillary repository and tracker writes to the current ticket's
-  lifecycle while preserving required local telemetry and tooling state.
+- Define the selected-ticket lifecycle as a closed mutation allowance and treat
+  every repository or tracker mutation outside it as external.
 - Preserve the current Epic-child lifecycle: an Epic child creates no per-child
   change record, while a required amendment to the parent's active plan may travel
   in the selected child's worktree and implementation pull request under parent
