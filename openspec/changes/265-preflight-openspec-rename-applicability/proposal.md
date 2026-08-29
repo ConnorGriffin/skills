@@ -10,10 +10,13 @@ delta repair before ticket finalization can complete.
 
 ## What changes
 
-- Add a ticket command that discovers every active OpenSpec change modified by an
-  ordinary ticket branch relative to its base, then proves each can archive by
+- Add a ticket command that discovers the active OpenSpec change modified by an
+  ordinary ticket branch relative to a caller-owned base ref, then proves it can archive by
   running the pinned CLI against a disposable copy of the repository's OpenSpec
   tree and inspecting its JSON result.
+- Treat no changed active change as a non-OpenSpec no-op, ignore historical paths
+  absent from the ticket tree, and stop when one ordinary ticket changes more than
+  one active change because finalization owns only one serial archive.
 - Make flat and chunked `start` run that preflight after the final
   implementation/review/change-record edits and before opening the pull request;
   make `revise` update its change record and repeat the gate before pushing.

@@ -59,7 +59,7 @@ Options:
 Command:
 
 ```sh
-/opt/homebrew/bin/python3.14 docs/scope/265-probes/discover_changed_openspec.py --repo . --base origin/main
+/opt/homebrew/bin/python3.14 docs/scope/265-probes/discover_changed_openspec.py --repo . --base-ref refs/remotes/origin/HEAD
 ```
 
 Output:

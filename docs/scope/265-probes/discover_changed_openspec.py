@@ -11,12 +11,20 @@ from pathlib import Path, PurePosixPath
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path.cwd())
-    parser.add_argument("--base", required=True)
+    parser.add_argument("--base-ref", required=True)
     args = parser.parse_args()
 
+    repo = args.repo.resolve()
+    merge_base = subprocess.run(
+        ["git", "merge-base", "HEAD", args.base_ref],
+        cwd=repo,
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout.strip()
     result = subprocess.run(
-        ["git", "diff", "--name-only", args.base, "--", "openspec/changes"],
-        cwd=args.repo.resolve(),
+        ["git", "diff", "--name-only", merge_base, "--", "openspec/changes"],
+        cwd=repo,
         text=True,
         capture_output=True,
         check=True,
@@ -24,8 +32,16 @@ def main() -> int:
     changes: set[str] = set()
     for line in result.stdout.splitlines():
         parts = PurePosixPath(line).parts
-        if len(parts) >= 3 and parts[:2] == ("openspec", "changes") and parts[2] != "archive":
+        active = repo / "openspec" / "changes" / parts[2] if len(parts) >= 3 else None
+        if (
+            active is not None
+            and parts[:2] == ("openspec", "changes")
+            and parts[2] != "archive"
+            and active.is_dir()
+        ):
             changes.add(parts[2])
+    if len(changes) > 1:
+        parser.error("ordinary tickets may change at most one active OpenSpec change")
     for change in sorted(changes):
         print(change)
     return 0

@@ -5,7 +5,7 @@
 The ticket workflow MUST expose one verb at a time: `triage` grounds the ticket and
 posts a locked work order after unconditional `/scope`; `start` executes the newest
 order in an isolated ticket worktree, proves in both flat and chunked execution
-that every active OpenSpec change modified by the ordinary ticket branch can apply
+that the one active OpenSpec change modified by the ordinary ticket branch can apply
 to the current baseline without mutating either authoritative tree, and opens a
 pull request; `revise` actions one review round, completes its active-change edits,
 and repeats that applicability proof before pushing; and `finalize`
@@ -16,7 +16,7 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
 
 - **WHEN** `start` finds a sufficient newest work order and a compatible session
 - **THEN** it reuses the ticket's branch and worktree, implements and verifies the
-  order, proves every changed active OpenSpec delta applies in a disposable copy,
+  order, proves its changed active OpenSpec delta applies in a disposable copy,
   opens one pull request, and stops for human review
 
 #### Scenario: A chunked ticket reaches pull-request creation
@@ -46,3 +46,10 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
 - **WHEN** `revise` changes an ordinary ticket's checklist or decision record
 - **THEN** it completes those active-change edits, proves the resulting bytes apply,
   and only then pushes the branch
+
+#### Scenario: An ordinary ticket changes several active changes
+
+- **WHEN** base-diff discovery finds more than one active OpenSpec change still
+  present in the ticket tree
+- **THEN** preflight stops visibly because ordinary-ticket finalization owns one
+  archive unit instead of independently approving interacting deltas

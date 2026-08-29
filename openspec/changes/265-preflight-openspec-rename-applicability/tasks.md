@@ -5,7 +5,8 @@
 - [ ] Gate flat and chunked OpenSpec-backed `start` and `revise` after their final
       change-record edits at the pre-pull-request or pre-push boundary without
       changing finalization's archive ownership.
-- [ ] Add public-command tests for changed-active-change discovery, issue 259's
+- [ ] Add public-command tests for base-ref, deleted/renamed path, and zero/one/
+      unsupported-multiple active-change discovery; issue 259's
       validate-pass/archive-fail shape, a correct rename, unexpected output shapes,
       and source-tree immutability.
 - [ ] Update the ticket-workflow baseline delta and behavior-contract tests.
