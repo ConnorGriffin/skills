@@ -103,6 +103,76 @@ None.
   drift, then converged after correction on 14 Standards items and 12 Spec/risk/fix
   items. Chunk 2 checked 15 Standards items and 16 Spec/risk/evidence items with no
   findings. Coordinator verification reproduced the required executable evidence.
+- The whole-diff Full review ran after the final current-main refresh. Its first round
+  requested that the scope ledger carry the deterministic inventory and executable
+  commands behind the summarized evidence; those reproducible facts follow.
+- The final inventory contains 32 paths: the original 29 plus the current-main
+  issue-259 scope ledger and two archived OpenSpec records. Those three upstream
+  records are protected grounding/history, not issue-239 edit authority.
+
+### Reproducible final evidence
+
+Closed inventory command:
+
+```sh
+rg -l -i 'selected-ticket|selected ticket|ancillary|parent-plan amendment|reviewer-memory|exact-worktree Codebase Memory|lifecycle claim' . | sort
+```
+
+Complete output (32 paths):
+
+```text
+./AGENTS.md
+./README.md
+./docs/epic-flow.md
+./docs/scope/195-retire-agentflow-premise.md
+./docs/scope/239-triage-authority-boundary.md
+./docs/scope/259-remove-unused-ticket-telemetry.md
+./docs/scope/reviewer-memory.md
+./openspec/changes/239-triage-authority-boundary/design.md
+./openspec/changes/239-triage-authority-boundary/proposal.md
+./openspec/changes/239-triage-authority-boundary/specs/ticket-workflow/spec.md
+./openspec/changes/239-triage-authority-boundary/tasks.md
+./openspec/changes/archive/2026-08-28-241-epic-human-dispatch-slicing/proposal.md
+./openspec/changes/archive/2026-08-28-241-epic-human-dispatch-slicing/specs/planning-and-review/spec.md
+./openspec/changes/archive/2026-08-28-241-epic-human-dispatch-slicing/specs/ticket-workflow/spec.md
+./openspec/changes/archive/2026-08-29-259-remove-unused-ticket-telemetry/proposal.md
+./openspec/changes/archive/2026-08-29-259-remove-unused-ticket-telemetry/specs/ticket-workflow/spec.md
+./openspec/specs/planning-and-review/spec.md
+./openspec/specs/ticket-workflow/spec.md
+./scripts/validate.py
+./site/relationships.py
+./skills/drivers/epic/SKILL.md
+./skills/drivers/ticket/SKILL.md
+./skills/drivers/ticket/verbs/finalize.md
+./skills/drivers/ticket/verbs/triage.md
+./skills/tools/code-review/SKILL.md
+./skills/tools/plan-review/SKILL.md
+./skills/tools/reviewer-memory/SKILL.md
+./skills/tools/reviewer-memory/agents/openai.yaml
+./skills/tools/reviewer-memory/scripts/memory.py
+./tests/test_behavior.py
+./tests/test_reviewer_memory.py
+./tests/test_ticket.py
+```
+
+Final verification commands, run from the ticket worktree after merging current
+`origin/main`:
+
+```sh
+openspec validate --all --strict
+/opt/homebrew/bin/python3.14 scripts/validate.py
+/opt/homebrew/bin/python3.14 -m unittest tests.test_behavior tests.test_pr_body tests.test_pr_body_gate tests.test_pr_body_bench tests.test_ticket tests.test_reviewer_memory tests.test_codebase_memory_install tests.test_check_dco tests.test_ci_changed_paths tests.test_site_build
+/opt/homebrew/bin/python3.14 -m py_compile skills/tools/codebase-memory/scripts/install.py skills/tools/reviewer-memory/scripts/memory.py scripts/ci_changed_paths.py skills/drivers/orchestrate/scripts/worker_lifecycle.py skills/drivers/orchestrate/scripts/codex-worker.py skills/drivers/orchestrate/scripts/claude-worker.py
+```
+
+Observed result:
+
+```text
+OpenSpec: 4 passed, 0 failed
+Structural validation: validated 28 skills and 420 files
+Unittest selection: Ran 485 tests; OK (skipped=23)
+py_compile: exit 0; no output
+```
 
 ## Original review rounds
 

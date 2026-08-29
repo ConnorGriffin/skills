@@ -9,5 +9,5 @@
       list and proves both required local state and exact authorization for a
       distinct external concern.
 - [x] Keep the scope ledger and active change aligned with the revised contract.
-- [ ] Run strict OpenSpec validation, the full repository verification command, and
+- [x] Run strict OpenSpec validation, the full repository verification command, and
       the required Full-depth review.
