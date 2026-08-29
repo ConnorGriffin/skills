@@ -1107,6 +1107,26 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(len(payload["sessions"][0]["transcripts"]), 2)
         self.assertEqual(payload["peak_context"], 200_000)
 
+    def test_an_archived_codex_session_remains_measurable(self):
+        directory = self.codex_home / "archived_sessions"
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / "rollout-2026-01-01T00-00-00-codex-archived.jsonl"
+        path.write_text(
+            "\n".join(
+                [codex_meta_line("codex-archived"), codex_token_line(187_218)]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self.claim("TICKET-259", "codex-archived", agent="codex")
+
+        result = self.ticket("scan", "TICKET-259")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["sessions"][0]["transcripts"], [str(path)])
+        self.assertEqual(payload["peak_context"], 187_218)
+
     def test_record_flat_order_above_degradation_band_is_under_sliced(self):
         self.worked("TICKET-7", "proj-a", "session-1", [assistant_line(200_000)])
 

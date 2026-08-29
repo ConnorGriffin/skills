@@ -31,9 +31,11 @@ CLAIMS_PATH = Path(
         str(Path.home() / ".config" / "ticket" / "claims.jsonl"),
     )
 ).expanduser()
-CODEX_SESSIONS_DIR = Path(
+CODEX_HOME = Path(
     os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))
-).expanduser() / "sessions"
+).expanduser()
+CODEX_SESSIONS_DIR = CODEX_HOME / "sessions"
+CODEX_ARCHIVED_SESSIONS_DIR = CODEX_HOME / "archived_sessions"
 
 # Which environment variable carries the running session id, per agent. A verb
 # that cannot read one passes --session instead.
@@ -229,7 +231,11 @@ def transcripts_for(claim: dict, projects_dir: Path) -> list[Path]:
     """
     session_id = claim["session_id"]
     if claim.get("agent") == "codex":
-        return sorted(CODEX_SESSIONS_DIR.glob(f"**/rollout-*-{session_id}.jsonl"))
+        live = CODEX_SESSIONS_DIR.glob(f"**/rollout-*-{session_id}.jsonl")
+        archived = CODEX_ARCHIVED_SESSIONS_DIR.glob(
+            f"rollout-*-{session_id}.jsonl"
+        )
+        return sorted([*live, *archived])
     parent_sessions = projects_dir.glob(f"*/{session_id}.jsonl")
     native_workers = projects_dir.glob(f"*/*/subagents/agent-{session_id}.jsonl")
     return sorted([*parent_sessions, *native_workers])
