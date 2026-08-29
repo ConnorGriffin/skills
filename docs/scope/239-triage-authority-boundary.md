@@ -74,5 +74,12 @@ None.
 - Injected blockers: none.
 
 The three-panel hard cap was reached with the authoring blocker above. No work order
-may be posted from this review cycle; a later triage invocation must cold-review the
-clean rewritten draft.
+may be posted from that review cycle. After the blocker was resolved and committed,
+the operator directed triage to keep going; the clean rewritten draft therefore
+enters a new fresh review cycle before posting.
+
+## Review cycle 2
+
+The cycle starts from commit `c1d3554`, with every blocker from the first cycle
+resolved in the active change and work order. Round instrumentation continues below
+when the fresh cold pass returns.
