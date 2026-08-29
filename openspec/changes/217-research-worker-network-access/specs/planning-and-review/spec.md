@@ -10,11 +10,14 @@ adapter MUST persist that capability across resume. The capability MUST remain
 off for dispatches that do not request it and MUST NOT promise arbitrary shell
 network access.
 
-When the provider refuses or cannot supply hosted source access, the
-coordinator MUST fetch the required primary sources into session scratch and
-resume the same worker against the local material. If neither path can obtain
-the required sources, the research workflow MUST stop clearly and MUST NOT
-report completed research or write a successful findings artifact.
+When a successfully completed, resumable worker reports hosted source refusal
+with the defined worker result, the coordinator MUST fetch the required public
+primary sources into a unique scratch directory under the worker cwd and resume
+the same worker against a manifest of that local material. This handoff is the
+sole exception to the original-prompt-only worker-input rule. If the adapter
+fails without a resumable session, or neither source path can obtain the
+required sources, the research workflow MUST stop clearly and MUST NOT report
+completed research or write a successful findings artifact.
 
 #### Scenario: Research starts with hosted source access
 
@@ -24,13 +27,19 @@ report completed research or write a successful findings artifact.
 
 #### Scenario: Research resumes after provider refusal
 
-- **WHEN** a hosted web tool is denied or unavailable
-- **THEN** the coordinator places fetched primary-source material in session
-  scratch and resumes the same worker against that material
+- **WHEN** a successfully completed worker reports hosted web refusal as
+  `SOURCE_ACCESS_UNAVAILABLE:` and its state is resumable
+- **THEN** the coordinator places only public fetched sources and their URL
+  manifest in a unique cwd-local scratch directory and resumes that same worker
+  with the manifest path
+
+#### Scenario: The failed worker cannot resume
+
+- **WHEN** an adapter failure leaves no terminal state with a session ID
+- **THEN** research stops visibly and writes no successful findings artifact
 
 #### Scenario: A non-research worker starts normally
 
 - **WHEN** an adapter start omits the hosted-web opt-in
 - **THEN** hosted live source access remains disabled and the existing sandbox
   behavior is unchanged
-
