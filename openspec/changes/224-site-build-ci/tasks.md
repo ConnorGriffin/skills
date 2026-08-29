@@ -5,5 +5,5 @@
 - [x] Add `tests.test_site_build` to the primary validation workflow and make the
   parity check pass.
 - [x] Run the repository's documented full verification command.
-- [ ] Open the pull request with the active OpenSpec change still reviewable; do
+- [x] Open the pull request with the active OpenSpec change still reviewable; do
   not archive it before merge.
