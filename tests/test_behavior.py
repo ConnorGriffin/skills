@@ -5409,6 +5409,113 @@ class DelegationAuthorityContractTests(unittest.TestCase):
         self.assertNotIn(self.AUTHORIZATION, self.TRIAGE)
 
 
+class DurableWorkerOrderContractTests(unittest.TestCase):
+    ORCHESTRATE = ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md"
+    COORDINATOR_MODE = (
+        ROOT / "skills" / "drivers" / "ticket" / "references" / "coordinator-mode.md"
+    )
+    DRAFTING = (
+        ROOT
+        / "skills"
+        / "drivers"
+        / "ticket"
+        / "references"
+        / "drafting-conventions.md"
+    )
+    FINALIZE = ROOT / "skills" / "drivers" / "ticket" / "verbs" / "finalize.md"
+    REVISE = ROOT / "skills" / "drivers" / "ticket" / "verbs" / "revise.md"
+    TEMPLATE = ROOT / "skills" / "drivers" / "ticket" / "templates" / "work-order.md"
+
+    @staticmethod
+    def compact(text: str) -> str:
+        return " ".join(text.split()).lower()
+
+    @staticmethod
+    def section(path: Path, heading: str) -> str:
+        source = path.read_text(encoding="utf-8")
+        anchor = f"{heading}\n\n"
+        assert anchor in source
+        return source.split(anchor, 1)[1].split("\n\n## ", 1)[0]
+
+    @staticmethod
+    def pointer_sentence(path: Path) -> str:
+        source = " ".join(path.read_text(encoding="utf-8").split())
+        return next(
+            sentence.strip()
+            for sentence in source.split(". ")
+            if "durable-order rule" in sentence.lower()
+        )
+
+    def test_write_mode_workers_keep_and_recover_their_closed_order(self):
+        home = self.compact(self.section(self.ORCHESTRATE, "## Collect child results"))
+        for term in (
+            "before starting a worker with `--sandbox workspace-write`",
+            "same complete prompt bytes to `order.md` at the root of that worker's own cwd",
+            "re-read `order.md` before each commit and again before declaring the work done",
+            "acceptance list as closed",
+            "proposes any further improvement rather than making it",
+            "chunk sub-order fence",
+            "every other write-mode dispatch the coordinator authors it",
+            "cannot find or read `order.md` stops and reports",
+            "writes the file again and resumes that same worker",
+            "every resume message to a write-mode worker",
+            "restate the order's constraints or point it back at `order.md`",
+            "worktree-local scaffolding",
+            "never committed to the branch and never pushed",
+            "read-mode workers get no `order.md`",
+            "reports the dispatch unavailable and does not start the worker",
+            "deletes `order.md` first",
+            "before `git worktree remove` and before any `status --short` cleanliness check",
+        ):
+            with self.subTest(home_term=term):
+                self.assertIn(term, home)
+
+        template = self.TEMPLATE.read_text(encoding="utf-8")
+        flat = template.split("## Flat\n", 1)[1].split("\n---\n\n## Chunked", 1)[0]
+        chunked = template.split("## Chunked\n", 1)[1]
+        chunked_header, sub_order = chunked.split("SUB-ORDER 1/<n>", 1)
+        flat = self.compact(flat)
+        chunked_header = self.compact(chunked_header)
+        sub_order = self.compact(sub_order)
+        standing_instruction = (
+            "re-read `order.md` before each commit and again before declaring the work done"
+        )
+        self.assertIn(standing_instruction, sub_order)
+        self.assertIn("`done when` is closed", sub_order)
+        self.assertIn("propose any further improvement rather than making it", sub_order)
+        self.assertIn("stop and report rather than continuing from memory", sub_order)
+        self.assertNotIn(standing_instruction, flat)
+        self.assertNotIn(standing_instruction, chunked_header)
+
+        for path in (self.COORDINATOR_MODE, self.DRAFTING):
+            with self.subTest(pointer=path):
+                pointer = self.pointer_sentence(path)
+                self.assertIn(
+                    "skills/drivers/orchestrate/skill.md", pointer.lower()
+                )
+                self.assertIn("## collect child results", pointer.lower())
+                self.assertNotIn("ORDER.md", pointer)
+                for clause in (
+                    "before each commit",
+                    "acceptance list",
+                    "context compaction",
+                    "never committed",
+                    "cannot find or read",
+                ):
+                    self.assertNotIn(clause, pointer.lower())
+
+        teardown_checks = (
+            (self.COORDINATOR_MODE, "<path>/ORDER.md", "worktree remove <path>"),
+            (self.FINALIZE, "<worktree path>/ORDER.md", "worktree remove <worktree path>"),
+            (self.REVISE, "<path>/ORDER.md", "status --short"),
+        )
+        for path, order_file, later_step in teardown_checks:
+            with self.subTest(teardown=path):
+                source = path.read_text(encoding="utf-8")
+                self.assertIn(order_file, source)
+                self.assertLess(source.index(order_file), source.index(later_step))
+
+
 class LiveProseContractTests(unittest.TestCase):
     def test_reviewer_routing_and_admission_rules_remain_explicit(self):
         routing = (ROOT / "skills/drivers/orchestrate/references/review-routing.md").read_text(encoding="utf-8")

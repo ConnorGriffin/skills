@@ -65,6 +65,9 @@ graph-identity rule.
    coordinator decision/action milestone immediately. The shared state-change rule
    still reports any external state change the coordinator caused.
 
+   The durable-order rule for this write-mode dispatch lives at
+   `skills/drivers/orchestrate/SKILL.md` `## Collect child results`.
+
    For chunk `<n>` and dispatch attempt `<attempt>`, the coordinator writes the
    complete prompt bytes to
    `<session-scratch>/ticket-<ticket-id-lowercase>-chunk-<n>-attempt-<attempt>.prompt`
@@ -136,7 +139,8 @@ non-blocking rule.
    so in the report; anything else goes back to the user as a slicing defect. After a
    chunk merges, remove its worktree and delete its branch (run
    `<cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <path>` while that checkout
-   still exists, then `git -C <control checkout> worktree remove <path>` and
+   still exists, then `rm -f <path>/ORDER.md`,
+   `git -C <control checkout> worktree remove <path>`, and
    `git -C <control checkout> branch -D <chunk branch>`). Chunk branches are never
    pushed, so there is no remote branch to delete.
 
