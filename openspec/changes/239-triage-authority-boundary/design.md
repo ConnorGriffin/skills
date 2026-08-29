@@ -10,6 +10,10 @@ status. This boundary does not suppress ticket-scoped lifecycle telemetry or loc
 tooling state required by the workflow, including the session claim and the exact
 Codebase Memory worktree index.
 
+The active-change allowance applies only to an ordinary ticket. An Epic child keeps
+the existing work-order-only exception: its parent owns the active change, and the
+child neither writes nor treats that parent record as its selected-ticket change.
+
 An inferred prerequisite in another ticket or planning record does not itself
 grant authority to create a branch, commit, push, pull request, or tracker item for
 that prerequisite. An external correction is genuinely prerequisite only when a

@@ -13,6 +13,10 @@ parent, linked ticket, live service, or repository record for grounding MUST NOT
 grant authority to create a branch, commit, push, pull request, or tracker item for
 that external concern.
 
+The selected-ticket active change allowance MUST apply only to an ordinary ticket.
+An Epic child MUST retain the existing work-order-only exception: its parent owns the
+active change, and the child MUST NOT write or claim that parent record as its own.
+
 An external amendment MUST be treated as a prerequisite only when omitting it would
 make the current order contradict a recorded destination, constraint, acceptance
 criterion, risk, or sequence in the selected ticket or its governing parent. Triage
@@ -44,3 +48,10 @@ decision in the selected ticket's work order.
 - **WHEN** triage claims its session or binds the ticket worktree's exact Codebase
   Memory identity
 - **THEN** those ticket-scoped local writes proceed without ancillary-work approval
+
+#### Scenario: An Epic child is triaged
+
+- **WHEN** the selected ticket is a confirmed Epic child
+- **THEN** triage writes only the child's work order, leaves the parent's active
+  change untouched, and does not treat that parent record as the selected ticket's
+  active change allowance

@@ -13,6 +13,9 @@
   recorded destination, constraint, acceptance criterion, risk, or sequence; the
   request cites that clause. Why: a visible artifact predicate prevents the triager
   from expanding scope by private judgment. `→ ADR`
+- The selected-ticket active change allowance is ordinary-ticket-only; Epic children
+  remain work-order-only and their parent owns the active change. Why: the existing
+  Epic-child lifecycle is already explicit and is the governing default. `→ ADR`
 
 ### Risk contract
 
@@ -61,3 +64,15 @@ None.
 - `authoring` — "safe to carry" and "genuinely required" were private judgments.
   Resolved with the recorded-conflict predicate and exact-target disclosure rule.
 - Injected blockers: none.
+
+### Round 3
+
+- `authoring` — the selected-ticket active-change allowance did not say it applied
+  only to ordinary tickets, contradicting the Epic-child work-order-only rule.
+  `/scope` found no open decision: the existing Epic-child exception governs.
+  Resolved by stating the ordinary-ticket limit and preserving parent ownership.
+- Injected blockers: none.
+
+The three-panel hard cap was reached with the authoring blocker above. No work order
+may be posted from this review cycle; a later triage invocation must cold-review the
+clean rewritten draft.

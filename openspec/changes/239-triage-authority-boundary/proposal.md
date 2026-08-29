@@ -15,6 +15,8 @@ broad while writes stay confined to the ticket the operator selected.
 
 - Constrain ancillary repository and tracker writes to the current ticket's
   lifecycle while preserving required local telemetry and tooling state.
+- Preserve the Epic-child exception: an Epic child writes only its work order and
+  never treats its parent's active change as the selected ticket's change record.
 - Require explicit operator authorization before triage creates or requires an
   ancillary branch, commit, push, pull request, or tracker item.
 - Treat an external amendment as a prerequisite only when the current order would
