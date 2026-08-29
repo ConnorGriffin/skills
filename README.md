@@ -22,7 +22,7 @@ Browse the pack at <https://connorgriffin.github.io/skills/>.
 
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
-| [`epic`](skills/drivers/epic/SKILL.md) | Chart a large, foggy effort as a GitHub map of decision tickets, then hand clear subtrees to implementation | GitHub CLI; composes with `research`, `scope`'s interview mode, `ui-craft` |
+| [`epic`](skills/drivers/epic/SKILL.md) | Maintain an OpenSpec epic, file at most three children by default, and stop at an operator-invoked ticket triage handoff | GitHub CLI; composes with `scope`'s interview mode and `ui-craft` |
 | [`implement`](skills/drivers/implement/SKILL.md) | Implement a PRD or issue set via `tdd`, then `code-review`, then commit | `tdd` and `code-review` from this pack |
 | [`openspec-adopt`](skills/drivers/openspec-adopt/SKILL.md) | Initialize the OpenSpec v1 layout and baseline specs describing the system today, delivered as a documentation-only PR | GitHub CLI; global `@fission-ai/openspec@1.11.0` |
 | [`ui-craft`](skills/drivers/ui-craft/SKILL.md) | Full surface lifecycle: revise shipped UI in the running app, lock greenfield specs, build, critique, audit, polish, re-settle | `drive-local-webapp` for rendered review; `spin-worktree` for live base comparison; parallel-agent support is recommended |

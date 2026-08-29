@@ -1,4 +1,4 @@
 interface:
   display_name: "Epic"
-  short_description: "Coordinate an OpenSpec epic and clear child tickets"
-  default_prompt: "Use $epic to maintain this effort's OpenSpec authority, resolve its open spikes, and file clear child tickets."
+  short_description: "Plan an OpenSpec epic for operator-run ticket triage"
+  default_prompt: "Use $epic to maintain this effort's OpenSpec authority, file bounded child tickets, and stop for the operator to invoke ticket triage."

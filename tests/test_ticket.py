@@ -598,10 +598,10 @@ class TicketSkillContractTests(unittest.TestCase):
 
     def test_epic_child_change_record_consumers_state_their_phase_boundary(self):
         expected = {
-            "start.md": "creates no change record",
-            "revise.md": "revises neither a per-child change record",
-            "finalize.md": "leaves archive ownership with the parent epic",
-            "coordinator-mode.md": "creates, revises, and records no per-child",
+            "start.md": "preserves the parent-plan bytes",
+            "revise.md": "preserve the parent-plan bytes",
+            "finalize.md": "leaves the parent active and unarchived",
+            "coordinator-mode.md": "preserves the parent-plan bytes",
         }
 
         for filename, boundary in expected.items():
@@ -645,7 +645,7 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertLess(finalize_contract.index("post-push workflow"), finalize_contract.index("Move the ticket to done"))
         self.assertLess(finalize_contract.index("Move the ticket to done"), finalize_contract.index("**Record the actuals.**"))
         self.assertLess(finalize_contract.index("**Record the actuals.**"), finalize_contract.index("**Tear the worktree and branch down.**"))
-        self.assertIn("leaves archive ownership with the parent epic", finalize_contract)
+        self.assertIn("leaves the parent active and unarchived", finalize_contract)
         self.assertIn("no child change", finalize_contract)
         self.assertIn("active change", coordinator_contract)
         self.assertNotIn("standing planning-pull-request", coordinator_contract)
@@ -668,33 +668,70 @@ class TicketSkillContractTests(unittest.TestCase):
         for classification in ("investigation", "manual"):
             self.assertIn(f"`{classification}` does not create or attach `build`", binding)
 
-    def test_triage_keeps_ancillary_mutations_inside_its_authority_boundary(self):
-        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+    def test_epic_child_triage_verifies_the_pinned_remote_parent_plan_before_worktree(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
-        contract = " ".join(f"{shared}\n{triage}".lower().split())
+        contract = " ".join(triage.split())
 
-        self.assertNotIn("separate docs-only pull request", contract)
-        self.assertIn("ancillary repository and tracker mutations", contract)
-        self.assertIn("selected ticket", contract)
-        self.assertIn("ordinary ticket may write its active change record", contract)
-        self.assertIn("epic child writes only its work order", contract)
-        self.assertIn("parent owns the active change", contract)
-        self.assertIn("do not write a parent planning artifact", contract)
+        self.assertIn("Parent plan base:", contract)
+        self.assertIn("git -C <control checkout> fetch origin", contract)
+        self.assertIn("origin/<parent-plan branch>", contract)
+        self.assertIn("pinned full commit", contract)
+        self.assertIn("--base <parent-plan branch>", contract)
+        self.assertRegex(contract.lower(), r"stale draft.{0,180}post nothing.{0,180}attended epic")
+        self.assertLess(
+            contract.index("git -C <control checkout> fetch origin"),
+            contract.index("spin-worktree.py"),
+        )
 
-        self.assertIn("session claim", contract)
-        self.assertIn("exact codebase memory worktree index", contract)
-        self.assertIn("without ancillary-work approval", contract)
+    def test_epic_issue_draft_routes_through_operator_triage_to_the_only_lock(self):
+        epic = " ".join(
+            (ROOT / "skills" / "drivers" / "epic" / "SKILL.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        triage = " ".join(
+            (TICKET_DIRECTORY / "verbs" / "triage.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
 
-        conflicts = "recorded destination, constraint, acceptance criterion, risk, or sequence"
-        self.assertIn(f"no {conflicts} conflicts", contract)
-        self.assertIn("continue triage", contract)
-        self.assertIn("carry the decision in the selected ticket's work order", contract)
-        self.assertIn(f"would contradict a {conflicts}", contract)
-        self.assertIn("cite the conflicting clause", contract)
-        self.assertIn("stop before mutation", contract)
-        self.assertIn("exact ancillary target and mutation", contract)
-        self.assertIn("operator's response after that disclosure", contract)
-        self.assertIn("original triage invocation is not authorization", contract)
+        self.assertRegex(epic, r"issue body.{0,120}draft")
+        self.assertRegex(epic, r"operator.{0,100}/ticket triage")
+        self.assertRegex(epic, r"does not post.{0,120}fenced")
+        self.assertRegex(triage, r"issue-body draft.{0,200}ordinary grounding")
+        self.assertRegex(triage, r"only fenced.{0,100}WORK ORDER")
+
+    def test_epic_child_parent_plan_amendment_rides_the_implementation_pull_request(self):
+        consumers = [
+            TICKET_DIRECTORY / "SKILL.md",
+            TICKET_DIRECTORY / "verbs" / "triage.md",
+            TICKET_DIRECTORY / "verbs" / "start.md",
+            TICKET_DIRECTORY / "verbs" / "revise.md",
+            TICKET_DIRECTORY / "verbs" / "finalize.md",
+            TICKET_DIRECTORY / "references" / "coordinator-mode.md",
+        ]
+        live = "\n".join(path.read_text(encoding="utf-8") for path in consumers)
+        normalized = " ".join(live.split())
+
+        self.assertRegex(
+            normalized,
+            r"parent-plan amendment.{0,220}child worktree.{0,220}implementation pull request",
+        )
+        self.assertIn("preserves the parent-plan bytes", normalized)
+        self.assertIn("leaves the parent active and unarchived", normalized)
+        self.assertNotIn("separate docs-only pull request", live.lower())
+        self.assertNotIn("epic child carries shipping code only", live.lower())
+
+    def test_epic_serial_child_handoff_advances_the_plan_after_human_merge(self):
+        epic = " ".join(
+            (ROOT / "skills" / "drivers" / "epic" / "SKILL.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+
+        self.assertRegex(epic, r"only one in-flight epic child")
+        self.assertRegex(epic, r"Refuse every later handoff.{0,180}human-merged")
+        self.assertRegex(epic, r"updated remote default branch.{0,220}new full-commit pin")
 
     def test_revise_requires_a_base_currency_and_mergeability_refresh(self):
         revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")
