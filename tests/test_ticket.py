@@ -1908,6 +1908,38 @@ class TicketTelemetryTests(unittest.TestCase):
 
 
 class TicketLiveProseContractTests(unittest.TestCase):
+    def test_triage_selected_ticket_mutation_boundary_is_closed_and_reauthorizes_exact_external_work(self):
+        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+        triage = (TICKET_DIRECTORY / "verbs/triage.md").read_text(encoding="utf-8")
+        shared_contract = " ".join(shared.split())
+        triage_contract = " ".join(triage.split())
+        contract = " ".join((shared + "\n" + triage).split())
+
+        self.assertEqual(shared.count("## Selected-ticket mutation boundary"), 1)
+        self.assertIn("local control-checkout remote-tracking-ref refresh", shared_contract)
+        self.assertIn("resolve and verify the selected ticket's base", shared_contract)
+        self.assertIn("creates no remote repository or tracker state", shared_contract)
+        self.assertIn("selected worktree and branch", shared_contract)
+        self.assertIn("ordinary ticket's active change", shared_contract)
+        self.assertIn("selected ticket's comment and status", shared_contract)
+        self.assertIn("lifecycle claim and exact-worktree Codebase Memory index", shared_contract)
+        self.assertIn("Epic-child parent-plan amendment", shared_contract)
+        self.assertRegex(
+            " ".join(shared.lower().split()),
+            r"parent-plan amendment.{0,180}child's implementation pull request",
+        )
+        self.assertIn("Everything outside this allowance is external.", shared_contract)
+
+        self.assertIn("without ancillary approval", contract)
+        self.assertIn("governing recorded destination, constraint, acceptance criterion, risk, or sequence", triage_contract)
+        self.assertIn("cite that governing clause", triage_contract)
+        self.assertIn("exact external target and mutation", triage_contract)
+        self.assertIn("stop before mutation", triage_contract)
+        self.assertIn(
+            "subsequent operator response explicitly authorizes that previously disclosed target and exact mutation",
+            triage_contract,
+        )
+
     def test_builder_self_check_matches_its_live_template_copy(self):
         start = (TICKET_DIRECTORY / "verbs/start.md").read_text(encoding="utf-8")
         template = (TICKET_DIRECTORY / "templates/work-order.md").read_text(encoding="utf-8")
