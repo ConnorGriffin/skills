@@ -4,10 +4,11 @@
 
 The ticket workflow MUST expose one verb at a time: `triage` grounds the ticket and
 posts a locked work order after unconditional `/scope`; `start` executes the newest
-order in an isolated ticket worktree, proves that any ordinary active OpenSpec
-change can apply to the current baseline without mutating either authoritative
-tree, and opens a pull request; `revise` actions one review round and repeats that
-applicability proof before pushing a changed OpenSpec delta; and `finalize`
+order in an isolated ticket worktree, proves in both flat and chunked execution
+that every active OpenSpec change modified by the ordinary ticket branch can apply
+to the current baseline without mutating either authoritative tree, and opens a
+pull request; `revise` actions one review round, completes its active-change edits,
+and repeats that applicability proof before pushing; and `finalize`
 reconciles a merged or explicitly abandoned pull request with the tracker and local
 worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge.
 
@@ -15,8 +16,15 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
 
 - **WHEN** `start` finds a sufficient newest work order and a compatible session
 - **THEN** it reuses the ticket's branch and worktree, implements and verifies the
-  order, proves any active OpenSpec delta applies in a disposable copy, opens one
-  pull request, and stops for human review
+  order, proves every changed active OpenSpec delta applies in a disposable copy,
+  opens one pull request, and stops for human review
+
+#### Scenario: A chunked ticket reaches pull-request creation
+
+- **WHEN** coordinator mode has merged and reviewed all chunks and recorded the
+  ordinary ticket's active change
+- **THEN** it proves every changed active OpenSpec delta applies before rejoining
+  pull-request creation
 
 #### Scenario: A structurally valid delta cannot apply
 
@@ -32,3 +40,9 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
   header to its modified header
 - **THEN** the disposable archive succeeds and the existing pre-merge and
   post-merge lifecycle continues without altering the authoritative tree early
+
+#### Scenario: Review changes an active delta
+
+- **WHEN** `revise` changes an ordinary ticket's checklist or decision record
+- **THEN** it completes those active-change edits, proves the resulting bytes apply,
+  and only then pushes the branch

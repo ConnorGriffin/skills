@@ -10,12 +10,13 @@ delta repair before ticket finalization can complete.
 
 ## What changes
 
-- Add a ticket command that proves an active OpenSpec change can archive by
+- Add a ticket command that discovers every active OpenSpec change modified by an
+  ordinary ticket branch relative to its base, then proves each can archive by
   running the pinned CLI against a disposable copy of the repository's OpenSpec
   tree and inspecting its JSON result.
-- Make `start` run that preflight after the final implementation/review edits and
-  before opening the pull request; make `revise` repeat it before pushing an
-  amended OpenSpec-backed change.
+- Make flat and chunked `start` run that preflight after the final
+  implementation/review/change-record edits and before opening the pull request;
+  make `revise` update its change record and repeat the gate before pushing.
 - Report an unmatched modified requirement and direct the author to add the
   missing `RENAMED Requirements` mapping or correct the modified header.
 - Preserve the authoritative active change and baseline until the existing
@@ -26,7 +27,8 @@ delta repair before ticket finalization can complete.
 - **Must prevent:** mutating, folding, moving, or archiving the authoritative
   active change or baseline before merge; accepting process exit zero when the
   archive JSON reports no archive or an error; secret exposure, irreversible loss
-  of authoritative data, or silent incorrect success.
+  of authoritative data, accepting an unexpected JSON shape, or silent incorrect
+  success.
 - **Must recover:** temporary-copy creation or CLI execution failure must stop the
   workflow visibly and clean up the disposable copy.
 - **Accepted failure:** malformed or unexpected third-party CLI output stops the

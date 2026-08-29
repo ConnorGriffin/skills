@@ -42,8 +42,20 @@ def main() -> int:
         print(f"ticket: OpenSpec archive returned invalid JSON: {error}", file=sys.stderr)
         return 2
 
-    errors = [item for item in payload.get("status", []) if item.get("severity") == "error"]
-    if payload.get("archive") is None or errors:
+    if not isinstance(payload, dict):
+        print("ticket: OpenSpec archive JSON must be an object", file=sys.stderr)
+        return 2
+    status = payload.get("status", [])
+    if not isinstance(status, list) or any(not isinstance(item, dict) for item in status):
+        print("ticket: OpenSpec archive status must be a list of objects", file=sys.stderr)
+        return 2
+    archive = payload.get("archive")
+    if archive is not None and not isinstance(archive, dict):
+        print("ticket: OpenSpec archive result must be an object", file=sys.stderr)
+        return 2
+
+    errors = [item for item in status if item.get("severity") == "error"]
+    if archive is None or errors:
         for item in errors:
             message = item.get("message", "OpenSpec archive preflight failed")
             print(f"ticket: {message}", file=sys.stderr)
