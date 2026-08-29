@@ -59,18 +59,21 @@ MUST remain in private data rather than this public pack.
 ### Requirement: Orchestration authorization and isolation
 
 Literal `/orchestrate` invocation MUST authorize only the work order or task
-prompt plus the repository code and documentation needed for mandatory dispatches,
-including review and orchestration. Automatic activation outside an invoked parent
-MUST ask once before dispatch, and every dispatch MUST continue to use pack-owned
-isolated adapters while excluding credentials, secrets, patient data, `.env`, and
-real database contents. The coordinator MUST own every mandatory reviewer dispatch
-reached by delegated work. Its delegation prompt MUST identify the mandatory-review
-handoff, and the worker MUST return or write its review-ready result through the
+prompt plus the repository code, documentation, and UI fidelity evidence rendered
+from manufactured or synthetic fixtures needed for mandatory dispatches, including
+review and orchestration. Evidence rendered from real user, production, or patient
+data MUST remain outside the grant, whether or not a capture is tracked in the
+repository. Automatic activation outside an invoked parent MUST ask once before
+dispatch, and every dispatch MUST continue to use pack-owned isolated adapters
+while excluding credentials, secrets, patient data, `.env`, and real database
+contents. The coordinator MUST own every mandatory reviewer dispatch reached by
+delegated work. Its delegation prompt MUST identify the mandatory-review handoff,
+and the worker MUST return or write its review-ready result through the
 coordinator-recorded durable result locator at that boundary. The coordinator MUST
-collect that result and resume the same worker with verified findings for correction
-or a verified clean verdict to finish. Unavailable review evidence MUST block the
-workflow from advancing as reviewed. Direct adapter dispatch from inside a sandboxed
-worker is unsupported.
+collect that result and resume the same worker with verified findings for
+correction or a verified clean verdict to finish. Unavailable review evidence MUST
+block the workflow from advancing as reviewed. Direct adapter dispatch from inside
+a sandboxed worker is unsupported.
 
 #### Scenario: Orchestration activates implicitly
 
@@ -78,6 +81,12 @@ worker is unsupported.
   invoked parent that already grants bounded dispatch consent
 - **THEN** it asks once with the payload, destination, and exclusions and stops if
   consent is denied
+
+#### Scenario: A dispatch carries safe-fixture fidelity evidence
+
+- **WHEN** a literally invoked coordinator dispatches a worker or reviewer with UI
+  fidelity evidence rendered from manufactured or synthetic fixtures
+- **THEN** that evidence is inside the granted payload and needs no further consent
 
 #### Scenario: Delegated work reaches mandatory review
 
@@ -290,4 +299,57 @@ The repository MUST contain a behavior test that pins this agent-facing instruct
 #### Scenario: Guidance regresses
 
 - **WHEN** the patience instruction is removed or weakened
+- **THEN** the behavior test fails
+
+### Requirement: Write-mode workers retain a durable closed order
+
+Before starting a write-mode worker, the coordinator MUST write the same complete
+prompt bytes supplied to the adapter to `ORDER.md` at the root of the worker's cwd.
+The prompt MUST instruct the worker to re-read that file before each commit and
+before declaring the work done, treat the acceptance list as closed, stop and report
+when it is met, and propose further improvement instead of editing beyond it. Chunk
+sub-order boilerplate MUST carry that instruction; the coordinator MUST author it
+for every other write-mode prompt, including a delegated flat work order.
+
+A worker that cannot find or read the file MUST stop and report instead of
+continuing from memory. The coordinator MUST rewrite it and resume the same worker.
+Every write-mode resume MUST restate the order's constraints or point back to the
+file. A coordinator that cannot write the file MUST report the dispatch unavailable
+and MUST NOT start the worker. Read-mode workers MUST NOT receive the file.
+
+The order file MUST remain uncommitted worktree-local scaffolding. The step that
+removes a worker worktree MUST delete it before worktree removal and before any
+cleanliness check. The repository MUST contain a behavior test that pins the
+canonical guidance, worker-facing instruction, pointer-only references, and cleanup
+ordering.
+
+#### Scenario: A compacted worker re-reads its order
+
+- **WHEN** a write-mode worker's context compacts before its next commit or completion
+- **THEN** the worker re-reads the complete prompt bytes from its own cwd and stops
+  once the closed acceptance list is met
+
+#### Scenario: The durable order is unreadable
+
+- **WHEN** a write-mode worker cannot find or read its order file
+- **THEN** it stops and reports, and the coordinator rewrites the file and resumes
+  that same worker
+
+#### Scenario: The coordinator cannot write the order
+
+- **WHEN** the coordinator cannot write the complete prompt bytes into the worker's
+  cwd before dispatch
+- **THEN** it reports the dispatch unavailable and does not start the worker
+
+#### Scenario: A worker worktree is torn down
+
+- **WHEN** a workflow reaches an existing worktree teardown or stale-worktree
+  cleanliness check
+- **THEN** it deletes the order file before the operation that the untracked file
+  would block
+
+#### Scenario: Durable-order guidance regresses
+
+- **WHEN** the canonical rule, worker-facing instruction, pointer direction, or
+  teardown ordering is removed or weakened
 - **THEN** the behavior test fails

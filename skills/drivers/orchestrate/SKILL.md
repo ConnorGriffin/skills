@@ -1,20 +1,23 @@
 ---
 name: orchestrate
-description: "Flip the session into coordinator mode — the parent agent plans, scopes, reviews, and ships, but delegates all real work (exploration, implementation, review, fixes) to sub-agents routed by an empirically benchmarked model capability table. Use when the user invokes /orchestrate or asks the parent to act as an orchestrator/coordinator instead of a developer. Literal /orchestrate invocation requests the work order or task prompt plus only needed repository code and documentation for every mandatory worker dispatch, including nested review and nested Orchestrate work: to OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model service or Anthropic's Claude model service for a Claude Code parent. For delegated workflow work, the coordinator dispatches every mandatory reviewer and resumes the same worker. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Automatic activation outside an invoked parent workflow asks once before dispatch."
+description: "Flip the session into coordinator mode — the parent agent plans, scopes, reviews, and ships, but delegates all real work (exploration, implementation, review, fixes) to sub-agents routed by an empirically benchmarked model capability table. Use when the user invokes /orchestrate or asks the parent to act as an orchestrator/coordinator instead of a developer. Literal /orchestrate invocation requests the work order or task prompt plus only needed repository code, documentation, and safe-fixture UI fidelity evidence for every mandatory worker dispatch, including nested review and nested Orchestrate work: to OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model service or Anthropic's Claude model service for a Claude Code parent. When delegated, the coordinator dispatches every mandatory reviewer and resumes the same worker. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Automatic activation outside an invoked parent workflow asks once before dispatch."
 ---
 
 # Orchestrate — coordinator mode
 
 ## Invocation
 
-Literal user invocation of `/orchestrate` requests the bounded transfer needed for
-every mandatory worker dispatch the workflow routes, including nested review and
-nested Orchestrate work. The payload is the work order or task prompt plus only the
-repository code and documentation needed for that delegated task. For a Codex UI
-parent, the destination is an isolated worker on OpenAI's Codex model service. For a
-Claude Code parent, existing routing selects an isolated worker on OpenAI's Codex
-model service or Anthropic's Claude model service. Credentials, secrets, patient data,
-`.env`, and real database contents are excluded.
+Literal user invocation of `/orchestrate` requests the bounded transfer needed
+for every mandatory worker dispatch the workflow routes, including nested review
+and nested Orchestrate work. The payload is the work order or task prompt plus
+only the repository code, documentation, and UI fidelity evidence rendered from
+manufactured or synthetic fixtures (tracked in the repository or not, never real
+user, production, or patient data) needed for that delegated task. For a Codex
+UI parent, the destination is an isolated worker on OpenAI's Codex model
+service. For a Claude Code parent, existing routing selects an isolated worker
+on OpenAI's Codex model service or Anthropic's Claude model service.
+Credentials, secrets, patient data, `.env`, and real database contents are
+excluded.
 
 For delegated workflow work, the coordinator owns every mandatory reviewer
 dispatch. The worker returns review-ready work to that coordinator; direct adapter
@@ -276,6 +279,35 @@ coordinator-owned state file, and its durable result locator. Write the complete
 prompt bytes to session scratch and pass that file's contents as the selected
 adapter's positional prompt. Use one state file per dispatch; state is lifecycle
 metadata only, never the child result.
+
+For this rule, a worker started with `--sandbox workspace-write` is a write-mode
+dispatch, while a worker started with `--sandbox read-only` is a read-mode dispatch.
+Before starting a worker with `--sandbox workspace-write`, the coordinator writes
+the same complete prompt bytes to `ORDER.md` at the root of that worker's own cwd,
+so the order survives the worker's context compaction.
+
+Those prompt bytes carry a standing instruction telling the worker to re-read
+`ORDER.md` before each commit and again before declaring the work done, and to treat
+the order's acceptance list as closed: when it is met, the worker stops and reports,
+and proposes any further improvement rather than making it. On a dispatch whose
+prompt is a chunk sub-order fence, the fence boilerplate supplies that instruction
+because such a prompt admits no coordinator commentary. On every other write-mode
+dispatch the coordinator authors it, including a delegated worker whose prompt
+carries a flat work-order fence; that fence deliberately does not carry the line.
+
+A worker that cannot find or read `ORDER.md` stops and reports rather than continuing
+from memory. The coordinator writes the file again and resumes that same worker.
+Every resume message to a write-mode worker must restate the order's constraints or
+point it back at `ORDER.md`, because a resume is coordinator-authored and is the
+freshest context the worker has.
+
+`ORDER.md` is worktree-local scaffolding: it is never committed to the branch and
+never pushed. This instruction plus the diff the coordinator already reads before
+merging is the whole enforcement. Read-mode workers get no `ORDER.md`; this rule
+covers write-mode dispatch only. A coordinator that cannot write `ORDER.md` into a
+write-mode worker's cwd reports the dispatch unavailable and does not start the
+worker. Whichever step removes a worker's worktree deletes `ORDER.md` first, before
+`git worktree remove` and before any `status --short` cleanliness check.
 
 The result locator is the artifact that carries the child's answer: captured
 launcher stdout, a named worktree or branch for implementation changes, or a

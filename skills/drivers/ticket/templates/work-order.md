@@ -188,6 +188,10 @@ Done when
 <observable acceptance for this chunk alone>
 
 Boundaries
+* Re-read `ORDER.md` before each commit and again before declaring the work done;
+  `Done when` is closed, so when it is met stop and report, and propose any further
+  improvement rather than making it. If `ORDER.md` cannot be found or read, stop and
+  report rather than continuing from memory.
 * Touch only <files/targets this chunk owns>. Another chunk owns <the rest>.
 * A parallel chunk must not implement, revise, or depend on this chunk's private
   capability. Name any shared contract and its one owning sub-order instead.

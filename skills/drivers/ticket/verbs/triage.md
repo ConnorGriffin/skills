@@ -7,13 +7,6 @@ change record. Its review instrumentation stays in untracked session scratch, wh
 any required parent-plan amendment is committed in the child worktree and travels
 with the implementation pull request; the parent epic retains archive ownership.
 
-Use the shared selected-ticket mutation boundary. Keep grounding broad and
-read-only. When an external prerequisite would otherwise contradict a governing
-recorded destination, constraint, acceptance criterion, risk, or sequence, cite
-that governing clause, disclose the exact external target and mutation, and stop
-before mutation. Continue only after a subsequent operator response explicitly
-authorizes that previously disclosed target and exact mutation.
-
 ## Procedure
 
 1. **Read the ticket.** Use the contract's read operation for the description and
@@ -251,6 +244,12 @@ For a chunked order, select one coordinator execution row with the same grounded
     when a fresh cold pass returns no blocking objections.
     The ticket skill page's `## Delegation authority` section covers this mandatory
     `/plan-review`.
+    The literal invocation already granted this dispatch's transfer of the work
+    order or task prompt plus the repository code, documentation, and UI
+    fidelity evidence rendered from manufactured or synthetic fixtures (tracked
+    in the repository or not, never real user, production, or patient data), so
+    the coordinator does not re-ask. Credentials, secrets, patient data, `.env`,
+    and real database contents are excluded.
 
     When the stamped profile is hardening, run `/plan-review` only on Full-depth
     orders. Default-workflow orders keep this review unconditionally.
