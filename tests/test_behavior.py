@@ -2443,7 +2443,12 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         argv = json.loads(self.arguments.read_text(encoding="utf-8"))
         self.assertIn("model_reasoning_effort=medium", argv)
-        self.assertNotIn("effort", json.loads(self.state.read_text(encoding="utf-8")))
+        self.assertNotIn("web_search=live", argv)
+        self.assertNotIn("tools.web_search=true", argv)
+        state = json.loads(self.state.read_text(encoding="utf-8"))
+        self.assertNotIn("effort", state)
+        self.assertIs(state["network"], False)
+        self.assertIs(json.loads(result.stdout)["network"], False)
 
     def test_codex_start_carries_a_custom_effort_and_persists_it(self):
         self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
@@ -2456,6 +2461,22 @@ class WorkerEffortDialTests(unittest.TestCase):
         argv = json.loads(self.arguments.read_text(encoding="utf-8"))
         self.assertIn("model_reasoning_effort=high", argv)
         self.assertEqual(json.loads(self.state.read_text(encoding="utf-8"))["effort"], "high")
+
+    def test_codex_start_network_enables_hosted_search_and_persists_capability(self):
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+
+        result = self.run_codex(
+            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--model", "Terra", "--sandbox", "read-only", "--network",
+            "--cwd", str(self.worktree), "research primary sources",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn(["-c", "web_search=live"], [argv[index:index + 2] for index in range(len(argv) - 1)])
+        self.assertIn(["-c", "tools.web_search=true"], [argv[index:index + 2] for index in range(len(argv) - 1)])
+        self.assertIs(json.loads(self.state.read_text(encoding="utf-8"))["network"], True)
+        self.assertIs(json.loads(result.stdout)["network"], True)
 
     def test_codex_effort_enum_matches_the_live_api_probe(self):
         self.assertEqual(
@@ -2476,7 +2497,32 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         argv = json.loads(self.arguments.read_text(encoding="utf-8"))
         self.assertIn("model_reasoning_effort=high", argv)
-        self.assertEqual(json.loads(result.stdout)["effort"], "high")
+        self.assertNotIn("web_search=live", argv)
+        self.assertNotIn("tools.web_search=true", argv)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["effort"], "high")
+        self.assertIs(payload["network"], False)
+
+    def test_codex_resume_replays_persisted_network_capability(self):
+        persisted = {
+            "version": LIFECYCLE_MODULE.STATE_VERSION, "lifecycle": "exited",
+            "session_id": "worker-1", "model": "Terra", "sandbox": "read-only",
+            "cwd": str(self.worktree.resolve()), "network": True,
+            "family_semantics": "unsupported", "generation": 1,
+        }
+        self.state.write_text(json.dumps(persisted), encoding="utf-8")
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+
+        result = self.run_codex(
+            "resume", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "continue the research",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn(["-c", "web_search=live"], [argv[index:index + 2] for index in range(len(argv) - 1)])
+        self.assertIn(["-c", "tools.web_search=true"], [argv[index:index + 2] for index in range(len(argv) - 1)])
+        self.assertIs(json.loads(result.stdout)["network"], True)
 
     def test_codex_start_attaches_each_image_through_the_cli_interface(self):
         first = self.scratch / "before.png"
@@ -2542,8 +2588,12 @@ class WorkerEffortDialTests(unittest.TestCase):
         argv = json.loads(self.arguments.read_text(encoding="utf-8"))
         self.assertIn("--effort", argv)
         self.assertEqual(argv[argv.index("--effort") + 1], "medium")
-        self.assertNotIn("effort", json.loads(self.state.read_text(encoding="utf-8")))
+        self.assertNotIn("--allowedTools", argv)
+        state = json.loads(self.state.read_text(encoding="utf-8"))
+        self.assertNotIn("effort", state)
+        self.assertIs(state["network"], False)
         self.assertEqual(json.loads(result.stdout)["effort"], "medium")
+        self.assertIs(json.loads(result.stdout)["network"], False)
 
     def test_claude_start_carries_a_custom_effort_and_persists_it(self):
         self.environment["FAKE_OUTPUT"] = json.dumps({"session_id": "s1", "result": "ok", "is_error": False})
@@ -2557,6 +2607,24 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertEqual(argv[argv.index("--effort") + 1], "xhigh")
         self.assertEqual(json.loads(self.state.read_text(encoding="utf-8"))["effort"], "xhigh")
         self.assertEqual(json.loads(result.stdout)["effort"], "xhigh")
+
+    def test_claude_start_network_allows_hosted_tools_and_persists_capability(self):
+        self.environment["FAKE_OUTPUT"] = json.dumps(
+            {"session_id": "s1", "result": "ok", "is_error": False}
+        )
+
+        result = self.run_claude(
+            "start", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "--model", "sonnet", "--sandbox", "read-only", "--network",
+            "--cwd", str(self.worktree), "research primary sources",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertEqual(argv[argv.index("--allowedTools") + 1], "WebSearch,WebFetch")
+        self.assertEqual(self.stdin_capture.read_text(encoding="utf-8"), "research primary sources")
+        self.assertIs(json.loads(self.state.read_text(encoding="utf-8"))["network"], True)
+        self.assertIs(json.loads(result.stdout)["network"], True)
 
     def test_claude_rejects_an_effort_outside_its_own_enum(self):
         # "minimal" is invalid for both adapters, although their enums differ.
@@ -2582,7 +2650,33 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         argv = json.loads(self.arguments.read_text(encoding="utf-8"))
         self.assertEqual(argv[argv.index("--effort") + 1], "high")
-        self.assertEqual(json.loads(result.stdout)["effort"], "high")
+        self.assertNotIn("--allowedTools", argv)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["effort"], "high")
+        self.assertIs(payload["network"], False)
+
+    def test_claude_resume_replays_persisted_network_capability(self):
+        persisted = {
+            "version": LIFECYCLE_MODULE.STATE_VERSION, "lifecycle": "exited",
+            "session_id": "worker-1", "model": "sonnet", "sandbox": "read-only",
+            "cwd": str(self.worktree.resolve()), "network": True,
+            "family_semantics": "unsupported", "generation": 1,
+        }
+        self.state.write_text(json.dumps(persisted), encoding="utf-8")
+        self.environment["FAKE_OUTPUT"] = json.dumps(
+            {"session_id": "worker-1", "result": "ok", "is_error": False}
+        )
+
+        result = self.run_claude(
+            "resume", "--claude", str(self.claude_binary), "--state", str(self.state),
+            "continue the research",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertEqual(argv[argv.index("--allowedTools") + 1], "WebSearch,WebFetch")
+        self.assertEqual(self.stdin_capture.read_text(encoding="utf-8"), "continue the research")
+        self.assertIs(json.loads(result.stdout)["network"], True)
 
     def test_claude_start_argv_carries_no_cwd_flag_and_settings_matches_sandbox_mode(self):
         # The installed claude CLI has no --cwd flag; the adapter establishes
@@ -3306,6 +3400,8 @@ class PersonaReviewAdapterDispatchTests(unittest.TestCase):
 class ResearchAdapterDispatchTests(unittest.TestCase):
     SKILL = ROOT / "skills" / "tools" / "research" / "SKILL.md"
     AGENT_METADATA = ROOT / "skills" / "tools" / "research" / "agents" / "openai.yaml"
+    CODEX_DISPATCH = ROOT / "skills" / "drivers" / "orchestrate" / "references" / "dispatch-codex.md"
+    CLAUDE_DISPATCH = ROOT / "skills" / "drivers" / "orchestrate" / "references" / "dispatch-claude.md"
 
     def setUp(self):
         self.text = self.SKILL.read_text(encoding="utf-8")
@@ -3333,6 +3429,48 @@ class ResearchAdapterDispatchTests(unittest.TestCase):
         job = self.research_job()
         self.assertIn("The coordinator writes the returned findings to a single Markdown file", job)
         self.assertIn("Save it where the repo already keeps such notes; match the existing convention", job)
+
+    def test_adapter_references_own_the_hosted_source_command_contract(self):
+        codex = " ".join(self.CODEX_DISPATCH.read_text(encoding="utf-8").split())
+        claude = " ".join(self.CLAUDE_DISPATCH.read_text(encoding="utf-8").split())
+        for contract in (codex, claude):
+            self.assertIn("`start --network`", contract)
+            self.assertIn("persists", contract)
+            self.assertIn("replays", contract)
+            self.assertIn("`network: false`", contract)
+            self.assertIn("shell-command networking", contract)
+        self.assertIn("`-c web_search=live -c tools.web_search=true`", codex)
+        self.assertIn("`--allowedTools WebSearch,WebFetch`", claude)
+
+    def test_research_requests_hosted_sources_and_defines_exact_refusal_result(self):
+        dispatch = " ".join(
+            self.text.split("## Research-worker dispatch", 1)[1]
+            .split("## The research worker's job", 1)[0]
+            .split()
+        )
+        self.assertIn("provider-neutral hosted-source capability", dispatch)
+        self.assertIn("every read-only research `start`", dispatch)
+        self.assertIn("`SOURCE_ACCESS_UNAVAILABLE:`", dispatch)
+        self.assertIn("no findings document", dispatch)
+        self.assertNotIn("WebSearch,WebFetch", dispatch)
+        self.assertNotIn("web_search=live", dispatch)
+
+    def test_research_fallback_is_same_worker_cwd_local_and_fail_closed(self):
+        normalized = " ".join(self.text.split())
+        for requirement in (
+            "terminal, resumable session",
+            "unique `.research-sources.*` directory under the worker cwd",
+            "`manifest.md` mapping each file to its source URL",
+            "sole narrow exception to the original-prompt-only rule",
+            "resume the same worker",
+            "removed after completion",
+            "public unauthenticated source files",
+            "transcripts, credentials, secrets, `.env`, patient data",
+            "authenticated or private source material",
+        ):
+            self.assertIn(requirement, normalized)
+        self.assertIn("If the adapter leaves no resumable session", normalized)
+        self.assertIn("write no successful findings document", normalized)
 
 
 class DesignItTwiceAdapterDispatchTests(unittest.TestCase):
@@ -3624,6 +3762,8 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             ("sandbox type", {**base, "sandbox": []}),
             ("sandbox value", {**base, "sandbox": "danger-full-access"}),
             ("session type", {**base, "session_id": 1}),
+            ("network type", {**base, "network": "true"}),
+            ("network null", {**base, "network": None}),
             ("workspace control missing", {**base, "sandbox": "workspace-write"}),
             ("control checkout type", {**base, "control_checkout": 1}),
             ("control checkout empty", {**base, "control_checkout": ""}),
@@ -3669,6 +3809,7 @@ class WorkerLifecycleContractTests(unittest.TestCase):
             ("generation overflow", {**base, "generation": 2**64}),
             ("nonterminal lifecycle", {**base, "lifecycle": "running"}),
             ("fabricated identity", {**base, "pid": 41}),
+            ("network type", {**base, "network": 1}),
         )
         for name, state in mutations:
             operations = (
@@ -3929,6 +4070,20 @@ class WorkerLifecycleContractTests(unittest.TestCase):
         with mock.patch.object(LIFECYCLE_MODULE, "run_lifecycle", return_value=0) as launch:
             self.assertEqual(WORKER_MODULE.resume(argparse.Namespace(state=self.state, codex="codex", prompt="continue")), 0)
             self.assertEqual(launch.call_args.args[2]["lifecycle"], "launching")
+            self.assertIs(launch.call_args.args[2]["network"], False)
+
+        malformed = {**legacy, "network": "true"}
+        self.state.write_text(json.dumps(malformed), encoding="utf-8")
+        with mock.patch.object(LIFECYCLE_MODULE, "run_lifecycle") as launch:
+            self.assertNotEqual(
+                WORKER_MODULE.resume(
+                    argparse.Namespace(
+                        state=self.state, codex="codex", prompt="continue"
+                    )
+                ),
+                0,
+            )
+            launch.assert_not_called()
 
     def test_process_family_constants_and_no_global_cleanup_authority(self):
         self.assertEqual(LIFECYCLE_MODULE.BSD_SIZE, 136)

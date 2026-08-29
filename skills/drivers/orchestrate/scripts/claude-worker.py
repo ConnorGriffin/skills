@@ -56,6 +56,10 @@ def effort_of(state: dict[str, Any]) -> str:
     return state.get("effort", DEFAULT_EFFORT)
 
 
+def network_arguments(enabled: bool) -> list[str]:
+    return ["--allowedTools", "WebSearch,WebFetch"] if enabled else []
+
+
 def parse(output: str) -> tuple[str | None, str | None, Any, str | None]:
     payload, error = parse_result(output)
     if error:
@@ -75,6 +79,7 @@ def emit(state: dict[str, Any], final_message: str, permission_denials: Any) -> 
         "sandbox": state["sandbox"],
         "cwd": state["cwd"],
         "effort": effort_of(state),
+        "network": state.get("network", False),
         "final_message": final_message,
         "permission_denials": permission_denials if permission_denials is not None else [],
     }))
@@ -120,6 +125,7 @@ def start(args: argparse.Namespace) -> int:
     command = [
         args.claude, "-p", "--model", args.model, "--effort", args.effort,
         "--permission-mode", "dontAsk", "--settings", str(settings),
+        *network_arguments(state.get("network", False)),
         "--session-id", session_id, "--output-format", "json",
     ]
     return lifecycle.run_lifecycle(
@@ -141,6 +147,7 @@ def resume(args: argparse.Namespace) -> int:
     command = [
         args.claude, "-p", "--resume", fresh["session_id"], "--model", fresh["model"],
         "--effort", effort, "--permission-mode", "dontAsk", "--settings", str(settings),
+        *network_arguments(fresh.get("network", False)),
         "--output-format", "json",
     ]
     return lifecycle.run_lifecycle(
@@ -166,7 +173,7 @@ def parser() -> argparse.ArgumentParser:
     common.add_argument("--claude", default="claude")
     common.add_argument("--state", type=Path, required=True)
     common.add_argument("prompt", nargs="?")
-    start_parser = commands.add_parser("start", parents=[common]); start_parser.add_argument("--model", required=True); start_parser.add_argument("--sandbox", choices=("read-only", "workspace-write"), required=True); start_parser.add_argument("--effort", default=DEFAULT_EFFORT); start_parser.add_argument("--cwd", type=lifecycle.resolved_directory, required=True); start_parser.add_argument("--control-checkout", type=lifecycle.resolved_directory); start_parser.set_defaults(handler=start)
+    start_parser = commands.add_parser("start", parents=[common]); start_parser.add_argument("--model", required=True); start_parser.add_argument("--sandbox", choices=("read-only", "workspace-write"), required=True); start_parser.add_argument("--effort", default=DEFAULT_EFFORT); start_parser.add_argument("--network", action="store_true"); start_parser.add_argument("--cwd", type=lifecycle.resolved_directory, required=True); start_parser.add_argument("--control-checkout", type=lifecycle.resolved_directory); start_parser.set_defaults(handler=start)
     resume_parser = commands.add_parser("resume", parents=[common]); resume_parser.set_defaults(handler=resume)
     for name, handler in (("stop", stop), ("verify", verify)):
         command = commands.add_parser(name, parents=[common]); command.add_argument("--cwd", type=lifecycle.resolved_directory, required=True); command.add_argument("--grace-seconds", type=float, default=1.0); command.set_defaults(handler=handler)
