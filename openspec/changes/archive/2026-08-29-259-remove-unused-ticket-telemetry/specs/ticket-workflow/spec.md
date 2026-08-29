@@ -75,3 +75,8 @@ and helper constant together.
 - **WHEN** role-aware measurement returns `still-degraded`
 - **THEN** finalization reports the misprediction and shows the user a concrete
   rubric diff without editing the rubric in the ticket branch
+
+## RENAMED Requirements
+
+- FROM: `### Requirement: Role-aware telemetry and review depth`
+- TO: `### Requirement: Role-aware measurement and review depth`

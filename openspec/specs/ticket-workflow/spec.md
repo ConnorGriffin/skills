@@ -133,19 +133,27 @@ and later ticket verbs MUST move only the status axis they own.
 - **THEN** the binding adds `ticket:in-progress` and removes `ticket:triaged`
   without removing the ticket's `build` type
 
-### Requirement: Role-aware telemetry and review depth
+### Requirement: Role-aware measurement and review depth
 
 Each participating session MUST be claimable with both its responsibility
 (`coordinator`, `worker`, or `reviewer`) and the ticket lifecycle verb that
-produced the claim. Finalization MUST record responsibility-tagged and
-verb-tagged costs separately. Worker peaks alone MUST calibrate chunk sizing;
-measurable non-reviewer `start` claims alone MUST calibrate a flat order;
-triage, revise, finalize, and reviewer peaks MUST remain independent overhead.
-Claims without a lifecycle verb MUST remain readable as legacy data and MUST NOT
-be guessed into a verb. A session MUST NOT be reused under a different lifecycle
-verb; same-verb resumes remain valid, while a later verb requires a fresh session.
-Review depth MUST be stamped from change scope and sensitivity rather than inferred
-from slicing telemetry.
+produced the claim. Finalization MUST compute responsibility-tagged and
+verb-tagged costs separately, print the resulting record as JSON, and append that
+same record to the target repository's reviewer-memory store. It MUST NOT create
+or append a second ticket-wide telemetry store. Worker peaks alone MUST calibrate
+chunk sizing; measurable non-reviewer `start` claims alone MUST calibrate a flat
+order; triage, revise, finalize, and reviewer peaks MUST remain independent
+overhead. Claims without a lifecycle verb MUST remain readable as legacy data and
+MUST NOT be guessed into a verb. A session MUST NOT be reused under a different
+lifecycle verb; same-verb resumes remain valid, while a later verb requires a
+fresh session. Review depth MUST be stamped from change scope and sensitivity
+rather than inferred from recorded slicing outcomes.
+
+#### Scenario: A measurable ticket is finalized
+
+- **WHEN** finalization computes a slicing record from attributable claims
+- **THEN** `record` prints the complete JSON record and finalization appends those
+  bytes to reviewer memory without creating a parallel ticket telemetry file
 
 #### Scenario: A flat ticket has expensive lifecycle overhead
 
@@ -226,7 +234,7 @@ and helper constant together.
 
 #### Scenario: Measured chunks were too large
 
-- **WHEN** role-aware telemetry returns `still-degraded`
+- **WHEN** role-aware measurement returns `still-degraded`
 - **THEN** finalization reports the misprediction and shows the user a concrete
   rubric diff without editing the rubric in the ticket branch
 
