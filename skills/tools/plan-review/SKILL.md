@@ -50,8 +50,19 @@ line and continue Claude-only with Opus, with no Codex attempt.
 Reviewer-routing stakes and this skill's plan stakes tier are independent.
 Neither derives from, overrides, or rewrites the other.
 
+Before composing the cold-reader prompt, run:
+
+```sh
+python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>
+```
+
+Obey the [reviewer-memory failure rule](../reviewer-memory/SKILL.md#failure-rule),
+including its not-installed carve-out. Keep the pointer and store content inside
+worker prompts only; never copy them into tracker comments, work orders, pull request
+bodies, or target-repository files.
+
 The coordinator supplies the selected adapter, explicit reviewer model,
-explicit reviewer effort, and the cold-reader prompt's four allowed inputs.
+explicit reviewer effort, and the cold-reader prompt's five allowed inputs.
 Dispatch only through
 `skills/drivers/orchestrate/scripts/codex-worker.py` or
 `skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
@@ -66,12 +77,17 @@ restate its command or lifecycle mechanics here.
 The cold-reader prompt contains exactly:
 1. plan location;
 2. the five-axis rubric;
-3. stakes tier; and
+3. stakes tier;
 4. a context-free fresh-reviewer phase instruction that requires the reviewer
-   to read [drafting conventions](../../drivers/ticket/references/drafting-conventions.md).
+   to read [drafting conventions](../../drivers/ticket/references/drafting-conventions.md); and
+5. the reviewer-memory store index path printed by `python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>`.
 
-The prompt excludes earlier findings, author rationale, chat history, and all
-other author/coordinator-session material. For a chat-delivered plan, before
+The cold reviewer reads the bundle at that fifth path before reviewing.
+
+The prompt excludes findings from this plan's own earlier review rounds, author
+rationale, chat history, and all other material from this plan's author/coordinator
+session. The cross-ticket reviewer-memory store is neither earlier-round material
+nor author-session material. For a chat-delivered plan, before
 dispatch the coordinator writes the exact chat-delivered plan bytes to an
 immutable session-scratch file and supplies only that file's path as the plan
 location. The worker receives no chat transcript or author-session context.
@@ -233,6 +249,17 @@ definitions below are the fallback.
      rather than obviously wrong. Its objections loop back through steps 3
      and 4.
      A clean fresh pass ends the review: state **countersigned** plainly.
+
+   After every panel reaches its verdict, send one raw JSON object containing the
+   ticket, round, verdict, findings summary, and reviewer model on standard input to:
+
+   ```sh
+   python3 <reviewer-memory-skill-directory>/scripts/memory.py append-review <repo>
+   ```
+
+   Obey the [reviewer-memory failure rule](../reviewer-memory/SKILL.md#failure-rule),
+   including its not-installed carve-out.
+
 6. **Hard cap: three panels.** Adversarial reviewers rarely return
    empty-handed, so as real defects deplete, late panels drift toward
    plausible-but-marginal objections — and every revision cycle is new
