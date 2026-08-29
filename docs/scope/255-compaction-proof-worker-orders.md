@@ -91,9 +91,49 @@ and how far the rule reaches.
   failure mode is visible drift, recoverable by rerunning the work.
 - **Disposition:** inline.
 
+## Round 3 — drafting halted, decisions reopened
+
+Three review panels ran (cold, its delta re-check, a fresh cold pass). Blocking
+counts by round: 4 authoring, then 2 injected by the round-1 fixes, then 4 more of
+which 2 were injected by the round-2 fixes. Injected blockers climbing across
+rounds is the rewrite-clean signal, and the findings below are unsettled decisions
+rather than undiscovered typos, so drafting stopped at the cap per
+`skills/drivers/ticket/verbs/triage.md` step 12.
+
+### Newly measured, and it reprices Q1
+
+`ORDER.md` left untracked in a worker's worktree breaks worktree teardown. Verified
+live: with an untracked `ORDER.md` present, `git worktree remove` exits 128 with
+"contains modified or untracked files, use --force to delete it". This repo forbids
+the force: `skills/drivers/ticket/verbs/finalize.md:144` ("A dirty worktree makes
+`worktree remove` fail. Report that and stop; never force it") and
+`skills/drivers/ticket/verbs/revise.md:21-22` (stop when `status --short` is
+non-empty, never force). So every chunked ticket would stop-and-report at chunk
+teardown and again at finalization.
+
+This was not known when Q1 was settled and it materially reprices option A. The
+file now needs an owner for its deletion, or it needs to not be in the worktree.
+
+### Also confirmed, and dependent on the Q1 re-decision
+
+- A delegated `start`, `triage`, or `revise` worker is an adapter-dispatched
+  write-mode worker (`verbs/start.md:98`, `verbs/triage.md:220`,
+  `verbs/revise.md:66`). A delegated `start` worker executes a FLAT order, so the
+  round-2 boundary claiming flat orders are never dispatched is false as written.
+- The inventory's stop-and-report escape clause is scoped to "write-mode
+  dispatchers" while the inventory itself lists "pages stating a prompt-file rule".
+  Different sets; a correct implementer would halt on the mismatch.
+- Appendix item 3's grep misses the phrase "positional prompt", so
+  `skills/tools/code-review/SKILL.md:195-199` and
+  `skills/drivers/orchestrate/references/dispatch-claude.md:56-61` were absent. The
+  order's claim that dispatch-claude.md states no prompt rule was a grep artifact.
+- Done-when bullet 1 ("the only page in the repo that states them") is
+  unsatisfiable against step 4c's spec delta and step 5's behavior test, which must
+  both carry the clause text.
+
 ## Open questions
 
-_None. The frontier is empty; every question above is settled in `Decisions`._
+- Q4. Who deletes the durable order, and when. Blocks redrafting.
 
 ## Spawned tasks
 
