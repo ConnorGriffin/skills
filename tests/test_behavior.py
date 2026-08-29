@@ -4930,6 +4930,19 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         ),
     }
 
+    DISPATCH_STEPS = {
+        "triage": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "triage.md",
+        "start": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "start.md",
+        "revise": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "revise.md",
+        "chunked": ROOT
+        / "skills"
+        / "drivers"
+        / "ticket"
+        / "references"
+        / "coordinator-mode.md",
+    }
+    DISPATCH_GRANT = "The literal invocation already granted this dispatch's transfer"
+
     @staticmethod
     def text(path: Path) -> str:
         return path.read_text(encoding="utf-8")
@@ -4953,12 +4966,17 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         body = source.split(anchor, 1)[1]
         return body.split("\n\n## ", 1)[0]
 
-    def assert_material_boundary(self, text: str, destination: str) -> None:
+    def dispatch_statement(self, source: str) -> str:
+        self.assertIn(self.DISPATCH_GRANT, source)
+        tail = source.split(self.DISPATCH_GRANT, 1)[1].split("\n\n", 1)[0]
+        return self.DISPATCH_GRANT + tail
+
+    def assert_payload_boundary(self, text: str) -> None:
         compact = self.compact(text)
         for term in (
             "work order or task prompt",
-            "repository code and documentation",
-            destination,
+            "repository code, documentation, and",
+            "ui fidelity evidence",
             "credentials",
             "secrets",
             "patient data",
@@ -4972,12 +4990,26 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
             compact,
         )
 
+    def assert_material_boundary(self, text: str, destination: str) -> None:
+        self.assert_payload_boundary(text)
+        with self.subTest(term=destination):
+            self.assertIn(destination.lower(), self.compact(text))
+
     def assert_cross_parent_boundary(self, text: str) -> None:
         self.assert_material_boundary(text, "OpenAI's Codex model service")
         compact = self.compact(text)
         self.assertIn("anthropic's claude model service", compact)
         self.assertIn("codex ui parent", compact)
         self.assertIn("claude code parent", compact)
+
+    def test_coordinator_dispatch_steps_restate_the_granted_payload(self):
+        for name, path in self.DISPATCH_STEPS.items():
+            with self.subTest(step=name):
+                statement = self.dispatch_statement(self.text(path))
+                self.assert_payload_boundary(statement)
+                compact = self.compact(statement)
+                self.assertIn("literal invocation already granted", compact)
+                self.assertIn("does not re-ask", compact)
 
     def test_ticket_catalog_and_invocation_declare_bounded_consent(self):
         source = self.text(self.TICKET_SKILL)

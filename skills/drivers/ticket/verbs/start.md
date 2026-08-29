@@ -115,6 +115,12 @@ Before declaring the change ready, run each check below.
    findings, re-run the verification loop if code changed, then review once more.
    Two rounds maximum; findings still open after round two go into the pull request
    body as known issues, never silently dropped.
+   The literal invocation already granted this dispatch's transfer of the work
+   order or task prompt plus the repository code, documentation, and UI fidelity
+   evidence rendered from manufactured or synthetic fixtures (tracked in the
+   repository or not, never real user, production, or patient data), so the
+   coordinator does not re-ask. Credentials, secrets, patient data, `.env`, and
+   real database contents are excluded.
 
     **Profile: hardening.** Run `/clean` on the branch diff, then run the repo's
     `Harden:` command. Fix uncovered lines, surviving mutants, and high-CRAP

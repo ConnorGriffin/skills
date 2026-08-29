@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: "Drive one tracked ticket from arrival to resolution through four verbs: triage, start, revise, finalize. Use when the user says triage/start/revise/finalize with a ticket id, asks to turn a ticket into a locked brief, to execute a work order, to action a review round on a ticket's pull request, or to close out a merged ticket. Literal triage, start, or revise invocation requests the work order or task prompt plus only needed repository code and documentation for every mandatory worker dispatch, including nested review and nested Orchestrate work: to OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model service or Anthropic's Claude model service for a Claude Code parent. For delegated workflow work, the coordinator dispatches every mandatory reviewer and resumes the same worker. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Automatic activation outside an invoked parent workflow asks once before dispatch; finalize grants no worker-egress consent."
+description: "Drive one tracked ticket from arrival to resolution through four verbs: triage, start, revise, finalize. Use when the user says triage/start/revise/finalize with a ticket id, asks to turn a ticket into a locked brief, to action a review round on a ticket's pull request, or to close out a merged ticket. Literal triage, start, or revise invocation requests the work order or task prompt plus only needed repository code, documentation, and safe-fixture UI fidelity evidence for every mandatory worker dispatch, including nested review and nested Orchestrate work: to OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model service or Anthropic's Claude model service for a Claude Code parent. When delegated, the coordinator dispatches every mandatory reviewer and resumes the same worker. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Automatic activation outside an invoked parent workflow asks once before dispatch; finalize grants no worker-egress consent."
 ---
 
 # Ticket
@@ -15,15 +15,17 @@ what every verb shares.
 `finalize`. No verb or no ticket id: ask for it, one line. Unknown verb: list the
 four.
 
-Literal user invocation of `/ticket triage`, `/ticket start`, or `/ticket revise`
-requests the bounded transfer needed for every mandatory worker dispatch the
-selected workflow routes, including nested review and nested Orchestrate work. The
-payload is the work order or task prompt plus only the repository code and
-documentation needed for that delegated task. For a Codex UI parent, the destination
-is an isolated worker on OpenAI's Codex model service. For a Claude Code parent,
-existing routing selects an isolated worker on OpenAI's Codex model service or
-Anthropic's Claude model service. Credentials, secrets, patient data, `.env`, and
-real database contents are excluded.
+Literal user invocation of `/ticket triage`, `/ticket start`, or `/ticket
+revise` requests the bounded transfer needed for every mandatory worker dispatch
+the selected workflow routes, including nested review and nested Orchestrate
+work. The payload is the work order or task prompt plus only the repository
+code, documentation, and UI fidelity evidence rendered from manufactured or
+synthetic fixtures (tracked in the repository or not, never real user,
+production, or patient data) needed for that delegated task. For a Codex UI
+parent, the destination is an isolated worker on OpenAI's Codex model service.
+For a Claude Code parent, existing routing selects an isolated worker on
+OpenAI's Codex model service or Anthropic's Claude model service. Credentials,
+secrets, patient data, `.env`, and real database contents are excluded.
 
 Automatic activation outside an invoked parent workflow does not acquire this
 consent. Before the first external dispatch it asks once, naming the same payload,
