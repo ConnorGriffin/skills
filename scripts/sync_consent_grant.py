@@ -37,8 +37,9 @@ def surface_path(repository, relative_path):
     return path
 
 
-def process_generated_surfaces(repository, *, write):
+def inspect_generated_surfaces(repository):
     failures = []
+    replacements = []
     for name, surface in GENERATED_SURFACES.items():
         try:
             path = surface_path(repository, surface["path"])
@@ -52,11 +53,8 @@ def process_generated_surfaces(repository, *, write):
         expected = rendered_block(surface["indent"]) + "\n\n"
         if current == expected:
             continue
-        if write:
-            path.write_text(prefix + expected + suffix, encoding="utf-8")
-        else:
-            failures.append(f"{name}: generated block differs from canonical source")
-    return failures
+        replacements.append((name, path, prefix + expected + suffix))
+    return failures, replacements
 
 
 def compact(source):
@@ -108,11 +106,18 @@ def main():
         "--repo", type=Path, default=Path(__file__).resolve().parents[1]
     )
     arguments = parser.parse_args()
-    failures = process_generated_surfaces(
-        arguments.repo.resolve(), write=arguments.mode == "sync"
-    )
-    failures.extend(check_clause_surfaces(arguments.repo.resolve()))
-    failures.extend(check_description_byte_caps(arguments.repo.resolve()))
+    repository = arguments.repo.resolve()
+    failures, replacements = inspect_generated_surfaces(repository)
+    failures.extend(check_clause_surfaces(repository))
+    failures.extend(check_description_byte_caps(repository))
+    if arguments.mode == "check":
+        failures.extend(
+            f"{name}: generated block differs from canonical source"
+            for name, _, _ in replacements
+        )
+    elif not failures:
+        for _, path, source in replacements:
+            path.write_text(source, encoding="utf-8")
     for failure in failures:
         print(f"consent-grant: {failure}", file=sys.stderr)
     return bool(failures)

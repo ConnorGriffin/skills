@@ -5284,6 +5284,48 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
             self.assertIn(name, result.stderr)
             self.assertEqual(target.read_text(encoding="utf-8"), ambiguous)
 
+    def test_consent_grant_sync_does_not_partially_rewrite_before_a_failure(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary)
+            self.copy_consent_surfaces(repository)
+            surfaces = list(CONSENT_GRANT_MODULE.GENERATED_SURFACES.items())
+            first_name, first_surface = surfaces[0]
+            second_name, second_surface = surfaces[1]
+            first_target = repository / first_surface["path"]
+            second_target = repository / second_surface["path"]
+            first_drift = self.replace_in_surface(
+                first_target.read_text(encoding="utf-8"),
+                first_surface,
+                "The literal invocation",
+                "A literal invocation",
+            )
+            second_ambiguity = self.replace_in_surface(
+                second_target.read_text(encoding="utf-8"),
+                second_surface,
+                "The literal invocation",
+                second_surface["after"] + "\n\n   The literal invocation",
+            )
+            first_target.write_text(first_drift, encoding="utf-8")
+            second_target.write_text(second_ambiguity, encoding="utf-8")
+            result = run(
+                [
+                    sys.executable,
+                    str(CONSENT_GRANT_SYNC),
+                    "sync",
+                    "--repo",
+                    str(repository),
+                ],
+                cwd=ROOT,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(second_name, result.stderr)
+            self.assertEqual(first_target.read_text(encoding="utf-8"), first_drift)
+            self.assertEqual(
+                second_target.read_text(encoding="utf-8"), second_ambiguity
+            )
+            self.assertNotIn(first_name, result.stderr)
+
     def test_consent_grant_sync_refuses_a_surface_outside_the_repository(self):
         with tempfile.TemporaryDirectory() as temporary:
             scratch = Path(temporary)
