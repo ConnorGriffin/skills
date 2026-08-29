@@ -30,6 +30,11 @@
   verified commit object ID, then use only that object ID for merge-base and export.
   Why: an option-shaped public argument must not become `git archive --remote` or
   another Git option. Disposition: inline.
+- Keep the guarantee at the pre-pull-request or pre-push gate and accept that the
+  baseline can advance again before a later human merge. Why: this is a one-operator
+  laptop workflow; merge-time CI or branch-protection enforcement is disproportionate,
+  and a later advance remains a visible, manually correctable finalization stop.
+  Disposition: inline.
 - Slice implementation into two serial chunks: the public CLI and executable
   contract evidence first; its three workflow consumers and OpenSpec contract
   alignment second. Why: both multiple-deliverable-artifacts and lockstep-copies-of-
@@ -39,13 +44,16 @@
 ### Risk contract
 
 - **Must prevent:** mutating, folding, moving, or archiving the authoritative active
-  change or baseline before merge; approving a stale-base, null, error, malformed,
-  or wrong-typed archive result; secret exposure, irreversible authoritative-data
-  loss, or silent incorrect success.
+  change or baseline before merge; gating against a remote-tracking base older than
+  the immediately completed fetch; approving a null, error, malformed, or wrong-
+  typed archive result; secret exposure, irreversible authoritative-data loss, or
+  silent incorrect success.
 - **Must recover:** temporary export/overlay or CLI failure stops visibly and the
   disposable directory is cleaned automatically.
 - **Accepted failure:** unexpected third-party output, fetch failure, unresolved
-  base, or several active ticket changes stops for manual correction/re-scoping.
+  base, or several active ticket changes stops for manual correction/re-scoping; a
+  base advance after the gate but before human merge may still stop finalization for
+  manual delta correction.
 - **Unsupported:** automatic delta repair, inferring old requirement headers,
   multi-change ordinary tickets, changing OpenSpec's validator, or replacing the
   post-merge archive lifecycle.
@@ -122,3 +130,6 @@ None.
   while the risk contract says stale-base approval is must-prevent. The three-panel
   cap was reached; the draft is frozen pending an operator choice between accepting
   that post-gate/pre-merge race or adding a merge-time enforcement owner.
+- Operator disposition at the cap: accept the post-gate/pre-merge race and add no
+  merge-time enforcement. The workflow is a one-person laptop tool; a visible,
+  manually correctable finalization stop is proportionate.

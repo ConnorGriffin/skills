@@ -42,6 +42,13 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
   commit before merge-base or export, and an unresolved value stops locally without
   invoking a remote
 
+#### Scenario: The baseline advances after the gate
+
+- **WHEN** the freshly fetched baseline passes applicability preflight and then
+  advances again before the later human merge
+- **THEN** the workflow makes no merge-time guarantee or enforcement claim, and a
+  resulting post-merge archive mismatch stops finalization for manual correction
+
 #### Scenario: A structurally valid delta cannot apply
 
 - **WHEN** strict validation passes but a disposable archive reports an unmatched

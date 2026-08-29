@@ -48,6 +48,12 @@ pushes. Other or absent change-record conventions and epic children bypass this
 command unchanged. Finalization remains the only workflow phase that archives the
 authoritative tree.
 
+The gate proves applicability only against the base fetched immediately before that
+gate. It does not lock the default branch through a later human merge. A subsequent
+base advance may still make finalization stop for manual delta correction; adding a
+merge-time check or branch-protection mechanism is deliberately outside this
+one-operator laptop workflow.
+
 ## ADR 265 — Prove applicability through a disposable real archive
 
 **Status:** accepted

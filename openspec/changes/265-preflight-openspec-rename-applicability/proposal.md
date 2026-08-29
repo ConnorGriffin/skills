@@ -31,7 +31,8 @@ delta repair before ticket finalization can complete.
 ## Risk contract
 
 - **Must prevent:** mutating, folding, moving, or archiving the authoritative
-  active change or baseline before merge; accepting process exit zero when the
+  active change or baseline before merge; gating against a remote-tracking base
+  older than the immediately completed fetch; accepting process exit zero when the
   archive JSON reports no archive or an error; secret exposure, irreversible loss
   of authoritative data, accepting an unexpected JSON shape, or silent incorrect
   success.
@@ -39,10 +40,12 @@ delta repair before ticket finalization can complete.
   execution failure must stop the workflow visibly and clean up the disposable
   copy.
 - **Accepted failure:** malformed or unexpected third-party CLI output stops the
-  pull request with the raw diagnostic available for manual investigation; no
-  automatic recovery is required.
+  pull request with the raw diagnostic available for manual investigation; a base
+  advance after the gate but before human merge may still stop finalization for
+  manual delta correction; no automatic recovery is required.
 - **Unsupported:** repairing deltas automatically, inferring a missing old header,
-  changing OpenSpec's validator, or replacing post-merge archive guidance.
+  changing OpenSpec's validator, replacing post-merge archive guidance, or adding
+  merge-time CI or branch-protection enforcement.
 - **Evidence owed:** public-command tests reproduce strict-validation success
   followed by archive applicability failure, prove a correct rename passes, and
   compare separate before/after digests for the ticket worktree and base-ref
