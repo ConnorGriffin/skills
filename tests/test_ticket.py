@@ -4,6 +4,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -1864,6 +1865,8 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
+        self.preflight_tmp = Path(self.temporary.name) / "preflight-tmp"
+        self.preflight_tmp.mkdir()
         self.repo = Path(self.temporary.name) / "ticket"
         self.repo.mkdir()
         for command in (
@@ -1890,10 +1893,14 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
             "if mode == 'launch': raise OSError('launch denied')\n"
             "if mode == 'nonjson': print('not json')\n"
             "elif mode == 'array': print('[]')\n"
+            "elif mode == 'nostatus': print(json.dumps({'archive': {}}))\n"
             "elif mode == 'missing': print(json.dumps({'status': []}))\n"
+            "elif mode == 'nullarchive': print(json.dumps({'status': [], 'archive': None}))\n"
+            "elif mode == 'badarchive': print(json.dumps({'status': [], 'archive': 'wrong'}))\n"
             "elif mode == 'badstatus': print(json.dumps({'status': [1], 'archive': {}}))\n"
             "elif mode == 'error': print(json.dumps({'status': [{'severity': 'error', 'message': 'archive failed'}], 'archive': {}}))\n"
             "elif mode == 'rename': print(json.dumps({'status': [{'severity': 'error', 'code': 'archive_spec_update_failed', 'message': 'unmatched requirement'}], 'archive': {}}))\n"
+            "elif mode == 'base-sensitive' and 'new baseline' in open('openspec/specs/widget/spec.md').read(): print(json.dumps({'status': [{'severity': 'error', 'message': 'base advanced'}], 'archive': {}}))\n"
             "else: print(json.dumps({'status': [], 'archive': {}}))\n"
             "sys.exit(7 if mode == 'nonzero' else 0)\n",
             encoding="utf-8",
@@ -1901,6 +1908,7 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         fake.chmod(0o755)
         self.environment = os.environ.copy()
         self.environment["PATH"] = f"{self.bin}{os.pathsep}{self.environment['PATH']}"
+        self.environment["TMPDIR"] = str(self.preflight_tmp)
 
     def tearDown(self):
         self.temporary.cleanup()
@@ -1917,14 +1925,16 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         environment = self.environment.copy()
         environment["FAKE_OPENSPEC_MODE"] = mode
         base_argument = f"--base-ref={base}" if (base or "").startswith("-") else "--base-ref"
-        return run(
-            ["python3", str(TICKET_SCRIPT), "preflight-openspec", "--repo", str(self.repo),
+        result = run(
+            [sys.executable, str(TICKET_SCRIPT), "preflight-openspec", "--repo", str(self.repo),
              base_argument, *( [base] if base_argument == "--base-ref" else [])] if base else
-            ["python3", str(TICKET_SCRIPT), "preflight-openspec", "--repo", str(self.repo),
+            [sys.executable, str(TICKET_SCRIPT), "preflight-openspec", "--repo", str(self.repo),
              "--base-ref", self.base],
             cwd=self.repo,
             env=environment,
         )
+        self.assertEqual(list(self.preflight_tmp.glob("ticket-openspec-preflight-*")), [])
+        return result
 
     def tree(self, revision: str = "HEAD") -> str:
         return self.git("rev-parse", f"{revision}:openspec").stdout.strip()
@@ -1939,11 +1949,24 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         self.assertEqual(self.git("status", "--short").stdout, "")
 
     def test_unresolved_and_option_shaped_bases_do_not_invoke_a_remote(self):
+        calls = Path(self.temporary.name) / "git-calls"
+        real_git = subprocess.run(["git", "--exec-path"], text=True, capture_output=True).returncode
+        self.assertEqual(real_git, 0)
+        wrapper = self.bin / "git"
+        wrapper.write_text(
+            "#!/bin/sh\n"
+            f"printf '%s\\n' \"$*\" >> {calls}\n"
+            "exec /usr/bin/git \"$@\"\n",
+            encoding="utf-8",
+        )
+        wrapper.chmod(0o755)
         for base in ("missing", "--not-a-ref", "HEAD^{tree}"):
             with self.subTest(base=base):
                 result = self.preflight(base)
                 self.assertEqual(result.returncode, 2)
                 self.assertIn(f"base ref does not resolve to a local commit: {base}", result.stderr)
+        recorded = calls.read_text(encoding="utf-8")
+        self.assertNotRegex(recorded, r"(?:fetch|pull|push|ls-remote|remote)")
 
     def test_discovery_handles_zero_deleted_and_multiple_active_changes(self):
         active = self.repo / "openspec/changes/one"
@@ -1968,7 +1991,10 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         for mode, diagnostic in (
             ("nonjson", "OpenSpec archive returned invalid JSON"),
             ("array", "OpenSpec archive JSON must be an object"),
+            ("nostatus", None),
             ("missing", "OpenSpec archive result must be a non-null object"),
+            ("nullarchive", "OpenSpec archive result must be a non-null object"),
+            ("badarchive", "OpenSpec archive result must be a non-null object"),
             ("badstatus", "OpenSpec archive status must be a list of objects"),
             ("error", "archive failed"),
             ("nonzero", "OpenSpec archive exited with status 7"),
@@ -1977,10 +2003,82 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 before = (self.tree(), self.tree(self.base))
                 result = self.preflight(mode=mode)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn(diagnostic, result.stderr)
+                if diagnostic is None:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(diagnostic, result.stderr)
                 self.assertEqual(before, (self.tree(), self.tree(self.base)))
                 self.assertEqual(self.git("status", "--short").stdout, "")
+
+    def test_launch_export_and_symlink_failures_are_clean_and_disposable(self):
+        fake = self.bin / "openspec"
+        fake.rename(self.bin / "openspec.saved")
+        fake.mkdir()
+        (self.bin / "git").symlink_to("/usr/bin/git")
+        self.environment["PATH"] = str(self.bin)
+        launch = self.preflight()
+        self.assertNotEqual(launch.returncode, 0)
+        self.assertIn("could not launch OpenSpec archive", launch.stderr)
+        self.assertNotIn("Traceback", launch.stderr)
+
+        fake.rmdir()
+        (self.bin / "openspec.saved").rename(fake)
+        (self.bin / "git").unlink()
+        self.environment["PATH"] = f"{self.bin}{os.pathsep}{os.environ['PATH']}"
+        wrapper = self.bin / "git"
+        wrapper.write_text(
+            "#!/bin/sh\n"
+            "if [ \"$1\" = archive ]; then exit 9; fi\n"
+            "exec /usr/bin/git \"$@\"\n",
+            encoding="utf-8",
+        )
+        wrapper.chmod(0o755)
+        exported = self.preflight()
+        self.assertNotEqual(exported.returncode, 0)
+        self.assertIn("could not export the base OpenSpec tree", exported.stderr)
+        self.assertNotIn("Traceback", exported.stderr)
+
+        wrapper.unlink()
+        link = self.repo / "openspec/changes/one/link"
+        link.symlink_to("proposal.md")
+        linked = self.preflight()
+        self.assertEqual(linked.returncode, 2)
+        self.assertIn("active OpenSpec change contains a symlink", linked.stderr)
+        self.assertNotIn("Traceback", linked.stderr)
+
+    def test_stale_tracking_base_passes_until_a_real_fetch_refreshes_it(self):
+        remote = Path(self.temporary.name) / "remote.git"
+        upstream = Path(self.temporary.name) / "upstream"
+        subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["git", "clone", str(self.repo), str(upstream)], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["git", "-C", str(upstream), "remote", "set-url", "origin", str(remote)], check=True)
+        subprocess.run(["git", "-C", str(upstream), "push", "-u", "origin", "main"], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["git", "--git-dir", str(remote), "symbolic-ref", "HEAD", "refs/heads/main"], check=True)
+        ticket = Path(self.temporary.name) / "ticket-clone"
+        subprocess.run(["git", "clone", str(remote), str(ticket)], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["git", "-C", str(ticket), "config", "user.email", "ticket@example.test"], check=True)
+        subprocess.run(["git", "-C", str(ticket), "config", "user.name", "Ticket test"], check=True)
+        change = ticket / "openspec/changes/gate"
+        change.mkdir(parents=True)
+        (change / "proposal.md").write_text("# Gate\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(ticket), "add", "openspec"], check=True)
+        subprocess.run(["git", "-C", str(ticket), "commit", "-m", "gate"], check=True, stdout=subprocess.DEVNULL)
+        (upstream / "openspec/specs/widget/spec.md").write_text("# Widget\nnew baseline\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(upstream), "add", "openspec"], check=True)
+        subprocess.run(["git", "-C", str(upstream), "commit", "-m", "advance"], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["git", "-C", str(upstream), "push"], check=True, stdout=subprocess.DEVNULL)
+        original_repo = self.repo
+        self.repo = ticket
+        try:
+            stale = self.preflight("origin/main", "base-sensitive")
+            self.assertEqual(stale.returncode, 0, stale.stderr)
+            subprocess.run(["git", "-C", str(ticket), "fetch", "origin"], check=True, stdout=subprocess.DEVNULL)
+            refreshed = self.preflight("origin/main", "base-sensitive")
+        finally:
+            self.repo = original_repo
+        self.assertNotEqual(refreshed.returncode, 0)
+        self.assertIn("base advanced", refreshed.stderr)
 
 
 class TicketLiveProseContractTests(unittest.TestCase):
