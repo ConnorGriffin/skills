@@ -2190,6 +2190,22 @@ class OrchestrateCodexPolicyTests(unittest.TestCase):
         self.assertIn("A PID appearing in `ps` proves nothing.", dispatch)
         self.assertIn("`ps -o time` is growing", dispatch)
         self.assertIn("rollout-*.jsonl", dispatch)
+        normalized_dispatch = " ".join(dispatch.split())
+        self.assertIn(
+            "When the adapter is still running but has no terminal output or session ID, "
+            "wait another minute and check again.",
+            normalized_dispatch,
+        )
+        self.assertIn(
+            "Silence, PID presence, or low parent CPU alone does not prove a hang and "
+            "does not authorize stopping the worker.",
+            normalized_dispatch,
+        )
+        self.assertIn(
+            '`session_id: ""` while `lifecycle: running` is indeterminate, not a '
+            "pre-session failure.",
+            normalized_dispatch,
+        )
 
     def test_claude_parent_codex_dispatch_reference_is_pinned(self):
         skill = (ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md").read_text(

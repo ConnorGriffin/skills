@@ -58,6 +58,11 @@ automatic-activation rule.
 
 ## Worker liveness
 
+When the adapter is still running but has no terminal output or session ID, wait
+another minute and check again. `session_id: ""` while `lifecycle: running` is
+indeterminate, not a pre-session failure. Silence, PID presence, or low parent CPU
+alone does not prove a hang and does not authorize stopping the worker.
+
 A PID appearing in `ps` proves nothing. A healthy worker accrues CPU time
 within a minute and writes `~/.codex/sessions/<date>/rollout-*.jsonl` at session
 start. Before trusting a long-running worker, check that `ps -o time` is growing
