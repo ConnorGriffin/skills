@@ -29,11 +29,11 @@ Flat `start` and chunked coordinator mode fetch `origin` immediately before pass
 ticket worktree; a fetch or unresolved-ref failure stops. Flat start runs after
 review and any resulting change-record edits, immediately before the pull request
 opens. Chunked coordinator mode runs after merged-branch review and change
-recording, before it rejoins pull-request creation. After its existing fetch/rebase
-and base-ref refresh, `revise`
-passes `origin/<baseRefName>`; it completes all active-change/checklist/decision
-edits, runs the gate, then pushes. Finalization remains the only workflow phase that
-archives the authoritative tree.
+recording, before it rejoins pull-request creation. `Revise` completes its existing
+fetch/rebase plus all active-change/checklist/decision edits, then fetches `origin`
+again immediately before passing refreshed `origin/<baseRefName>` to the gate, then
+pushes. Finalization remains the only workflow phase that archives the authoritative
+tree.
 
 ## ADR 265 — Prove applicability through a disposable real archive
 

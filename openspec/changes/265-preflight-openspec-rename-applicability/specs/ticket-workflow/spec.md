@@ -50,8 +50,9 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
 #### Scenario: Review changes an active delta
 
 - **WHEN** `revise` changes an ordinary ticket's checklist or decision record
-- **THEN** it completes those active-change edits, proves the resulting bytes apply,
-  and only then pushes the branch
+- **THEN** it completes those active-change edits, fetches the remote immediately
+  before proving the resulting bytes against refreshed `origin/<baseRefName>`, and
+  only then pushes the branch
 
 #### Scenario: An ordinary ticket changes several active changes
 
