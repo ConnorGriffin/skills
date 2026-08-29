@@ -68,3 +68,6 @@ None.
   source-tree rather than separate source/base immutability evidence.
 - Panel 2 re-check 1: one `injected` blocker — the new bypass scenario conflicted
   with universal wording retained in the requirement, proposal, and scope decision.
+- Panel 2 re-check 2: two `injected` blockers — generic start/coordinator scenario
+  clauses still implied universal preflight, and proposal evidence still named only
+  source-tree rather than separate ticket/base digests.

@@ -44,5 +44,6 @@ delta repair before ticket finalization can complete.
   changing OpenSpec's validator, or replacing post-merge archive guidance.
 - **Evidence owed:** public-command tests reproduce strict-validation success
   followed by archive applicability failure, prove a correct rename passes, and
-  prove the source OpenSpec tree is byte-for-byte untouched; OpenSpec validation
-  and the repository gate pass.
+  compare separate before/after digests for the ticket worktree and base-ref
+  OpenSpec trees on both success and archive failure; OpenSpec validation and the
+  repository gate pass.

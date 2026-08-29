@@ -15,15 +15,16 @@ worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge
 
 #### Scenario: A ticket reaches implementation
 
-- **WHEN** `start` finds a sufficient newest work order and a compatible session
+- **WHEN** `start` finds a sufficient newest work order and a compatible session for
+  an ordinary OpenSpec-backed ticket
 - **THEN** it reuses the ticket's branch and worktree, implements and verifies the
   order, proves its changed active OpenSpec delta applies in a disposable copy,
   opens one pull request, and stops for human review
 
 #### Scenario: A chunked ticket reaches pull-request creation
 
-- **WHEN** coordinator mode has merged and reviewed all chunks and recorded the
-  ordinary ticket's active change
+- **WHEN** coordinator mode has merged and reviewed all chunks for an ordinary
+  OpenSpec-backed ticket and recorded its active change
 - **THEN** it proves its one changed active OpenSpec delta applies before rejoining
   pull-request creation
 
