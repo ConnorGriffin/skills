@@ -7,6 +7,13 @@ change record. Its review instrumentation stays in untracked session scratch, wh
 any required parent-plan amendment is committed in the child worktree and travels
 with the implementation pull request; the parent epic retains archive ownership.
 
+Use the shared selected-ticket mutation boundary. Keep grounding broad and
+read-only. When a distinct external prerequisite would otherwise contradict a
+recorded destination, constraint, acceptance criterion, risk, or sequence, cite
+that clause, disclose the exact external target and mutation, and stop before
+mutation until a subsequent operator response explicitly authorizes the previously
+disclosed target and exact mutation.
+
 ## Procedure
 
 1. **Read the ticket.** Use the contract's read operation for the description and
