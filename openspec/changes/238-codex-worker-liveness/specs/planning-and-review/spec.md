@@ -1,25 +1,22 @@
 ## ADDED Requirements
 
-### Requirement: Durable Codex worker liveness identity
+### Requirement: Patient Codex worker liveness checks
 
-The Codex worker adapter MUST persist the exact launched session's authoritative
-identifier while that session is running, and orchestration MUST treat a running state
-with an empty identifier as indeterminate. A coordinator MUST NOT stop the recorded
-worker process group unless an identifier-matched rollout is absent or has failed to
-progress across the documented observation window; PID presence, terminal silence,
-parent-process CPU, and newest-rollout ordering MUST NOT independently or collectively
-substitute for that exact match.
+When a Codex adapter remains running without terminal output or a session identifier,
+the coordinator MUST wait another minute and check again. Silence, an empty session
+identifier, PID presence, or low parent-process CPU MUST NOT by itself be treated as a
+hang or authority to stop the worker.
 
-#### Scenario: Buffered worker remains active beyond the liveness window
+The repository MUST contain a behavior test that pins this agent-facing instruction.
 
-- **WHEN** Codex emits its session-start event and continues working while terminal
-  output remains buffered
-- **THEN** the adapter state exposes that exact session identifier before completion
-  and the coordinator uses its matching rollout progress as the liveness evidence
+#### Scenario: Running adapter is quiet
 
-#### Scenario: Running state has no session identifier
+- **WHEN** the Codex adapter is still running and has not emitted terminal output or a
+  session identifier
+- **THEN** the coordinator waits another minute before checking again and does not stop
+  the worker based on silence alone
 
-- **WHEN** a worker state reports `running` with an empty session identifier
-- **THEN** orchestration treats the state as indeterminate and does not terminate the
-  recorded process group on silence, PID presence, CPU observations, or a guessed
-  rollout
+#### Scenario: Guidance regresses
+
+- **WHEN** the patience instruction is removed or weakened
+- **THEN** the behavior test fails
