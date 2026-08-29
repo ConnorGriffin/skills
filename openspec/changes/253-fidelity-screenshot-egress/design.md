@@ -52,8 +52,8 @@ dropped the evidence clause.
 
 The longer payload phrase costs bytes in two frontmatter descriptions that are
 capped at 1024. The ticket description pays by dropping "to execute a work order"
-from its trigger list; that phrase is the one trigger this skill also states in
-its `## Invocation` body and in the `start` verb's own refusal path, so losing it
+from its trigger list. Executing a work order is still what the pipeline section
+says `start` does, and the `start` verb refuses without one, so losing the phrase
 from the description narrows catalog matching without losing the rule. The
 orchestrate description pays with the shorter delegation clause alone and keeps
 its full trigger prose, landing at the cap exactly.
