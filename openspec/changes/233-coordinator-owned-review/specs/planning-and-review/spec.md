@@ -32,5 +32,5 @@ worker is unsupported.
 
 #### Scenario: Delegated review evidence is unavailable
 
-- **WHEN** the mandatory reviewer fails to launch or returns no verifiable verdict
+- **WHEN** the mandatory reviewer has a failed launch, nonzero exit, missing result artifact, or missing verdict
 - **THEN** the coordinator reports the review as unavailable and does not advance the workflow as reviewed

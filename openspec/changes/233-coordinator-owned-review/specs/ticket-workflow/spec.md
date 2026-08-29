@@ -32,5 +32,5 @@ worker MUST NOT launch a nested reviewer.
 
 #### Scenario: Delegated review evidence is unavailable
 
-- **WHEN** a delegated ticket review fails to launch or returns no verifiable verdict
+- **WHEN** a delegated ticket review has a failed launch, nonzero exit, missing result artifact, or missing verdict
 - **THEN** the coordinator reports the review as unavailable and does not advance the workflow as reviewed

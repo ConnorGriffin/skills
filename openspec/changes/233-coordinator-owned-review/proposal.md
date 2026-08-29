@@ -14,7 +14,8 @@ same adapter succeeds when the coordinator launches it.
 * A delegated worker returns its draft or implementation result to the coordinator;
   the coordinator runs the required review and returns verified findings to the same
   worker for correction.
-* A missing or failed reviewer result is unavailable evidence, never a clean verdict.
+* A failed launch, nonzero exit, missing result artifact, or missing verdict is
+  unavailable evidence, never a clean verdict.
 * Direct adapter dispatch from inside a sandboxed worker is unsupported.
 * No adapter, lifecycle, cleanup, sandbox, network, approval, or model-routing
   behavior changes.

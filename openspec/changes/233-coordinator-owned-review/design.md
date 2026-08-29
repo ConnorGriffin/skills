@@ -20,8 +20,9 @@ result locator at that boundary. The coordinator collects it, dispatches the rev
 through the existing adapter, verifies the returned verdict, and resumes the recorded
 worker session. Findings resume it for correction, a clean
 verdict resumes it to finish the workflow, and unavailable review evidence blocks
-the workflow from advancing as reviewed. A reviewer failure or missing result is
-reported as unavailable and never interpreted as an empty finding list. This is a
+the workflow from advancing as reviewed. A failed launch, nonzero exit, missing
+result artifact, or missing verdict is reported as unavailable and never interpreted
+as an empty finding list. This is a
 prose composition rule over Orchestrate's existing brief, coordinator-recorded result locator, and resume
 surface; it adds no role discriminator, module, or adapter seam.
 

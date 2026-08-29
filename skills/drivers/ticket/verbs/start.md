@@ -94,6 +94,13 @@ Before declaring the change ready, run each check below.
 10. **Repo-rules audit and adversarial review, before the pull request.** An order
     with no `Profile:` line is `Profile: none`.
 
+    A delegated `start` worker returns its review-ready implementation diff to its
+    coordinator through the coordinator-recorded durable result locator, then
+    stops at this boundary. Its coordinator dispatches `/review`, verifies the
+    verdict, and resumes the same worker with actionable findings or a verified
+    clean verdict. The worker must not launch a nested reviewer. A coordinator-run
+    start follows the profile route below directly.
+
     **Profile: none.** Re-read the
    repo's `AGENTS.md` or `CLAUDE.md`, which has decayed from context by now, and
    audit the full diff against it rule by rule, including any completion checklist

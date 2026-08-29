@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: "Flip the session into coordinator mode — the parent agent plans, scopes, reviews, and ships, but delegates all real work (exploration, implementation, review, fixes) to sub-agents routed by an empirically benchmarked model capability table. Use when the user invokes /orchestrate or asks the parent to act as an orchestrator/coordinator instead of a developer. Literal /orchestrate invocation requests the work order or task prompt plus only needed repository code and documentation for every mandatory worker dispatch, including nested review and nested Orchestrate work: to OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model service or Anthropic's Claude model service for a Claude Code parent. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Automatic activation outside an invoked parent workflow asks once before dispatch."
+description: "Flip the session into coordinator mode — the parent agent plans, scopes, reviews, and ships, but delegates all real work (exploration, implementation, review, fixes) to sub-agents routed by an empirically benchmarked model capability table. Use when the user invokes /orchestrate or asks the parent to act as an orchestrator/coordinator instead of a developer. Literal /orchestrate invocation requests the work order or task prompt plus only needed repository code and documentation for every mandatory worker dispatch, including nested review and nested Orchestrate work: to OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model service or Anthropic's Claude model service for a Claude Code parent. For delegated workflow work, the coordinator dispatches every mandatory reviewer and resumes the same worker. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Automatic activation outside an invoked parent workflow asks once before dispatch."
 ---
 
 # Orchestrate — coordinator mode
@@ -15,6 +15,11 @@ parent, the destination is an isolated worker on OpenAI's Codex model service. F
 Claude Code parent, existing routing selects an isolated worker on OpenAI's Codex
 model service or Anthropic's Claude model service. Credentials, secrets, patient data,
 `.env`, and real database contents are excluded.
+
+For delegated workflow work, the coordinator owns every mandatory reviewer
+dispatch. The worker returns review-ready work to that coordinator; direct adapter
+dispatch from inside a sandboxed worker is unsupported. The coordinator resumes
+the same worker after it verifies the review verdict.
 
 Automatic activation outside an invoked parent workflow does not acquire this
 consent. Before the first external dispatch it asks once, naming the same payload,
@@ -90,6 +95,10 @@ is the reason the review is not optional); prototyping routes straight to
   output rather than trusting it — including independent review passes on
   correctness-sensitive changes, with findings routed back to the implementing
   agent to fix.
+- The coordinator owns every mandatory reviewer dispatch reached by delegated
+  workflow work. Its delegation prompt identifies the mandatory-review handoff;
+  the worker returns or writes review-ready work through the coordinator-recorded
+  durable result locator instead of launching a nested reviewer.
 - Continue an existing worker (`claude-worker.py resume` for Claude;
   `codex-worker.py resume` for Codex) for follow-ups in its area instead of
   spawning a fresh one, so its context carries over.
@@ -272,6 +281,14 @@ The result locator is the artifact that carries the child's answer: captured
 launcher stdout, a named worktree or branch for implementation changes, or a
 posted comment when the child declares that handoff. Use the adapter's start,
 resume, stop, and verify surface without restating its command mechanics.
+
+When the child reaches a mandatory-review handoff, the coordinator collects the
+review-ready result, dispatches the reviewer through the existing adapter, verifies
+the returned verdict, and resumes the same worker. Actionable findings resume it
+for correction; a verified clean verdict resumes it to finish. A failed launch,
+nonzero exit, missing result artifact, or missing verdict is reported as unavailable,
+never interpreted as an empty finding list, and blocks the workflow from advancing
+as reviewed. Direct adapter dispatch from inside a sandboxed worker is unsupported.
 
 A coordinator never ends a turn solely because a child is unfinished, and it
 does not treat a completion notification as the result. After dispatching every
