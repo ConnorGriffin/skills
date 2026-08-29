@@ -220,3 +220,41 @@ above. A fresh cold pass received no prior findings.
 - Injected blockers: none.
 - Verdict: `COUNTERSIGNED` (unvalidated Codex exception selected by the invoked
   ticket workflow).
+
+## Re-triage after reviewer memory — review cycle 1
+
+### Round 1
+
+- `authoring` — the verification command was flattened instead of preserving the
+  repository fact's required line breaks and continuation indentation. Resolved by
+  transcribing the `AGENTS.md` test literal exactly and retaining host substitution
+  as a separate line.
+- Additional perspective reads found no blockers.
+- Injected blockers: none.
+
+### Round 2
+
+- `authoring` — whole-ticket acceptance required fail-first evidence against the
+  rejected exhaustive implementation even though the serial execution order removes
+  it before creating the replacement test. Resolved by requiring failure against
+  restored current-main text, matching sub-order 2.
+- Injected blockers: none.
+
+### Round 3
+
+- `authoring` — the order required a closed inventory but named only categories,
+  leaving the executing worker to discover authority, consumer, and protected-
+  history roles. The three-round cap returned through `/scope`; the repo already
+  settled every role, so no operator decision was open. Resolved by regenerating a
+  deterministic 29-path inventory and assigning every path a mutability role.
+- Injected blockers: none.
+
+## Re-triage after reviewer memory — review cycle 2
+
+### Round 1
+
+- A context-free fresh cold pass reproduced the branch and inventory evidence and
+  returned no blocking objections.
+- Injected blockers: none.
+- Verdict: `COUNTERSIGNED` (unvalidated Codex exception selected by the invoked
+  ticket workflow).
