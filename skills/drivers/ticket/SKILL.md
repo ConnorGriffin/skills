@@ -89,7 +89,8 @@ This authority covers triage's mandatory `/plan-review` and start/revise's `/rev
    scroll back to it. Skip the chapter silently when it does not.
 
 2. **Claim the session.** Immediately after the ticket summary, run
-   `python3 <ticket-skill-directory>/scripts/ticket.py claim <ticket-id>`, so the
+   `python3 <ticket-skill-directory>/scripts/ticket.py claim <ticket-id> --verb
+   <current verb>`, so the
    sessions that worked this ticket are recorded as they work it rather than
    guessed from prose afterwards. Pass `--session` and `--agent` whenever the
    environment cannot answer on its own: no session id in it, or more than one,
@@ -98,7 +99,13 @@ This authority covers triage's mandatory `/plan-review` and start/revise's `/rev
    session driving the ticket, and the default), `worker` (an agent building one
    chunk), or `reviewer` (a session that only reviews). The role decides which
    costs are evidence about how big the work was, so a session claimed under the
-   wrong one is a measurement error. A claim that fails is said in one
+   wrong one is a measurement error. The required `--verb` is `triage`, `start`,
+   `revise`, or `finalize`, matching the lifecycle verb this session is running.
+   One session serves one lifecycle verb: same-verb resumes reuse the claim, while
+   changing verbs requires a fresh session. A cross-verb re-claim keeps and prints
+   the persisted claim, reports the persisted and submitted verbs as one visible
+   conflict, and exits successfully; telemetry never claims the submitted metadata
+   landed. A claim that fails is said in one
    line and never blocks the verb: telemetry is a measurement, not a gate. A
    sandboxed session (a Codex `workspace-write` sandbox, for one) that cannot
    write the claims file under `~/.config/ticket/` sees that one-line denial

@@ -3,11 +3,11 @@
 
 Each verb claims its own session against the ticket it is working, so the set
 of sessions that worked a ticket is recorded rather than inferred, each with the
-role it played, so a coordinator's context is never read as chunk size. Reports
-peak context per claimed session, then records the actuals so the slicing
-rubric can be retuned against real numbers. Every record carries counts and labels
-supplied on the command line: never a transcript excerpt, a prompt, or any
-other prose from a session.
+role it played and the lifecycle verb that produced it. Reports peak context per
+claimed session, then records the actuals so the slicing rubric can be retuned
+against real numbers. Every record carries counts and labels supplied on the
+command line: never a transcript excerpt, a prompt, or any other prose from a
+session.
 """
 
 from __future__ import annotations
@@ -51,6 +51,11 @@ SESSION_VARIABLES = (("claude", "CLAUDE_CODE_SESSION_ID"), ("codex", "CODEX_SESS
 # which is not a guess about which of the three it was.
 ROLES = ("coordinator", "worker", "reviewer")
 LEGACY_ROLE = "legacy"
+
+# Which lifecycle phase produced a claim. A claim written before verbs existed
+# is read back as `legacy`; the reader never guesses from role or ordering.
+VERBS = ("triage", "start", "revise", "finalize")
+LEGACY_VERB = "legacy"
 
 # A session past this peaked into the degradation band: it should have been
 # sliced below this line.
@@ -209,16 +214,16 @@ def read_claims(ticket_id: str) -> list[dict]:
     return claims
 
 
-def append_claim(claim: dict) -> Optional[Path]:
-    """Record one session against one ticket, once."""
+def append_claim(claim: dict) -> tuple[dict, bool]:
+    """Record one session against one ticket, returning authoritative state."""
     for existing in read_claims(claim["ticket_id"]):
         if existing.get("session_id") == claim["session_id"]:
-            return None
+            return existing, False
     CLAIMS_PATH.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     with CLAIMS_PATH.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(claim) + "\n")
     CLAIMS_PATH.chmod(0o600)
-    return CLAIMS_PATH
+    return claim, True
 
 
 def transcripts_for(claim: dict, projects_dir: Path) -> list[Path]:
@@ -304,6 +309,7 @@ def session_cost(claim: dict, projects_dir: Path) -> dict:
         "session_id": claim["session_id"],
         "agent": claim.get("agent"),
         "role": claim.get("role") or LEGACY_ROLE,
+        "verb": claim.get("verb") or LEGACY_VERB,
         "project": claim.get("project"),
         "started": started or claim.get("claimed_at"),
         "peak_context": peak,
@@ -343,6 +349,12 @@ def scan(ticket_id: str, projects_dir: Path, current_repo: Optional[str]) -> dic
     def peaks_for(role: str) -> list[int]:
         return [session["peak_context"] for session in measured if session["role"] == role]
 
+    def peak_for_verb(verb: str) -> int:
+        return max(
+            (session["peak_context"] for session in measured if session["verb"] == verb),
+            default=0,
+        )
+
     return {
         "ticket_id": ticket_id,
         "repo": current_repo,
@@ -359,6 +371,9 @@ def scan(ticket_id: str, projects_dir: Path, current_repo: Optional[str]) -> dic
         "worker_peaks": peaks_for("worker"),
         "reviewer_peak": max(peaks_for("reviewer"), default=0),
         "legacy_peak": max(peaks_for(LEGACY_ROLE), default=0),
+        "verb_peaks": {
+            verb: peak_for_verb(verb) for verb in (*VERBS, LEGACY_VERB)
+        },
         "claimed_workers": len([session for session in sessions if session["role"] == "worker"]),
         "sessions": sessions,
     }
@@ -386,6 +401,81 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
     transcript shape. With no measured worker there is therefore no measurement
     of chunk size, which is `coordinator-only` rather than a guess.
     """
+    if actual["claim_count"] == 0:
+        excluded = actual.get("excluded_claims") or 0
+        unattributable = actual.get("unattributable") or []
+        if excluded or unattributable:
+            parts = []
+            if excluded:
+                parts.append(f"{excluded} claim(s) from another repository")
+            if unattributable:
+                parts.append(f"{len(unattributable)} claim(s) with no resolvable repository")
+            repo_name = actual.get("repo") or "this repository"
+            return (
+                "no-data",
+                "this ticket had claims, but " + " and ".join(parts)
+                + f", none of them from {repo_name}, so nothing measured it here",
+            )
+        return "no-data", "no session claimed this ticket, so nothing measured it"
+
+    if not chunked:
+        eligible = [
+            session
+            for session in actual["sessions"]
+            if session["verb"] == "start" and session["role"] != "reviewer"
+        ]
+        usable = [
+            session["peak_context"]
+            for session in eligible
+            if session["transcripts"] and session["peak_context"]
+        ]
+        if not usable:
+            unreadable = len([session for session in eligible if not session["transcripts"]])
+            zero_peak = len(
+                [
+                    session
+                    for session in eligible
+                    if session["transcripts"] and not session["peak_context"]
+                ]
+            )
+            if eligible:
+                details = []
+                if unreadable:
+                    unreadable_codex = len(
+                        [
+                            session
+                            for session in eligible
+                            if session["agent"] == "codex" and not session["transcripts"]
+                        ]
+                    )
+                    if unreadable_codex:
+                        details.append(
+                            f"{unreadable_codex} Codex session(s) carried a start claim, "
+                            "but their rollout files could not be read"
+                        )
+                    if unreadable > unreadable_codex:
+                        details.append(
+                            f"{unreadable - unreadable_codex} start claim(s) were unreadable "
+                            "because their transcripts are gone"
+                        )
+                if zero_peak:
+                    details.append(f"{zero_peak} start claim(s) recorded no usable context peak")
+                reason = " and ".join(details)
+            else:
+                reason = (
+                    "lifecycle, reviewer, or legacy claims were visible but none was an "
+                    "eligible non-reviewer start claim"
+                )
+            return "unmeasurable", f"flat order could not be measured: {reason}"
+        own = max(usable)
+        if own >= DEGRADE_PEAK:
+            return (
+                "under-sliced",
+                f"flat order execution peaked at {own:,} tokens, past the "
+                f"{DEGRADE_PEAK:,} degradation band",
+            )
+        return "ok", f"flat order execution peaked at {own:,} tokens"
+
     if actual["session_count"] == 0:
         if actual["claim_count"]:
             unreadable_codex = [
@@ -404,37 +494,8 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
                 f"{actual['claim_count']} session(s) claimed this ticket and their "
                 "transcripts are gone, so nothing could be measured",
             )
-        excluded = actual.get("excluded_claims") or 0
-        unattributable = actual.get("unattributable") or []
-        if excluded or unattributable:
-            parts = []
-            if excluded:
-                parts.append(f"{excluded} claim(s) from another repository")
-            if unattributable:
-                parts.append(f"{len(unattributable)} claim(s) with no resolvable repository")
-            repo_name = actual.get("repo") or "this repository"
-            return (
-                "no-data",
-                "this ticket had claims, but " + " and ".join(parts)
-                + f", none of them from {repo_name}, so nothing measured it here",
-            )
-        return "no-data", "no session claimed this ticket, so nothing measured it"
     judged = [session for session in actual["sessions"] if session["role"] != "reviewer"]
     own = max((session["peak_context"] for session in judged), default=0)
-    if not chunked:
-        if own == 0:
-            if judged:
-                shape = f"{len(judged)} non-review session(s) recorded no usable context peak"
-            else:
-                shape = "only review-only sessions were measured"
-            return "unmeasurable", f"flat order could not be measured: {shape}"
-        if own >= DEGRADE_PEAK:
-            return (
-                "under-sliced",
-                f"flat order peaked at {own:,} tokens, past the {DEGRADE_PEAK:,} degradation band",
-            )
-        return "ok", f"peaked at {own:,} tokens across {actual['session_count']} session(s)"
-
     worker_peaks = [peak for peak in actual["worker_peaks"] if peak]
     if not worker_peaks:
         if actual["peak_context"] == 0:
@@ -548,6 +609,7 @@ def command_record(arguments: argparse.Namespace) -> int:
         "worker_peaks": actual["worker_peaks"],
         "reviewer_peak": actual["reviewer_peak"],
         "legacy_peak": actual["legacy_peak"],
+        "verb_peaks": actual["verb_peaks"],
         "claimed_workers": actual["claimed_workers"],
         "session_peaks": [
             session["peak_context"] for session in actual["sessions"] if session["transcripts"]
@@ -577,17 +639,27 @@ def command_claim(arguments: argparse.Namespace) -> int:
         "session_id": session_id,
         "agent": agent,
         "role": arguments.role,
+        "verb": arguments.verb,
         "project": project,
         "repo": resolve_repo(Path(project)),
         "claimed_at": datetime.now(timezone.utc).isoformat(),
     }
     try:
-        written = append_claim(claim)
-        already_claimed = written is None
+        persisted, written = append_claim(claim)
+        already_claimed = not written
+        persisted_verb = persisted.get("verb") or LEGACY_VERB
+        if already_claimed and persisted_verb != arguments.verb:
+            print(
+                "ticket telemetry: claim conflict: "
+                f"persisted verb '{persisted_verb}', submitted verb '{arguments.verb}'; "
+                "kept the persisted claim",
+                file=sys.stderr,
+            )
     except OSError as error:
         report_write_denial(CLAIMS_PATH, error)
+        persisted = claim
         already_claimed = False
-    print(json.dumps({**claim, "already_claimed": already_claimed}, indent=2))
+    print(json.dumps({**persisted, "already_claimed": already_claimed}, indent=2))
     return 0
 
 
@@ -623,6 +695,12 @@ def parse_arguments() -> argparse.Namespace:
         choices=ROLES,
         default="coordinator",
         help="what this session is doing on the ticket (default: coordinator)",
+    )
+    claim_parser.add_argument(
+        "--verb",
+        choices=VERBS,
+        required=True,
+        help="ticket lifecycle verb that produced this claim",
     )
     claim_parser.add_argument(
         "--project", default=None, help="working directory to record (default: this one)"

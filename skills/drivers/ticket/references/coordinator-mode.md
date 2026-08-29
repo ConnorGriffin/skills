@@ -80,7 +80,7 @@ graph-identity rule.
 
 Once the dispatcher exposes a stable transcript id, claim each unique
 implementation-worker session through the shared claim rule, passing
-`--role worker`, `--session <id>`, `--agent <agent>`, and
+`--verb start`, `--role worker`, `--session <id>`, `--agent <agent>`, and
 `--project <chunk-worktree>`. The role, agent and project name what the worker
 did, which agent did it, and its actual working directory, not the
 coordinator's. `--role worker` is what makes a chunk's cost evidence about
@@ -101,7 +101,7 @@ non-blocking rule.
    chunk's stamped depth. Builder tier is not an input. Dispatch the selected
    reviewer on the chunk's branch against the ticket branch. Findings go back to
    the chunk's own agent to fix. Claim each dispatched reviewer session through the
-   shared claim rule with `--role reviewer`, plus the same `--session <id>`,
+   shared claim rule with `--verb start` and `--role reviewer`, plus the same `--session <id>`,
    `--agent <agent>` and `--project` it ran in, so review overhead is measured as
    overhead and never as chunk size. A reviewer with no stable transcript id is
    reported in one line like an unclaimable worker, and a claim failure follows the
