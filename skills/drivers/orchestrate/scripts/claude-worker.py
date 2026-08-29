@@ -57,7 +57,8 @@ def effort_of(state: dict[str, Any]) -> str:
 
 
 def network_arguments(enabled: bool) -> list[str]:
-    return ["--allowedTools", "WebSearch,WebFetch"] if enabled else []
+    option = "--allowedTools" if enabled else "--disallowedTools"
+    return [option, "WebSearch,WebFetch"]
 
 
 def parse(output: str) -> tuple[str | None, str | None, Any, str | None]:

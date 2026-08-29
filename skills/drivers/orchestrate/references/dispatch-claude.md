@@ -39,12 +39,14 @@ as codex-worker's resume.
 ## Hosted source access
 
 `start --network` opts the worker into provider-hosted source retrieval. The
-adapter maps that capability to `--allowedTools WebSearch,WebFetch`, persists
-the boolean in lifecycle state, replays it on `resume` without a replacement
-flag, and reports it in successful output. Omitting the option leaves hosted
-source tools disabled and reports `network: false`; existing state without the
-field remains valid and resumes offline. This capability promises hosted web
-search and fetch only; shell-command networking, command egress,
+adapter maps that capability to `--allowedTools WebSearch,WebFetch`; the default
+path enforces offline behavior with `--disallowedTools WebSearch,WebFetch`. The
+adapter persists the boolean in lifecycle state, replays it on `resume` without
+a replacement flag, and reports it in successful output. Omitting the option
+leaves hosted source tools explicitly denied and reports `network: false`;
+existing state without the field remains valid and resumes offline. This
+capability promises hosted web search and fetch only; shell-command networking,
+command egress,
 private-network access, credentials, and a wider filesystem sandbox are outside
 the contract.
 

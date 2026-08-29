@@ -2589,6 +2589,9 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertIn("--effort", argv)
         self.assertEqual(argv[argv.index("--effort") + 1], "medium")
         self.assertNotIn("--allowedTools", argv)
+        self.assertEqual(
+            argv[argv.index("--disallowedTools") + 1], "WebSearch,WebFetch"
+        )
         state = json.loads(self.state.read_text(encoding="utf-8"))
         self.assertNotIn("effort", state)
         self.assertIs(state["network"], False)
@@ -2622,6 +2625,7 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         argv = json.loads(self.arguments.read_text(encoding="utf-8"))
         self.assertEqual(argv[argv.index("--allowedTools") + 1], "WebSearch,WebFetch")
+        self.assertNotIn("--disallowedTools", argv)
         self.assertEqual(self.stdin_capture.read_text(encoding="utf-8"), "research primary sources")
         self.assertIs(json.loads(self.state.read_text(encoding="utf-8"))["network"], True)
         self.assertIs(json.loads(result.stdout)["network"], True)
@@ -2651,6 +2655,9 @@ class WorkerEffortDialTests(unittest.TestCase):
         argv = json.loads(self.arguments.read_text(encoding="utf-8"))
         self.assertEqual(argv[argv.index("--effort") + 1], "high")
         self.assertNotIn("--allowedTools", argv)
+        self.assertEqual(
+            argv[argv.index("--disallowedTools") + 1], "WebSearch,WebFetch"
+        )
         payload = json.loads(result.stdout)
         self.assertEqual(payload["effort"], "high")
         self.assertIs(payload["network"], False)
@@ -2675,6 +2682,7 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         argv = json.loads(self.arguments.read_text(encoding="utf-8"))
         self.assertEqual(argv[argv.index("--allowedTools") + 1], "WebSearch,WebFetch")
+        self.assertNotIn("--disallowedTools", argv)
         self.assertEqual(self.stdin_capture.read_text(encoding="utf-8"), "continue the research")
         self.assertIs(json.loads(result.stdout)["network"], True)
 
@@ -2703,6 +2711,7 @@ class WorkerEffortDialTests(unittest.TestCase):
                     [
                         "-p", "--model", "sonnet", "--effort", "medium",
                         "--permission-mode", "dontAsk", "--settings", argv[argv.index("--settings") + 1],
+                        "--disallowedTools", "WebSearch,WebFetch",
                         "--session-id", argv[argv.index("--session-id") + 1],
                         "--output-format", "json",
                     ],
