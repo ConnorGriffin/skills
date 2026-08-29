@@ -131,9 +131,35 @@ file now needs an owner for its deletion, or it needs to not be in the worktree.
   unsatisfiable against step 4c's spec delta and step 5's behavior test, which must
   both carry the clause text.
 
+## Round 4 — Q4 settled, order rewritten clean
+
+- Q4 settled: A, made deterministic (`inline`). The durable order is deleted by the
+  teardown steps themselves, not after a successful dispatch. Teardown is the exact
+  path that fails today, so putting the delete there covers a dead coordinator, an
+  abandoned worker, and a crashed dispatch alike; a delete on the happy path would
+  not. One fact, one implementation: there is no second delete on the collect-result
+  path.
+- The three teardown sites, all already existing: chunk teardown
+  (`skills/drivers/ticket/references/coordinator-mode.md` step 5), ticket teardown
+  (`skills/drivers/ticket/verbs/finalize.md` step 4), and the stale-worktree respin
+  (`skills/drivers/ticket/verbs/revise.md` step 2, which stops when
+  `status --short` is non-empty). The delete precedes `git worktree remove` and that
+  cleanliness check.
+- Measured (`inline`): deleting the file unblocks teardown (`git worktree remove`
+  exits 0). An *ignored* `ORDER.md` also does not block teardown and is invisible to
+  `status --short`, but that route was rejected: it would require a committed
+  `.gitignore` entry in every consuming repo, and it would hide the file from the
+  pre-merge diff read that is the never-committed rule's only enforcement.
+- Consequence accepted (`inline`): the allowlist grows to six skill pages, adding
+  `verbs/finalize.md` and `verbs/revise.md`. Larger than the change first looked,
+  and each page is evidenced rather than speculative.
+- Settled (`inline`): a delegated `start`, `triage`, or `revise` worker is an
+  ordinary adapter-dispatched write-mode worker and gets an `ORDER.md`. Only a flat
+  fence executed directly by the `/ticket start` session does not.
+
 ## Open questions
 
-- Q4. Who deletes the durable order, and when. Blocks redrafting.
+_None. Frontier empty; the order is redrafted clean and goes to a final panel._
 
 ## Spawned tasks
 
