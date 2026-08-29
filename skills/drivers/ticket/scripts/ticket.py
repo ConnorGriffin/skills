@@ -16,10 +16,13 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tarfile
+import tempfile
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Iterator, Optional
 
 PROJECTS_DIR = Path(
@@ -60,6 +63,14 @@ FLOOR_PEAK = 120_000
 
 class TelemetryError(RuntimeError):
     """A safe, user-facing telemetry failure."""
+
+
+class OpenSpecPreflightError(RuntimeError):
+    """A safe, user-facing failure while proving an OpenSpec change applies."""
+
+    def __init__(self, message: str, exit_status: int = 1) -> None:
+        super().__init__(message)
+        self.exit_status = exit_status
 
 
 def validate_ticket_id(value: str) -> str:
@@ -644,6 +655,173 @@ def command_claim(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def command_preflight_openspec(arguments: argparse.Namespace) -> int:
+    """Prove the one changed active OpenSpec change applies without mutating either tree."""
+    repo = arguments.repo.expanduser().resolve()
+    source = repo / "openspec"
+    if not source.is_dir():
+        raise OpenSpecPreflightError(f"OpenSpec root not found: {source}", 2)
+
+    try:
+        resolved = subprocess.run(
+            [
+                "git",
+                "rev-parse",
+                "--verify",
+                "--end-of-options",
+                f"{arguments.base_ref}^{{commit}}",
+            ],
+            cwd=repo,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as error:
+        raise OpenSpecPreflightError(f"could not resolve base ref: {error}", 2) from error
+    if resolved.returncode or not resolved.stdout.strip():
+        raise OpenSpecPreflightError(
+            f"base ref does not resolve to a local commit: {arguments.base_ref}", 2
+        )
+    base_commit = resolved.stdout.strip()
+
+    try:
+        merged = subprocess.run(
+            ["git", "merge-base", "HEAD", base_commit],
+            cwd=repo,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        changed_paths = subprocess.run(
+            ["git", "diff", "--name-only", merged.stdout.strip(), "--", "openspec/changes"],
+            cwd=repo,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as error:
+        raise OpenSpecPreflightError(f"could not discover changed OpenSpec changes: {error}") from error
+    if merged.returncode or not merged.stdout.strip() or changed_paths.returncode:
+        raise OpenSpecPreflightError("could not discover changed OpenSpec changes")
+
+    changes: set[str] = set()
+    for line in changed_paths.stdout.splitlines():
+        parts = PurePosixPath(line).parts
+        active = source / "changes" / parts[2] if len(parts) >= 3 else None
+        if (
+            active is not None
+            and parts[:2] == ("openspec", "changes")
+            and parts[2] != "archive"
+            and active.is_dir()
+        ):
+            changes.add(parts[2])
+    if not changes:
+        print("ticket: no changed active OpenSpec change")
+        return 0
+    if len(changes) > 1:
+        raise OpenSpecPreflightError(
+            "more than one changed active OpenSpec change: " + ", ".join(sorted(changes)), 2
+        )
+    change = next(iter(changes))
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="ticket-openspec-preflight-") as temporary:
+            root = Path(temporary)
+            bundle_path = root / "openspec.tar"
+            exported = subprocess.run(
+                [
+                    "git",
+                    "archive",
+                    "--format=tar",
+                    f"--output={bundle_path}",
+                    base_commit,
+                    "openspec",
+                ],
+                cwd=repo,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            if exported.returncode:
+                raise OpenSpecPreflightError("could not export the base OpenSpec tree")
+            try:
+                with tarfile.open(bundle_path) as bundle:
+                    for member in bundle.getmembers():
+                        destination = root / member.name
+                        try:
+                            destination.resolve().relative_to(root.resolve())
+                        except ValueError as error:
+                            raise OpenSpecPreflightError("could not export the base OpenSpec tree") from error
+                        if not (member.isdir() or member.isreg()):
+                            raise OpenSpecPreflightError("could not export the base OpenSpec tree")
+                        bundle.extract(member, root)
+            except (OSError, tarfile.TarError) as error:
+                raise OpenSpecPreflightError("could not export the base OpenSpec tree") from error
+
+            copied_change = source / "changes" / change
+            disposable_change = root / "openspec" / "changes" / change
+            if not (root / "openspec").is_dir() or not copied_change.is_dir():
+                raise OpenSpecPreflightError("could not overlay the active OpenSpec change", 2)
+            try:
+                if disposable_change.exists():
+                    shutil.rmtree(disposable_change)
+                shutil.copytree(copied_change, disposable_change, symlinks=True)
+            except OSError as error:
+                raise OpenSpecPreflightError("could not overlay the active OpenSpec change") from error
+
+            try:
+                result = subprocess.run(
+                    ["openspec", "archive", change, "--json", "--yes"],
+                    cwd=root,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+            except OSError as error:
+                raise OpenSpecPreflightError(f"could not launch OpenSpec archive: {error}") from error
+    except OSError as error:
+        raise OpenSpecPreflightError(f"could not prepare disposable OpenSpec tree: {error}") from error
+
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise OpenSpecPreflightError("OpenSpec archive returned invalid JSON") from error
+    if not isinstance(payload, dict):
+        raise OpenSpecPreflightError("OpenSpec archive JSON must be an object")
+    status = payload.get("status", [])
+    if not isinstance(status, list) or any(not isinstance(item, dict) for item in status):
+        raise OpenSpecPreflightError("OpenSpec archive status must be a list of objects")
+    errors = [item for item in status if item.get("severity") == "error"]
+    if errors:
+        spec_update_error = next(
+            (item for item in errors if item.get("code") == "archive_spec_update_failed"), None
+        )
+        if spec_update_error is not None:
+            message = spec_update_error.get("message")
+            unmatched = message if isinstance(message, str) and message else "OpenSpec archive preflight failed"
+            print(f"ticket: {unmatched}", file=sys.stderr)
+            print(
+                "ticket: if this requirement was renamed, add a `## RENAMED Requirements` "
+                "mapping from its current baseline header to the unmatched delta header; "
+                "otherwise correct the MODIFIED header.",
+                file=sys.stderr,
+            )
+            return result.returncode or 1
+        message = errors[0].get("message")
+        raise OpenSpecPreflightError(
+            message if isinstance(message, str) and message else "OpenSpec archive preflight failed",
+            result.returncode or 1,
+        )
+    archive = payload.get("archive")
+    if not isinstance(archive, dict):
+        raise OpenSpecPreflightError("OpenSpec archive result must be a non-null object")
+    if result.returncode:
+        raise OpenSpecPreflightError(f"OpenSpec archive exited with status {result.returncode}", result.returncode)
+
+    print(f"ticket: OpenSpec change {change} applies cleanly in a disposable copy")
+    return 0
+
+
 def add_common_flags(target: argparse.ArgumentParser) -> None:
     target.add_argument("ticket_id", help="ticket id, exactly as the tracker names it")
 
@@ -720,6 +898,18 @@ def parse_arguments() -> argparse.Namespace:
     )
     record_parser.set_defaults(handler=command_record)
 
+    preflight_openspec_parser = subparsers.add_parser(
+        "preflight-openspec",
+        help="prove the changed active OpenSpec change applies without mutating its source",
+    )
+    preflight_openspec_parser.add_argument(
+        "--repo", type=Path, required=True, help="ticket worktree containing the OpenSpec change"
+    )
+    preflight_openspec_parser.add_argument(
+        "--base-ref", required=True, help="local Git ref naming the base OpenSpec tree"
+    )
+    preflight_openspec_parser.set_defaults(handler=command_preflight_openspec)
+
     return parser.parse_args()
 
 
@@ -730,6 +920,9 @@ def main() -> int:
     except TelemetryError as error:
         print(f"ticket: {error}", file=sys.stderr)
         return 1
+    except OpenSpecPreflightError as error:
+        print(f"ticket: {error}", file=sys.stderr)
+        return error.exit_status
 
 
 if __name__ == "__main__":
