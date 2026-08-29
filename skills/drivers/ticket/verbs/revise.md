@@ -18,8 +18,9 @@ chunked: the chunks merged long ago and the pull request is one diff.
    request's `headRefName`. Match: work there. Mismatch: the worktree belongs to a
    different round or ticket state, so remove it if clean (run
    `<cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <path>` while the checkout
-   still exists, then `git -C <control checkout> worktree remove <path>`, reporting
-   and stopping if `git -C <worktree> status --short` is non-empty, never forcing)
+   still exists, then `rm -f <path>/ORDER.md`, reporting and stopping if
+   `git -C <worktree> status --short` is non-empty, then
+   `git -C <control checkout> worktree remove <path>`, never forcing)
    and respin fresh. No worktree at all: same respin.
 
    ```sh

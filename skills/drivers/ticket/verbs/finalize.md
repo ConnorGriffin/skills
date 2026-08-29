@@ -136,6 +136,7 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
 
    ```sh
    <cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <worktree path>
+   rm -f <worktree path>/ORDER.md
    git -C <control checkout> worktree remove <worktree path>
    git -C <control checkout> branch -D <ticket branch>
    git -C <control checkout> worktree prune
