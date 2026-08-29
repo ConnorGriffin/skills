@@ -5036,6 +5036,25 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         ),
     }
 
+    DISPATCH_STEPS = {
+        "triage": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "triage.md",
+        "start": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "start.md",
+        "revise": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "revise.md",
+        "chunked": ROOT
+        / "skills"
+        / "drivers"
+        / "ticket"
+        / "references"
+        / "coordinator-mode.md",
+    }
+    DISPATCH_GRANT = "The literal invocation already granted this dispatch's transfer"
+    SAFE_FIXTURE_QUALIFIERS = (
+        "safe-fixture ui fidelity evidence",
+        "ui fidelity evidence rendered from manufactured or synthetic fixtures "
+        "(tracked in the repository or not, never real user, production, or "
+        "patient data)",
+    )
+
     @staticmethod
     def text(path: Path) -> str:
         return path.read_text(encoding="utf-8")
@@ -5059,12 +5078,17 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         body = source.split(anchor, 1)[1]
         return body.split("\n\n## ", 1)[0]
 
-    def assert_material_boundary(self, text: str, destination: str) -> None:
+    def dispatch_statement(self, source: str) -> str:
+        self.assertIn(self.DISPATCH_GRANT, source)
+        tail = source.split(self.DISPATCH_GRANT, 1)[1].split("\n\n", 1)[0]
+        return self.DISPATCH_GRANT + tail
+
+    def assert_payload_boundary(self, text: str) -> None:
         compact = self.compact(text)
         for term in (
             "work order or task prompt",
-            "repository code and documentation",
-            destination,
+            "repository code, documentation, and",
+            "ui fidelity evidence",
             "credentials",
             "secrets",
             "patient data",
@@ -5077,6 +5101,15 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
             "credentials, secrets, patient data, `.env`, and real database contents are excluded",
             compact,
         )
+        self.assertTrue(
+            any(qualifier in compact for qualifier in self.SAFE_FIXTURE_QUALIFIERS),
+            "payload names UI fidelity evidence without bounding it to safe fixtures",
+        )
+
+    def assert_material_boundary(self, text: str, destination: str) -> None:
+        self.assert_payload_boundary(text)
+        with self.subTest(term=destination):
+            self.assertIn(destination.lower(), self.compact(text))
 
     def assert_cross_parent_boundary(self, text: str) -> None:
         self.assert_material_boundary(text, "OpenAI's Codex model service")
@@ -5084,6 +5117,15 @@ class WorkerEgressConsentContractTests(unittest.TestCase):
         self.assertIn("anthropic's claude model service", compact)
         self.assertIn("codex ui parent", compact)
         self.assertIn("claude code parent", compact)
+
+    def test_coordinator_dispatch_steps_restate_the_granted_payload(self):
+        for name, path in self.DISPATCH_STEPS.items():
+            with self.subTest(step=name):
+                statement = self.dispatch_statement(self.text(path))
+                self.assert_payload_boundary(statement)
+                compact = self.compact(statement)
+                self.assertIn("literal invocation already granted", compact)
+                self.assertIn("does not re-ask", compact)
 
     def test_ticket_catalog_and_invocation_declare_bounded_consent(self):
         source = self.text(self.TICKET_SKILL)
@@ -5365,6 +5407,113 @@ class DelegationAuthorityContractTests(unittest.TestCase):
     def test_triage_points_to_ticket_authority_without_repeating_it(self):
         self.assertIn("ticket skill page's `## Delegation authority` section", self.TRIAGE)
         self.assertNotIn(self.AUTHORIZATION, self.TRIAGE)
+
+
+class DurableWorkerOrderContractTests(unittest.TestCase):
+    ORCHESTRATE = ROOT / "skills" / "drivers" / "orchestrate" / "SKILL.md"
+    COORDINATOR_MODE = (
+        ROOT / "skills" / "drivers" / "ticket" / "references" / "coordinator-mode.md"
+    )
+    DRAFTING = (
+        ROOT
+        / "skills"
+        / "drivers"
+        / "ticket"
+        / "references"
+        / "drafting-conventions.md"
+    )
+    FINALIZE = ROOT / "skills" / "drivers" / "ticket" / "verbs" / "finalize.md"
+    REVISE = ROOT / "skills" / "drivers" / "ticket" / "verbs" / "revise.md"
+    TEMPLATE = ROOT / "skills" / "drivers" / "ticket" / "templates" / "work-order.md"
+
+    @staticmethod
+    def compact(text: str) -> str:
+        return " ".join(text.split()).lower()
+
+    @staticmethod
+    def section(path: Path, heading: str) -> str:
+        source = path.read_text(encoding="utf-8")
+        anchor = f"{heading}\n\n"
+        assert anchor in source
+        return source.split(anchor, 1)[1].split("\n\n## ", 1)[0]
+
+    @staticmethod
+    def pointer_sentence(path: Path) -> str:
+        source = " ".join(path.read_text(encoding="utf-8").split())
+        return next(
+            sentence.strip()
+            for sentence in source.split(". ")
+            if "durable-order rule" in sentence.lower()
+        )
+
+    def test_write_mode_workers_keep_and_recover_their_closed_order(self):
+        home = self.compact(self.section(self.ORCHESTRATE, "## Collect child results"))
+        for term in (
+            "before starting a worker with `--sandbox workspace-write`",
+            "same complete prompt bytes to `order.md` at the root of that worker's own cwd",
+            "re-read `order.md` before each commit and again before declaring the work done",
+            "acceptance list as closed",
+            "proposes any further improvement rather than making it",
+            "chunk sub-order fence",
+            "every other write-mode dispatch the coordinator authors it",
+            "cannot find or read `order.md` stops and reports",
+            "writes the file again and resumes that same worker",
+            "every resume message to a write-mode worker",
+            "restate the order's constraints or point it back at `order.md`",
+            "worktree-local scaffolding",
+            "never committed to the branch and never pushed",
+            "read-mode workers get no `order.md`",
+            "reports the dispatch unavailable and does not start the worker",
+            "deletes `order.md` first",
+            "before `git worktree remove` and before any `status --short` cleanliness check",
+        ):
+            with self.subTest(home_term=term):
+                self.assertIn(term, home)
+
+        template = self.TEMPLATE.read_text(encoding="utf-8")
+        flat = template.split("## Flat\n", 1)[1].split("\n---\n\n## Chunked", 1)[0]
+        chunked = template.split("## Chunked\n", 1)[1]
+        chunked_header, sub_order = chunked.split("SUB-ORDER 1/<n>", 1)
+        flat = self.compact(flat)
+        chunked_header = self.compact(chunked_header)
+        sub_order = self.compact(sub_order)
+        standing_instruction = (
+            "re-read `order.md` before each commit and again before declaring the work done"
+        )
+        self.assertIn(standing_instruction, sub_order)
+        self.assertIn("`done when` is closed", sub_order)
+        self.assertIn("propose any further improvement rather than making it", sub_order)
+        self.assertIn("stop and report rather than continuing from memory", sub_order)
+        self.assertNotIn(standing_instruction, flat)
+        self.assertNotIn(standing_instruction, chunked_header)
+
+        for path in (self.COORDINATOR_MODE, self.DRAFTING):
+            with self.subTest(pointer=path):
+                pointer = self.pointer_sentence(path)
+                self.assertIn(
+                    "skills/drivers/orchestrate/skill.md", pointer.lower()
+                )
+                self.assertIn("## collect child results", pointer.lower())
+                self.assertNotIn("ORDER.md", pointer)
+                for clause in (
+                    "before each commit",
+                    "acceptance list",
+                    "context compaction",
+                    "never committed",
+                    "cannot find or read",
+                ):
+                    self.assertNotIn(clause, pointer.lower())
+
+        teardown_checks = (
+            (self.COORDINATOR_MODE, "<path>/ORDER.md", "worktree remove <path>"),
+            (self.FINALIZE, "<worktree path>/ORDER.md", "worktree remove <worktree path>"),
+            (self.REVISE, "<path>/ORDER.md", "status --short"),
+        )
+        for path, order_file, later_step in teardown_checks:
+            with self.subTest(teardown=path):
+                source = path.read_text(encoding="utf-8")
+                self.assertIn(order_file, source)
+                self.assertLess(source.index(order_file), source.index(later_step))
 
 
 class LiveProseContractTests(unittest.TestCase):

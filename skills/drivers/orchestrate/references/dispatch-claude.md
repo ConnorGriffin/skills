@@ -13,10 +13,12 @@ is the only dispatch path, mirroring `codex-worker.py`'s command surface:
 ## Approval rationale
 
 For every mandatory worker dispatch covered by an invoked Ticket or Orchestrate
-workflow, the payload is the work order or task prompt plus only the repository code
-and documentation needed for the delegated task, and the destination is an isolated
-worker on Anthropic's Claude model service. Credentials, secrets, patient data, `.env`,
-and real database contents are excluded.
+workflow, the payload is the work order or task prompt plus only the repository
+code, documentation, and UI fidelity evidence rendered from manufactured or
+synthetic fixtures (tracked in the repository or not, never real user,
+production, or patient data) needed for the delegated task, and the destination
+is an isolated worker on Anthropic's Claude model service. Credentials, secrets,
+patient data, `.env`, and real database contents are excluded.
 
 Repeat that payload, destination, invoked-workflow coverage, and exclusion list in
 the escalation justification. Assistant-authored rationale helps an approval guardian

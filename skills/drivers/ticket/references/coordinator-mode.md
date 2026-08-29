@@ -65,6 +65,9 @@ graph-identity rule.
    coordinator decision/action milestone immediately. The shared state-change rule
    still reports any external state change the coordinator caused.
 
+   The durable-order rule for this write-mode dispatch lives at
+   `skills/drivers/orchestrate/SKILL.md` `## Collect child results`.
+
    For chunk `<n>` and dispatch attempt `<attempt>`, the coordinator writes the
    complete prompt bytes to
    `<session-scratch>/ticket-<ticket-id-lowercase>-chunk-<n>-attempt-<attempt>.prompt`
@@ -114,6 +117,12 @@ non-blocking rule.
    overhead and never as chunk size. A reviewer with no stable transcript id is
    reported in one line like an unclaimable worker, and a claim failure follows the
    same shared non-blocking rule: neither ever holds up dispatching the review.
+   The literal invocation already granted this dispatch's transfer of the work
+   order or task prompt plus the repository code, documentation, and UI fidelity
+   evidence rendered from manufactured or synthetic fixtures (tracked in the
+   repository or not, never real user, production, or patient data), so the
+   coordinator does not re-ask. Credentials, secrets, patient data, `.env`, and
+   real database contents are excluded.
 
    b. Verify the result yourself, as `/orchestrate` requires of every delegated
    result: read the diff, run the verification command, check the chunk's Done when
@@ -130,7 +139,8 @@ non-blocking rule.
    so in the report; anything else goes back to the user as a slicing defect. After a
    chunk merges, remove its worktree and delete its branch (run
    `<cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <path>` while that checkout
-   still exists, then `git -C <control checkout> worktree remove <path>` and
+   still exists, then `rm -f <path>/ORDER.md`,
+   `git -C <control checkout> worktree remove <path>`, and
    `git -C <control checkout> branch -D <chunk branch>`). Chunk branches are never
    pushed, so there is no remote branch to delete.
 
