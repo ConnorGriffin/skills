@@ -4067,7 +4067,26 @@ class ValidatorRegressionTests(unittest.TestCase):
 
 
 class OpenSpecCiContractTests(unittest.TestCase):
+    AGENTS = ROOT / "AGENTS.md"
     WORKFLOW = ROOT / ".github" / "workflows" / "validate.yml"
+
+    def test_documented_and_primary_ci_unittest_selections_match(self):
+        agents = self.AGENTS.read_text(encoding="utf-8")
+        workflow = self.WORKFLOW.read_text(encoding="utf-8")
+
+        documented_command = re.search(r"^- Test: `([^`]+)`", agents, re.MULTILINE).group(1)
+        primary_ci_step = re.search(
+            r"^      - name: Run public-interface behavior tests\n"
+            r"(?P<body>.*?)(?=^      - name: )",
+            workflow,
+            re.MULTILINE | re.DOTALL,
+        ).group("body")
+
+        named_test_module = r"tests\.test_[A-Za-z0-9_]+"
+        self.assertSetEqual(
+            set(re.findall(named_test_module, documented_command)),
+            set(re.findall(named_test_module, primary_ci_step)),
+        )
 
     def test_ci_installs_the_pinned_openspec_cli(self):
         workflow = self.WORKFLOW.read_text(encoding="utf-8")
