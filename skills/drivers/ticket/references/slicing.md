@@ -17,7 +17,7 @@ Slice when **two or more** of these hold. One or zero: the order stays flat.
 | Split-path evidence | Acceptance requires proving the same behavior on more than one code path that a single run cannot both exercise — a platform or feature-flag branch, or a re-implementation in another language held identical by test — so each path costs its own harness |
 | Lockstep copies of one fact | One fact is obliged to appear in more than two encodings that no single tool checks together: a source of truth, a hand-maintained transcription, a fixture generator and the fixture it freezes, or one rule restated in separately installed artifacts that never see each other at run time |
 | Lifecycle-gated surface revision | A shipped user-facing surface must first lock its visual contract, then implement it and prove it through a browser evidence matrix; the lock, implementation, and evidence each consume the same ticket's context |
-| In-flight scope replacement | A new work order rejects implementation already on the ticket branch and must remove or reconcile it before building the replacement |
+| In-flight scope replacement | A new work order rejects a pull-request-sized implementation already on the ticket branch, and reconciling it and building the replacement are each projected at or above the 120k chunk floor |
 
 The traits are proxies for context load, not for effort. A long-but-uniform change
 (twenty near-identical grants in one target) fires nothing and stays flat, while a
@@ -52,6 +52,7 @@ the helper's `scan` command, not estimates.
 | 109 (harmonic) | Two admission bars for candidate I:C estimators (a synthetic truth/placebo generator with its entry bar, a stable-era replay harness) plus a live read-only calibration run against a real snapshot | multiple artifacts, live run | three serial chunks | 3 chunks; chunk workers peaked 162k and 138k, coordination peaked 299k |
 | 90 (skills) | A shared graph-identity interface, its ticket-workflow consumers, and the separately installed discovery policy, with argv and response shapes discovered by probing a live external CLI | multiple artifacts, lockstep copies | slice into two serial chunks: the ensure interface with its spiked contract tests, then the workflow pages and discovery policy that consume it | flat; peaked 243k in one session |
 | 79 (harmonic) | A server projection with identity and association semantics, a bounded registry/concurrency/cache-lifetime/HTTP contract, a shipped browser consumer, generated mirrors, and a closed recovery matrix run against an offline server | multiple artifacts, live run, lockstep copies | slice into four: projection core; registry/HTTP lifecycle; browser consumer; generated evidence and live replay | 2 chunks; server and surface chunks peaked 237k/242k, lifecycle peak 244k |
+| 239 (skills) | Reconcile a rejected prose-contract implementation with current main, then replace it across the shared ticket contract, triage consumer, and aggregate tests | in-flight scope replacement, lockstep copies | flat, one agent; reconciliation was a mechanical prelude below the chunk floor | 2 serial chunks; implementation workers peaked 55,447 to 116,486, all below the 120k floor |
 
 When a ticket's traits match an anchor row, take that row's shape. When it sits
 between rows, say which two and pick the more conservative one.
