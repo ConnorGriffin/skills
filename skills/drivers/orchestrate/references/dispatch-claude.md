@@ -36,6 +36,20 @@ findings and ordinary follow-ups; it restores the captured model, sandbox,
 effort, and canonical cwd rather than taking replacements — the same contract
 as codex-worker's resume.
 
+## Hosted source access
+
+`start --network` opts the worker into provider-hosted source retrieval. The
+adapter maps that capability to `--allowedTools WebSearch,WebFetch`; the default
+path enforces offline behavior with `--disallowedTools WebSearch,WebFetch`. The
+adapter persists the boolean in lifecycle state, replays it on `resume` without
+a replacement flag, and reports it in successful output. Omitting the option
+leaves hosted source tools explicitly denied and reports `network: false`;
+existing state without the field remains valid and resumes offline. This
+capability promises hosted web search and fetch only; shell-command networking,
+command egress,
+private-network access, credentials, and a wider filesystem sandbox are outside
+the contract.
+
 ## Prompt on stdin, not as an argument
 
 `claude-worker.py` writes the prompt to the worker's stdin and closes it,
@@ -109,7 +123,7 @@ is in scope.
 ## Output
 
 On success the adapter emits one public JSON object: `session_id`, `model`,
-`sandbox`, `cwd`, `effort`, `final_message` (the CLI's `result` field), and
+`sandbox`, `cwd`, `effort`, `network`, `final_message` (the CLI's `result` field), and
 `permission_denials` (whatever the CLI's JSON payload reported as denied, so
 the coordinator can see what the sandbox refused — an empty list when
 nothing was denied). `is_error: true` in the CLI's own JSON is treated as a

@@ -13,6 +13,18 @@ control checkout. Persist one state file per worker. Use `resume` with that
 state file for retry findings and ordinary follow-ups; it restores the captured
 model, sandbox, and canonical cwd rather than taking replacements.
 
+## Hosted source access
+
+`start --network` opts the worker into provider-hosted source retrieval. The
+adapter maps that capability to `-c web_search=live -c tools.web_search=true`,
+persists the boolean in lifecycle state, replays it on `resume` without a
+replacement flag, and reports it in successful output. Omitting the option
+keeps the provider argv offline and reports `network: false`; existing state
+without the field remains valid and resumes offline. This capability promises
+hosted web search and fetch only; shell-command networking, command egress,
+private-network access, credentials, and a wider filesystem sandbox are outside
+the contract.
+
 When the worker must judge rendered evidence, pass every evidence image as a
 repeated `--image /absolute/path/to/file` argument on `start`. A path mentioned
 only in the prompt is not an attachment. `resume` accepts the same repeated
