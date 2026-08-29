@@ -3,14 +3,16 @@
 ### Requirement: Epic dispatch remains human-operated
 
 An epic coordinator MUST maintain the active OpenSpec plan, record decisions,
-file bounded children, and write child work orders without dispatching workers,
-running ticket verbs, or opening pull requests. The operator MUST explicitly invoke
-each child ticket that proceeds to attended work.
+file bounded children, and write a draft order into each child issue without
+dispatching workers, running ticket verbs, posting the executable work-order lock,
+or opening pull requests. The operator MUST invoke ticket triage to ground and
+independently review the draft before it becomes the fenced lock, and MUST explicitly
+invoke each later child ticket phase that proceeds to attended work.
 
 #### Scenario: A child work order is ready
 
-- **WHEN** the epic has settled a child's decisions and written its bounded work order
-- **THEN** the coordinator stops for the operator instead of invoking the ticket or a worker adapter
+- **WHEN** the epic has settled a child's decisions and written its draft order in the issue
+- **THEN** the coordinator stops for the operator to invoke ticket triage instead of posting the lock or invoking a worker adapter
 
 ### Requirement: Epic slicing defaults to three or fewer children
 
@@ -26,8 +28,9 @@ or later child, the coordinator MUST record a justification in the active change
 ### Requirement: Epic planning artifacts ship with implementation
 
 An epic coordinator MUST NOT open a pull request containing only epic planning
-artifacts. Applicable proposal, design, tasks, and delta-spec updates MUST travel
-with an implementation pull request that realizes them.
+artifacts. When ticket triage requires a parent-plan amendment, it MUST commit that
+amendment in the child's ticket worktree and the resulting planning updates MUST
+travel with the implementation pull request that realizes them.
 
 #### Scenario: Planning changes are ready but implementation has not run
 
