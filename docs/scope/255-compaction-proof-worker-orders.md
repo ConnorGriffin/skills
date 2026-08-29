@@ -157,9 +157,38 @@ file now needs an owner for its deletion, or it needs to not be in the worktree.
   ordinary adapter-dispatched write-mode worker and gets an `ORDER.md`. Only a flat
   fence executed directly by the `/ticket start` session does not.
 
+## Round 5 — three-panel cap reached
+
+The final cold panel returned three blockers and two notes, all verified and all
+fixed. None reopened a decision; each was a precision defect in the contract's own
+wording, with a determinate correction:
+
+- `fence-less` and `write-mode`/`read-mode` appear nowhere else in the pack
+  (`grep -rn 'fence-less' skills/` returns nothing; `write-mode` hits only an
+  unrelated ADR filename). Clause 1a now defines both terms against the adapters'
+  real `--sandbox` values at first use.
+- The coverage hole that mattered: a delegated `start` worker's prompt carries a
+  flat work-order fence, so it was neither "a sub-order fence" nor "fence-less",
+  and neither producer of the standing instruction fired on the pack's most common
+  write-mode dispatch. Clause 1b now branches on "a chunk sub-order fence" versus
+  "every other write-mode dispatch".
+- A delegated `triage` or `revise` prompt has no `Done when` heading, so 1b now
+  says "the order's acceptance list"; only the sub-order fence boilerplate names
+  `Done when` literally.
+- Clause 1d bound resumes to `ORDER.md` for read-only reviewers, which 1f gives no
+  such file. Now scoped to write-mode workers.
+- Done-when bullet 1 forbade the very teardown edits bullet 3 mandates. Its
+  carve-out now names all four: the three teardown sites carry clause 1h
+  operationally, the fence boilerplate is the worker-facing instruction, and the
+  spec delta and test are the record and its evidence.
+
+Panel counts: 4 authoring blockers, then 2 injected, then 4 (2 injected), then 3.
+The three-panel cap is now spent. The final fixes carry no fresh cold pass, which
+is stated to the operator at approval rather than papered over.
+
 ## Open questions
 
-_None. Frontier empty; the order is redrafted clean and goes to a final panel._
+_None. The order awaits operator approval before posting._
 
 ## Spawned tasks
 
