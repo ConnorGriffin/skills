@@ -1,8 +1,9 @@
 # /ticket revise `<ticket-id>`
 
-Action one review round on the ticket's open pull request. Runs per round, in any
-session. Always a single agent, even when the order was chunked: the chunks merged
-long ago and the pull request is one diff.
+Action one review round on the ticket's open pull request. The session claims
+`--verb revise`; it may resume another revise round, but it must not reuse a session
+claimed by start or finalize. Always a single agent, even when the order was
+chunked: the chunks merged long ago and the pull request is one diff.
 
 ## Procedure
 

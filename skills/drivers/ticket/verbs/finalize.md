@@ -1,7 +1,8 @@
 # /ticket finalize `<ticket-id>`
 
 Close the loop after a human merged (or abandoned) the pull request. Nothing syncs
-the code host back to the tracker; this verb is that sync.
+the code host back to the tracker; this verb is that sync. Its fresh session claims
+`--verb finalize` and never reuses the session that ran start or revise.
 
 ## Procedure
 
@@ -81,19 +82,24 @@ the code host back to the tracker; this verb is that sync.
    has been deleted appears under `unreadable`: report it rather than treating it
    as a session that cost nothing.
 
-   **Roles decide what counts.** This verb's own session claims itself under the
-   shared rule's default, `--role coordinator`, like every session that drives a
-   ticket rather than building or reviewing one chunk of it. A chunked order's
+   **Role and lifecycle verb decide what counts.** This verb's own session claims
+   `--verb finalize --role coordinator`, like every session that drives a ticket
+   rather than building or reviewing one chunk of it. A chunked order's
    slice-size judgment comes from the peaks of the sessions claimed `--role
    worker` and from nothing else. The coordinator's own peak and the reviewers'
    are recorded beside them, as `coordinator_peak` and `reviewer_peak`; the former
    can separately return `coordination-degraded` when every chunk worker held, but
    neither can make a chunked order read as under-sliced: coordinating more chunks
-   costs the coordinator more, not less. A flat order is judged on its own
-   execution peak, with review-only sessions excluded there too. Claims written
-   before roles existed read back as `legacy` and are never guessed into a role,
-   which is why a chunked ticket claimed entirely under legacy claims returns
-   `coordinator-only`.
+   costs the coordinator more, not less. A flat order is judged only from measurable
+   non-reviewer sessions claimed `--verb start`; triage, revise, finalize, and
+   reviewer costs remain visible as overhead and never change that verdict. Claims
+   written before lifecycle verbs existed read back with verb `legacy` and are never
+   guessed into a phase. Attributable claims without measurable eligible start
+   evidence return `unmeasurable`, while no attributable claim remains `no-data`.
+   Because a transcript is the measurement unit, every lifecycle verb runs in its
+   own session; only same-verb resumes reuse a claim. Claims written before roles
+   existed also keep role `legacy`, which is why a chunked ticket claimed entirely
+   under legacy roles returns `coordinator-only`.
    `python3 <ticket-skill-directory>/scripts/ticket.py scan <ticket-id>` reports peak
    context per claimed session without recording anything, which is the way to look
    before committing a record.
@@ -112,8 +118,9 @@ the code host back to the tracker; this verb is that sync.
    mispredictions, and none drafts an amendment. `no-data` has two readings the
    report keeps apart: no session claimed the ticket, so it ran outside this
    machine's transcripts, or claims for another repository were excluded.
-   `unmeasurable` means this repository had claims but their transcripts or Codex
-   rollouts supplied no usable peak; say which reason the helper names.
+   `unmeasurable` means this repository had claims but no measurable eligible start
+   execution on a flat order, or their transcripts or Codex rollouts supplied no
+   usable peak; say which reason the helper names.
    `coordinator-only` means the ticket's cost was recorded but its chunk size was
    not measured, so say that plainly — the reason names how many worker claims
    existed and how many were readable, which is the difference between a forgotten

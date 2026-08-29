@@ -298,6 +298,7 @@ class TicketSkillContractTests(unittest.TestCase):
 
         self.assertIn("stable transcript id", accounting)
         for argument in (
+            "--verb start",
             "--role worker",
             "--session <id>",
             "--agent <agent>",
@@ -431,6 +432,7 @@ class TicketSkillContractTests(unittest.TestCase):
 
         for requirement in (
             "each unique implementation-worker session",
+            "`--verb start`",
             "`--role worker`",
             "`--session <id>`",
             "`--agent <agent>`",
@@ -446,6 +448,32 @@ class TicketSkillContractTests(unittest.TestCase):
         # The deferral this ticket closed: review-only sessions are claimed now.
         self.assertNotIn("Review-only sessions are not claimed", contract)
         self.assertNotIn("belongs to ticket 77", contract)
+
+    def test_workflow_claims_are_bound_to_one_lifecycle_verb_per_session(self):
+        shared = " ".join(
+            (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8").split()
+        )
+        start = " ".join(
+            (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8").split()
+        )
+        revise = " ".join(
+            (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8").split()
+        )
+        finalize = " ".join(
+            (TICKET_DIRECTORY / "verbs" / "finalize.md").read_text(encoding="utf-8").split()
+        )
+
+        self.assertIn("--verb <current verb>", shared)
+        for verb in ("triage", "start", "revise", "finalize"):
+            self.assertIn(f"`{verb}`", shared)
+        self.assertIn("same-verb resumes reuse the claim", shared)
+        self.assertIn("changing verbs requires a fresh session", shared)
+        self.assertIn("persisted and submitted verbs", shared)
+        self.assertIn("`--verb start --role coordinator`", start)
+        self.assertIn("`--verb revise`", revise)
+        self.assertIn("must not reuse a session claimed by start or finalize", revise)
+        self.assertIn("`--verb finalize`", finalize)
+        self.assertIn("never reuses the session that ran start or revise", finalize)
 
     def test_triage_requires_the_brief_quality_checklist(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
@@ -760,9 +788,11 @@ class TicketTelemetryTests(unittest.TestCase):
         session_id: str,
         agent: str = "claude",
         role: Optional[str] = None,
+        verb: str = "start",
     ):
         result = self.ticket(
             "claim", ticket_id, "--session", session_id, "--agent", agent,
+            "--verb", verb,
             *(("--role", role) if role else ()),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -775,10 +805,11 @@ class TicketTelemetryTests(unittest.TestCase):
         session_id: str,
         lines: list[str],
         role: Optional[str] = None,
+        verb: str = "start",
     ):
         """The ordinary case: a session ran the ticket, so it claimed it."""
         self.write_session(project, session_id, lines)
-        self.claim(ticket_id, session_id, role=role)
+        self.claim(ticket_id, session_id, role=role, verb=verb)
 
     def telemetry_records(self) -> list[dict]:
         if not self.telemetry.exists():
@@ -793,7 +824,7 @@ class TicketTelemetryTests(unittest.TestCase):
         environment = self.environment.copy()
         environment["CLAUDE_CODE_SESSION_ID"] = "session-1"
 
-        result = self.ticket("claim", "TICKET-1", environment=environment)
+        result = self.ticket("claim", "TICKET-1", "--verb", "start", environment=environment)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
@@ -804,7 +835,10 @@ class TicketTelemetryTests(unittest.TestCase):
     def test_claiming_the_same_session_twice_records_it_once(self):
         self.claim("TICKET-2", "session-1")
 
-        second = self.ticket("claim", "TICKET-2", "--session", "session-1", "--agent", "claude")
+        second = self.ticket(
+            "claim", "TICKET-2", "--session", "session-1", "--agent", "claude",
+            "--verb", "start",
+        )
 
         self.assertEqual(second.returncode, 0, second.stderr)
         self.assertTrue(json.loads(second.stdout)["already_claimed"])
@@ -824,6 +858,7 @@ class TicketTelemetryTests(unittest.TestCase):
 
         result = self.ticket(
             "claim", "TICKET-40", "--session", "session-1", "--agent", "claude",
+            "--verb", "start",
             environment=environment,
         )
 
@@ -836,7 +871,7 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertFalse((denied_root / "claims").exists())
 
     def test_claim_without_a_session_id_anywhere_says_how_to_supply_one(self):
-        result = self.ticket("claim", "TICKET-3")
+        result = self.ticket("claim", "TICKET-3", "--verb", "start")
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("CLAUDE_CODE_SESSION_ID", result.stderr)
@@ -925,6 +960,8 @@ class TicketTelemetryTests(unittest.TestCase):
             "claude",
             "--project",
             worker_project,
+            "--verb",
+            "start",
         )
         self.assertEqual(claim.returncode, 0, claim.stderr)
 
@@ -980,7 +1017,7 @@ class TicketTelemetryTests(unittest.TestCase):
         environment["CLAUDE_CODE_SESSION_ID"] = "claude-1"
         environment["CODEX_SESSION_ID"] = "codex-1"
 
-        result = self.ticket("claim", "TICKET-17", environment=environment)
+        result = self.ticket("claim", "TICKET-17", "--verb", "start", environment=environment)
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("--agent", result.stderr)
@@ -988,6 +1025,7 @@ class TicketTelemetryTests(unittest.TestCase):
 
         chosen = self.ticket(
             "claim", "TICKET-17", "--session", "codex-1", "--agent", "codex",
+            "--verb", "start",
             environment=environment,
         )
 
@@ -1001,7 +1039,10 @@ class TicketTelemetryTests(unittest.TestCase):
 
         for bad in ("*", "ses?ion-1", "../escape", "a[bc]"):
             with self.subTest(bad=bad):
-                result = self.ticket("claim", "TICKET-19", "--session", bad, "--agent", "claude")
+                result = self.ticket(
+                    "claim", "TICKET-19", "--session", bad, "--agent", "claude",
+                    "--verb", "start",
+                )
 
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("session id", result.stderr)
@@ -1059,6 +1100,41 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(json.loads(result.stdout)["verdict"], "ok")
         self.assertEqual(self.telemetry_records()[0]["verdict"], "ok")
 
+    def test_flat_verdict_uses_only_non_reviewer_start_execution(self):
+        self.worked(
+            "TICKET-38", "proj-a", "triage-1", [assistant_line(200_000)], verb="triage"
+        )
+        self.worked(
+            "TICKET-38", "proj-a", "start-1", [assistant_line(50_000)], verb="start"
+        )
+        self.worked(
+            "TICKET-38", "proj-a", "review-1", [assistant_line(260_000)],
+            role="reviewer", verb="start",
+        )
+        self.worked(
+            "TICKET-38", "proj-a", "revise-1", [assistant_line(230_000)], verb="revise"
+        )
+        self.worked(
+            "TICKET-38", "proj-a", "finalize-1", [assistant_line(240_000)], verb="finalize"
+        )
+
+        result = self.ticket(
+            "record", "TICKET-38", "--verb", "start", "--trait", "lockstep-copies",
+            "--depth", "full",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "ok")
+        self.assertIn("50,000", payload["reason"])
+        self.assertEqual(payload["peak_context"], 260_000)
+        self.assertEqual(
+            payload["verb_peaks"],
+            {"triage": 200_000, "start": 260_000, "revise": 230_000,
+             "finalize": 240_000, "legacy": 0},
+        )
+        self.assertEqual(self.telemetry_records()[0]["verb_peaks"], payload["verb_peaks"])
+
     def test_record_without_a_usable_peak_is_unmeasurable(self):
         # A rollout can name its session yet contain no token-count event. It
         # is not evidence that a flat order cost zero tokens.
@@ -1073,6 +1149,43 @@ class TicketTelemetryTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(payload["verdict"], "unmeasurable")
         self.assertIn("no usable context peak", payload["reason"])
+        self.assertEqual(self.telemetry_records(), [])
+
+    def test_flat_claims_without_measurable_start_execution_are_unmeasurable(self):
+        self.worked(
+            "TICKET-39A", "proj-a", "triage-only", [assistant_line(200_000)], verb="triage"
+        )
+        self.claim("TICKET-39B", "start-gone", verb="start")
+        self.write_codex_session("start-zero", [codex_meta_line("start-zero")])
+        self.claim("TICKET-39C", "start-zero", agent="codex", verb="start")
+        self.worked(
+            "TICKET-39D", "proj-a", "legacy-only", [assistant_line(220_000)], verb="triage"
+        )
+        claims = [json.loads(line) for line in self.claims.read_text(encoding="utf-8").splitlines()]
+        for claim in claims:
+            if claim["ticket_id"] == "TICKET-39D":
+                claim.pop("verb")
+        self.claims.write_text(
+            "\n".join(json.dumps(claim) for claim in claims) + "\n", encoding="utf-8"
+        )
+
+        cases = {
+            "TICKET-39A": "eligible non-reviewer start",
+            "TICKET-39B": "unreadable",
+            "TICKET-39C": "no usable context peak",
+            "TICKET-39D": "legacy",
+        }
+        for ticket_id, reason_fragment in cases.items():
+            with self.subTest(ticket_id=ticket_id):
+                result = self.ticket(
+                    "record", ticket_id, "--verb", "finalize", "--trait", "any",
+                    "--depth", "full",
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                payload = json.loads(result.stdout)
+                self.assertEqual(payload["verdict"], "unmeasurable")
+                self.assertIn(reason_fragment, payload["reason"])
+
         self.assertEqual(self.telemetry_records(), [])
 
     def test_missing_codex_rollout_is_unmeasurable_not_no_data(self):
@@ -1386,11 +1499,78 @@ class TicketTelemetryTests(unittest.TestCase):
 
         invented = self.ticket(
             "claim", "TICKET-33", "--session", "session-2", "--agent", "claude",
-            "--role", "supervisor",
+            "--role", "supervisor", "--verb", "start",
         )
 
         self.assertNotEqual(invented.returncode, 0)
         self.assertIn("--role", invented.stderr)
+
+    def test_claim_requires_a_closed_lifecycle_verb(self):
+        missing = self.ticket(
+            "claim", "TICKET-35", "--session", "session-1", "--agent", "claude"
+        )
+        invented = self.ticket(
+            "claim", "TICKET-35", "--session", "session-1", "--agent", "claude",
+            "--verb", "deploy",
+        )
+
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertIn("--verb", missing.stderr)
+        self.assertNotEqual(invented.returncode, 0)
+        self.assertIn("invalid choice", invented.stderr)
+        self.assertFalse(self.claims.exists())
+
+    def test_cross_verb_reclaim_keeps_and_prints_the_persisted_claim(self):
+        original = self.claim("TICKET-36", "session-1", verb="start")
+
+        result = self.ticket(
+            "claim", "TICKET-36", "--session", "session-1", "--agent", "claude",
+            "--verb", "revise",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verb"], "start")
+        self.assertEqual(payload["claimed_at"], original["claimed_at"])
+        self.assertTrue(payload["already_claimed"])
+        self.assertIn("persisted verb 'start'", result.stderr)
+        self.assertIn("submitted verb 'revise'", result.stderr)
+        lines = self.claims.read_text(encoding="utf-8").splitlines()
+        self.assertEqual(len([line for line in lines if line.strip()]), 1)
+
+    def test_scan_reports_session_verbs_and_fixed_peak_maxima(self):
+        self.worked(
+            "TICKET-37", "proj-a", "triage-1", [assistant_line(200_000)], verb="triage"
+        )
+        self.worked(
+            "TICKET-37", "proj-a", "start-1", [assistant_line(50_000)], verb="start"
+        )
+        self.worked(
+            "TICKET-37", "proj-a", "start-2", [assistant_line(70_000)], verb="start"
+        )
+        self.worked(
+            "TICKET-37", "proj-a", "legacy-1", [assistant_line(90_000)], verb="finalize"
+        )
+        claims = [json.loads(line) for line in self.claims.read_text(encoding="utf-8").splitlines()]
+        for claim in claims:
+            if claim["session_id"] == "legacy-1":
+                claim.pop("verb")
+        self.claims.write_text(
+            "\n".join(json.dumps(claim) for claim in claims) + "\n", encoding="utf-8"
+        )
+
+        result = self.ticket("scan", "TICKET-37")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(
+            payload["verb_peaks"],
+            {"triage": 200_000, "start": 70_000, "revise": 0, "finalize": 0, "legacy": 90_000},
+        )
+        self.assertEqual(
+            {session["session_id"]: session["verb"] for session in payload["sessions"]},
+            {"triage-1": "triage", "start-1": "start", "start-2": "start", "legacy-1": "legacy"},
+        )
 
     def test_record_write_denied_by_sandbox_reports_and_exits_zero(self):
         self.worked("TICKET-41", "proj-a", "session-1", [assistant_line(50_000)])
@@ -1528,11 +1708,13 @@ class TicketTelemetryTests(unittest.TestCase):
 
         claim_a = self.ticket(
             "claim", "TICKET-21", "--session", "session-a", "--agent", "claude",
+            "--verb", "start",
             "--project", str(repo_a),
         )
         self.assertEqual(claim_a.returncode, 0, claim_a.stderr)
         claim_b = self.ticket(
             "claim", "TICKET-21", "--session", "session-b", "--agent", "claude",
+            "--verb", "start",
             "--project", str(repo_b),
         )
         self.assertEqual(claim_b.returncode, 0, claim_b.stderr)
@@ -1562,6 +1744,7 @@ class TicketTelemetryTests(unittest.TestCase):
 
         claimed = self.ticket(
             "claim", "TICKET-129C", "--session", "target-session", "--agent", "claude",
+            "--verb", "start",
             "--project", str(repo_a),
         )
         self.assertEqual(claimed.returncode, 0, claimed.stderr)
@@ -1655,6 +1838,7 @@ class TicketTelemetryTests(unittest.TestCase):
 
         claimed = self.ticket(
             "claim", "TICKET-23", "--session", "session-ssh", "--agent", "claude",
+            "--verb", "start",
             "--project", str(ssh_checkout),
         )
         self.assertEqual(claimed.returncode, 0, claimed.stderr)
