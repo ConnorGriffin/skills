@@ -58,21 +58,6 @@ model dispatch.
   what the ticket actually cost in context, and tear the worktree down, so the
   slicing rubric is tuned against measured numbers rather than intuition.
 
-## Selected-ticket mutation boundary
-
-`/ticket triage` may mutate only this closed allowance: a local
-control-checkout remote-tracking-ref refresh needed to resolve and verify the
-selected ticket's base; the selected worktree and branch; an ordinary ticket's
-active change; the selected ticket's comment and status; this session's
-lifecycle claim and exact-worktree Codebase Memory index; and a required
-Epic-child parent-plan amendment carried by that child's implementation pull
-request. The local ref refresh creates no remote repository or tracker state.
-Everything outside this allowance is external. Allowed selected-ticket lifecycle
-work continues without ancillary approval. An external mutation remains stopped
-until triage discloses its exact external target and mutation and a subsequent
-operator response explicitly authorizes that previously disclosed target and
-exact mutation.
-
 ## The tracker contract
 
 Every tracker interaction goes through four operations: read a ticket, post a
