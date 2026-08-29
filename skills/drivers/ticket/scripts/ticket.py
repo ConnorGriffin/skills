@@ -25,12 +25,6 @@ from typing import Iterator, Optional
 PROJECTS_DIR = Path(
     os.environ.get("CLAUDE_PROJECTS_DIR", str(Path.home() / ".claude" / "projects"))
 ).expanduser()
-TELEMETRY_PATH = Path(
-    os.environ.get(
-        "TICKET_TELEMETRY",
-        str(Path.home() / ".config" / "ticket" / "telemetry.jsonl"),
-    )
-).expanduser()
 CLAIMS_PATH = Path(
     os.environ.get(
         "TICKET_CLAIMS",
@@ -569,14 +563,6 @@ def report_write_denial(path: Path, error: OSError) -> None:
     )
 
 
-def append_record(record: dict) -> Path:
-    TELEMETRY_PATH.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    with TELEMETRY_PATH.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record) + "\n")
-    TELEMETRY_PATH.chmod(0o600)
-    return TELEMETRY_PATH
-
-
 def command_scan(arguments: argparse.Namespace) -> int:
     ticket_id = validate_ticket_id(arguments.ticket_id)
     current_repo = resolve_repo(Path(arguments.project) if arguments.project else Path.cwd())
@@ -618,11 +604,6 @@ def command_record(arguments: argparse.Namespace) -> int:
         "reason": reason,
         "recorded_at": datetime.now(timezone.utc).isoformat(),
     }
-    if call not in ("no-data", "unmeasurable"):
-        try:
-            append_record(record)
-        except OSError as error:
-            report_write_denial(TELEMETRY_PATH, error)
     print(json.dumps(record, indent=2))
     return 0
 
