@@ -44,11 +44,14 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    ```sh
    python3 <ticket-skill-directory>/scripts/ticket.py record <ticket-id> \
      --verb <verb that ran, repeated> \
-     --trait <trait that fired, repeated> \
+     [--trait <trait that fired, repeated>] \
      --depth <stamped depth> \
      [--chunked --chunks <n>] \
      [--project <target-worktree>]
    ```
+
+   Omit `--trait` when no slicing trait fired. Never invent a sentinel trait;
+   repeat the flag only for traits the work order says fired.
 
    When the ticket ran outside the coordinator's own checkout, pass its target
    worktree through `--project` on both `record` and any preceding `scan`:

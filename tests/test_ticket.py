@@ -1129,6 +1129,26 @@ class TicketTelemetryTests(unittest.TestCase):
         self.assertEqual(record["verdict"], "under-sliced")
         self.assertIn("recorded_at", record)
 
+    def test_record_without_traits_emits_an_empty_trait_list(self):
+        result = self.ticket(
+            "record", "TICKET-264", "--verb", "start", "--depth", "targeted"
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["traits"], [])
+
+    def test_record_preserves_multiple_traits_in_supplied_order(self):
+        result = self.ticket(
+            "record", "TICKET-264", "--verb", "start",
+            "--trait", "wide-scope", "--trait", "shared-contract",
+            "--depth", "targeted",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            json.loads(result.stdout)["traits"], ["wide-scope", "shared-contract"]
+        )
+
     def test_record_flat_order_below_band_is_ok(self):
         self.worked("TICKET-8", "proj-a", "session-1", [assistant_line(50_000)])
 

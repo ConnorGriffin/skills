@@ -710,8 +710,8 @@ def parse_arguments() -> argparse.Namespace:
     record_parser.add_argument(
         "--trait",
         action="append",
-        required=True,
-        help="slicing rubric trait that fired; repeatable",
+        default=[],
+        help="slicing rubric trait that fired; repeatable; omit when none fired",
     )
     record_parser.add_argument("--depth", required=True, help="review depth that was stamped")
     record_parser.add_argument("--chunked", action="store_true", help="the order was chunked")
