@@ -26,6 +26,11 @@ pull request for the planning branch.
 - **WHEN** the epic has finished the child's draft order
 - **THEN** the draft identifies the pushed parent-plan branch name without an `origin/` prefix and the full commit it must still resolve to
 
+#### Scenario: A child carries a parent-plan amendment
+
+- **WHEN** child triage commits a required parent-plan amendment in that child's worktree
+- **THEN** the epic refuses every later child handoff until the amendment-bearing implementation pull request is human-merged and the planning branch advances from the updated remote default branch
+
 ### Requirement: Epic slicing defaults to three or fewer children
 
 An epic MUST default to no more than three child tickets. Before creating a fourth

@@ -37,3 +37,8 @@ authority and archive owner.
 
 - **WHEN** the child's implementation is ready after triage amended the parent plan
 - **THEN** the pull request includes that parent-plan amendment with the implementation and leaves the active change unarchived
+
+#### Scenario: Another child is ready while a parent-plan amendment is unmerged
+
+- **WHEN** a prior child pull request carries a parent-plan amendment and is not yet human-merged
+- **THEN** the epic refuses the later child handoff rather than pinning a plan that omits the amendment

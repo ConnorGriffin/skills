@@ -39,11 +39,12 @@ existing `--base` input. A mismatch means the child draft is stale: triage posts
 nothing and returns to the attended epic session for a refreshed draft. No new
 parser or worktree helper interface is required.
 
-The first merged implementation makes the parent active change visible on the
-default branch. Before a later child starts, the epic planning branch incorporates
-the latest default-branch tip, records any next planning update, and pins a new
-commit. Parent-plan edits therefore serialize at the handoff boundary even when
-child implementations whose pinned plans do not conflict can otherwise overlap.
+When child triage commits a parent-plan amendment, the epic refuses to hand off any
+later child until the amendment-bearing implementation pull request is human-merged.
+It then advances the epic planning branch from the updated remote default-branch tip,
+records any next planning update, and pins a new commit. Parent-plan amendments
+therefore serialize at the merge boundary; children whose locked work requires no
+parent-plan amendment may otherwise overlap when their expected diffs do not conflict.
 
 ## ADR 241 — Prefer three or fewer independently shippable children
 
