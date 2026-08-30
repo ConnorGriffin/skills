@@ -12,6 +12,16 @@ chunked: the chunks merged long ago and the pull request is one diff.
    `gh pr checks`. Pull request merged or closed: stop, and point at
    `/ticket finalize <ticket-id>` or the user.
 
+   Locate the newest order with the same contract operation `start` used. Under a
+   legacy `WORK ORDER`, nothing more to admit. Under an `EXECUTION LOCK`, `revise`
+   reuses the exact lock and pin that opened this pull request — it admits the
+   located order with the same recognized-version, grammar, commit-resolution,
+   branch-pin, change-state, selection-completeness, and unauthorized-amendment
+   rows [start](start.md) step 5 defines, and the same refusal: name the failing
+   row, stop, and route to `/ticket triage <ticket-id>`. `revise` never posts a
+   lock itself; a source amendment discovered here still requires a newer lock
+   before this round may act on it.
+
 2. **Worktree.** If the ticket's worktree still exists (verify with
    `git -C <control checkout> worktree list`), check it is on the pull request's
    head branch: `git -C <worktree> branch --show-current` must equal the pull
@@ -52,6 +62,13 @@ chunked: the chunks merged long ago and the pull request is one diff.
    [references/review-depth.md](../references/review-depth.md) governs that call,
    and the order's stamped depth (Full when any chunk was Full) sets how far to
    look. The order is still the contract.
+
+   Under an `EXECUTION LOCK`, a review item is an ordinary fix only when it stays
+   inside the located lock's `Selected tasks:` and `Acceptance anchors:`. An item
+   that asks to touch the pinned source outside that selection is scope
+   expansion: refuse it here rather than folding it in, name it in the round's
+   status comment, and say it needs a newer lock from `/ticket triage
+   <ticket-id>` before any round may act on it.
 
 6. **Refresh mergeability.** Before handing the pull request back for human merge,
    `git fetch origin`, refresh `baseRefName` and `mergeStateStatus` with `gh pr

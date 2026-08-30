@@ -2725,5 +2725,151 @@ class TicketLiveProseContractTests(unittest.TestCase):
         self.assertEqual(chunked_header_fence.count("Session fit:"), 0)
 
 
+class TicketExecutionLockAdmissionTests(unittest.TestCase):
+    """The fail-closed matrix `start` (and `revise`, by reuse) enforce before any
+    implementation or worker dispatch. One subTest per refusal row, each pinning
+    that row's own prose so a future edit cannot silently drop or reword a
+    refusal without failing here."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")
+        cls.revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")
+        cls.skill = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+        cls.contract = (TICKET_DIRECTORY / "references" / "tracker-contract.md").read_text(
+            encoding="utf-8"
+        )
+        cls.start_norm = " ".join(cls.start.split())
+        cls.revise_norm = " ".join(cls.revise.split())
+        cls.skill_norm = " ".join(cls.skill.split())
+        cls.contract_norm = " ".join(cls.contract.split())
+        cls.sufficiency_norm = " ".join(
+            cls.start.split("5. **Sufficiency check.**", 1)[1]
+            .split("6. **Chunked order: switch to coordinator mode.**", 1)[0]
+            .split()
+        )
+
+    def test_missing_lock_refuses_and_routes_to_triage(self):
+        self.assertIn(
+            'say "no work order on `<ticket-id>`; run /ticket triage `<ticket-id>`", and stop.',
+            self.start_norm,
+        )
+
+    def test_bad_version_or_source_mode_refuses(self):
+        self.assertIn(
+            "An unrecognized `EXECUTION LOCK` version, or a `Source:` mode this protocol does not define, refuses execution",
+            self.sufficiency_norm,
+        )
+        self.assertIn("bad version or mode", self.sufficiency_norm)
+
+    def test_short_or_unresolvable_oid_refuses(self):
+        self.assertIn("a short or unresolvable OID refuses", self.sufficiency_norm)
+        self.assertIn("git cat-file -e", self.sufficiency_norm)
+
+    def test_missing_source_path_refuses(self):
+        self.assertIn("an empty result is a missing path and refuses", self.sufficiency_norm)
+        self.assertIn("git ls-tree", self.sufficiency_norm)
+
+    def test_archived_change_refuses(self):
+        self.assertIn("not archived); an archived change refuses", self.sufficiency_norm)
+
+    def test_invalid_change_refuses(self):
+        self.assertIn(
+            "a change that fails strict validation refuses: invalid change.",
+            self.sufficiency_norm,
+        )
+        self.assertIn("openspec validate <change> --strict", self.sufficiency_norm)
+
+    def test_absent_acceptance_anchors_refuse(self):
+        self.assertIn("absent anchors", self.sufficiency_norm)
+        self.assertIn("An empty selection refuses the same way.", self.sufficiency_norm)
+
+    def test_branch_missing_the_pin_refuses_and_never_substitutes_head(self):
+        self.assertIn("branch missing the pin", self.sufficiency_norm)
+        self.assertIn(
+            "Never substitute the branch head for the pin, even when the head is newer.",
+            self.sufficiency_norm,
+        )
+
+    def test_amended_source_without_a_newer_lock_refuses(self):
+        self.assertIn(
+            "refuse: the amendment is unauthorized until a newer lock pins it.",
+            self.sufficiency_norm,
+        )
+        self.assertIn("git log --oneline <oid>..<ticket-branch-head>", self.sufficiency_norm)
+
+    def test_every_row_shares_one_refusal_route(self):
+        # Each row above fails distinctly, but they all land on the same route:
+        # named, reported, and re-triaged, never a silent substitution.
+        self.assertIn(
+            "name the row, report it, and route to `/ticket triage <ticket-id>`",
+            self.sufficiency_norm,
+        )
+        self.assertIn("admission never merges", self.sufficiency_norm)
+
+    def test_legacy_work_order_keeps_its_sufficiency_rules_with_no_inferred_pin(self):
+        for source in (self.start_norm, self.skill_norm):
+            self.assertIn("no inferred pin, forever", source)
+        self.assertIn("drifted", self.start_norm)
+        self.assertIn("re-triage, not improvisation", self.start_norm)
+
+    def test_newest_wins_across_mixed_legacy_and_v2_lock_comments(self):
+        self.assertIn(
+            "Newest wins across both protocols by comment time, regardless of which protocol is newer; "
+            "older orders of either protocol are superseded, never merged, and no field is "
+            "ever merged from an older comment into a newer one, protocol boundary or not.",
+            self.contract_norm,
+        )
+        self.assertIn(
+            "newest comment wins by post time across both protocols, and no field is ever merged "
+            "from an older comment into a newer one",
+            self.skill_norm,
+        )
+
+    def test_revise_reuses_the_same_lock_and_pin_start_admitted(self):
+        self.assertIn(
+            "`revise` reuses the exact lock and pin that opened this pull request",
+            self.revise_norm,
+        )
+        self.assertIn("revise` never posts a lock itself", self.revise_norm)
+
+    def test_revise_refuses_source_scope_expansion_without_a_newer_lock(self):
+        self.assertIn(
+            "An item that asks to touch the pinned source outside that selection is scope "
+            "expansion: refuse it here",
+            self.revise_norm,
+        )
+
+    def test_admission_precedes_implementation_and_coordinator_dispatch(self):
+        implement = self.start.index("8. **Implement.**")
+        coordinator_switch = self.start.index(
+            "6. **Chunked order: switch to coordinator mode.**"
+        )
+        sufficiency = self.start.index("5. **Sufficiency check.**")
+        self.assertLess(sufficiency, coordinator_switch)
+        self.assertLess(coordinator_switch, implement)
+        self.assertIn(
+            "before any implementation or worker dispatch, including the coordinator-mode switch in step 6.",
+            self.start_norm,
+        )
+
+    def test_inline_source_skips_only_the_pinned_commit_rows(self):
+        inline_carve_out = self.sufficiency_norm.split(
+            "`inline` sources carry no pinned commit:", 1
+        )[1].split(".", 1)[0]
+        for skipped in (
+            "commit resolution",
+            "branch pin",
+            "change state",
+            "selection completeness",
+            "unauthorized amendment",
+        ):
+            self.assertIn(skipped, inline_carve_out)
+        self.assertIn(
+            "Grammar, delivery fields, ownership, and model fit still apply.",
+            self.sufficiency_norm,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
