@@ -132,6 +132,38 @@ the shipping shell, under all of these constraints:
 Do not run `lock` on the wireframe, produce a lock manifest for it, or cite it as
 fidelity evidence. A wireframe is a conversation aid, not a second surface.
 
+### Running the rounds
+
+Interactive divergent work only. The headless rule above stands: a headless
+session never opens this phase, and a direction it cannot settle is returned as
+a decision rather than invented.
+
+The constraints above say what a wireframe is. These say how the conversation
+converges, so that iterating in the running app is never how direction gets
+settled:
+
+- **One question per round.** Each round narrows what the next may ask, and
+  nothing ruled reopens. A round that asks two questions gets an answer to
+  neither.
+- **Options differ in concept, not decoration** — five ways to site a control,
+  not five colors of one control. Render every option live under the coverage
+  §1 already requires, plus the element sizes the option itself varies, and give
+  each state its own specimen: a small tile at rest is not evidence about a
+  large one being held.
+- **Every option carries a stated cost, the recommended one included.** An
+  option offered as free is one whose cost has not been found yet, and it wins
+  the round on an omission.
+- **Measure the claim instead of asserting it, and own a wrong measurement out
+  loud.** A retracted number costs one round; an unretracted one is believed for
+  the rest of the change.
+- **The operator's eye outranks the measurement when the metric measures the
+  wrong thing.** An area-blind contrast ratio is a correct number answering a
+  question nobody asked. Say which of those is happening rather than arguing the
+  number.
+- **Build only after the direction is ruled.** That is what moves review from
+  "is this right", which the rounds settle, to "is this broken", which the app
+  branch and the frozen stories settle.
+
 When the decisions settle, lift them into the app branch or worktree and continue
 there. Re-run the behavior sweep against the base app immediately before the
 lift, so the branch starts from a fresh frozen contract.
@@ -162,12 +194,43 @@ is failure, never skip.
 - **Added:** add a STORY and replay function in the same change.
 - **Changed:** amend the STORY, record the dated decision under the frozen
   header, and prove the old replay fails before the new one passes.
-- **Retired:** require `sanction: <person> · <date> · "<their reason>"`, retain a
-  permanent RETIRED entry, and replace the positive replay with an absence
-  assertion that prints the sanction on every run.
+- **Retired:** the behavior owes what `behavior-sweep` requires of a retirement,
+  which that page enumerates in one place. Amend the ledger there, and carry the
+  entry back into this change with its replay function.
+- **Moved:** a behavior that changed which surface owns it owes the same
+  ceremony as a removal, and lands as an amended STORY rather than a retirement
+  — the behavior still ships, so it keeps its entry and its replay, and no
+  sanction is owed. Name the fact, the surface it left, the surface it landed
+  on, and update every story that reads it in the same change, so the next
+  revision's inventory finds it where it now lives instead of reading its
+  absence from the old surface as an unsanctioned retirement. A move is the case
+  that looks like nothing happened: the app is right, the behavior is intact,
+  and the stories still reading the old surface were not wrong when they were
+  written and nobody was told they had become wrong.
 
-A dropped or changed behavior without that record blocks the revision. There is
-no lock term to `resettle`; the ledger amendment is the decision record.
+A dropped, changed or moved behavior without that record blocks the revision.
+There is no lock term to `resettle`; the ledger amendment is the decision
+record.
+
+A move, a duplication or a rename also widens what the round owes outside the
+ledger, because each of them changes what an existing assertion means without
+changing its text:
+
+- **A second instance of an existing element under-specifies every selector that
+  names it.** Once a fact renders twice, a locator meaning "the element for this
+  item" matches both, and the locators do not all mean the same thing — some
+  meant the first instance, some the second, some "wherever this lives now",
+  readings that were indistinguishable while there was one copy. Re-read each
+  one's intent; find-and-replace picks a reading for you, silently, and breaks a
+  different set.
+- **A surface that can be conditionally absent invalidates every assertion using
+  it as a presence proxy.** Re-read them including the fallback paths that have
+  never executed: a dead branch in a replay driver is invisible until the day the
+  proxy starts failing, and it then runs against selectors the same change
+  deleted.
+- **A rename's blast radius is the repository, not the directory.** A name
+  outlives the fact it names, and a consumer outside the swept directory surfaces
+  as a type error inside a gate rather than anywhere near the edit.
 
 ## 5. Review and land
 
@@ -189,8 +252,12 @@ invent a lock manifest after the fact.
 Before landing, confirm:
 
 - every frozen story replayed against the built app;
-- every added or changed behavior is represented in the ledger;
-- every retirement has a dated, named, quoted sanction and a loud absence test;
+- for any round that moved a surface, the gates that replay those stories have
+  actually run, launched by whoever can launch them. An agent whose sandbox
+  cannot start a browser has no signal about the surface it just moved, and the
+  suites that do run there staying green is not one;
+- every added, changed or moved behavior is represented in the ledger;
+- every retirement carries everything `behavior-sweep` requires of one;
 - no wireframe or duplicated comparison route survives; and
 - the safe-start declaration and exact data source still match what produced the
   evidence.
