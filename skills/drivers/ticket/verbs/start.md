@@ -52,7 +52,7 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
 6. **Chunked order: switch to coordinator mode.** If the `Execution:` line says
    `chunked`, load `/orchestrate` now, then follow
    [references/coordinator-mode.md](../references/coordinator-mode.md) instead of
-   steps 8 through 11, and rejoin at step 12. Flat orders skip this and continue at
+   steps 8 through 12, and rejoin at step 13. Flat orders skip this and continue at
    step 7.
 
 7. **Read the standing decisions**, per the skill page's standing-decisions slot,
@@ -138,7 +138,22 @@ Before declaring the change ready, run each check below.
     preserves the parent-plan bytes with implementation in the pull request. After
     a human merge, `finalize` leaves the parent active for epic-owned archive.
 
-12. **Open the pull request.** `gh pr create` against the default branch. The body
+12. **Preflight the outbound OpenSpec change.** Only an ordinary OpenSpec-backed
+   ticket uses this gate. After implementation, review, and all active-change fixes
+   are complete, run `git fetch origin` immediately before the command, then run:
+
+   ```sh
+   python3 <ticket-skill-directory>/scripts/ticket.py preflight-openspec \
+     --repo <ticket-worktree> \
+     --base-ref refs/remotes/origin/HEAD
+   ```
+
+   The fetch refreshes the base that the command resolves locally. A ticket using
+   another or no change-record convention, or an epic child, bypasses this gate
+   unchanged. Fetch, ref, or preflight failure stops visibly; do not open the pull
+   request. Finalization remains the sole authoritative archive owner.
+
+13. **Open the pull request.** `gh pr create` against the default branch. The body
     follows an existing template when one exists, in this order: the repo's
     `.github/pull_request_template.md` (or its `PULL_REQUEST_TEMPLATE/` directory),
     then the organization default in the organization's `.github` repo. Keep the
@@ -163,7 +178,7 @@ Before declaring the change ready, run each check below.
     the built revision. Missing lifecycle evidence is a blocking gap, not a nit;
     `revise` never invents a lock manifest or fidelity ledger after the fact.
 
-13. **Stop.** Report the pull request URL, the verification evidence, review
+14. **Stop.** Report the pull request URL, the verification evidence, review
     findings fixed or carried, and anything from the order left undone and why. On a
     chunked order also report each chunk's outcome and tier. Do not merge, do not
     self-approve, and do not respond to reviews; that is `/ticket revise`.
