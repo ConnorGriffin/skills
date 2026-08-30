@@ -29,11 +29,13 @@ resolved base commit rather than the ticket branch's stale baseline catches an a
 that landed after branch cut without rebasing or mutating the ticket branch.
 Success requires process exit zero, a top-level JSON object with a non-null archive
 object, and no error-severity entry in an optional status list of objects.
-The generated-facts reproduction captures the complete OpenSpec 1.11.0 stdout,
-stderr, and exit status: exit 1, `archive: null`, and an error status whose code is
-`archive_spec_update_failed`. Parsing the JSON before branching on process status
-preserves the actionable mismatch diagnostic. Temporary-directory cleanup is
-automatic on success and every launch, export, overlay, CLI, or parse failure.
+The real semantic regression test captures the OpenSpec 1.11.0 validation result
+and asserts the public command's exact stdout, stderr, and exit status for the
+archive mismatch: exit 1, an unmatched-requirement diagnostic, and the ordered
+rename/header correction guidance derived from `archive_spec_update_failed` with a
+null archive. Parsing the JSON before branching on process status preserves that
+actionable mismatch diagnostic. Temporary-directory cleanup is automatic on
+success and every launch, export, overlay, CLI, or parse failure.
 
 For an ordinary OpenSpec-backed ticket, flat `start` and chunked coordinator mode
 fetch `origin` immediately before passing `refs/remotes/origin/HEAD`, whose merge
