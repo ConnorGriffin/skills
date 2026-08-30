@@ -13,6 +13,7 @@ session.
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import os
 import re
@@ -757,6 +758,11 @@ def command_preflight_openspec(arguments: argparse.Namespace) -> int:
                 raise OpenSpecPreflightError("could not export the base OpenSpec tree")
             try:
                 with tarfile.open(bundle_path) as bundle:
+                    extract_options = (
+                        {"filter": "data"}
+                        if "filter" in inspect.signature(bundle.extract).parameters
+                        else {}
+                    )
                     for member in bundle.getmembers():
                         destination = root / member.name
                         try:
@@ -765,7 +771,7 @@ def command_preflight_openspec(arguments: argparse.Namespace) -> int:
                             raise OpenSpecPreflightError("could not export the base OpenSpec tree") from error
                         if not (member.isdir() or member.isreg()):
                             raise OpenSpecPreflightError("could not export the base OpenSpec tree")
-                        bundle.extract(member, root)
+                        bundle.extract(member, root, **extract_options)
             except (OSError, tarfile.TarError) as error:
                 raise OpenSpecPreflightError("could not export the base OpenSpec tree") from error
 

@@ -1996,6 +1996,51 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         self.assertEqual((ticket_tree, base_tree), (self.tree(), self.tree("release-base")))
         self.assertEqual(self.git("status", "--short").stdout, "")
 
+    def test_filter_capable_tar_api_keeps_public_stderr_clean(self):
+        hooks = Path(self.temporary.name) / "filter-capable-tar"
+        hooks.mkdir()
+        (hooks / "sitecustomize.py").write_text(
+            "import tarfile, warnings\n"
+            "original_extract = tarfile.TarFile.extract\n"
+            "missing = object()\n"
+            "def extract(self, member, path='', set_attrs=True, *, "
+            "numeric_owner=False, filter=missing):\n"
+            "    if filter is missing:\n"
+            "        warnings.warn('default extraction filter used', DeprecationWarning)\n"
+            "    return original_extract(self, member, path, set_attrs, "
+            "numeric_owner=numeric_owner)\n"
+            "tarfile.TarFile.extract = extract\n",
+            encoding="utf-8",
+        )
+        self.environment["PYTHONPATH"] = str(hooks)
+        self.environment["PYTHONWARNINGS"] = "error::DeprecationWarning"
+
+        result = self.preflight()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+
+    def test_legacy_tar_api_keeps_public_stderr_clean(self):
+        hooks = Path(self.temporary.name) / "legacy-tar"
+        hooks.mkdir()
+        (hooks / "sitecustomize.py").write_text(
+            "import inspect, tarfile\n"
+            "original_extract = tarfile.TarFile.extract\n"
+            "options = ({'filter': 'data'} if "
+            "'filter' in inspect.signature(original_extract).parameters else {})\n"
+            "def extract(self, member, path='', set_attrs=True, *, numeric_owner=False):\n"
+            "    return original_extract(self, member, path, set_attrs, "
+            "numeric_owner=numeric_owner, **options)\n"
+            "tarfile.TarFile.extract = extract\n",
+            encoding="utf-8",
+        )
+        self.environment["PYTHONPATH"] = str(hooks)
+
+        result = self.preflight()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+
     def test_unresolved_and_option_shaped_bases_do_not_invoke_a_remote(self):
         calls = Path(self.temporary.name) / "git-calls"
         real_git = subprocess.run(["git", "--exec-path"], text=True, capture_output=True).returncode
