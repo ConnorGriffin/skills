@@ -24,8 +24,10 @@ authorized, session and model fit, execution shape and chunk ownership,
 verification, review depth, the expected diff, and the stop-at-pull-request
 ceiling. `<lock-id>` on the version line is a plain positive integer, unique within
 the ticket: 1 for that ticket's first lock, and one more than the highest
-`<lock-id>` already posted on it for every lock that supersedes a prior one,
-whichever protocol the prior lock used. It exists so a reader can tell two locks
+`<lock-id>` already posted on it for every lock that supersedes a prior one. A
+legacy `WORK ORDER` carries no `<lock-id>`, so it contributes no number to that
+maximum: the first lock superseding a legacy order is that ticket's first lock and
+reads 1. It exists so a reader can tell two locks
 on the same ticket apart; it plays no role in which comment is newest — that is
 comment post time, per [the tracker contract](../references/tracker-contract.md).
 The envelope has one grammar and three source modes:

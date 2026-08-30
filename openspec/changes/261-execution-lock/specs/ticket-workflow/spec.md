@@ -136,3 +136,48 @@ posted.
   --strict`
 - **THEN** triage resolves the validation failures before any commit or lock is
   made, and posts nothing in the meantime
+
+### Requirement: Fail-closed execution admission
+
+`start` MUST resolve and validate the located lock's pinned source before any
+implementation, coordinator-mode switch, or worker dispatch, and `revise` MUST
+repeat that admission every round against whatever lock is newest at that moment.
+An unrecognized envelope version or `Source:` mode, an abbreviated or
+unresolvable commit OID, a source path absent at the pinned tree, an archived or
+strictly invalid change, a selected task or acceptance anchor absent at the
+pinned commit, an empty selection, a ticket branch that does not contain the
+pinned commit, a missing `Verification:`, `Expectation:`, or `Expected diff`, or
+overlapping ownership between parallel chunks MUST each refuse execution by name
+and route to attended re-triage. No refusal may degrade to a warning, resolve a
+short OID, substitute the ticket branch head for the pinned commit, or fall back
+to an older comment. An edit to what the pinned source authorizes — its prose,
+its requirements and scenarios, the text of a task, or a task added or removed —
+MUST refuse until a newer lock pins the amended commit. Ticking or unticking a
+`tasks.md` checkbox MUST NOT refuse, because the executor is required to record
+completed work that way.
+
+#### Scenario: The pinned commit is not on the ticket branch
+
+- **WHEN** `start` admits a lock whose pinned commit the ticket branch does not
+  contain
+- **THEN** it refuses by name and routes to attended re-triage, rather than
+  substituting the branch head for the pin
+
+#### Scenario: The source was amended without a newer lock
+
+- **WHEN** the pinned source's requirements or task text changed after the lock
+  pinned its commit, and no newer lock names the later commit
+- **THEN** execution refuses as an unauthorized amendment
+
+#### Scenario: The executor records a completed task
+
+- **WHEN** the executor ticks a `tasks.md` checkbox in the pinned change as work
+  completes, and a later `revise` round re-runs admission
+- **THEN** that commit passes the amendment row and the round proceeds under the
+  same lock and pin
+
+#### Scenario: A lock omits its expected diff
+
+- **WHEN** the located lock carries no `Expected diff` allowlist
+- **THEN** admission refuses, since nothing would bound what the executor may
+  touch

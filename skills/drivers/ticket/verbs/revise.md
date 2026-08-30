@@ -18,7 +18,9 @@ chunked: the chunks merged long ago and the pull request is one diff.
    `EXECUTION LOCK`, admission runs in two places, split by what each row needs.
    Here, with no checkout beyond the located comment itself, admit the
    checkout-independent rows of [start](start.md) step 5's matrix: recognized
-   version and mode, grammar, delivery fields, ownership, and model fit. The
+   version and mode, grammar, delivery fields, and ownership. Model fit is not
+   among them: `start` step 3 owns that check, and `revise` has no model-check
+   step to re-run it in. The
    remaining rows — commit resolution, branch pin, change state, selection
    completeness, and unauthorized amendment — read the ticket branch and the
    pinned commit, which do not exist here yet; step 2 finishes admission against

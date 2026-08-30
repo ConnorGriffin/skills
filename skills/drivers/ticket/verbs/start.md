@@ -84,13 +84,19 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
      absent anchors. An empty selection refuses the same way.
    * **Unauthorized amendment.** From the ticket worktree,
      `git log --oneline <oid>..<ticket-branch-head> -- <path>`. A non-empty result
-     means the source was amended after this lock pinned `<oid>`. The newest
+     means the source changed after this lock pinned `<oid>`. Read what changed:
+     an **amendment** is any edit to what the source authorizes — its prose, its
+     requirements and scenarios, the text of a task, or a task added or removed.
+     Ticking or unticking a `tasks.md` checkbox is not an amendment but the
+     executor's own bookkeeping, which the workflow requires of it as work
+     completes, so those commits pass this row. For a real amendment, the newest
      located lock must be the one naming that later commit; if it still names the
      older `<oid>`, refuse: the amendment is unauthorized until a newer lock pins
      it. This is the only place a source amendment is read from — never diff the
      pinned commit against branch head to "catch up" the pin.
-   * **Delivery fields.** `Verification:` and `Expectation:` are both present and
-     non-empty; either missing refuses.
+   * **Delivery fields.** `Verification:`, `Expectation:`, and `Expected diff`
+     are each present and non-empty; any one missing refuses. Without the closed
+     allowlist there is nothing bounding what the executor may touch.
    * **Ownership.** On a chunked order, confirm the chunks' declared file and
      target ownership is still disjoint; an overlap refuses, whether triage stated
      it wrong or drift introduced it since.

@@ -107,3 +107,61 @@ stops and reports rather than continuing from memory.
 bearing, so a dispatch into a checkout without the pinned source now fails
 loudly at first read instead of producing plausible work against a remembered
 plan.
+
+## ADR 261 — A ticket owns its whole change; only an epic child selects
+
+**Context.** A lock names which of the pinned source's tasks and acceptance
+anchors it authorizes. That selection could default to a subset — the fence
+enumerating exactly what this ticket builds — which reads naturally for a small
+change carved out of a larger plan.
+
+**Decision.** An ordinary ticket's change belongs to that ticket alone, so its
+lock selects the whole change and the selection reads `all`. Only an epic child
+selects a subset, because there the change is the parent epic's and several
+children draw from it. When an ordinary ticket is chunked, the header lock still
+reads `all` and its sub-locks partition that whole selection into disjoint
+subsets that together cover it — selection is a property of the ticket, not of
+each fence.
+
+**Consequences.** The common case carries no selection bookkeeping and cannot
+drift out of step with its own change, which is the failure a per-fence subset
+invites: a task added to the plan but never added to the selection is silently
+unauthorized. The cost is that carving a genuine subset out of an ordinary
+ticket's change is not expressible; that work becomes an epic child, which is
+what it already was.
+
+## ADR 261 — The executor ticks the checklist, and that is not an amendment
+
+**Context.** The pinned source's `tasks.md` is a checklist, and something has to
+mark an item done. Whoever ticks it writes a commit into the pinned path after
+the lock pinned its commit — which is exactly the shape the unauthorized-amendment
+row refuses.
+
+**Decision.** The executor ticks each item as it completes, and a checked item
+means implemented and verified, not merely attempted. Those checkbox commits are
+executor bookkeeping and pass the amendment row. An amendment is an edit to what
+the source *authorizes* — its prose, its requirements and scenarios, the text of
+a task, or a task added or removed — and that still requires a newer lock.
+
+**Consequences.** The checklist stays a live record of progress rather than a
+snapshot frozen at triage, and `revise` can run round after round without the
+executor's own bookkeeping refusing the next one. The line between bookkeeping
+and amendment is read from what changed, so a reviewer resolving a borderline
+case asks whether the authorized work moved, not whether the file did.
+
+## ADR 261 — Investigations get a lock only when they dispatch a worker
+
+**Context.** An investigation produces findings rather than a diff. Requiring the
+full authoring-and-pinning ceremony for every one would tax the cheapest tickets
+in the flow to authorize work that touches nothing.
+
+**Decision.** An investigation needs no lock when the attended session does the
+work itself: the issue plus its posted findings are the record. It gets an
+explicit read-only lock only when it dispatches a bounded worker, because that is
+the point where something other than the operator acts on the ticket and needs
+its authorization written down.
+
+**Consequences.** The ceremony lands where the risk is — delegation — and stays
+off the tickets that carry none. An investigation that starts attended and later
+decides to delegate acquires its lock at that moment, the same as any other
+dispatch.

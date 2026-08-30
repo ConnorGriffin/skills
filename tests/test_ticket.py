@@ -2874,9 +2874,15 @@ class TicketExecutionLockAdmissionTests(unittest.TestCase):
             "grammar",
             "delivery fields",
             "ownership",
-            "model fit",
         ):
             self.assertIn(checkout_independent_row, step1_norm)
+        # Model fit is start step 3's check; revise has no model-check step, so
+        # listing it here would be a row nothing performs.
+        self.assertIn(
+            "Model fit is not among them: `start` step 3 owns that check, and `revise` "
+            "has no model-check step to re-run it in.",
+            step1_norm,
+        )
 
         self.assertIn("finish the `EXECUTION LOCK` admission step 1 deferred", step2_norm)
         self.assertIn("all against this worktree specifically", step2_norm)
@@ -2938,10 +2944,30 @@ class TicketExecutionLockAdmissionTests(unittest.TestCase):
             self.revise_norm,
         )
 
-    def test_delivery_fields_row_refuses_when_verification_or_expectation_is_missing(self):
+    def test_delivery_fields_row_refuses_when_a_delivery_field_is_missing(self):
+        # The expected diff is a delivery field like the other two: without the
+        # closed allowlist nothing bounds what the executor may touch, which is
+        # the change's own must-prevent "expanded scope".
         self.assertIn(
-            "`Verification:` and `Expectation:` are both present and non-empty; either "
-            "missing refuses.",
+            "`Verification:`, `Expectation:`, and `Expected diff` are each present and "
+            "non-empty; any one missing refuses.",
+            self.sufficiency_norm,
+        )
+
+    def test_ticking_a_task_checkbox_is_bookkeeping_not_an_amendment(self):
+        # The executor is required to tick tasks.md as work completes, so those
+        # commits land in the pinned path after the pin. Without this carve-out
+        # the amendment row refuses every revise round that follows the first
+        # completed task.
+        self.assertIn(
+            "an **amendment** is any edit to what the source authorizes — its prose, its "
+            "requirements and scenarios, the text of a task, or a task added or removed.",
+            self.sufficiency_norm,
+        )
+        self.assertIn(
+            "Ticking or unticking a `tasks.md` checkbox is not an amendment but the "
+            "executor's own bookkeeping, which the workflow requires of it as work "
+            "completes, so those commits pass this row.",
             self.sufficiency_norm,
         )
 

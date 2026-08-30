@@ -222,8 +222,11 @@ disclosed target and exact mutation.
     [templates/work-order.md](../templates/work-order.md), the flat shape or the
     chunked shape per step 8, and run that page's two authoring checks before the
     draft leaves this step. Each fenced block must be self-sufficient for a fresh
-    session: a competent agent with only the ticket and that one block should
-    produce the right change. Name files and targets concretely. State what must
+    session, which under a pinned `Source:` means deterministic acquisition rather
+    than copied prose: a competent agent with the ticket, that one block, and the
+    source the block pins should produce the right change without asking anyone
+    what was meant. Under `Source: inline`, the block alone carries it. Name files
+    and targets concretely. State what must
     not change. Set the verification command and its expectation. In a chunked
     order, no sub-lock may reference another sub-lock's content. Every chunk
     names its coherent capability and its files or targets; every capability and
@@ -234,8 +237,9 @@ disclosed target and exact mutation.
     **Author, validate, commit, then pin.** The fence is an `EXECUTION LOCK v2`
     envelope, not a second copy of the plan: which `Source:` mode it pins depends
     on what this repo keeps. Set `<lock-id>` to 1 for a ticket's first lock, or to
-    one more than the highest `<lock-id>` already posted on this ticket, whichever
-    protocol that prior lock used — it identifies this lock, and never resets.
+    one more than the highest `<lock-id>` already posted on this ticket — it
+    identifies this lock, and never resets. A legacy `WORK ORDER` carries no
+    `<lock-id>` and contributes no number, so a lock superseding one reads 1.
 
     * **OpenSpec repository.** Author the change on the ticket branch — `proposal.md`,
       `tasks.md`, `design.md` when a decision needs one, and its `specs/` deltas —
