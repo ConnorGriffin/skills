@@ -39,8 +39,9 @@ four.
   change, which opens a reviewed archive pull request and posts its `Archive PR:`
   locator before stopping, then on a later finalization, once a human merged that
   pull request, close the ticket with a comment linking the pull request, record
-  what the ticket actually cost in context, and tear the worktree down, so the
-  slicing rubric is tuned against measured numbers rather than intuition.
+  what the ticket actually cost in context, and tear the worktree down, so this
+  repo's slicing calibration is tuned against measured numbers rather than
+  intuition.
 
 ## The tracker contract
 

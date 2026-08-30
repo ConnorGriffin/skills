@@ -95,7 +95,7 @@ Opening the pull request ends `start`. Human merge is the boundary.
 
 Run `/ticket revise <id>` for one round on an open pull request. It reloads the ticket, order, pull request reviews, and checks; reuses or respins the correct worktree; collects every unresolved comment and failure; fixes only grounded items within the order; re-verifies; re-audits; rebases once onto the current base; pushes the same branch; and responds to addressed pull request comments. It does not revise an already merged or closed pull request.
 
-After a human merge, run `/ticket finalize <id>`. It performs the applicable OpenSpec lifecycle above, then records actual session cost and tears down the worktree and branch. The cost verdict can identify a good slice, under-slicing, over-slicing, degraded chunks, degraded coordination, missing data, or unreadable transcripts. Under- or over-slicing produces an amendment proposal for the rubric; the skill does not silently edit the rubric.
+After a human merge, run `/ticket finalize <id>`. It performs the applicable OpenSpec lifecycle above, then records actual session cost and tears down the worktree and branch. The cost verdict can identify a good slice, under-slicing, over-slicing, degraded chunks, degraded coordination, missing data, or unreadable transcripts. A misprediction verdict is reported in the session; the slicing record already appended to that repository's reviewer memory is the calibration, so no rubric amendment is proposed and the operator is not asked anything.
 
 ## Human handoff and ticket-owned execution
 
@@ -158,6 +158,6 @@ that needs it.
 - A model or effort mismatch is a launch failure. Compare the session's actual model and confirmed effort to the stamped `Session fit` or `Open as` line.
 - A review dispute is resolved against the order's `Done when` clause, the stamped depth, and the cited repository rule. Reopen scope only when evidence changes a settled risk assumption.
 - A failed post-merge workflow blocks finalization. For ordinary OpenSpec changes, an archive, validation, commit, push, pull-request creation, or archive CI failure also blocks finalization before completion is posted or the ticket moves to done, and an archive pull request that is still open or was closed unmerged leaves the ticket incomplete for the operator.
-- A finalize verdict of under-sliced, over-sliced, or still-degraded calls for a proposed amendment to `references/slicing.md`; `finalize` does not edit that rubric itself.
+- A finalize verdict of under-sliced, over-sliced, or still-degraded is reported and nothing more. The per-repo slicing record is the calibration; `finalize` proposes no amendment to `references/slicing.md` and never edits it.
 
 For complete mechanics, start with [`ticket/SKILL.md`](../skills/drivers/ticket/SKILL.md), then the verb page for the current phase. For orchestration, read [`orchestrate/SKILL.md`](../skills/drivers/orchestrate/SKILL.md) and its routing references. For planning objections, read [`plan-review/SKILL.md`](../skills/tools/plan-review/SKILL.md).

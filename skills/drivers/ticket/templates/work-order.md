@@ -136,7 +136,8 @@ Review depth (whole diff): <targeted | full> (<one-line reason>)
 Profile: <none | hardening>
 
 Why sliced
-<the rubric traits that fired, one line each, and the anchor row this matches>
+<the rubric traits that fired, one line each, and the nearest reviewer-memory
+ anchor this matches, or "no nearby anchor">
 
 Context
 <2-5 bullets shared by every chunk: what exists today, what constrains the change,

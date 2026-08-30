@@ -3402,7 +3402,10 @@ class ReviewerMemoryConsumerContractTests(unittest.TestCase):
         )
         self.assertIn("including its not-installed carve-out", text)
         self.assertIn("slicing records", text)
-        self.assertIn("say when they disagree", text)
+        self.assertIn(
+            "say when a nearby record contradicts the call the rubric points at",
+            text,
+        )
 
     def test_code_review_injects_the_pointer_and_appends_rounds_under_the_authoritative_failure_rule(self):
         text = " ".join(self.CODE_REVIEW.read_text(encoding="utf-8").split())
