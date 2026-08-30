@@ -11,6 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Optional
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -2278,6 +2279,8 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.DEVNULL)
         subprocess.run(["git", "clone", str(self.repo), str(upstream)], check=True, stdout=subprocess.DEVNULL)
         subprocess.run(["git", "-C", str(upstream), "remote", "set-url", "origin", str(remote)], check=True)
+        subprocess.run(["git", "-C", str(upstream), "config", "user.email", "ticket@example.test"], check=True)
+        subprocess.run(["git", "-C", str(upstream), "config", "user.name", "Ticket test"], check=True)
         subprocess.run(["git", "-C", str(upstream), "push", "-u", "origin", "main"], check=True, stdout=subprocess.DEVNULL)
         subprocess.run(["git", "--git-dir", str(remote), "symbolic-ref", "HEAD", "refs/heads/main"], check=True)
         ticket = Path(self.temporary.name) / "ticket-clone"
@@ -2291,7 +2294,15 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         subprocess.run(["git", "-C", str(ticket), "commit", "-m", "gate"], check=True, stdout=subprocess.DEVNULL)
         (upstream / "openspec/specs/widget/spec.md").write_text("# Widget\nnew baseline\n", encoding="utf-8")
         subprocess.run(["git", "-C", str(upstream), "add", "openspec"], check=True)
-        subprocess.run(["git", "-C", str(upstream), "commit", "-m", "advance"], check=True, stdout=subprocess.DEVNULL)
+        identity_environment = os.environ.copy()
+        identity_environment["GIT_CONFIG_GLOBAL"] = os.devnull
+        identity_environment["GIT_CONFIG_NOSYSTEM"] = "1"
+        subprocess.run(
+            ["git", "-C", str(upstream), "commit", "-m", "advance"],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            env=identity_environment,
+        )
         subprocess.run(["git", "-C", str(upstream), "push"], check=True, stdout=subprocess.DEVNULL)
         original_repo = self.repo
         self.repo = ticket
@@ -2395,7 +2406,7 @@ The widget MUST preserve its renamed behavior.
     def setUpClass(cls):
         executable = shutil.which("openspec")
         if executable is None:
-            raise AssertionError("real installed OpenSpec executable is required")
+            raise unittest.SkipTest("real installed OpenSpec executable is required")
         cls.openspec = Path(executable)
         version = subprocess.run(
             [str(cls.openspec), "--version"],
@@ -2539,6 +2550,33 @@ The widget MUST preserve its renamed behavior.
                 )
                 self.assertEqual(ticket_before, directory_digest(repo / "openspec"))
                 self.assertEqual(base_before, git_directory_digest(repo, base, "openspec"))
+
+
+class TicketOpenSpecRealSemanticSetupTests(unittest.TestCase):
+    def test_missing_openspec_skips_real_semantic_tests(self):
+        with mock.patch.object(shutil, "which", return_value=None):
+            with self.assertRaisesRegex(
+                unittest.SkipTest, "real installed OpenSpec executable is required"
+            ):
+                TicketOpenSpecRealSemanticTests.setUpClass()
+
+    def test_wrong_or_failing_openspec_version_remains_a_hard_failure(self):
+        versions = (
+            subprocess.CompletedProcess(
+                ["openspec", "--version"], 0, stdout="1.10.0\n", stderr=""
+            ),
+            subprocess.CompletedProcess(
+                ["openspec", "--version"], 7, stdout="", stderr="version failed\n"
+            ),
+        )
+        for version in versions:
+            with self.subTest(returncode=version.returncode, stdout=version.stdout):
+                with mock.patch.object(shutil, "which", return_value="/tmp/openspec"):
+                    with mock.patch.object(subprocess, "run", return_value=version):
+                        with self.assertRaisesRegex(
+                            AssertionError, "OpenSpec 1.11.0 is required"
+                        ):
+                            TicketOpenSpecRealSemanticTests.setUpClass()
 
 
 class TicketLiveProseContractTests(unittest.TestCase):
