@@ -239,6 +239,41 @@ class TicketSkillContractTests(unittest.TestCase):
         collapsed = " ".join(slicing.split())
         self.assertIn("reviewer-memory store", collapsed)
 
+    def test_the_order_records_the_anchor_match_without_carrying_store_content(self):
+        # Triage step 4 confines reviewer-memory content to worker prompts:
+        # "never copy them into the work order, a tracker comment...". Once the
+        # anchors moved out of the shipped rubric and into the private per-repo
+        # store, an order asked to name "the anchor row this matches" would post
+        # store content into a public tracker comment. The order records that a
+        # nearby anchor agreed, disagreed, or was absent — never the anchor.
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(
+            encoding="utf-8"
+        )
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
+            encoding="utf-8"
+        )
+        confinement = " ".join(triage.split("4. **", 1)[1].split("5. **", 1)[0].split())
+        self.assertIn(
+            "never copy them into the work order, a tracker comment",
+            confinement,
+        )
+        shape_step = " ".join(
+            triage.split("8. **Decide the shape", 1)[1]
+            .split("9. **Stamp the review depth", 1)[0]
+            .split()
+        )
+        why_sliced = " ".join(
+            template.split("Why sliced", 1)[1].split("Context", 1)[0].split()
+        )
+        for section, label in ((shape_step, "triage step 8"), (why_sliced, "the template")):
+            self.assertIn(
+                "never",
+                section,
+                f"{label} no longer bounds what the order may carry from the store",
+            )
+        self.assertIn("store content stays out of the order", shape_step)
+        self.assertIn("never the anchor's content", why_sliced)
+
     def test_surface_lifecycle_is_produced_and_consumed_across_ticket_paths(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
         start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")

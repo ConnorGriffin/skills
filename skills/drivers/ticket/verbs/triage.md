@@ -202,9 +202,11 @@ disclosed target and exact mutation.
    tier. Every capability and shared contract has exactly one owning chunk. A
    parallel chunk must not implement, revise, or depend on another chunk's private
    capability; make that work serial when the dependency is real. Record which
-   traits fired and which reviewer-memory anchor or record the ticket matches, or
-   that the store held no nearby anchor; the order carries that reasoning, so a
-   wrong call is visible later.
+   traits fired, and whether a nearby reviewer-memory anchor agreed with the call,
+   disagreed with it, or was absent from the store. Record the fact of that match,
+   never the record: store content stays out of the order under step 4's rule, so
+   an anchor is never quoted, named, or given its measured peaks here. The order
+   carries that reasoning, so a wrong call is visible later.
 
 9. **Stamp the review depth.** Read
    [references/review-depth.md](../references/review-depth.md) and stamp one depth

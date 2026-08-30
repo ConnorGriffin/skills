@@ -35,8 +35,7 @@ them together.
 ## Sizing
 
 Every execution session carries roughly 90k of fixed overhead (skill load,
-grounding, review) before it touches the work, which is what leaves a sub-120k
-chunk mostly paying for itself.
+grounding, review) before it touches the work.
 
 These numbers describe what one agent building one piece of work costs, so only a
 session claimed `--role worker` measures them. A coordinator's peak and a
