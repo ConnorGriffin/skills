@@ -52,7 +52,7 @@ Triage then:
 - Drafts the work order from the template and drafting conventions. Each fenced order is self-sufficient, names concrete targets, states what must not change, and names a verification command and expectation.
 - Runs mandatory adversarial `/plan-review` before showing or posting the draft. The review checks grounding, acceptance, interface shape, scope and risk, and cost. Ordinary orders use one panel. Load-bearing plans continue until a fresh cold pass has no blocking objections, with a hard cap of three panels.
 
-After the operator confirms the draft, triage posts one attributed comment with the complete work order, then moves the issue to `ticket:triaged`. For a `code` ticket the GitHub binding also attaches the `build` label. The work order is the execution lock: `start` and `revise` scan comments newest-first and use the newest fenced `WORK ORDER`; no order means no execution.
+After the operator confirms the draft, triage posts one attributed comment with the complete work order fenced as an `EXECUTION LOCK` (or, on a ticket still running the legacy protocol, `WORK ORDER`), then moves the issue to `ticket:triaged`. For a `code` ticket the GitHub binding also attaches the `build` label. The posted lock is the sole authorization to execute: `start` and `revise` scan comments newest-first and use the newest fenced lock of either protocol; no order means no execution.
 
 ### Stamp and session fit
 
@@ -119,7 +119,7 @@ request. Finalize leaves the parent change active for the epic's archive guidanc
 ## Load-bearing rules
 
 - One authority owns each fact. The epic proposal, design, and tasks own durable epic planning. The ticket comment owns the executable work order. Live GitHub owns child work state.
-- A work order is the only entry to execution. It must be the newest fenced `WORK ORDER` comment and must be self-sufficient for a fresh session.
+- A work order is the only entry to execution. It must be the newest fenced `EXECUTION LOCK` comment (or, on a ticket still running the legacy protocol, `WORK ORDER`) and must be self-sufficient for a fresh session — for a pinned source, self-sufficiency means deterministic acquisition and verification of the pinned commit, not copied plan prose.
 - Canonical prose is byte-pinned. A canonical constant is the bytes strictly between named opening and closing full-heading-line anchors. Compare raw bytes with `Path.read_bytes()`, not normalized text. Generated-facts appendices pair deterministic commands with their complete literal output.
 - Review depth is stamped at triage, has a sensitivity floor, and never downgrades. Missing depth defaults to Targeted as a triage defect.
 - Session fit is part of the lock. A start session does not guess its own effort or silently accept a weaker model. A chunked coordinator cannot be weaker than its strongest chunk.

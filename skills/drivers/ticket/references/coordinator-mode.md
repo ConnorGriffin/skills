@@ -71,12 +71,17 @@ graph-identity rule.
    For chunk `<n>` and dispatch attempt `<attempt>`, the coordinator writes the
    complete prompt bytes to
    `<session-scratch>/ticket-<ticket-id-lowercase>-chunk-<n>-attempt-<attempt>.prompt`
-   and passes that file's contents as the adapter's positional prompt. The prompt is
-   the sub-order fence verbatim, followed only by that chunk's worktree path, branch
-   name, `root_path`, and `project`; the worker follows the graph-identity rule and
-   uses as given the supplied `root_path` and `project` rather than resolving its
-   own. An `unavailable` identity is passed through as such. A chunk never receives
-   the ticket worktree's identity or a sibling's, and never coordinator commentary.
+   and passes that file's contents as the adapter's positional prompt. The prompt
+   carries the sub-lock plus verified source coordinates and selected identifiers,
+   never restated plan prose: it is the sub-order fence verbatim, followed only by
+   that chunk's worktree path, branch name, `root_path`, and `project`; the worker
+   follows the graph-identity rule and uses as given the supplied `root_path` and
+   `project` rather than resolving its own. An `unavailable` identity is passed
+   through as such. A chunk never receives the ticket worktree's identity or a
+   sibling's, and never coordinator commentary. A chunk agent that cannot read the
+   sub-lock's pinned source from its own worktree stops and reports; the
+   coordinator does not restate the source's plan prose to make the prompt
+   self-contained.
 
    Start the worker through the selected adapter in `workspace-write` mode, with its
    cwd set to that chunk's worktree and the coordinator's checkout supplied as the
