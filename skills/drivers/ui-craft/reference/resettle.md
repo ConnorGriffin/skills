@@ -36,12 +36,13 @@ The operator rules it, and the ruling lands as one of two change sets:
   block that it restores a predecessor behavior the lock omitted. The behavior
   ledger gains its STORY and the replay script its function, in the same set.
 - **retired** — no term moves. The sanction line is written into the behavior
-  ledger's RETIRED entry (§2's format), dated and quoted, and the entry's
-  absence assertion is added to the replay script. Where the merged lock already
-  spoke to the retirement, that citation rides along as the row's
-  `ruled-elsewhere` annotation and nothing more: it is what turns the ruling into
-  a one-sentence confirmation instead of a fresh decision, and it is never the
-  sanction itself.
+  ledger's RETIRED entry (§2's format), dated and quoted, with the premise the
+  ruling reasoned from recorded beside it, and the entry's absence assertion is
+  added to the replay script, asserting that premise as well as the absence.
+  Where the merged lock already spoke to the retirement, that citation rides
+  along as the row's `ruled-elsewhere` annotation and nothing more: it is what
+  turns the ruling into a one-sentence confirmation instead of a fresh decision,
+  and it is never the sanction itself.
 
 Either way it is dated and recorded, and the ledger keeps the trail.
 

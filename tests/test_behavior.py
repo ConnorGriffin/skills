@@ -1320,6 +1320,15 @@ class UiCraftContractTests(unittest.TestCase):
         self.assertIn("not a `replayed-fail`", sweep_contract)
         self.assertIn("premise:  the preset window controls are present", sweep)
 
+        # resettle is the other page that enumerates a retirement's change set;
+        # an enumeration lighter than the format it defers to reads as complete.
+        resettle = " ".join(
+            (ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "resettle.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn("with the premise the ruling reasoned from recorded beside it", resettle)
+
         build_contract = " ".join(build.split())
         self.assertIn(
             "*premise* has failed while its behavior stays absent is `re-settle requested`",
