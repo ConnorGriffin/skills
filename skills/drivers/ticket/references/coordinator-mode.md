@@ -122,12 +122,6 @@ non-blocking rule.
    overhead and never as chunk size. A reviewer with no stable transcript id is
    reported in one line like an unclaimable worker, and a claim failure follows the
    same shared non-blocking rule: neither ever holds up dispatching the review.
-   The literal invocation already granted this dispatch's transfer of the work
-   order or task prompt plus the repository code, documentation, and UI fidelity
-   evidence rendered from manufactured or synthetic fixtures (tracked in the
-   repository or not, never real user, production, or patient data), so the
-   coordinator does not re-ask. Credentials, secrets, patient data, `.env`, and
-   real database contents are excluded.
 
    b. Verify the result yourself, as `/orchestrate` requires of every delegated
    result: read the diff, run the verification command, check the chunk's Done when

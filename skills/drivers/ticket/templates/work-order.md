@@ -201,7 +201,9 @@ Profile: <none | hardening>
 Drafting conventions: Read `skills/drivers/ticket/references/drafting-conventions.md` before acting on this order.
 
 Why sliced
-<the rubric traits that fired, one line each, and the anchor row this matches>
+<the rubric traits that fired, one line each, and whether a nearby
+ reviewer-memory anchor agreed, disagreed, or was absent — the fact of the match
+ only, never the anchor's content>
 
 Selected tasks: <all (ordinary ticket) or the epic-child's owned subset, as positional numbers from the pinned source's numbered tasks — the whole selection every sub-lock below partitions; omit when Source is inline>
 Acceptance anchors: <positional requirement/scenario numbers from the pinned source that this lock selects — the whole selection every sub-lock below partitions; omit when Source is inline>

@@ -113,7 +113,7 @@ class TicketSkillContractTests(unittest.TestCase):
             encoding="utf-8"
         )
         trait_rubric = slicing.split("## The trait rubric", 1)[1].split(
-            "## Anchor table", 1
+            "## Sizing", 1
         )[0]
         chunk_shape = slicing.split("## Chunk shape", 1)[1].split(
             "## Orchestrator tier", 1
@@ -177,7 +177,7 @@ class TicketSkillContractTests(unittest.TestCase):
             encoding="utf-8"
         )
         trait_rubric = slicing.split("## The trait rubric", 1)[1].split(
-            "## Anchor table", 1
+            "## Sizing", 1
         )[0]
         rows = [
             line.split("|")[1].strip()
@@ -211,6 +211,68 @@ class TicketSkillContractTests(unittest.TestCase):
                     f"the {word} trait row is no longer {expected[position]!r};"
                     " the explanation's ordinal now describes the wrong trait",
                 )
+
+    def test_a_slicing_misprediction_is_reported_and_never_offered_as_a_rubric_change(self):
+        # Slicing calibration is per repository: the record finalize already
+        # appended to this repo's reviewer-memory store is the lesson. If
+        # finalize went back to drafting a rubric diff for the operator to land,
+        # one repository's measurements would grow into every installation's
+        # rubric again, which is exactly what the per-repo store replaced.
+        finalize = " ".join(
+            (TICKET_DIRECTORY / "verbs" / "finalize.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn("report the misprediction", finalize)
+        self.assertIn("reviewer-memory store", finalize)
+        self.assertNotIn("Show it to the user", finalize)
+        self.assertNotIn("pull request they approve", finalize)
+
+    def test_the_slicing_rubric_keeps_no_measured_anchors_of_its_own(self):
+        # Measured anchors are one operator's numbers on one machine. They live
+        # in each repo's reviewer-memory store, which triage consults; the page
+        # keeps only the repo-agnostic mechanism.
+        slicing = (TICKET_DIRECTORY / "references" / "slicing.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("## Anchor table", slicing)
+        collapsed = " ".join(slicing.split())
+        self.assertIn("reviewer-memory store", collapsed)
+
+    def test_the_order_records_the_anchor_match_without_carrying_store_content(self):
+        # Triage step 4 confines reviewer-memory content to worker prompts:
+        # "never copy them into the work order, a tracker comment...". Once the
+        # anchors moved out of the shipped rubric and into the private per-repo
+        # store, an order asked to name "the anchor row this matches" would post
+        # store content into a public tracker comment. The order records that a
+        # nearby anchor agreed, disagreed, or was absent — never the anchor.
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(
+            encoding="utf-8"
+        )
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
+            encoding="utf-8"
+        )
+        confinement = " ".join(triage.split("4. **", 1)[1].split("5. **", 1)[0].split())
+        self.assertIn(
+            "never copy them into the work order, a tracker comment",
+            confinement,
+        )
+        shape_step = " ".join(
+            triage.split("8. **Decide the shape", 1)[1]
+            .split("9. **Stamp the review depth", 1)[0]
+            .split()
+        )
+        why_sliced = " ".join(
+            template.split("Why sliced", 1)[1].split("Context", 1)[0].split()
+        )
+        for section, label in ((shape_step, "triage step 8"), (why_sliced, "the template")):
+            self.assertIn(
+                "never",
+                section,
+                f"{label} no longer bounds what the order may carry from the store",
+            )
+        self.assertIn("store content stays out of the order", shape_step)
+        self.assertIn("never the anchor's content", why_sliced)
 
     def test_surface_lifecycle_is_produced_and_consumed_across_ticket_paths(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")
@@ -672,14 +734,12 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertIn("active change and its deltas remain reviewable", start_contract)
         self.assertIn("its active change and deltas remain reviewable", revise_contract)
         self.assertIn("operations.archive.guidance", finalize_contract)
-        self.assertIn("clean `main` checkout updated to `origin/main`", finalize_contract)
+        self.assertIn("sibling archive checkout whose `main` is updated to `origin/main`", finalize_contract)
         self.assertIn("openspec archive <change-name> --json --yes", finalize_contract)
         self.assertIn("openspec validate --all --strict", finalize_contract)
         self.assertIn("Signed-off-by archive commit", finalize_contract)
-        self.assertIn("push `main` directly", finalize_contract)
-        self.assertIn("post-push workflow", finalize_contract)
         self.assertLess(finalize_contract.index("openspec archive"), finalize_contract.index("Comment on the ticket"))
-        self.assertLess(finalize_contract.index("post-push workflow"), finalize_contract.index("Move the ticket to done"))
+        self.assertLess(finalize_contract.index("Archive PR: <url>"), finalize_contract.index("Comment on the ticket"))
         self.assertLess(finalize_contract.index("Move the ticket to done"), finalize_contract.index("**Record the actuals.**"))
         self.assertLess(finalize_contract.index("**Record the actuals.**"), finalize_contract.index("**Tear the worktree and branch down.**"))
         self.assertIn("leaves the parent active and unarchived", finalize_contract)
@@ -690,6 +750,81 @@ class TicketSkillContractTests(unittest.TestCase):
         live = "\n".join((shared, start, revise, finalize, coordinator)).lower()
         self.assertNotRegex(live, r"fold.{0,100}(?:last|finishing).{0,100}pull request")
         self.assertNotRegex(live, r"archive.{0,100}(?:last|finishing).{0,100}pull request")
+
+    def test_ordinary_archives_land_through_a_reviewed_pull_request_in_two_stages(self):
+        finalize = (TICKET_DIRECTORY / "verbs" / "finalize.md").read_text(encoding="utf-8")
+        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+        guide = (ROOT / "docs" / "epic-flow.md").read_text(encoding="utf-8")
+        finalize_contract = " ".join(finalize.split())
+        shared_contract = " ".join(shared.split())
+        guide_contract = " ".join(guide.split())
+
+        # Stage one opens the archive pull request and stops on its locator.
+        self.assertIn("Read the archive locator", finalize_contract)
+        self.assertIn("`Archive PR: <url>`", finalize_contract)
+        self.assertIn("open a follow-up pull request against `main`", finalize_contract)
+        self.assertLess(
+            finalize_contract.index("First stage"),
+            finalize_contract.index("Second stage"),
+        )
+
+        # Stage two is gated on a human merge, and neither stage merges anything.
+        self.assertIn("never merge the archive pull request", finalize_contract)
+        self.assertIn("pending human review and stop", finalize_contract)
+        self.assertIn("Closed without merge: stop for operator direction", finalize_contract)
+        self.assertIn(
+            "never open a replacement archive pull request automatically",
+            finalize_contract,
+        )
+        self.assertLess(
+            finalize_contract.index("Second stage"),
+            finalize_contract.index("Move the ticket to done"),
+        )
+
+        # No surface still tells finalization to push the archive to the default branch.
+        # These two patterns matched the pre-change `finalize.md` and `docs/epic-flow.md`
+        # respectively, so they are the ones that would regress.
+        for surface, text in (
+            ("finalize", finalize_contract),
+            ("shared", shared_contract),
+            ("guide", guide_contract),
+        ):
+            with self.subTest(surface=surface):
+                self.assertNotRegex(
+                    text.lower(), r"push(?:es|ing)? (?:the )?(?:archive )?(?:commit )?(?:on |to )?`?main`? directly"
+                )
+                self.assertNotRegex(
+                    text.lower(), r"pushes the archive on `?main`?"
+                )
+        self.assertIn(
+            "Never push an archive commit directly or forcibly to `main`",
+            finalize_contract,
+        )
+
+        # The shared page carries the routing itself, not merely the absence of a push.
+        self.assertIn(
+            "follows `operations.archive.guidance` in a sibling archive checkout",
+            shared_contract,
+        )
+        self.assertIn("one narrow post-merge exception", shared_contract)
+        self.assertIn(
+            "lands through its own reviewed pull request rather than a push to `main`",
+            shared_contract,
+        )
+        self.assertIn(
+            "opens a reviewed archive pull request and posts its `Archive PR:` locator",
+            shared_contract,
+        )
+        self.assertIn(
+            "reviewed follow-up pull request that a human merges, never a direct push",
+            shared_contract,
+        )
+        self.assertNotIn(
+            "follows `operations.archive.guidance` on `main`", shared_contract
+        )
+
+        self.assertIn("reviewed follow-up pull request", guide_contract)
+        self.assertIn("No archive commit is pushed directly to `main`", guide_contract)
 
     def test_status_binding_orders_code_prerequisites_before_triaged_and_excludes_them_otherwise(self):
         binding = " ".join(

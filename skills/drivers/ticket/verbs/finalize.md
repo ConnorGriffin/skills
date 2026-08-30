@@ -17,27 +17,50 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    b. Confirm the post-merge workflow succeeded (`gh run list` on the repo). If it
    failed, stop and report; the ticket is not done while the post-merge run is red.
 
-   c. **Archive an ordinary OpenSpec change after the verified merge.** Follow
-   `operations.archive.guidance` exactly. In this repository, start from a clean
-   `main` checkout updated to `origin/main`, run
-   `openspec archive <change-name> --json --yes`, verify its archive JSON, run
-   `openspec validate --all --strict`, create a Signed-off-by archive commit, push
-   `main` directly, and verify the post-push workflow succeeded. OpenSpec is
-   Git-unaware: this verb trusts the verified GitHub merge state and adds no
-   enforcement layer. An archive, validation, commit, push, or post-push workflow
-   failure stops finalization before the completion comment and done transition.
-   An epic child creates no child change record, skips this ordinary-change archive
-   procedure, and leaves the parent active and unarchived for the parent epic's
-   archive guidance.
+   c. **Read the archive locator.** An ordinary OpenSpec change is archived across
+   two attended finalizations, because the archive lands through an ordinary
+   reviewed pull request that a human merges. Scan the ticket's comments
+   newest-first for a line reading `Archive PR: <url>`; the newest one wins. None
+   found: this is the first stage, so run step 2d and stop there. Found: this is the
+   second stage, so skip to step 2e. An epic child creates no child change record,
+   has no archive locator, skips steps 2d and 2e, and leaves the parent active and
+   unarchived for the parent epic's archive guidance.
 
-   d. Comment on the ticket (attribution first): the merged pull request link, a
+   d. **First stage: open the archive pull request, then stop.** Follow
+   `operations.archive.guidance` exactly. In this repository, work in a sibling
+   archive checkout whose `main` is updated to `origin/main`, cut a dedicated
+   archive branch there, run `openspec archive <change-name> --json --yes`, verify
+   its archive JSON, run `openspec validate --all --strict`, create a Signed-off-by
+   archive commit, push that branch, and open a follow-up pull request against
+   `main`, scoring the body with `/pr-body` when it is installed. Never push an
+   archive commit directly or forcibly to `main`, and never merge the archive pull
+   request. Then comment on the ticket (attribution first) with the merged
+   implementation pull request link, the post-merge evidence, and a line reading
+   `Archive PR: <url>`, and stop: the ticket is not done, and steps 3 and 4 wait for
+   the later finalization. OpenSpec is Git-unaware: this verb trusts the verified
+   GitHub merge state and adds no enforcement layer. An archive, validation, commit,
+   push, pull-request creation, or comment failure stops finalization here and
+   leaves the archive branch and its checkout in place for the operator to recover
+   by hand; this verb adds no automatic recovery, and a pull request opened without
+   its locator comment is recovered by the operator, not by a later run.
+
+   e. **Second stage: finish only after a human merged the archive pull request.**
+   Run `gh pr view <archive-pr> --json state,mergedAt` on the locator's pull
+   request. Still open: report it pending human review and stop without completing
+   the ticket. Closed without merge: stop for operator direction, and never open a
+   replacement archive pull request automatically. Merged: confirm its post-merge
+   workflow succeeded (`gh run list`) and continue; a red run stops finalization
+   before the completion comment and done transition.
+
+   f. Comment on the ticket (attribution first): the merged pull request link, a
    one-line outcome, the post-merge evidence, and, for an ordinary change, the
-   completed archive evidence.
+   merged archive pull request as the completed archive evidence.
 
-   e. Move the ticket to done. Report a failed move; do not retry.
+   g. Move the ticket to done. Report a failed move; do not retry.
 
-3. **Record the actuals.** On the merged path only. When record needs a target
-   worktree, do this before cleanup; otherwise it may follow cleanup. Read the
+3. **Record the actuals.** On the merged path only, and for an ordinary OpenSpec
+   change only after step 2e's human-merged archive pull request. When record needs
+   a target worktree, do this before cleanup; otherwise it may follow cleanup. Read the
    order's shape off the ticket comment (flat or chunked, chunk count, which rubric
    traits triage said fired, the stamped depths), then:
 
@@ -123,18 +146,20 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    context per claimed session without recording anything, which is the way to look
    before committing a record.
 
-   **On `under-sliced`, `still-degraded`, or `over-sliced`, report the misprediction
-   and draft the amendment.** Say which rubric call was wrong and by how much, then
-   write a concrete diff against
-   [references/slicing.md](../references/slicing.md): a trait added or reworded, a
-   threshold moved, a new anchor row with this ticket's measured peak. An amendment
-   that moves a threshold moves it in both places, the prose and the helper's
-   constants, or the two drift apart. Show it to the user; landing it is an ordinary
-   pull request they approve. The skill never amends its own rubric, and never edits
-   `references/slicing.md` itself.
+   **On `under-sliced`, `still-degraded`, or `over-sliced`, report the
+   misprediction.** Say which rubric call was wrong and by how much: the traits
+   triage read, the shape it chose, and the peak that contradicted it. That is the
+   whole path. The slicing record appended in the previous step already landed the
+   lesson in this repository's reviewer-memory store, which is where triage reads
+   its anchors, so the calibration is durable without anything further. Finalize
+   drafts no rubric diff, offers no pull request, never edits
+   [references/slicing.md](../references/slicing.md), and asks the operator nothing
+   here. Moving the 180k target or the 120k floor themselves is
+   operator-initiated skills-repo work, because it changes the rubric prose and the
+   helper's constants together; finalize never proposes it.
 
    `no-data`, `unmeasurable`, `coordinator-only`, and `coordination-degraded` are not
-   mispredictions, and none drafts an amendment. `no-data` has two readings the
+   mispredictions, and none of them reports one. `no-data` has two readings the
    report keeps apart: no session claimed the ticket, so it ran outside this
    machine's transcripts, or claims for another repository were excluded.
    `unmeasurable` means this repository had claims but no measurable eligible start
@@ -166,11 +191,21 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    `git push origin --delete <ticket branch>` only if it is still there, since the
    code host usually deletes it on merge.
 
+   Then retire the sibling archive checkout the same way, because it is a checkout
+   this skill authored and carries its own graph identity: run
+   `<cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <archive checkout>` first,
+   then `git -C <control checkout> worktree remove <archive checkout>` when it was cut
+   as a worktree and delete the directory otherwise, and delete its archive branch
+   locally and on the remote.
+
 5. **Abandoned path** (pull request closed unmerged, or the work cancelled): comment
-   why, then on explicit user confirmation run the same teardown as step 4. Never
-   pick this path without the user confirming. Move the ticket wherever the user
+   why, then on explicit user confirmation run the same teardown as step 4, without
+   its archive-checkout paragraph: this path never reached step 2d, so no archive
+   branch or checkout exists to retire. Never pick this path without the user
+   confirming. Move the ticket wherever the user
    says, and never pick the terminal state yourself.
 
 6. **Report.** The ticket's state, the comment link, the recorded verdict, and
-   anything left open (a red post-merge or post-push run, a failed archive, a
-   surviving branch or worktree).
+   anything left open (a red post-merge run, a failed archive, an archive pull
+   request still awaiting human review or closed unmerged, a surviving branch or
+   worktree).

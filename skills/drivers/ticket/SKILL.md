@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: "Drive one tracked ticket from arrival to resolution through four verbs: triage, start, revise, finalize. Use when the user says triage/start/revise/finalize with a ticket id, asks to turn a ticket into a locked brief, to action a review round on a ticket's pull request, or to close out a merged ticket. Literal triage, start, or revise invocation requests the work order or task prompt plus only needed repository code, documentation, and safe-fixture UI fidelity evidence for every mandatory worker dispatch, including nested review and nested Orchestrate work: to OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model service or Anthropic's Claude model service for a Claude Code parent. When delegated, the coordinator dispatches every mandatory reviewer and resumes the same worker. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Automatic activation outside an invoked parent workflow asks once before dispatch; finalize grants no worker-egress consent."
+description: "Drive one tracked ticket from arrival to resolution through four verbs: triage, start, revise, finalize. Use when the user says triage/start/revise/finalize with a ticket id, asks to turn a ticket into a locked brief, to action a review round on a ticket's pull request, or to close out a merged ticket. When delegated, the coordinator dispatches every mandatory reviewer and resumes the same worker."
 ---
 
 # Ticket
@@ -14,24 +14,6 @@ what every verb shares.
 `/ticket <verb> <ticket-id>`, where verb is `triage`, `start`, `revise`, or
 `finalize`. No verb or no ticket id: ask for it, one line. Unknown verb: list the
 four.
-
-Literal user invocation of `/ticket triage`, `/ticket start`, or `/ticket
-revise` requests the bounded transfer needed for every mandatory worker dispatch
-the selected workflow routes, including nested review and nested Orchestrate
-work. The payload is the work order or task prompt plus only the repository
-code, documentation, and UI fidelity evidence rendered from manufactured or
-synthetic fixtures (tracked in the repository or not, never real user,
-production, or patient data) needed for that delegated task. For a Codex UI
-parent, the destination is an isolated worker on OpenAI's Codex model service.
-For a Claude Code parent, existing routing selects an isolated worker on
-OpenAI's Codex model service or Anthropic's Claude model service. Credentials,
-secrets, patient data, `.env`, and real database contents are excluded.
-
-Automatic activation outside an invoked parent workflow does not acquire this
-consent. Before the first external dispatch it asks once, naming the same payload,
-applicable destination or destination matrix, and exclusions; a denial stops the
-workflow. `/ticket finalize` grants no worker-egress consent because it routes no
-model dispatch.
 
 ## The pipeline
 
@@ -54,9 +36,12 @@ model dispatch.
   and the order, fix, re-verify, push.
 * `finalize` runs after a human merged: verify the merge and post-merge workflow,
   complete the repository's post-merge archive guidance for an ordinary OpenSpec
-  change, then close the ticket with a comment linking the pull request, record
-  what the ticket actually cost in context, and tear the worktree down, so the
-  slicing rubric is tuned against measured numbers rather than intuition.
+  change, which opens a reviewed archive pull request and posts its `Archive PR:`
+  locator before stopping, then on a later finalization, once a human merged that
+  pull request, close the ticket with a comment linking the pull request, record
+  what the ticket actually cost in context, and tear the worktree down, so this
+  repo's slicing calibration is tuned against measured numbers rather than
+  intuition.
 
 ## The tracker contract
 
@@ -180,7 +165,9 @@ branch. Broad read-only grounding never authorizes it.
    triage: it fetches and verifies the issue body's pinned remote parent-plan base,
    then passes that branch to the helper. Outside an epic child, grounding, scope ledgers, and
    the active change record are written and committed there; post-merge archiving
-   follows `operations.archive.guidance` on `main`. An epic child keeps its
+   follows `operations.archive.guidance` in a sibling archive checkout, which is the
+   one narrow post-merge exception to this rule and lands through its own reviewed
+   pull request rather than a push to `main`. An epic child keeps its
    instrumentation in session scratch and relies on its parent record. The control checkout may be dirty, stale, or
    on another branch: its working tree is never read or written, and it never
    switches branches. Never commit, stash, move, or clean its files, and never
@@ -325,7 +312,9 @@ Outside an epic, follow this per-ticket rule:
    embodies a real decision). Start and revise keep the active change and its
    deltas reviewable in the ticket pull request; they do not fold or archive it
    before merge. The repository's `operations.archive.guidance` determines when
-   finalization archives a verified merge. `/openspec-adopt`, when it is installed,
+   finalization archives a verified merge, and the archive itself lands through a
+   reviewed follow-up pull request that a human merges, never a direct push to the
+   default branch. `/openspec-adopt`, when it is installed,
    is what adopts OpenSpec in a repo that lacks it. OpenSpec is the worked example,
    never a requirement.
 2. The repo has a different convention (a changelog, a decision-record tree, a

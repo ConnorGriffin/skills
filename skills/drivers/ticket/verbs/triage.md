@@ -192,16 +192,21 @@ disclosed target and exact mutation.
 
 8. **Decide the shape: flat or chunked.** Read
    [references/slicing.md](../references/slicing.md) and run its trait rubric
-   against what grounding found. Consult this repo's reviewer-memory slicing records
-   alongside the rubric's anchor table, and say when they disagree. The rubric
-   decides flat or chunked and, when chunked,
+   against what grounding found. The rubric carries the traits and the thresholds;
+   this repo's own anchors live in its reviewer-memory slicing records, so read
+   those for the shapes and measured peaks the traits are calibrated against here,
+   and say when a nearby record contradicts the call the rubric points at. The
+   rubric decides flat or chunked and, when chunked,
    sizes the chunks and names each one's mode, coherent capability ownership, file
    or target ownership, shared-contract ownership, agent tier, and the orchestrator
    tier. Every capability and shared contract has exactly one owning chunk. A
    parallel chunk must not implement, revise, or depend on another chunk's private
    capability; make that work serial when the dependency is real. Record which
-   traits fired and which anchor row the ticket matches; the order carries that
-   reasoning, so a wrong call is visible later.
+   traits fired, and whether a nearby reviewer-memory anchor agreed with the call,
+   disagreed with it, or was absent from the store. Record the fact of that match,
+   never the record: store content stays out of the order under step 4's rule, so
+   an anchor is never quoted, named, or given its measured peaks here. The order
+   carries that reasoning, so a wrong call is visible later.
 
 9. **Stamp the review depth.** Read
    [references/review-depth.md](../references/review-depth.md) and stamp one depth
@@ -305,12 +310,6 @@ For a chunked order, select one coordinator execution row with the same grounded
     when a fresh cold pass returns no blocking objections.
     The ticket skill page's `## Delegation authority` section covers this mandatory
     `/plan-review`.
-    The literal invocation already granted this dispatch's transfer of the work
-    order or task prompt plus the repository code, documentation, and UI
-    fidelity evidence rendered from manufactured or synthetic fixtures (tracked
-    in the repository or not, never real user, production, or patient data), so
-    the coordinator does not re-ask. Credentials, secrets, patient data, `.env`,
-    and real database contents are excluded.
 
     When the stamped profile is hardening, run `/plan-review` only on Full-depth
     orders. Default-workflow orders keep this review unconditionally.

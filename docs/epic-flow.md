@@ -10,7 +10,7 @@ The primary contracts are [`epic`](../skills/drivers/epic/SKILL.md), [`ticket`](
 ## OpenSpec change lifecycle
 
 - **Before merge:** an ordinary ticket keeps its active change and deltas in the pull request for review; it does not fold or archive them.
-- **After merge:** `/ticket finalize` verifies the human merge and CI, follows `operations.archive.guidance`, verifies archive JSON and strict validation, commits and pushes the archive on `main`, then verifies post-push CI before it comments completion or moves the ticket to done.
+- **After merge:** `/ticket finalize` verifies the human merge and CI, follows `operations.archive.guidance`, verifies archive JSON and strict validation, commits the archive on a dedicated branch in a sibling archive checkout, opens a reviewed follow-up pull request against `main`, posts its `Archive PR:` locator on the ticket, and stops. A later `/ticket finalize` reads that locator: an open archive pull request stays pending, a closed-unmerged one stops for operator direction, and only a human-merged one with green CI lets it comment completion and move the ticket to done. No archive commit is pushed directly to `main`.
 - **Epic children:** they create no child change. A required parent-plan amendment is
   committed in the child worktree and travels with implementation; the parent epic's
   active change remains the authority and the parent retains archive ownership.
@@ -25,7 +25,7 @@ The primary contracts are [`epic`](../skills/drivers/epic/SKILL.md), [`ticket`](
 6. Run `/ticket start <id>` in a fresh session. It executes the work order, verifies the result, reviews the change, and opens the pull request.
 7. Run `/ticket revise <id>` once per review round when the open pull request needs changes. It reloads the order, fixes and verifies the round, rebases once, and pushes the same branch.
 8. A human reviews and merges the pull request after green CI and passed review. Agents do not merge, self-approve, or answer reviews outside `revise`.
-9. Run `/ticket finalize <id>` after the human merge. It verifies the post-merge workflow, completes the repository's post-merge archive guidance for an ordinary OpenSpec change, comments the outcome, moves the ticket to done, records measured cost, and tears down the ticket worktree. An epic child leaves its parent change active for parent-owned archive.
+9. Run `/ticket finalize <id>` after the human merge. It verifies the post-merge workflow, completes the repository's post-merge archive guidance for an ordinary OpenSpec change by opening a reviewed archive pull request and stopping, then on a later run, after a human merged that pull request, comments the outcome, moves the ticket to done, records measured cost, and tears down the ticket worktree. An epic child leaves its parent change active for parent-owned archive.
 
 An epic closes only after its live GitHub state proves that no spike child is open, every build child has a merged closing pull request or is closed `NOT_PLANNED`, and no deferred child remains open; then close the epic issue.
 
@@ -95,7 +95,7 @@ Opening the pull request ends `start`. Human merge is the boundary.
 
 Run `/ticket revise <id>` for one round on an open pull request. It reloads the ticket, order, pull request reviews, and checks; reuses or respins the correct worktree; collects every unresolved comment and failure; fixes only grounded items within the order; re-verifies; re-audits; rebases once onto the current base; pushes the same branch; and responds to addressed pull request comments. It does not revise an already merged or closed pull request.
 
-After a human merge, run `/ticket finalize <id>`. It performs the applicable OpenSpec lifecycle above, then records actual session cost and tears down the worktree and branch. The cost verdict can identify a good slice, under-slicing, over-slicing, degraded chunks, degraded coordination, missing data, or unreadable transcripts. Under- or over-slicing produces an amendment proposal for the rubric; the skill does not silently edit the rubric.
+After a human merge, run `/ticket finalize <id>`. It performs the applicable OpenSpec lifecycle above, then records actual session cost and tears down the worktree and branch. The cost verdict can identify a good slice, under-slicing, over-slicing, degraded chunks, degraded coordination, missing data, or unreadable transcripts. A misprediction verdict is reported in the session; the slicing record already appended to that repository's reviewer memory is the calibration, so no rubric amendment is proposed and the operator is not asked anything.
 
 ## Human handoff and ticket-owned execution
 
@@ -157,7 +157,7 @@ that needs it.
 - A stale or overlapping target is a preflight failure. Refresh from the origin default-branch tip and re-triage when the order no longer matches the tree.
 - A model or effort mismatch is a launch failure. Compare the session's actual model and confirmed effort to the stamped `Session fit` or `Open as` line.
 - A review dispute is resolved against the order's `Done when` clause, the stamped depth, and the cited repository rule. Reopen scope only when evidence changes a settled risk assumption.
-- A failed post-merge workflow blocks finalization. For ordinary OpenSpec changes, an archive, validation, commit, push, or post-push-CI failure also blocks finalization before completion is posted or the ticket moves to done.
-- A finalize verdict of under-sliced, over-sliced, or still-degraded calls for a proposed amendment to `references/slicing.md`; `finalize` does not edit that rubric itself.
+- A failed post-merge workflow blocks finalization. For ordinary OpenSpec changes, an archive, validation, commit, push, pull-request creation, or archive CI failure also blocks finalization before completion is posted or the ticket moves to done, and an archive pull request that is still open or was closed unmerged leaves the ticket incomplete for the operator.
+- A finalize verdict of under-sliced, over-sliced, or still-degraded is reported and nothing more. The per-repo slicing record is the calibration; `finalize` proposes no amendment to `references/slicing.md` and never edits it.
 
 For complete mechanics, start with [`ticket/SKILL.md`](../skills/drivers/ticket/SKILL.md), then the verb page for the current phase. For orchestration, read [`orchestrate/SKILL.md`](../skills/drivers/orchestrate/SKILL.md) and its routing references. For planning objections, read [`plan-review/SKILL.md`](../skills/tools/plan-review/SKILL.md).
