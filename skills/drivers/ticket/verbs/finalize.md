@@ -197,8 +197,10 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    locally and on the remote.
 
 5. **Abandoned path** (pull request closed unmerged, or the work cancelled): comment
-   why, then on explicit user confirmation run the same teardown as step 4. Never
-   pick this path without the user confirming. Move the ticket wherever the user
+   why, then on explicit user confirmation run the same teardown as step 4, without
+   its archive-checkout paragraph: this path never reached step 2d, so no archive
+   branch or checkout exists to retire. Never pick this path without the user
+   confirming. Move the ticket wherever the user
    says, and never pick the terminal state yourself.
 
 6. **Report.** The ticket's state, the comment link, the recorded verdict, and
