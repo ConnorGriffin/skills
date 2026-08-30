@@ -42,22 +42,6 @@ On success the helper emits one public JSON object. Read its `final_message`
 field as the current worker's answer; do not infer an answer from its session or
 headroom metadata.
 
-## Approval rationale
-
-For every mandatory worker dispatch covered by an invoked Ticket or Orchestrate
-workflow, the payload is the work order or task prompt plus only the repository
-code, documentation, and UI fidelity evidence rendered from manufactured or
-synthetic fixtures (tracked in the repository or not, never real user,
-production, or patient data) needed for the delegated task, and the destination
-is an isolated worker on OpenAI's Codex model service. Credentials, secrets,
-patient data, `.env`, and real database contents are excluded.
-
-Repeat that payload, destination, invoked-workflow coverage, and exclusion list in
-the escalation justification. Assistant-authored rationale helps an approval guardian
-match intent but does not itself create user authorization. When no invoked workflow
-supplies the consent, stop and ask once before dispatch under the invoking skill's
-automatic-activation rule.
-
 ## Worker liveness
 
 When the adapter is still running but has no terminal output or session ID, wait
