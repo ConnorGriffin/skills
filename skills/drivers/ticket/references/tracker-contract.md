@@ -50,8 +50,14 @@ binding and ships with the skill.
 
 * **Input:** a ticket id.
 * **Output:** the body of the newest comment containing a fenced block that starts
-  `WORK ORDER`, or nothing when no comment has one. Newest wins; older orders are
-  superseded, never merged.
+  `EXECUTION LOCK v2` (flat lock or chunked header) or the legacy `WORK ORDER`, or
+  nothing when no comment has either. Newest wins across both protocols by comment
+  time, regardless of which protocol is newer; older orders of either protocol are
+  superseded, never merged. Exactly one recognized version and source mode governs
+  per lock: a comment naming an unrecognized `EXECUTION LOCK` version, or an
+  unrecognized `Source:` mode, is not a match and does not win by being newest.
+  Fields are never merged from an older comment into a newer one, protocol
+  boundary or not.
 * **Failure:** nothing found means no execution. `start` and `revise` refuse and
   route to `/ticket triage <ticket-id>`. A transport failure is not the same
   answer as an absent order: report which one happened.

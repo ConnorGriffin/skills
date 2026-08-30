@@ -736,7 +736,7 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertRegex(epic, r"operator.{0,100}/ticket triage")
         self.assertRegex(epic, r"does not post.{0,120}fenced")
         self.assertRegex(triage, r"issue-body draft.{0,200}ordinary grounding")
-        self.assertRegex(triage, r"only fenced.{0,100}WORK ORDER")
+        self.assertRegex(triage, r"only fenced.{0,100}execution lock")
 
     def test_epic_child_parent_plan_amendment_rides_the_implementation_pull_request(self):
         consumers = [

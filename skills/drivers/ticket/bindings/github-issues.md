@@ -77,12 +77,12 @@ are this binding's status channel, and the board stays the humans' view.
 
 ````sh
 gh issue view <id> --repo <org/repo> --json comments \
-  --jq '[.comments[] | select(.body | test("(?m)^```[a-z]*\\s*\\r?\\nWORK ORDER"))] | last'
+  --jq '[.comments[] | select(.body | test("(?m)^```[a-z]*\\s*\\r?\\n(EXECUTION LOCK v2|WORK ORDER)"))] | last'
 ````
 
 The scan is newest-first in effect: `gh` returns comments oldest-first, so the
-last match is the newest order. Empty output means no order, which is the refusal
-in `start` and `revise`, not an error to work around.
+last match is the newest order, whichever protocol it is. Empty output means no
+order, which is the refusal in `start` and `revise`, not an error to work around.
 
 A non-zero exit is a transport failure, and is reported as such rather than as an
 absent order.

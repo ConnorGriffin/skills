@@ -105,8 +105,8 @@ against this page.
 
 ## Chunk shape
 
-Each chunk is a self-contained sub-order that a fresh agent can execute with only
-the ticket and that sub-order in front of it. No chunk may say "as established in
+Each chunk is a self-contained sub-lock that a fresh agent can execute with only
+the ticket and that sub-lock in front of it. No chunk may say "as established in
 chunk 1".
 
 * **Mode** is `parallel` (no ordering constraint against other parallel chunks) or
@@ -114,6 +114,13 @@ chunk 1".
   that touch the same file are serial, not parallel.
 * **File ownership** is declared per chunk. Every chunk names the files or targets
   it owns, and two parallel chunks' ownership is disjoint, so they cannot collide.
+* **Task and acceptance-anchor ownership** is declared per chunk when the header
+  lock's `Source:` is `openspec` or `repository-native`. Each sub-lock's `Selected
+  tasks:` and `Acceptance anchors:` are a disjoint positional subset of the pinned
+  source's numbered tasks and requirement/scenario numbers; no sub-lock restates
+  another sub-lock's selection or the change's Context/Do/Done-when prose, since
+  the pinned commit is the authority. An `inline` header carries no pinned source
+  to select against, so its sub-locks keep today's per-chunk `Do` steps instead.
 * **Capability ownership** is declared per chunk. A chunk owns one coherent
   capability together with its named files or targets; every capability has exactly
   one owning chunk.
