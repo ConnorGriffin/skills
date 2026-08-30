@@ -17,27 +17,50 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    b. Confirm the post-merge workflow succeeded (`gh run list` on the repo). If it
    failed, stop and report; the ticket is not done while the post-merge run is red.
 
-   c. **Archive an ordinary OpenSpec change after the verified merge.** Follow
-   `operations.archive.guidance` exactly. In this repository, start from a clean
-   `main` checkout updated to `origin/main`, run
-   `openspec archive <change-name> --json --yes`, verify its archive JSON, run
-   `openspec validate --all --strict`, create a Signed-off-by archive commit, push
-   `main` directly, and verify the post-push workflow succeeded. OpenSpec is
-   Git-unaware: this verb trusts the verified GitHub merge state and adds no
-   enforcement layer. An archive, validation, commit, push, or post-push workflow
-   failure stops finalization before the completion comment and done transition.
-   An epic child creates no child change record, skips this ordinary-change archive
-   procedure, and leaves the parent active and unarchived for the parent epic's
-   archive guidance.
+   c. **Read the archive locator.** An ordinary OpenSpec change is archived across
+   two attended finalizations, because the archive lands through an ordinary
+   reviewed pull request that a human merges. Scan the ticket's comments
+   newest-first for a line reading `Archive PR: <url>`; the newest one wins. None
+   found: this is the first stage, so run step 2d and stop there. Found: this is the
+   second stage, so skip to step 2e. An epic child creates no child change record,
+   has no archive locator, skips steps 2d and 2e, and leaves the parent active and
+   unarchived for the parent epic's archive guidance.
 
-   d. Comment on the ticket (attribution first): the merged pull request link, a
+   d. **First stage: open the archive pull request, then stop.** Follow
+   `operations.archive.guidance` exactly. In this repository, work in a sibling
+   archive checkout whose `main` is updated to `origin/main`, cut a dedicated
+   archive branch there, run `openspec archive <change-name> --json --yes`, verify
+   its archive JSON, run `openspec validate --all --strict`, create a Signed-off-by
+   archive commit, push that branch, and open a follow-up pull request against
+   `main`, scoring the body with `/pr-body` when it is installed. Never push an
+   archive commit directly or forcibly to `main`, and never merge the archive pull
+   request. Then comment on the ticket (attribution first) with the merged
+   implementation pull request link, the post-merge evidence, and a line reading
+   `Archive PR: <url>`, and stop: the ticket is not done, and steps 3 and 4 wait for
+   the later finalization. OpenSpec is Git-unaware: this verb trusts the verified
+   GitHub merge state and adds no enforcement layer. An archive, validation, commit,
+   push, pull-request creation, or comment failure stops finalization here and
+   leaves the archive branch and its checkout in place for the operator to recover
+   by hand; this verb adds no automatic recovery, and a pull request opened without
+   its locator comment is recovered by the operator, not by a later run.
+
+   e. **Second stage: finish only after a human merged the archive pull request.**
+   Run `gh pr view <archive-pr> --json state,mergedAt` on the locator's pull
+   request. Still open: report it pending human review and stop without completing
+   the ticket. Closed without merge: stop for operator direction, and never open a
+   replacement archive pull request automatically. Merged: confirm its post-merge
+   workflow succeeded (`gh run list`) and continue; a red run stops finalization
+   before the completion comment and done transition.
+
+   f. Comment on the ticket (attribution first): the merged pull request link, a
    one-line outcome, the post-merge evidence, and, for an ordinary change, the
-   completed archive evidence.
+   merged archive pull request as the completed archive evidence.
 
-   e. Move the ticket to done. Report a failed move; do not retry.
+   g. Move the ticket to done. Report a failed move; do not retry.
 
-3. **Record the actuals.** On the merged path only. When record needs a target
-   worktree, do this before cleanup; otherwise it may follow cleanup. Read the
+3. **Record the actuals.** On the merged path only, and for an ordinary OpenSpec
+   change only after step 2e's human-merged archive pull request. When record needs
+   a target worktree, do this before cleanup; otherwise it may follow cleanup. Read the
    order's shape off the ticket comment (flat or chunked, chunk count, which rubric
    traits triage said fired, the stamped depths), then:
 
@@ -150,7 +173,8 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    context or a handoff between chunks, never more chunks.
 
 4. **Tear the worktree and branch down.** On the merged path only, after recording
-   actuals:
+   actuals. Remove the sibling archive checkout and its archive branch the same way,
+   once the archive pull request is merged:
 
    ```sh
    <cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <worktree path>
@@ -172,5 +196,6 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    says, and never pick the terminal state yourself.
 
 6. **Report.** The ticket's state, the comment link, the recorded verdict, and
-   anything left open (a red post-merge or post-push run, a failed archive, a
-   surviving branch or worktree).
+   anything left open (a red post-merge run, a failed archive, an archive pull
+   request still awaiting human review or closed unmerged, a surviving branch or
+   worktree).
