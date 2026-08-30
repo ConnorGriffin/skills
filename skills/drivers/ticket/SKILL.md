@@ -216,12 +216,15 @@ branch. Broad read-only grounding never authorizes it.
    legacy `WORK ORDER`, everything it needs must be on the ticket, in the
    description plus the work order's own copied prose. Under an
    `EXECUTION LOCK`, self-sufficiency means deterministic acquisition and
-   verification of the authorized source instead of copied prose: the pinned
-   commit OID plus the lock's own execution-shape fields (session fit,
-   verification, expected diff) are enough for a fresh session to resolve, read,
-   and admit the source itself, per [start](verbs/start.md) step 5. Either way, if
-   what a fresh session needs is not there, that is a triage defect: refuse and
-   say what is missing.
+   verification of the authorized source instead of copied prose, and what that
+   means depends on the source mode. For `openspec` and `repository-native`,
+   the pinned commit OID plus the lock's own execution-shape fields (session
+   fit, verification, expected diff) are enough for a fresh session to resolve,
+   read, and admit the source itself, per [start](verbs/start.md) step 5. For
+   `inline`, there is no commit to resolve: the fence's own `Context`/`Do`/`Done
+   when` payload is the self-sufficient copy, the same as a legacy order's.
+   Either way, if what a fresh session needs is not there, that is a triage
+   defect: refuse and say what is missing.
 
 ## The verification step
 

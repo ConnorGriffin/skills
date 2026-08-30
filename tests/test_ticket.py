@@ -2833,18 +2833,75 @@ class TicketExecutionLockAdmissionTests(unittest.TestCase):
         )
         self.assertIn("revise` never posts a lock itself", self.revise_norm)
 
-    def test_revise_admits_against_starts_full_matrix_by_reference_not_a_second_list(self):
-        # NON-BLOCKING 3: a second enumerated copy of the matrix is what drifts
-        # from start's; revise must point at it instead of re-listing a subset
-        # of its rows (the old prose named seven of nine and silently dropped
-        # delivery fields, ownership, and model fit).
+    def test_revise_admission_runs_against_starts_matrix_never_a_restated_copy(self):
+        # NON-BLOCKING 3 (round 2): the split by checkout (BLOCKING 2 below)
+        # forces revise to name each row so it can say which checkout it runs
+        # from, but it must still point at start's own refusal conditions
+        # rather than restating them a second time.
+        self.assertIn("[start](start.md) step 5's matrix", self.revise_norm)
         self.assertIn(
-            "against [start](start.md) step 5's full admission matrix, unabridged",
+            "exactly as [start](start.md) step 5 runs them",
             self.revise_norm,
         )
-        self.assertNotIn("commit-resolution,", self.revise_norm)
-        self.assertNotIn("branch-pin,", self.revise_norm)
-        self.assertNotIn("selection-completeness,", self.revise_norm)
+        for restated_condition in (
+            "resolving to a real object",
+            "git cat-file -e",
+            "git merge-base --is-ancestor",
+            "openspec validate <change> --strict",
+        ):
+            self.assertNotIn(restated_condition, self.revise_norm)
+
+    def test_revise_splits_admission_by_which_checkout_each_row_needs(self):
+        # BLOCKING 2: step 1 has no worktree yet, so it may only admit the
+        # rows that read the located comment alone; the rows that read the
+        # ticket branch and the pinned commit must wait for step 2's worktree.
+        step1 = self.revise.split("1. **Reload context.**", 1)[1].split(
+            "2. **Worktree.**", 1
+        )[0]
+        step2 = self.revise.split("2. **Worktree.**", 1)[1].split(
+            "3. **Read the standing decisions**", 1
+        )[0]
+        step1_norm = " ".join(step1.split())
+        step2_norm = " ".join(step2.split())
+
+        self.assertIn(
+            "with no checkout beyond the located comment itself, admit the "
+            "checkout-independent rows",
+            step1_norm,
+        )
+        for checkout_independent_row in (
+            "recognized version and mode",
+            "grammar",
+            "delivery fields",
+            "ownership",
+            "model fit",
+        ):
+            self.assertIn(checkout_independent_row, step1_norm)
+
+        self.assertIn("finish the `EXECUTION LOCK` admission step 1 deferred", step2_norm)
+        self.assertIn("all against this worktree specifically", step2_norm)
+        self.assertIn(
+            "never the control checkout, which never switches branches and may be on anything",
+            step2_norm,
+        )
+        for checkout_dependent_row in (
+            "commit resolution",
+            "branch pin",
+            "change state",
+            "selection completeness",
+            "unauthorized amendment",
+        ):
+            self.assertIn(checkout_dependent_row, step2_norm)
+
+        # Neither half is optional: the deferral is a named handoff, never a
+        # silent skip, and a legacy order has nothing left for step 2 to do.
+        self.assertIn(
+            "Skipping this half silently, or running it against the control checkout "
+            "instead of this worktree, both leave the matrix unenforced; neither is "
+            "acceptable.",
+            step2_norm,
+        )
+        self.assertIn("A legacy `WORK ORDER` has nothing further to admit.", step2_norm)
 
     def test_the_newest_recognized_lock_always_wins_reconciling_reuse_with_amendment(self):
         # BLOCKING 2: "reuses the same lock and pin" (unchanged round) and "a
@@ -2913,6 +2970,27 @@ class TicketExecutionLockAdmissionTests(unittest.TestCase):
         self.assertIn(
             "before any implementation or worker dispatch, including the coordinator-mode switch in step 6.",
             self.start_norm,
+        )
+
+    def test_fresh_session_self_sufficiency_covers_all_three_source_modes(self):
+        # BLOCKING 1: rule 10 must not define self-sufficiency only in terms of
+        # a pinned commit OID, or a valid `inline` lock (no OID to resolve) reads
+        # as insufficient to a fresh `start` that step 5 would actually admit.
+        rule10 = self.skill.split("10. **Fresh-session contract.**", 1)[1].split(
+            "## The verification step", 1
+        )[0]
+        rule10_norm = " ".join(rule10.split())
+
+        self.assertIn("For `openspec` and `repository-native`,", rule10_norm)
+        self.assertIn("the pinned commit OID", rule10_norm)
+        self.assertIn(
+            "For `inline`, there is no commit to resolve: the fence's own "
+            "`Context`/`Do`/`Done when` payload is the self-sufficient copy, the "
+            "same as a legacy order's.",
+            rule10_norm,
+        )
+        self.assertIn(
+            "that is a triage defect: refuse and say what is missing", rule10_norm
         )
 
     def test_inline_source_skips_only_the_pinned_commit_rows(self):

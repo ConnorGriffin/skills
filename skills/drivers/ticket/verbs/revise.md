@@ -15,19 +15,26 @@ chunked: the chunks merged long ago and the pull request is one diff.
    Locate the newest order with the same contract operation `start` used — every
    round re-locates fresh; nothing is cached from the round that opened this pull
    request. Under a legacy `WORK ORDER`, nothing more to admit. Under an
-   `EXECUTION LOCK`, admit whatever is newest right now against
-   [start](start.md) step 5's full admission matrix, unabridged, with the same
-   refusal on any failing row: name the row, stop, and route to `/ticket triage
-   <ticket-id>`. The newest recognized lock always wins, which is what reconciles
-   "reuses the same lock and pin" with a mid-round amendment: when nothing has
-   changed since `start`, the newest lock is still the one it admitted, so this
-   round reuses the same pin. When triage posted a newer lock since, authorizing
-   an amendment or an expanded selection, that newer lock is now the newest and
-   is what this round admits instead. When no newer lock exists, the newest lock
-   is still the old one, pinning the old commit — so a source amendment with no
-   newer lock refuses here on the same unauthorized-amendment row `start`
-   defines, never on a comparison against "the lock that opened this pull
-   request" as a separate, cached reference. `revise` never posts a lock itself.
+   `EXECUTION LOCK`, admission runs in two places, split by what each row needs.
+   Here, with no checkout beyond the located comment itself, admit the
+   checkout-independent rows of [start](start.md) step 5's matrix: recognized
+   version and mode, grammar, delivery fields, ownership, and model fit. The
+   remaining rows — commit resolution, branch pin, change state, selection
+   completeness, and unauthorized amendment — read the ticket branch and the
+   pinned commit, which do not exist here yet; step 2 finishes admission against
+   them immediately after it establishes the worktree, before this round
+   proceeds any further. Whichever half a row falls in, the refusal is the same:
+   name the row, stop, and route to `/ticket triage <ticket-id>`. The newest
+   recognized lock always wins, which is what reconciles "reuses the same lock
+   and pin" with a mid-round amendment: when nothing has changed since `start`,
+   the newest lock is still the one it admitted, so this round reuses the same
+   pin. When triage posted a newer lock since, authorizing an amendment or an
+   expanded selection, that newer lock is now the newest and is what this round
+   admits instead. When no newer lock exists, the newest lock is still the old
+   one, pinning the old commit — so a source amendment with no newer lock
+   refuses here on the same unauthorized-amendment row `start` defines, never on
+   a comparison against "the lock that opened this pull request" as a separate,
+   cached reference. `revise` never posts a lock itself.
 
 2. **Worktree.** If the ticket's worktree still exists (verify with
    `git -C <control checkout> worktree list`), check it is on the pull request's
@@ -52,6 +59,16 @@ chunked: the chunks merged long ago and the pull request is one diff.
    Bind that worktree's graph identity per the skill page's graph-identity rule
    before step 4 reads any code, and report what it printed. Each round resolves it
    afresh, because the worktree it runs against may be the one this step respun.
+
+   Now, from this worktree, finish the `EXECUTION LOCK` admission step 1 deferred:
+   commit resolution, branch pin, change state, selection completeness, and
+   unauthorized amendment, exactly as [start](start.md) step 5 runs them, all
+   against this worktree specifically — never the control checkout, which never
+   switches branches and may be on anything. A failing row here refuses the same
+   way step 1's rows do: name the row, stop, and route to `/ticket triage
+   <ticket-id>`. Skipping this half silently, or running it against the control
+   checkout instead of this worktree, both leave the matrix unenforced; neither
+   is acceptable. A legacy `WORK ORDER` has nothing further to admit.
 
 3. **Read the standing decisions**, per the skill page's standing-decisions slot,
    before actioning the round. Absent, say so in one line and continue. This never
