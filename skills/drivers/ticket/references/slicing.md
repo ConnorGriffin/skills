@@ -37,8 +37,8 @@ them together.
 Every execution session carries roughly 90k of fixed overhead (skill load,
 grounding, review) before it touches the work.
 
-These numbers describe what one agent building one piece of work costs, so only a
-session claimed `--role worker` measures them. A coordinator's peak and a
+That overhead and the two thresholds below describe what one agent building one
+piece of work costs, so only a session claimed `--role worker` measures them. A coordinator's peak and a
 reviewer's are recorded separately and tune nothing here. A coordinator over the
 band on an otherwise-held slice is `coordination-degraded`; carry less in that
 session, never cut more chunks.
