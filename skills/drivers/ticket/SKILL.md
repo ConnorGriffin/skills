@@ -145,9 +145,17 @@ branch. Broad read-only grounding never authorizes it.
    an unattributed comment.
 
 4. **The lock is the only entry to execution.** A work order is a ticket comment
-   whose body contains a fenced block starting `WORK ORDER`. `start` and `revise`
-   locate it by scanning the ticket's comments newest-first; the newest one wins.
-   No order, no execution: refuse and route to `/ticket triage <ticket-id>`.
+   whose fence header starts `EXECUTION LOCK ` (any version) or, on a ticket still
+   running the legacy protocol, `WORK ORDER`. `start` and `revise` locate it with
+   the tracker contract's locate operation
+   ([references/tracker-contract.md](references/tracker-contract.md)): newest
+   comment wins by post time across both protocols, and no field is ever merged
+   from an older comment into a newer one. No order, no execution: refuse and
+   route to `/ticket triage <ticket-id>`. Admission is the consumer's job: an
+   unrecognized `EXECUTION LOCK` version or `Source:` mode refuses the same way
+   rather than falling back to an older comment. A legacy `WORK ORDER` keeps
+   today's sufficiency rules with no inferred pin, forever; any supersession uses
+   the new protocol.
 
 5. **One worktree, one branch, per ticket, for the whole lifecycle.** `triage`
    cuts the branch and worktree through `spin-worktree`; `start` and `revise`
@@ -191,9 +199,19 @@ branch. Broad read-only grounding never authorizes it.
 9. **Stop at the pull request boundary.** Opening the pull request ends `start`.
    Merging is human. `finalize` only runs after a human merged.
 
-10. **Fresh-session contract.** `start` assumes no memory of triage. Everything it
-   needs must be on the ticket, in the description plus the work order. If it is
-   not there, that is a triage defect: refuse and say what is missing.
+10. **Fresh-session contract.** `start` assumes no memory of triage. Under a
+   legacy `WORK ORDER`, everything it needs must be on the ticket, in the
+   description plus the work order's own copied prose. Under an
+   `EXECUTION LOCK`, self-sufficiency means deterministic acquisition and
+   verification of the authorized source instead of copied prose, and what that
+   means depends on the source mode. For `openspec` and `repository-native`,
+   the pinned commit OID plus the lock's own execution-shape fields (session
+   fit, verification, expected diff) are enough for a fresh session to resolve,
+   read, and admit the source itself, per [start](verbs/start.md) step 5. For
+   `inline`, there is no commit to resolve: the fence's own `Context`/`Do`/`Done
+   when` payload is the self-sufficient copy, the same as a legacy order's.
+   Either way, if what a fresh session needs is not there, that is a triage
+   defect: refuse and say what is missing.
 
 ## The verification step
 
@@ -275,6 +293,11 @@ want of it.
 ## The change record
 
 The skill records the change where the target repo already records changes.
+
+Whoever executes the change ticks its checklist as work completes, and a checked
+item means implemented and verified, not attempted. That is why a checkbox commit
+in a pinned source is the executor's own bookkeeping rather than an amendment
+([start](verbs/start.md) step 5).
 
 An **epic child** creates no per-child change record. Its parent epic owns the active
 change and its post-merge archive. Triage may commit a required parent-plan

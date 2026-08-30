@@ -265,7 +265,11 @@ For this rule, a worker started with `--sandbox workspace-write` is a write-mode
 dispatch, while a worker started with `--sandbox read-only` is a read-mode dispatch.
 Before starting a worker with `--sandbox workspace-write`, the coordinator writes
 the same complete prompt bytes to `ORDER.md` at the root of that worker's own cwd,
-so the order survives the worker's context compaction.
+so the order survives the worker's context compaction. On a ticket or chunk dispatch
+carrying an EXECUTION LOCK, those bytes are the complete lock or stand-alone
+sub-lock plus dispatch instructions, never a restatement of the pinned source's own
+plan prose. `ORDER.md` is an uncommitted transport copy of that payload; it carries
+the lock, it never becomes a second authority over the pinned source.
 
 Those prompt bytes carry a standing instruction telling the worker to re-read
 `ORDER.md` before each commit and again before declaring the work done, and to treat
@@ -277,7 +281,9 @@ dispatch the coordinator authors it, including a delegated worker whose prompt
 carries a flat work-order fence; that fence deliberately does not carry the line.
 
 A worker that cannot find or read `ORDER.md` stops and reports rather than continuing
-from memory. The coordinator writes the file again and resumes that same worker.
+from memory. So does a worker that cannot read the pinned source `ORDER.md` names: no
+second snapshot is generated to make the prompt self-contained. The coordinator
+writes the file again and resumes that same worker.
 Every resume message to a write-mode worker must restate the order's constraints or
 point it back at `ORDER.md`, because a resume is coordinator-authored and is the
 freshest context the worker has.

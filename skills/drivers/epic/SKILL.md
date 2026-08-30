@@ -69,11 +69,12 @@ draft order as:
 Parent plan base: <branch name without the origin/ prefix>@<full commit>
 ```
 
-The issue body is a draft, not the executable lock. The epic does not post a fenced
-`WORK ORDER` comment, does not invoke `/ticket triage`, `/ticket start`, `/ticket
-revise`, or `/ticket finalize`, and does not open a pull request. Stop and tell the
-operator to invoke `/ticket triage <id>`. Ticket triage independently grounds,
-scopes, reviews, and posts the only fenced executable work order.
+The issue body draft is untrusted intake, not the executable lock. The epic does not
+post a fenced `EXECUTION LOCK` or legacy `WORK ORDER` comment, does not invoke
+`/ticket triage`, `/ticket start`, `/ticket revise`, or `/ticket finalize`, and does
+not open a pull request. Stop and tell the operator to invoke `/ticket triage <id>`.
+Ticket triage independently grounds, scopes, reviews, and posts the only fenced
+lock — the sole authorization to execute against the parent change.
 
 ## Resolve spikes
 
