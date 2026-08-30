@@ -2000,15 +2000,17 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         hooks = Path(self.temporary.name) / "filter-capable-tar"
         hooks.mkdir()
         (hooks / "sitecustomize.py").write_text(
-            "import tarfile, warnings\n"
+            "import inspect, tarfile, warnings\n"
             "original_extract = tarfile.TarFile.extract\n"
             "missing = object()\n"
             "def extract(self, member, path='', set_attrs=True, *, "
             "numeric_owner=False, filter=missing):\n"
             "    if filter is missing:\n"
             "        warnings.warn('default extraction filter used', DeprecationWarning)\n"
+            "    options = ({'filter': filter} if "
+            "'filter' in inspect.signature(original_extract).parameters else {})\n"
             "    return original_extract(self, member, path, set_attrs, "
-            "numeric_owner=numeric_owner)\n"
+            "numeric_owner=numeric_owner, **options)\n"
             "tarfile.TarFile.extract = extract\n",
             encoding="utf-8",
         )
