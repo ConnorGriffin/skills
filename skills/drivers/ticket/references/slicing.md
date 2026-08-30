@@ -115,12 +115,17 @@ chunk 1".
 * **File ownership** is declared per chunk. Every chunk names the files or targets
   it owns, and two parallel chunks' ownership is disjoint, so they cannot collide.
 * **Task and acceptance-anchor ownership** is declared per chunk when the header
-  lock's `Source:` is `openspec` or `repository-native`. Each sub-lock's `Selected
-  tasks:` and `Acceptance anchors:` are a disjoint positional subset of the pinned
-  source's numbered tasks and requirement/scenario numbers; no sub-lock restates
-  another sub-lock's selection or the change's Context/Do/Done-when prose, since
-  the pinned commit is the authority. An `inline` header carries no pinned source
-  to select against, so its sub-locks keep today's per-chunk `Do` steps instead.
+  lock's `Source:` is `openspec` or `repository-native`. Whole-change ownership is
+  a property of the ticket, not of the chunking: the header's own `Selected
+  tasks:`/`Acceptance anchors:` already carry the ticket's full entitlement — `all`
+  for an ordinary ticket, the epic child's owned subset otherwise — and chunking
+  never widens or narrows that entitlement. Each sub-lock's `Selected tasks:` and
+  `Acceptance anchors:` are a disjoint positional slice of the header's own
+  selection, and the sub-locks together cover exactly what the header selected, no
+  more and no less; no sub-lock restates another sub-lock's selection or the
+  change's Context/Do/Done-when prose, since the pinned commit is the authority. An
+  `inline` header carries no pinned source to select against, so its sub-locks keep
+  today's per-chunk `Do` steps instead.
 * **Capability ownership** is declared per chunk. A chunk owns one coherent
   capability together with its named files or targets; every capability has exactly
   one owning chunk.

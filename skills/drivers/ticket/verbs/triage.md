@@ -233,7 +233,9 @@ disclosed target and exact mutation.
 
     **Author, validate, commit, then pin.** The fence is an `EXECUTION LOCK v2`
     envelope, not a second copy of the plan: which `Source:` mode it pins depends
-    on what this repo keeps.
+    on what this repo keeps. Set `<lock-id>` to 1 for a ticket's first lock, or to
+    one more than the highest `<lock-id>` already posted on this ticket, whichever
+    protocol that prior lock used — it identifies this lock, and never resets.
 
     * **OpenSpec repository.** Author the change on the ticket branch — `proposal.md`,
       `tasks.md`, `design.md` when a decision needs one, and its `specs/` deltas —
@@ -243,17 +245,25 @@ disclosed target and exact mutation.
       then read back its full commit OID
       (`git -C <worktree> rev-parse HEAD`) — never a value remembered from before
       the commit, and never an abbreviated OID. Set `Source: openspec
-      <change-path>@<full-commit-oid>` to that exact pair. Set `Selected tasks:` and
-      `Acceptance anchors:` positionally against the pinned commit's `tasks.md` and
-      spec-delta requirements: `all` for an ordinary ticket, which owns its whole
-      change, or the epic child's disjoint subset. Leave `Context`, `Do`, and `Done
-      when` as orientation only — the pinned commit is the authority, and nothing in
-      the fence restates its tasks or acceptance criteria.
+      <change-path>@<full-commit-oid>` to that exact pair. Whole-change ownership is
+      a property of the ticket, not of the fence: set the flat lock's or chunked
+      header's `Selected tasks:` and `Acceptance anchors:` positionally against the
+      pinned commit's `tasks.md` and spec-delta requirements — `all` for an ordinary
+      ticket, which owns its whole change, or the epic child's owned subset — and,
+      when chunked, set each sub-lock's `Selected tasks:` and `Acceptance anchors:`
+      to a disjoint positional slice of that same header selection, together
+      covering it exactly. Leave `Context` as orientation only. Omit `Do` entirely —
+      the pinned tasks are the Do steps. `Done when` states only this lock's own
+      delivery acceptance (the verification command's expectation and the
+      stop-at-pull-request condition), never a restatement of the pinned source's
+      acceptance criteria; the pinned commit is the sole authority for what those
+      criteria are.
     * **Repository-native plan.** When the repo keeps some other versioned,
       reviewable plan artifact instead of OpenSpec, commit it on the ticket branch
       the same way, read back its full commit OID the same way, and set `Source:
-      repository-native <path>@<oid>` to that exact pair. `Selected tasks:` and
-      `Acceptance anchors:` follow that artifact's own positional numbering.
+      repository-native <path>@<oid>` to that exact pair. `Selected tasks:`,
+      `Acceptance anchors:`, `Context`, `Do`, and `Done when` follow the same rules
+      as the OpenSpec path, against that artifact's own positional numbering.
     * **Neither exists.** Set `Source: inline` and omit `Selected tasks:` and
       `Acceptance anchors:`; the fence carries the full `Context` / `Do` / `Done
       when` payload verbatim, as today's work order does.

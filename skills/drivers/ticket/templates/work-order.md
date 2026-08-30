@@ -22,14 +22,26 @@ durable plan lives and at what exact commit, and the fence itself carries only w
 that source cannot — explicit human authorization to execute, which revision is
 authorized, session and model fit, execution shape and chunk ownership,
 verification, review depth, the expected diff, and the stop-at-pull-request
-ceiling. The envelope has one grammar and three source modes:
+ceiling. `<lock-id>` on the version line is a plain positive integer, unique within
+the ticket: 1 for that ticket's first lock, and one more than the highest
+`<lock-id>` already posted on it for every lock that supersedes a prior one,
+whichever protocol the prior lock used. It exists so a reader can tell two locks
+on the same ticket apart; it plays no role in which comment is newest — that is
+comment post time, per [the tracker contract](../references/tracker-contract.md).
+The envelope has one grammar and three source modes:
 
 * **`openspec <change-path>@<full-commit-oid>`** — the plan is an OpenSpec change on
   the ticket branch at that full commit. `Selected tasks:` and
   `Acceptance anchors:` are plain positional numbers (no inline ID markers, no
   hashes) resolved against the pinned commit's `tasks.md` checklist and spec-delta
-  requirements. An ordinary ticket owns its whole change, so selection reads `all`;
-  only an epic child selects a subset of its shared parent change.
+  requirements. Whole-change ownership is a property of the ticket, not of each
+  fence: an ordinary ticket owns its whole change, an epic child owns a subset of
+  its shared parent change, and a flat lock's own `Selected tasks:` reads `all`
+  (ordinary) or that subset (epic child). A chunked lock's header `Selected tasks:`
+  reads the same value, and its sub-locks partition it: each sub-lock's own
+  `Selected tasks:` and `Acceptance anchors:` are a disjoint slice of the header's
+  selection, and the sub-locks together cover exactly what the header selected —
+  no more, no less.
 * **`repository-native <path>@<oid>`** — the plan is some other versioned,
   reviewable artifact this repository already keeps (a design doc, a checklist) at
   that exact commit. `Selected tasks:` and `Acceptance anchors:` are that artifact's
@@ -62,9 +74,8 @@ executable without coordinator commentary. One ticket does not mix `build` and
 Every flat and chunked-header fence also carries `Profile:`. Use `hardening` only
 for a flat order whose target repo declares `Harden:`; use `none` otherwise,
 including every chunked order. A `QA script` follows `Done when` in the flat
-fence only when the profile is `hardening` and `Source:` is `inline` or the
-selected work is enumerated: numbered Given/When/Then steps a human follows in
-the running app to confirm that clause.
+fence only when the profile is `hardening`: numbered Given/When/Then steps a
+human follows in the running app to confirm that clause.
 
 ## Two authoring checks before the draft leaves triage
 
@@ -118,7 +129,7 @@ Profile: <none | hardening>
 
 Drafting conventions: Read `skills/drivers/ticket/references/drafting-conventions.md` before acting on this order.
 
-Selected tasks: <all, or the epic-child positional subset, from the pinned source's numbered tasks; omit when Source is inline>
+Selected tasks: <all (ordinary ticket) or the epic-child's owned subset, as positional numbers from the pinned source's numbered tasks; omit when Source is inline>
 Acceptance anchors: <positional requirement/scenario numbers from the pinned source that this lock selects; omit when Source is inline>
 
 Context
@@ -135,8 +146,11 @@ Do
 
 Done when
 <observable acceptance: verification output, CI green, specific behavior. Not
- "works". For openspec and repository-native, this is the pinned source's
- acceptance criteria for the selected tasks and anchors, stated observably.>
+ "works". For openspec and repository-native, this is the lock's own delivery
+ acceptance only — the verification command's expectation and the
+ stop-at-pull-request condition — never a restatement of the pinned source's own
+ acceptance criteria; that criteria lives at the pinned commit, and only the
+ executing agent's later verification checks it.>
 
 Expected diff
 <closed allowlist of repository-relative paths this order may touch. No escape
@@ -187,8 +201,8 @@ Drafting conventions: Read `skills/drivers/ticket/references/drafting-convention
 Why sliced
 <the rubric traits that fired, one line each, and the anchor row this matches>
 
-Selected tasks: <all, or the epic-child positional subset, from the pinned source's numbered tasks; omit when Source is inline>
-Acceptance anchors: <positional requirement/scenario numbers from the pinned source that this lock selects; omit when Source is inline>
+Selected tasks: <all (ordinary ticket) or the epic-child's owned subset, as positional numbers from the pinned source's numbered tasks — the whole selection every sub-lock below partitions; omit when Source is inline>
+Acceptance anchors: <positional requirement/scenario numbers from the pinned source that this lock selects — the whole selection every sub-lock below partitions; omit when Source is inline>
 
 Context
 <2-5 bullets shared by every chunk: what exists today, what constrains the change,
@@ -218,8 +232,8 @@ Shared contracts owned: <none | each named contract this sub-order owns>
 
 Drafting conventions: Read `skills/drivers/ticket/references/drafting-conventions.md` before acting on this order.
 
-Selected tasks: <this sub-order's disjoint positional subset of the pinned source's numbered tasks; omit when the header's Source is inline>
-Acceptance anchors: <this sub-order's disjoint positional subset of the pinned source's requirement/scenario numbers; omit when the header's Source is inline>
+Selected tasks: <this sub-order's disjoint positional slice of the header's Selected tasks; every sibling sub-lock's slice is disjoint from this one, and together they cover the header's whole selection; omit when the header's Source is inline>
+Acceptance anchors: <this sub-order's disjoint positional slice of the header's Acceptance anchors, on the same terms; omit when the header's Source is inline>
 
 Context
 <everything this chunk needs to stand alone in a fresh agent. Never "as established
@@ -245,7 +259,10 @@ Do
  tasks are the Do steps; nothing here duplicates them.>
 
 Done when
-<observable acceptance for this chunk alone>
+<observable acceptance for this chunk alone. Under the header's openspec or
+ repository-native Source, this is the lock's own delivery acceptance only —
+ verification and stop-at-pull-request — never a restatement of the pinned
+ source's acceptance criteria for this sub-lock's selected tasks.>
 
 Expected diff
 <this sub-order's closed allowlist of repository-relative paths. No escape clause,

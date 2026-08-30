@@ -49,15 +49,19 @@ binding and ships with the skill.
 ## 4. Locate the newest work order
 
 * **Input:** a ticket id.
-* **Output:** the body of the newest comment containing a fenced block that starts
+* **Output:** the body of the newest comment whose fence header starts
   `EXECUTION LOCK v2` (flat lock or chunked header) or the legacy `WORK ORDER`, or
-  nothing when no comment has either. Newest wins across both protocols by comment
-  time, regardless of which protocol is newer; older orders of either protocol are
-  superseded, never merged. Exactly one recognized version and source mode governs
-  per lock: a comment naming an unrecognized `EXECUTION LOCK` version, or an
-  unrecognized `Source:` mode, is not a match and does not win by being newest.
-  Fields are never merged from an older comment into a newer one, protocol
-  boundary or not.
+  nothing when no comment has either header. Newest wins across both protocols by
+  comment time, regardless of which protocol is newer; older orders of either
+  protocol are superseded, never merged, and no field is ever merged from an older
+  comment into a newer one, protocol boundary or not. This operation matches on
+  the fence header alone; it does not parse or validate the `EXECUTION LOCK`
+  version or `Source:` mode inside the fence.
+* **Admission is the consumer's job, and it fails closed.** `start` and `revise`
+  parse the located comment before acting on it. An unrecognized `EXECUTION LOCK`
+  version, or a `Source:` mode this protocol does not define, refuses execution
+  and routes to `/ticket triage <ticket-id>`; it never falls back to an older
+  comment, located or not; and this operation is not consulted again to find one.
 * **Failure:** nothing found means no execution. `start` and `revise` refuse and
   route to `/ticket triage <ticket-id>`. A transport failure is not the same
   answer as an absent order: report which one happened.
