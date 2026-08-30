@@ -340,6 +340,17 @@ Spec:
   ledger amendment that moves the entry back to STORY also deletes the absence
   assertion. On fallback, the `resettle` change set makes both changes. The
   assertion is never deleted on its own.
+- **A retired function asserts the premise the retirement reasoned from, not
+  only the absence.** Every ruling has a because — "the renderer is not visible
+  or focusable, so it cannot honestly claim a reader keyboard path" — and a
+  function that asserts the conclusion alone goes on passing after that because
+  stops being true. Record the premise on the ledger entry and assert it beside
+  the absence. When the premise fails while the behavior is still absent, the
+  story goes red as a **QUESTION-round trigger asking for a fresh ruling**; it is
+  not a `replayed-fail`, which stays reserved for the retired behavior being
+  present. A surface made visible again by a later change is exactly this case,
+  and it is silent without the premise: the absence assertion is still true, and
+  the reason it was allowed to be absent is gone.
 - **The script fails closed.** Missing browser dependencies (driver module,
   vendored assets, executable) exit nonzero — never `skip`. A skipped run exits 0,
   and a green step that executed zero stories is precisely the silent skip this
@@ -396,7 +407,8 @@ R3 · Dragging in the plot body drew a custom selection window; two handles
   verdict:  retired
   sanction: Connor · 2026-08-18 · "the presets cover every window I use; the
             drawn window goes."
-  replay:   fn R3 asserts absence and prints this sanction line
+  premise:  the preset window controls are present and cover the plot's range
+  replay:   fn R3 asserts absence and the premise, and prints this sanction line
   status:   retired (permanent)
 ```
 

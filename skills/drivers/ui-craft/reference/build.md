@@ -160,7 +160,10 @@ mock opener exercises the mock and proves nothing about the port.
   the date that sanctioned the drop, so a retirement never becomes a silent green
   line. A RETIRED entry whose behavior is *present* in the build is a
   `replayed-fail`: the port restored something a human ruled gone, which is a
-  deviation in the same way dropping a locked term is.
+  deviation in the same way dropping a locked term is. A RETIRED entry whose
+  *premise* has failed while its behavior stays absent is `re-settle requested`,
+  never `replayed-fail` — the drop still holds but the reason for it does not, so
+  the operator rules again.
 - The script's fail-closed rule holds here: a green step that executed zero
   stories is a failure, so confirm the run **reported its applicable story
   count**, not merely that the step ran.
