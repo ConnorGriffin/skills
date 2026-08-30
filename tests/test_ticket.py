@@ -113,7 +113,7 @@ class TicketSkillContractTests(unittest.TestCase):
             encoding="utf-8"
         )
         trait_rubric = slicing.split("## The trait rubric", 1)[1].split(
-            "## Anchor table", 1
+            "## Sizing", 1
         )[0]
         chunk_shape = slicing.split("## Chunk shape", 1)[1].split(
             "## Orchestrator tier", 1
@@ -177,7 +177,7 @@ class TicketSkillContractTests(unittest.TestCase):
             encoding="utf-8"
         )
         trait_rubric = slicing.split("## The trait rubric", 1)[1].split(
-            "## Anchor table", 1
+            "## Sizing", 1
         )[0]
         rows = [
             line.split("|")[1].strip()
@@ -211,6 +211,68 @@ class TicketSkillContractTests(unittest.TestCase):
                     f"the {word} trait row is no longer {expected[position]!r};"
                     " the explanation's ordinal now describes the wrong trait",
                 )
+
+    def test_a_slicing_misprediction_is_reported_and_never_offered_as_a_rubric_change(self):
+        # Slicing calibration is per repository: the record finalize already
+        # appended to this repo's reviewer-memory store is the lesson. If
+        # finalize went back to drafting a rubric diff for the operator to land,
+        # one repository's measurements would grow into every installation's
+        # rubric again, which is exactly what the per-repo store replaced.
+        finalize = " ".join(
+            (TICKET_DIRECTORY / "verbs" / "finalize.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn("report the misprediction", finalize)
+        self.assertIn("reviewer-memory store", finalize)
+        self.assertNotIn("Show it to the user", finalize)
+        self.assertNotIn("pull request they approve", finalize)
+
+    def test_the_slicing_rubric_keeps_no_measured_anchors_of_its_own(self):
+        # Measured anchors are one operator's numbers on one machine. They live
+        # in each repo's reviewer-memory store, which triage consults; the page
+        # keeps only the repo-agnostic mechanism.
+        slicing = (TICKET_DIRECTORY / "references" / "slicing.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("## Anchor table", slicing)
+        collapsed = " ".join(slicing.split())
+        self.assertIn("reviewer-memory store", collapsed)
+
+    def test_the_order_records_the_anchor_match_without_carrying_store_content(self):
+        # Triage step 4 confines reviewer-memory content to worker prompts:
+        # "never copy them into the work order, a tracker comment...". Once the
+        # anchors moved out of the shipped rubric and into the private per-repo
+        # store, an order asked to name "the anchor row this matches" would post
+        # store content into a public tracker comment. The order records that a
+        # nearby anchor agreed, disagreed, or was absent — never the anchor.
+        triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(
+            encoding="utf-8"
+        )
+        template = (TICKET_DIRECTORY / "templates" / "work-order.md").read_text(
+            encoding="utf-8"
+        )
+        confinement = " ".join(triage.split("4. **", 1)[1].split("5. **", 1)[0].split())
+        self.assertIn(
+            "never copy them into the work order, a tracker comment",
+            confinement,
+        )
+        shape_step = " ".join(
+            triage.split("8. **Decide the shape", 1)[1]
+            .split("9. **Stamp the review depth", 1)[0]
+            .split()
+        )
+        why_sliced = " ".join(
+            template.split("Why sliced", 1)[1].split("Context", 1)[0].split()
+        )
+        for section, label in ((shape_step, "triage step 8"), (why_sliced, "the template")):
+            self.assertIn(
+                "never",
+                section,
+                f"{label} no longer bounds what the order may carry from the store",
+            )
+        self.assertIn("store content stays out of the order", shape_step)
+        self.assertIn("never the anchor's content", why_sliced)
 
     def test_surface_lifecycle_is_produced_and_consumed_across_ticket_paths(self):
         triage = (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8")

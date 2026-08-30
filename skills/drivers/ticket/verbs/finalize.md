@@ -146,18 +146,20 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    context per claimed session without recording anything, which is the way to look
    before committing a record.
 
-   **On `under-sliced`, `still-degraded`, or `over-sliced`, report the misprediction
-   and draft the amendment.** Say which rubric call was wrong and by how much, then
-   write a concrete diff against
-   [references/slicing.md](../references/slicing.md): a trait added or reworded, a
-   threshold moved, a new anchor row with this ticket's measured peak. An amendment
-   that moves a threshold moves it in both places, the prose and the helper's
-   constants, or the two drift apart. Show it to the user; landing it is an ordinary
-   pull request they approve. The skill never amends its own rubric, and never edits
-   `references/slicing.md` itself.
+   **On `under-sliced`, `still-degraded`, or `over-sliced`, report the
+   misprediction.** Say which rubric call was wrong and by how much: the traits
+   triage read, the shape it chose, and the peak that contradicted it. That is the
+   whole path. The slicing record appended in the previous step already landed the
+   lesson in this repository's reviewer-memory store, which is where triage reads
+   its anchors, so the calibration is durable without anything further. Finalize
+   drafts no rubric diff, offers no pull request, never edits
+   [references/slicing.md](../references/slicing.md), and asks the operator nothing
+   here. Moving the 180k target or the 120k floor themselves is
+   operator-initiated skills-repo work, because it changes the rubric prose and the
+   helper's constants together; finalize never proposes it.
 
    `no-data`, `unmeasurable`, `coordinator-only`, and `coordination-degraded` are not
-   mispredictions, and none drafts an amendment. `no-data` has two readings the
+   mispredictions, and none of them reports one. `no-data` has two readings the
    report keeps apart: no session claimed the ticket, so it ran outside this
    machine's transcripts, or claims for another repository were excluded.
    `unmeasurable` means this repository had claims but no measurable eligible start
