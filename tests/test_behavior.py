@@ -1293,6 +1293,9 @@ class UiCraftContractTests(unittest.TestCase):
         changes_contract = " ".join(changes.split())
         self.assertIn("**Moved:**", changes_contract)
         self.assertIn("same ceremony as a removal", changes_contract)
+        # A move keeps its entry: the sweep admits exactly three entry types, so
+        # leaving this open reads a moved behavior's absence as a retirement.
+        self.assertIn("lands as an amended STORY rather than a retirement", changes_contract)
         for requirement in (
             "under-specifies every selector that names it",
             "presence proxy",

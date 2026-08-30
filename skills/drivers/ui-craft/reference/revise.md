@@ -147,8 +147,9 @@ settled:
   neither.
 - **Options differ in concept, not decoration** — five ways to site a control,
   not five colors of one control. Render every option live under the coverage
-  §1 already requires, and give each state its own specimen: a small tile at
-  rest is not evidence about a large one being held.
+  §1 already requires, plus the element sizes the option itself varies, and give
+  each state its own specimen: a small tile at rest is not evidence about a
+  large one being held.
 - **Every option carries a stated cost, the recommended one included.** An
   option offered as free is one whose cost has not been found yet, and it wins
   the round on an omission.
@@ -198,12 +199,16 @@ is failure, never skip.
   assertion that prints the sanction on every run. Record the premise the ruling
   reasoned from on the entry, so that assertion can assert it too
   (`behavior-sweep`).
-- **Moved:** a behavior that changed which surface owns it gets the same
-  ceremony as a removal. Name the fact, the surface it left, the surface it
-  landed on, and update every story that reads it in the same change. A move is
-  the case that looks like nothing happened: the app is right, the behavior is
-  intact, and the stories still reading the old surface were not wrong when they
-  were written and nobody was told they had become wrong.
+- **Moved:** a behavior that changed which surface owns it owes the same
+  ceremony as a removal, and lands as an amended STORY rather than a retirement
+  — the behavior still ships, so it keeps its entry and its replay, and no
+  sanction is owed. Name the fact, the surface it left, the surface it landed
+  on, and update every story that reads it in the same change, so the next
+  revision's inventory finds it where it now lives instead of reading its
+  absence from the old surface as an unsanctioned retirement. A move is the case
+  that looks like nothing happened: the app is right, the behavior is intact,
+  and the stories still reading the old surface were not wrong when they were
+  written and nobody was told they had become wrong.
 
 A dropped, changed or moved behavior without that record blocks the revision.
 There is no lock term to `resettle`; the ledger amendment is the decision
