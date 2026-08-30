@@ -18,7 +18,10 @@ workflow permits completion, actuals recording, and cleanup.
 
 The archive branch and checkout MAY be a narrow post-merge exception to the normal
 one-branch, one-worktree ticket lifecycle. A failure MUST stop visibly and preserve
-recoverable Git state. An epic child MUST leave archive ownership with its parent.
+recoverable Git state. Actuals MUST be recorded before the ticket worktree is torn
+down. An epic child MUST leave archive ownership with its parent. A closed-unmerged
+or cancelled ticket MUST NOT be torn down or assigned a terminal state until the user
+explicitly confirms the abandoned path and chooses the ticket state.
 
 #### Scenario: An ordinary OpenSpec ticket is finalized after merge
 

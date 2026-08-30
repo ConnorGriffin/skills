@@ -16,6 +16,7 @@ require bypassing normal review.
 
 ## Impact
 
-Repository archive guidance, ticket finalization prose, the ticket-workflow delta,
-documentation, and their contract tests change together. No runtime module,
+Repository archive guidance (`openspec/config.yaml`), the `skills/drivers/ticket/`
+source skill's `SKILL.md` and `verbs/finalize.md`, the ticket-workflow delta,
+`docs/epic-flow.md`, and their contract tests change together. No runtime module,
 parser, external service, or merge automation is added.

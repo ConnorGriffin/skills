@@ -683,6 +683,8 @@ class TicketSkillContractTests(unittest.TestCase):
         )
 
         # No surface still tells finalization to push the archive to the default branch.
+        # These two patterns matched the pre-change `finalize.md` and `docs/epic-flow.md`
+        # respectively, so they are the ones that would regress.
         for surface, text in (
             ("finalize", finalize_contract),
             ("shared", shared_contract),
@@ -699,6 +701,29 @@ class TicketSkillContractTests(unittest.TestCase):
             "Never push an archive commit directly or forcibly to `main`",
             finalize_contract,
         )
+
+        # The shared page carries the routing itself, not merely the absence of a push.
+        self.assertIn(
+            "follows `operations.archive.guidance` in a sibling archive checkout",
+            shared_contract,
+        )
+        self.assertIn("one narrow post-merge exception", shared_contract)
+        self.assertIn(
+            "lands through its own reviewed pull request rather than a push to `main`",
+            shared_contract,
+        )
+        self.assertIn(
+            "opens a reviewed archive pull request and posts its `Archive PR:` locator",
+            shared_contract,
+        )
+        self.assertIn(
+            "reviewed follow-up pull request that a human merges, never a direct push",
+            shared_contract,
+        )
+        self.assertNotIn(
+            "follows `operations.archive.guidance` on `main`", shared_contract
+        )
+
         self.assertIn("reviewed follow-up pull request", guide_contract)
         self.assertIn("No archive commit is pushed directly to `main`", guide_contract)
 

@@ -173,8 +173,7 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    context or a handoff between chunks, never more chunks.
 
 4. **Tear the worktree and branch down.** On the merged path only, after recording
-   actuals. Remove the sibling archive checkout and its archive branch the same way,
-   once the archive pull request is merged:
+   actuals:
 
    ```sh
    <cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <worktree path>
@@ -189,6 +188,13 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    `git ls-remote --heads origin <ticket branch>` and delete it with
    `git push origin --delete <ticket branch>` only if it is still there, since the
    code host usually deletes it on merge.
+
+   Then retire the sibling archive checkout the same way, because it is a checkout
+   this skill authored and carries its own graph identity: run
+   `<cbm-onboard-skill-directory>/scripts/cbm-teardown.sh <archive checkout>` first,
+   then `git -C <control checkout> worktree remove <archive checkout>` when it was cut
+   as a worktree and delete the directory otherwise, and delete its archive branch
+   locally and on the remote.
 
 5. **Abandoned path** (pull request closed unmerged, or the work cancelled): comment
    why, then on explicit user confirmation run the same teardown as step 4. Never
