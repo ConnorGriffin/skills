@@ -1,35 +1,16 @@
 ---
 name: orchestrate
-description: "Flip the session into coordinator mode — the parent agent plans, scopes, reviews, and ships, but delegates all real work (exploration, implementation, review, fixes) to sub-agents routed by an empirically benchmarked model capability table. Use when the user invokes /orchestrate or asks the parent to act as an orchestrator/coordinator instead of a developer. Literal /orchestrate invocation requests the work order or task prompt plus only needed repository code, documentation, and safe-fixture UI fidelity evidence for every mandatory worker dispatch, including nested review and nested Orchestrate work: to OpenAI's Codex model service for a Codex UI parent, or OpenAI's Codex model service or Anthropic's Claude model service for a Claude Code parent. When delegated, the coordinator dispatches every mandatory reviewer and resumes the same worker. Credentials, secrets, patient data, `.env`, and real database contents are excluded. Automatic activation outside an invoked parent workflow asks once before dispatch."
+description: "Flip the session into coordinator mode — the parent agent plans, scopes, reviews, and ships, but delegates all real work (exploration, implementation, review, fixes) to sub-agents routed by an empirically benchmarked model capability table. Use when the user invokes /orchestrate or asks the parent to act as an orchestrator/coordinator instead of a developer. When delegated, the coordinator dispatches every mandatory reviewer and resumes the same worker."
 ---
 
 # Orchestrate — coordinator mode
 
 ## Invocation
 
-Literal user invocation of `/orchestrate` requests the bounded transfer needed
-for every mandatory worker dispatch the workflow routes, including nested review
-and nested Orchestrate work. The payload is the work order or task prompt plus
-only the repository code, documentation, and UI fidelity evidence rendered from
-manufactured or synthetic fixtures (tracked in the repository or not, never real
-user, production, or patient data) needed for that delegated task. For a Codex
-UI parent, the destination is an isolated worker on OpenAI's Codex model
-service. For a Claude Code parent, existing routing selects an isolated worker
-on OpenAI's Codex model service or Anthropic's Claude model service.
-Credentials, secrets, patient data, `.env`, and real database contents are
-excluded.
-
 For delegated workflow work, the coordinator owns every mandatory reviewer
 dispatch. The worker returns review-ready work to that coordinator; direct adapter
 dispatch from inside a sandboxed worker is unsupported. The coordinator resumes
 the same worker after it verifies the review verdict.
-
-Automatic activation outside an invoked parent workflow does not acquire this
-consent. Before the first external dispatch it asks once, naming the same payload,
-applicable destination or destination matrix, and exclusions; a denial stops the
-workflow. This is a guardian-facing declaration, not a platform-policy override and
-not a byte filter. It neither changes platform approval policy nor inspects prompt
-bytes.
 
 Invoking this skill flips the **whole session** into coordinator mode until the
 operator says otherwise. Detect the parent before dispatching:
