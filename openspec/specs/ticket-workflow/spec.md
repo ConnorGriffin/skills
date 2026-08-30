@@ -239,7 +239,7 @@ rather than inferred from recorded slicing outcomes.
 - **WHEN** triage, revise, or finalize peaks above the slicing band while the
   measurable non-reviewer `start` claim remains below it
 - **THEN** the flat verdict is based on the `start` peak and reports lifecycle
-  overhead separately without proposing a slicing-rubric amendment
+  overhead separately
 
 #### Scenario: A claimed flat ticket has no attributable execution
 
@@ -305,17 +305,29 @@ chooses the ticket state.
 
 ### Requirement: Slicing amendment verdicts
 
-Finalization MUST draft, but MUST NOT apply, a concrete slicing-rubric amendment
-for `under-sliced`, `still-degraded`, or `over-sliced` verdicts. It MUST NOT draft
-such an amendment for `no-data`, `unmeasurable`, `coordinator-only`, or
-`coordination-degraded`, and a threshold proposal MUST update both the rubric prose
-and helper constant together.
+Finalization MUST report the misprediction for `under-sliced`, `still-degraded`,
+or `over-sliced` verdicts, naming which rubric call was wrong and by how much. It
+MUST NOT draft a slicing-rubric amendment, MUST NOT prompt the operator on that
+path, and MUST NOT edit the rubric. The slicing record already appended to the
+target repository's reviewer-memory store is the calibration sink for those
+lessons. Finalization MUST NOT report a misprediction for `no-data`,
+`unmeasurable`, `coordinator-only`, or `coordination-degraded`. A change to the
+slicing thresholds themselves MUST be operator-initiated and MUST update the
+rubric prose and the helper constant together.
 
 #### Scenario: Measured chunks were too large
 
 - **WHEN** role-aware measurement returns `still-degraded`
-- **THEN** finalization reports the misprediction and shows the user a concrete
-  rubric diff without editing the rubric in the ticket branch
+- **THEN** finalization reports the misprediction against the stamped shape, names
+  the per-repo slicing record as the calibration, and neither drafts a rubric diff
+  nor asks the operator anything
+
+#### Scenario: A verdict is not a misprediction
+
+- **WHEN** role-aware measurement returns `no-data`, `unmeasurable`,
+  `coordinator-only`, or `coordination-degraded`
+- **THEN** finalization reports that verdict's own meaning and reports no slicing
+  misprediction
 
 ### Requirement: Active change reviewable through merge
 
