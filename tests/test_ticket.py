@@ -2725,5 +2725,291 @@ class TicketLiveProseContractTests(unittest.TestCase):
         self.assertEqual(chunked_header_fence.count("Session fit:"), 0)
 
 
+class TicketExecutionLockAdmissionTests(unittest.TestCase):
+    """The fail-closed matrix `start` (and `revise`, by reuse) enforce before any
+    implementation or worker dispatch. One subTest per refusal row, each pinning
+    that row's own prose so a future edit cannot silently drop or reword a
+    refusal without failing here."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.start = (TICKET_DIRECTORY / "verbs" / "start.md").read_text(encoding="utf-8")
+        cls.revise = (TICKET_DIRECTORY / "verbs" / "revise.md").read_text(encoding="utf-8")
+        cls.skill = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+        cls.contract = (TICKET_DIRECTORY / "references" / "tracker-contract.md").read_text(
+            encoding="utf-8"
+        )
+        cls.start_norm = " ".join(cls.start.split())
+        cls.revise_norm = " ".join(cls.revise.split())
+        cls.skill_norm = " ".join(cls.skill.split())
+        cls.contract_norm = " ".join(cls.contract.split())
+        cls.sufficiency_norm = " ".join(
+            cls.start.split("5. **Sufficiency check.**", 1)[1]
+            .split("6. **Chunked order: switch to coordinator mode.**", 1)[0]
+            .split()
+        )
+
+    def test_missing_lock_refuses_and_routes_to_triage(self):
+        self.assertIn(
+            'say "no work order on `<ticket-id>`; run /ticket triage `<ticket-id>`", and stop.',
+            self.start_norm,
+        )
+
+    def test_bad_version_or_source_mode_refuses(self):
+        self.assertIn(
+            "An unrecognized `EXECUTION LOCK` version, or a `Source:` mode this protocol does not define, refuses execution",
+            self.sufficiency_norm,
+        )
+        self.assertIn("bad version or mode", self.sufficiency_norm)
+
+    def test_short_or_unresolvable_oid_refuses(self):
+        self.assertIn("a short or unresolvable OID refuses", self.sufficiency_norm)
+        self.assertIn("git cat-file -e", self.sufficiency_norm)
+
+    def test_missing_source_path_refuses(self):
+        self.assertIn("an empty result is a missing path and refuses", self.sufficiency_norm)
+        self.assertIn("git ls-tree", self.sufficiency_norm)
+
+    def test_archived_change_refuses(self):
+        self.assertIn("not archived); an archived change refuses", self.sufficiency_norm)
+
+    def test_invalid_change_refuses(self):
+        self.assertIn(
+            "a change that fails strict validation refuses: invalid change.",
+            self.sufficiency_norm,
+        )
+        self.assertIn("openspec validate <change> --strict", self.sufficiency_norm)
+
+    def test_absent_acceptance_anchors_refuse(self):
+        self.assertIn("absent anchors", self.sufficiency_norm)
+        self.assertIn("An empty selection refuses the same way.", self.sufficiency_norm)
+
+    def test_branch_missing_the_pin_refuses_and_never_substitutes_head(self):
+        self.assertIn("branch missing the pin", self.sufficiency_norm)
+        self.assertIn(
+            "Never substitute the branch head for the pin, even when the head is newer.",
+            self.sufficiency_norm,
+        )
+
+    def test_amended_source_without_a_newer_lock_refuses(self):
+        self.assertIn(
+            "refuse: the amendment is unauthorized until a newer lock pins it.",
+            self.sufficiency_norm,
+        )
+        self.assertIn("git log --oneline <oid>..<ticket-branch-head>", self.sufficiency_norm)
+
+    def test_every_row_shares_one_refusal_route(self):
+        # Each row above fails distinctly, but they all land on the same route:
+        # named, reported, and re-triaged, never a silent substitution.
+        self.assertIn(
+            "name the row, report it, and route to `/ticket triage <ticket-id>`",
+            self.sufficiency_norm,
+        )
+        self.assertIn("admission never merges", self.sufficiency_norm)
+
+    def test_legacy_work_order_keeps_its_sufficiency_rules_with_no_inferred_pin(self):
+        for source in (self.start_norm, self.skill_norm):
+            self.assertIn("no inferred pin, forever", source)
+        self.assertIn("drifted", self.start_norm)
+        self.assertIn("re-triage, not improvisation", self.start_norm)
+
+    def test_newest_wins_across_mixed_legacy_and_v2_lock_comments(self):
+        self.assertIn(
+            "Newest wins across both protocols by comment time, regardless of which protocol is newer; "
+            "older orders of either protocol are superseded, never merged, and no field is "
+            "ever merged from an older comment into a newer one, protocol boundary or not.",
+            self.contract_norm,
+        )
+        self.assertIn(
+            "newest comment wins by post time across both protocols, and no field is ever merged "
+            "from an older comment into a newer one",
+            self.skill_norm,
+        )
+
+    def test_revise_relocates_the_newest_lock_every_round_rather_than_caching_it(self):
+        self.assertIn(
+            "every round re-locates fresh; nothing is cached from the round that opened this pull request",
+            self.revise_norm,
+        )
+        self.assertIn("revise` never posts a lock itself", self.revise_norm)
+
+    def test_revise_admission_runs_against_starts_matrix_never_a_restated_copy(self):
+        # NON-BLOCKING 3 (round 2): the split by checkout (BLOCKING 2 below)
+        # forces revise to name each row so it can say which checkout it runs
+        # from, but it must still point at start's own refusal conditions
+        # rather than restating them a second time.
+        self.assertIn("[start](start.md) step 5's matrix", self.revise_norm)
+        self.assertIn(
+            "exactly as [start](start.md) step 5 runs them",
+            self.revise_norm,
+        )
+        for restated_condition in (
+            "resolving to a real object",
+            "git cat-file -e",
+            "git merge-base --is-ancestor",
+            "openspec validate <change> --strict",
+        ):
+            self.assertNotIn(restated_condition, self.revise_norm)
+
+    def test_revise_splits_admission_by_which_checkout_each_row_needs(self):
+        # BLOCKING 2: step 1 has no worktree yet, so it may only admit the
+        # rows that read the located comment alone; the rows that read the
+        # ticket branch and the pinned commit must wait for step 2's worktree.
+        step1 = self.revise.split("1. **Reload context.**", 1)[1].split(
+            "2. **Worktree.**", 1
+        )[0]
+        step2 = self.revise.split("2. **Worktree.**", 1)[1].split(
+            "3. **Read the standing decisions**", 1
+        )[0]
+        step1_norm = " ".join(step1.split())
+        step2_norm = " ".join(step2.split())
+
+        self.assertIn(
+            "with no checkout beyond the located comment itself, admit the "
+            "checkout-independent rows",
+            step1_norm,
+        )
+        for checkout_independent_row in (
+            "recognized version and mode",
+            "grammar",
+            "delivery fields",
+            "ownership",
+            "model fit",
+        ):
+            self.assertIn(checkout_independent_row, step1_norm)
+
+        self.assertIn("finish the `EXECUTION LOCK` admission step 1 deferred", step2_norm)
+        self.assertIn("all against this worktree specifically", step2_norm)
+        self.assertIn(
+            "never the control checkout, which never switches branches and may be on anything",
+            step2_norm,
+        )
+        for checkout_dependent_row in (
+            "commit resolution",
+            "branch pin",
+            "change state",
+            "selection completeness",
+            "unauthorized amendment",
+        ):
+            self.assertIn(checkout_dependent_row, step2_norm)
+
+        # Neither half is optional: the deferral is a named handoff, never a
+        # silent skip, and a legacy order has nothing left for step 2 to do.
+        self.assertIn(
+            "Skipping this half silently, or running it against the control checkout "
+            "instead of this worktree, both leave the matrix unenforced; neither is "
+            "acceptable.",
+            step2_norm,
+        )
+        self.assertIn("A legacy `WORK ORDER` has nothing further to admit.", step2_norm)
+
+    def test_the_newest_recognized_lock_always_wins_reconciling_reuse_with_amendment(self):
+        # BLOCKING 2: "reuses the same lock and pin" (unchanged round) and "a
+        # newer lock authorizes an amendment" (changed round) must resolve to
+        # one rule, not two different locks in adjacent sentences.
+        self.assertIn(
+            "The newest recognized lock always wins, which is what reconciles "
+            '"reuses the same lock and pin" with a mid-round amendment: when nothing has '
+            "changed since `start`, the newest lock is still the one it admitted, so this "
+            "round reuses the same pin.",
+            self.revise_norm,
+        )
+        self.assertIn(
+            "When triage posted a newer lock since, authorizing an amendment or an "
+            "expanded selection, that newer lock is now the newest and is what this round "
+            "admits instead.",
+            self.revise_norm,
+        )
+        self.assertIn(
+            "When no newer lock exists, the newest lock is still the old one, pinning the "
+            "old commit",
+            self.revise_norm,
+        )
+        self.assertIn(
+            'never on a comparison against "the lock that opened this pull request" as a '
+            "separate, cached reference",
+            self.revise_norm,
+        )
+
+    def test_revise_refuses_source_scope_expansion_without_a_newer_lock(self):
+        self.assertIn(
+            "An item that asks to touch the pinned source outside that selection is scope "
+            "expansion: refuse it here",
+            self.revise_norm,
+        )
+
+    def test_delivery_fields_row_refuses_when_verification_or_expectation_is_missing(self):
+        self.assertIn(
+            "`Verification:` and `Expectation:` are both present and non-empty; either "
+            "missing refuses.",
+            self.sufficiency_norm,
+        )
+
+    def test_chunked_ownership_overlap_row_refuses(self):
+        self.assertIn(
+            "confirm the chunks' declared file and target ownership is still disjoint; an "
+            "overlap refuses, whether triage stated it wrong or drift introduced it since.",
+            self.sufficiency_norm,
+        )
+
+    def test_model_fit_row_defers_to_step_3_and_is_not_relitigated(self):
+        self.assertIn(
+            "Checked at step 3; a mismatch found there stands as this row's refusal and is "
+            "not re-litigated here.",
+            self.sufficiency_norm,
+        )
+
+    def test_admission_precedes_implementation_and_coordinator_dispatch(self):
+        implement = self.start.index("8. **Implement.**")
+        coordinator_switch = self.start.index(
+            "6. **Chunked order: switch to coordinator mode.**"
+        )
+        sufficiency = self.start.index("5. **Sufficiency check.**")
+        self.assertLess(sufficiency, coordinator_switch)
+        self.assertLess(coordinator_switch, implement)
+        self.assertIn(
+            "before any implementation or worker dispatch, including the coordinator-mode switch in step 6.",
+            self.start_norm,
+        )
+
+    def test_fresh_session_self_sufficiency_covers_all_three_source_modes(self):
+        # BLOCKING 1: rule 10 must not define self-sufficiency only in terms of
+        # a pinned commit OID, or a valid `inline` lock (no OID to resolve) reads
+        # as insufficient to a fresh `start` that step 5 would actually admit.
+        rule10 = self.skill.split("10. **Fresh-session contract.**", 1)[1].split(
+            "## The verification step", 1
+        )[0]
+        rule10_norm = " ".join(rule10.split())
+
+        self.assertIn("For `openspec` and `repository-native`,", rule10_norm)
+        self.assertIn("the pinned commit OID", rule10_norm)
+        self.assertIn(
+            "For `inline`, there is no commit to resolve: the fence's own "
+            "`Context`/`Do`/`Done when` payload is the self-sufficient copy, the "
+            "same as a legacy order's.",
+            rule10_norm,
+        )
+        self.assertIn(
+            "that is a triage defect: refuse and say what is missing", rule10_norm
+        )
+
+    def test_inline_source_skips_only_the_pinned_commit_rows(self):
+        inline_carve_out = self.sufficiency_norm.split(
+            "`inline` sources carry no pinned commit:", 1
+        )[1].split(".", 1)[0]
+        for skipped in (
+            "commit resolution",
+            "branch pin",
+            "change state",
+            "selection completeness",
+            "unauthorized amendment",
+        ):
+            self.assertIn(skipped, inline_carve_out)
+        self.assertIn(
+            "Grammar, delivery fields, ownership, and model fit still apply.",
+            self.sufficiency_norm,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

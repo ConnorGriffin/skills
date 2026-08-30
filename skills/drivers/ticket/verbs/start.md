@@ -14,7 +14,9 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
 2. **Fetch the order.** Use the contract's locate operation. None found: refuse,
    say "no work order on `<ticket-id>`; run /ticket triage `<ticket-id>`", and stop.
    The comment's `Execution:` line says `single agent` or `chunked`; an order with
-   no `Execution:` line is a flat order.
+   no `Execution:` line is a flat order. Note the fence header now, since it
+   decides which path step 5 takes: legacy `WORK ORDER`, or `EXECUTION LOCK
+   <version>`.
 
 3. **Model-check.** On a flat order with `Session fit:`, a session whose system-prompt model is named in that paragraph at or above the selected rung proceeds directly to step 4, skipping the remainder of Model-check and without asking about model fit or effort. On a chunked order, take that same fast path only when every `SUB-ORDER` has exactly one `Session fit:` paragraph whose ladder is an ordered non-empty sequence of display-name rungs byte-identical across every `SUB-ORDER`, whose exactly one `selected Agent rung: <Rung>` annotation names exactly one rung in that paragraph, and whose coordinator system-prompt model is named at or above that selected rung in every paragraph. Otherwise, the order's `Open as:` line names a required model and effort. A session cannot reliably introspect its own reasoning effort from context, so do not guess it, and do not answer from memory of an earlier guess. State the model name this session's own system prompt reports, then ask the user in prose to confirm the effort level this session is running. Compare both against `Open as:`. Weaker on either axis: say so and stop, so the user relaunches correctly. Same or stronger on both: proceed. On a chunked order, also check every `SUB-ORDER`'s `Agent:` line against the confirmed model: the session must be at least as strong as the strongest chunk. Weaker than any one of them and the whole order is refused. Never run part of it, and never launch an agent smarter than the coordinator.
 
@@ -31,12 +33,74 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    report what it printed: a fresh session resolves this from the checkout it just
    verified rather than inheriting triage's.
 
-5. **Sufficiency check.** From the ticket worktree, read the order against the
-   actual repo. If the repo has drifted since triage (files moved, the constraint
-   it names is gone), stop and report the mismatch; the fix is a re-triage, not
-   improvisation. On a chunked order, confirm the chunks' declared file and target
-   ownership is still disjoint; an overlap that drift introduced is a re-triage,
-   not a merge problem to solve later.
+5. **Sufficiency check.** From the ticket worktree, admit the located order before
+   reading it as instructions. Validate every row below before any implementation
+   or worker dispatch, including the coordinator-mode switch in step 6.
+
+   **Legacy `WORK ORDER` header.** Today's sufficiency rules apply with no inferred
+   pin, forever: read the order against the actual repo. If the repo has drifted
+   since triage (files moved, the constraint it names is gone), stop and report the
+   mismatch; the fix is a re-triage, not improvisation. On a chunked order, confirm
+   the chunks' declared file and target ownership is still disjoint; an overlap
+   that drift introduced is a re-triage, not a merge problem to solve later. A
+   supersession uses the new protocol below.
+
+   **`EXECUTION LOCK` header — recognized version and mode.** An unrecognized
+   `EXECUTION LOCK` version, or a `Source:` mode this protocol does not define,
+   refuses execution: report "unrecognized lock version or source mode on
+   `<ticket-id>`; run /ticket triage `<ticket-id>`" and stop. Never fall back to an
+   older comment, and never consult the locate operation again to find one; this is
+   the newest recognized lock or nothing.
+
+   **`EXECUTION LOCK v2` admission matrix.** Once the version and mode are
+   recognized, every row below must hold before the order is sufficient. Any one
+   failure refuses the same way — name the row, report it, and route to
+   `/ticket triage <ticket-id>` for attended re-triage — and admission never merges
+   a field from an older comment to patch a failing row.
+
+   * **Grammar.** The `Source:` line names exactly one of `openspec`,
+     `repository-native`, or `inline`, with exactly one version and exactly one
+     commit or path, per the grammar in
+     [templates/work-order.md](../templates/work-order.md). A missing or malformed
+     `Source:` line refuses: bad version or mode.
+   * **Commit resolution** (`openspec`, `repository-native` only). The pinned
+     reference is a full commit OID. `git cat-file -e <oid>^{commit}` from the
+     ticket worktree; a short or unresolvable OID refuses. Then confirm the named
+     source path exists at that commit's tree with
+     `git ls-tree <oid> -- <path>`; an empty result is a missing path and refuses.
+   * **Branch pin.** The ticket branch contains the pinned commit —
+     `git merge-base --is-ancestor <oid> HEAD` from the ticket worktree, exit 0
+     required. A branch that does not contain it refuses: branch missing the pin.
+     Never substitute the branch head for the pin, even when the head is newer.
+   * **Change state** (`openspec` only). The named change is active at the pinned
+     commit (present under `openspec/changes/`, not archived); an archived change
+     refuses. Then it is strictly valid at that pinned tree
+     (`openspec validate <change> --strict` run against the pinned commit's
+     checkout); a change that fails strict validation refuses: invalid change.
+   * **Selection completeness.** Every `Selected tasks:` and `Acceptance anchors:`
+     positional number resolves against the pinned commit's own numbered
+     `tasks.md` checklist (`openspec`) or the pinned artifact's own positional
+     numbering (`repository-native`). Any number absent at that commit refuses:
+     absent anchors. An empty selection refuses the same way.
+   * **Unauthorized amendment.** From the ticket worktree,
+     `git log --oneline <oid>..<ticket-branch-head> -- <path>`. A non-empty result
+     means the source was amended after this lock pinned `<oid>`. The newest
+     located lock must be the one naming that later commit; if it still names the
+     older `<oid>`, refuse: the amendment is unauthorized until a newer lock pins
+     it. This is the only place a source amendment is read from — never diff the
+     pinned commit against branch head to "catch up" the pin.
+   * **Delivery fields.** `Verification:` and `Expectation:` are both present and
+     non-empty; either missing refuses.
+   * **Ownership.** On a chunked order, confirm the chunks' declared file and
+     target ownership is still disjoint; an overlap refuses, whether triage stated
+     it wrong or drift introduced it since.
+   * **Model fit.** Checked at step 3; a mismatch found there stands as this row's
+     refusal and is not re-litigated here.
+
+   `inline` sources carry no pinned commit: commit resolution, branch pin, change
+   state, selection completeness, and unauthorized amendment do not apply, since
+   there is nothing external to resolve. Grammar, delivery fields, ownership, and
+   model fit still apply.
 
    Resolve the order's `Surface lifecycle:` before implementation. `build` requires
    the named locked manifest. `revise` requires the named shipped behavior ledger,
