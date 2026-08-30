@@ -5,20 +5,23 @@
 ### Requirement: Work-order lock and model fit
 
 `start` and `revise` MUST refuse execution when no comment's fence header starts
-`EXECUTION LOCK v2` or the legacy `WORK ORDER`, MUST locate the newest such comment
-across both protocols by comment time when several exist, and MUST NOT execute an
-order or sub-order above the coordinator session's admitted model rung. Locating
-the newest header-matching comment MUST NOT parse or validate the `EXECUTION LOCK`
-version or `Source:` mode, and MUST NOT merge fields from an older comment into a
-newer one, whether both comments use the same protocol or not. `start` and
-`revise` MUST then parse and validate the located comment before acting on it: an
-unrecognized `EXECUTION LOCK` version or an unrecognized `Source:` mode MUST refuse
-execution and route to triage, and MUST NOT fall back to an older comment.
+`EXECUTION LOCK ` (any version) or the legacy `WORK ORDER`, MUST locate the newest
+such comment across both protocols by comment time when several exist, and MUST
+NOT execute an order or sub-order above the coordinator session's admitted model
+rung. Locating the newest header-matching comment MUST match on the `EXECUTION
+LOCK ` header prefix alone, version-agnostically, so a newer lock of any version
+outranks an older lock of any version; it MUST NOT parse or validate the
+`EXECUTION LOCK` version or `Source:` mode, and MUST NOT merge fields from an
+older comment into a newer one, whether both comments use the same protocol or
+not. `start` and `revise` MUST then parse and validate the located comment before
+acting on it: an unrecognized `EXECUTION LOCK` version or an unrecognized
+`Source:` mode MUST refuse execution and route to triage, and MUST NOT fall back
+to an older comment.
 
 #### Scenario: No work order exists
 
 - **WHEN** `start` scans the ticket comments and finds no fenced block beginning
-  `EXECUTION LOCK v2` or `WORK ORDER`
+  `EXECUTION LOCK ` or `WORK ORDER`
 - **THEN** it refuses implementation and routes the ticket back to triage instead
   of inventing scope
 
@@ -28,6 +31,15 @@ execution and route to triage, and MUST NOT fall back to an older comment.
   `EXECUTION LOCK v2` comment, or the reverse order by post time
 - **THEN** `start` and `revise` use whichever comment is newest by post time,
   regardless of which protocol it uses, and read no field from the older comment
+
+#### Scenario: A newer lock supersedes an older lock of a different version
+
+- **WHEN** a ticket carries an older `EXECUTION LOCK v2` comment and a newer
+  `EXECUTION LOCK v3` comment
+- **THEN** locate returns the newer v3 comment on the header match alone, without
+  regard to either comment's version, and `start` and `revise` admit or refuse
+  based on whether v3 is a version they recognize — never by falling back to the
+  older v2 comment
 
 #### Scenario: The newest comment names an unrecognized source mode
 

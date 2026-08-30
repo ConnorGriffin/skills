@@ -77,12 +77,18 @@ are this binding's status channel, and the board stays the humans' view.
 
 ````sh
 gh issue view <id> --repo <org/repo> --json comments \
-  --jq '[.comments[] | select(.body | test("(?m)^```[a-z]*\\s*\\r?\\n(EXECUTION LOCK v2|WORK ORDER)"))] | last'
+  --jq '[.comments[] | select(.body | test("(?m)^```[a-z]*\\s*\\r?\\n(EXECUTION LOCK |WORK ORDER)"))] | last'
 ````
 
 The scan is newest-first in effect: `gh` returns comments oldest-first, so the
-last match is the newest order, whichever protocol it is. Empty output means no
-order, which is the refusal in `start` and `revise`, not an error to work around.
+last match is the newest order, whichever protocol it is. The `EXECUTION LOCK `
+half of the predicate is version-agnostic on purpose: it matches any lock version,
+so a newer `EXECUTION LOCK v3` fence outranks an older `EXECUTION LOCK v2` one the
+same way a newer comment of either protocol outranks an older one. This operation
+never checks whether the version after `EXECUTION LOCK ` is one `start` or
+`revise` recognizes; that check is the consumer's fail-closed admission step, not
+this one. Empty output means no order, which is the refusal in `start` and
+`revise`, not an error to work around.
 
 A non-zero exit is a transport failure, and is reported as such rather than as an
 absent order.

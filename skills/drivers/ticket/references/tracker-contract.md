@@ -50,18 +50,22 @@ binding and ships with the skill.
 
 * **Input:** a ticket id.
 * **Output:** the body of the newest comment whose fence header starts
-  `EXECUTION LOCK v2` (flat lock or chunked header) or the legacy `WORK ORDER`, or
-  nothing when no comment has either header. Newest wins across both protocols by
-  comment time, regardless of which protocol is newer; older orders of either
-  protocol are superseded, never merged, and no field is ever merged from an older
-  comment into a newer one, protocol boundary or not. This operation matches on
-  the fence header alone; it does not parse or validate the `EXECUTION LOCK`
-  version or `Source:` mode inside the fence.
+  `EXECUTION LOCK ` (any version; flat lock or chunked header) or the legacy
+  `WORK ORDER`, or nothing when no comment has either header. The header match is
+  version-agnostic by design: a v3 lock posted after a v2 lock is a newer
+  `EXECUTION LOCK ` header and wins, whatever version each names. Newest wins
+  across both protocols by comment time, regardless of which protocol is newer;
+  older orders of either protocol are superseded, never merged, and no field is
+  ever merged from an older comment into a newer one, protocol boundary or not.
+  This operation matches on the fence header alone; it does not parse or validate
+  the `EXECUTION LOCK` version or `Source:` mode inside the fence.
 * **Admission is the consumer's job, and it fails closed.** `start` and `revise`
   parse the located comment before acting on it. An unrecognized `EXECUTION LOCK`
   version, or a `Source:` mode this protocol does not define, refuses execution
   and routes to `/ticket triage <ticket-id>`; it never falls back to an older
   comment, located or not; and this operation is not consulted again to find one.
+  This is the only place an unrecognized version can surface: the locate operation
+  above always returns the newest header-matching comment, recognized or not.
 * **Failure:** nothing found means no execution. `start` and `revise` refuse and
   route to `/ticket triage <ticket-id>`. A transport failure is not the same
   answer as an absent order: report which one happened.
