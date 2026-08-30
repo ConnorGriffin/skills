@@ -36,7 +36,9 @@ four.
   and the order, fix, re-verify, push.
 * `finalize` runs after a human merged: verify the merge and post-merge workflow,
   complete the repository's post-merge archive guidance for an ordinary OpenSpec
-  change, then close the ticket with a comment linking the pull request, record
+  change, which opens a reviewed archive pull request and posts its `Archive PR:`
+  locator before stopping, then on a later finalization, once a human merged that
+  pull request, close the ticket with a comment linking the pull request, record
   what the ticket actually cost in context, and tear the worktree down, so the
   slicing rubric is tuned against measured numbers rather than intuition.
 
@@ -154,7 +156,9 @@ branch. Broad read-only grounding never authorizes it.
    triage: it fetches and verifies the issue body's pinned remote parent-plan base,
    then passes that branch to the helper. Outside an epic child, grounding, scope ledgers, and
    the active change record are written and committed there; post-merge archiving
-   follows `operations.archive.guidance` on `main`. An epic child keeps its
+   follows `operations.archive.guidance` in a sibling archive checkout, which is the
+   one narrow post-merge exception to this rule and lands through its own reviewed
+   pull request rather than a push to `main`. An epic child keeps its
    instrumentation in session scratch and relies on its parent record. The control checkout may be dirty, stale, or
    on another branch: its working tree is never read or written, and it never
    switches branches. Never commit, stash, move, or clean its files, and never
@@ -284,7 +288,9 @@ Outside an epic, follow this per-ticket rule:
    embodies a real decision). Start and revise keep the active change and its
    deltas reviewable in the ticket pull request; they do not fold or archive it
    before merge. The repository's `operations.archive.guidance` determines when
-   finalization archives a verified merge. `/openspec-adopt`, when it is installed,
+   finalization archives a verified merge, and the archive itself lands through a
+   reviewed follow-up pull request that a human merges, never a direct push to the
+   default branch. `/openspec-adopt`, when it is installed,
    is what adopts OpenSpec in a repo that lacks it. OpenSpec is the worked example,
    never a requirement.
 2. The repo has a different convention (a changelog, a decision-record tree, a

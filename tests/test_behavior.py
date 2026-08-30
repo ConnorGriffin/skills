@@ -4499,7 +4499,15 @@ class OpenSpecAdoptionContractTests(unittest.TestCase):
         self.assertIn("openspec archive <change-name> --json --yes", config)
         self.assertIn("openspec validate --all --strict", config)
         self.assertIn("Signed-off-by archive commit", config)
-        self.assertIn("Push main directly", config)
+        self.assertIn("Cut a dedicated archive branch there", config)
+        self.assertIn(
+            "Open that archive branch as a reviewed follow-up pull request to main",
+            config,
+        )
+        self.assertIn(
+            "Never push an archive commit directly or forcibly to main", config
+        )
+        self.assertNotIn("Push main directly", config)
 
     def test_readme_and_site_require_the_global_pinned_cli(self):
         readme = README.read_text(encoding="utf-8")

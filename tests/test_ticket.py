@@ -672,14 +672,12 @@ class TicketSkillContractTests(unittest.TestCase):
         self.assertIn("active change and its deltas remain reviewable", start_contract)
         self.assertIn("its active change and deltas remain reviewable", revise_contract)
         self.assertIn("operations.archive.guidance", finalize_contract)
-        self.assertIn("clean `main` checkout updated to `origin/main`", finalize_contract)
+        self.assertIn("sibling archive checkout whose `main` is updated to `origin/main`", finalize_contract)
         self.assertIn("openspec archive <change-name> --json --yes", finalize_contract)
         self.assertIn("openspec validate --all --strict", finalize_contract)
         self.assertIn("Signed-off-by archive commit", finalize_contract)
-        self.assertIn("push `main` directly", finalize_contract)
-        self.assertIn("post-push workflow", finalize_contract)
         self.assertLess(finalize_contract.index("openspec archive"), finalize_contract.index("Comment on the ticket"))
-        self.assertLess(finalize_contract.index("post-push workflow"), finalize_contract.index("Move the ticket to done"))
+        self.assertLess(finalize_contract.index("Archive PR: <url>"), finalize_contract.index("Comment on the ticket"))
         self.assertLess(finalize_contract.index("Move the ticket to done"), finalize_contract.index("**Record the actuals.**"))
         self.assertLess(finalize_contract.index("**Record the actuals.**"), finalize_contract.index("**Tear the worktree and branch down.**"))
         self.assertIn("leaves the parent active and unarchived", finalize_contract)
@@ -690,6 +688,81 @@ class TicketSkillContractTests(unittest.TestCase):
         live = "\n".join((shared, start, revise, finalize, coordinator)).lower()
         self.assertNotRegex(live, r"fold.{0,100}(?:last|finishing).{0,100}pull request")
         self.assertNotRegex(live, r"archive.{0,100}(?:last|finishing).{0,100}pull request")
+
+    def test_ordinary_archives_land_through_a_reviewed_pull_request_in_two_stages(self):
+        finalize = (TICKET_DIRECTORY / "verbs" / "finalize.md").read_text(encoding="utf-8")
+        shared = (TICKET_DIRECTORY / "SKILL.md").read_text(encoding="utf-8")
+        guide = (ROOT / "docs" / "epic-flow.md").read_text(encoding="utf-8")
+        finalize_contract = " ".join(finalize.split())
+        shared_contract = " ".join(shared.split())
+        guide_contract = " ".join(guide.split())
+
+        # Stage one opens the archive pull request and stops on its locator.
+        self.assertIn("Read the archive locator", finalize_contract)
+        self.assertIn("`Archive PR: <url>`", finalize_contract)
+        self.assertIn("open a follow-up pull request against `main`", finalize_contract)
+        self.assertLess(
+            finalize_contract.index("First stage"),
+            finalize_contract.index("Second stage"),
+        )
+
+        # Stage two is gated on a human merge, and neither stage merges anything.
+        self.assertIn("never merge the archive pull request", finalize_contract)
+        self.assertIn("pending human review and stop", finalize_contract)
+        self.assertIn("Closed without merge: stop for operator direction", finalize_contract)
+        self.assertIn(
+            "never open a replacement archive pull request automatically",
+            finalize_contract,
+        )
+        self.assertLess(
+            finalize_contract.index("Second stage"),
+            finalize_contract.index("Move the ticket to done"),
+        )
+
+        # No surface still tells finalization to push the archive to the default branch.
+        # These two patterns matched the pre-change `finalize.md` and `docs/epic-flow.md`
+        # respectively, so they are the ones that would regress.
+        for surface, text in (
+            ("finalize", finalize_contract),
+            ("shared", shared_contract),
+            ("guide", guide_contract),
+        ):
+            with self.subTest(surface=surface):
+                self.assertNotRegex(
+                    text.lower(), r"push(?:es|ing)? (?:the )?(?:archive )?(?:commit )?(?:on |to )?`?main`? directly"
+                )
+                self.assertNotRegex(
+                    text.lower(), r"pushes the archive on `?main`?"
+                )
+        self.assertIn(
+            "Never push an archive commit directly or forcibly to `main`",
+            finalize_contract,
+        )
+
+        # The shared page carries the routing itself, not merely the absence of a push.
+        self.assertIn(
+            "follows `operations.archive.guidance` in a sibling archive checkout",
+            shared_contract,
+        )
+        self.assertIn("one narrow post-merge exception", shared_contract)
+        self.assertIn(
+            "lands through its own reviewed pull request rather than a push to `main`",
+            shared_contract,
+        )
+        self.assertIn(
+            "opens a reviewed archive pull request and posts its `Archive PR:` locator",
+            shared_contract,
+        )
+        self.assertIn(
+            "reviewed follow-up pull request that a human merges, never a direct push",
+            shared_contract,
+        )
+        self.assertNotIn(
+            "follows `operations.archive.guidance` on `main`", shared_contract
+        )
+
+        self.assertIn("reviewed follow-up pull request", guide_contract)
+        self.assertIn("No archive commit is pushed directly to `main`", guide_contract)
 
     def test_status_binding_orders_code_prerequisites_before_triaged_and_excludes_them_otherwise(self):
         binding = " ".join(

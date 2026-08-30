@@ -16,8 +16,10 @@ rules:
 operations:
   archive:
     guidance:
-      - After a verified merge, update a clean main checkout to origin/main.
+      - After a verified merge, update a clean main checkout to origin/main in a sibling archive checkout.
+      - Cut a dedicated archive branch there.
       - Run openspec archive <change-name> --json --yes.
       - Run openspec validate --all --strict.
       - Create a Signed-off-by archive commit for the resulting baseline merge and archived change.
-      - Push main directly; do not archive in the finishing pull request or push archive work to an approved pull request.
+      - Open that archive branch as a reviewed follow-up pull request to main and let a human merge it.
+      - Never push an archive commit directly or forcibly to main, and do not archive in the finishing pull request.
