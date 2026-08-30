@@ -12,15 +12,22 @@ chunked: the chunks merged long ago and the pull request is one diff.
    `gh pr checks`. Pull request merged or closed: stop, and point at
    `/ticket finalize <ticket-id>` or the user.
 
-   Locate the newest order with the same contract operation `start` used. Under a
-   legacy `WORK ORDER`, nothing more to admit. Under an `EXECUTION LOCK`, `revise`
-   reuses the exact lock and pin that opened this pull request — it admits the
-   located order with the same recognized-version, grammar, commit-resolution,
-   branch-pin, change-state, selection-completeness, and unauthorized-amendment
-   rows [start](start.md) step 5 defines, and the same refusal: name the failing
-   row, stop, and route to `/ticket triage <ticket-id>`. `revise` never posts a
-   lock itself; a source amendment discovered here still requires a newer lock
-   before this round may act on it.
+   Locate the newest order with the same contract operation `start` used — every
+   round re-locates fresh; nothing is cached from the round that opened this pull
+   request. Under a legacy `WORK ORDER`, nothing more to admit. Under an
+   `EXECUTION LOCK`, admit whatever is newest right now against
+   [start](start.md) step 5's full admission matrix, unabridged, with the same
+   refusal on any failing row: name the row, stop, and route to `/ticket triage
+   <ticket-id>`. The newest recognized lock always wins, which is what reconciles
+   "reuses the same lock and pin" with a mid-round amendment: when nothing has
+   changed since `start`, the newest lock is still the one it admitted, so this
+   round reuses the same pin. When triage posted a newer lock since, authorizing
+   an amendment or an expanded selection, that newer lock is now the newest and
+   is what this round admits instead. When no newer lock exists, the newest lock
+   is still the old one, pinning the old commit — so a source amendment with no
+   newer lock refuses here on the same unauthorized-amendment row `start`
+   defines, never on a comparison against "the lock that opened this pull
+   request" as a separate, cached reference. `revise` never posts a lock itself.
 
 2. **Worktree.** If the ticket's worktree still exists (verify with
    `git -C <control checkout> worktree list`), check it is on the pull request's

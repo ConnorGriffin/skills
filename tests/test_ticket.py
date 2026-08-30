@@ -2826,18 +2826,80 @@ class TicketExecutionLockAdmissionTests(unittest.TestCase):
             self.skill_norm,
         )
 
-    def test_revise_reuses_the_same_lock_and_pin_start_admitted(self):
+    def test_revise_relocates_the_newest_lock_every_round_rather_than_caching_it(self):
         self.assertIn(
-            "`revise` reuses the exact lock and pin that opened this pull request",
+            "every round re-locates fresh; nothing is cached from the round that opened this pull request",
             self.revise_norm,
         )
         self.assertIn("revise` never posts a lock itself", self.revise_norm)
+
+    def test_revise_admits_against_starts_full_matrix_by_reference_not_a_second_list(self):
+        # NON-BLOCKING 3: a second enumerated copy of the matrix is what drifts
+        # from start's; revise must point at it instead of re-listing a subset
+        # of its rows (the old prose named seven of nine and silently dropped
+        # delivery fields, ownership, and model fit).
+        self.assertIn(
+            "against [start](start.md) step 5's full admission matrix, unabridged",
+            self.revise_norm,
+        )
+        self.assertNotIn("commit-resolution,", self.revise_norm)
+        self.assertNotIn("branch-pin,", self.revise_norm)
+        self.assertNotIn("selection-completeness,", self.revise_norm)
+
+    def test_the_newest_recognized_lock_always_wins_reconciling_reuse_with_amendment(self):
+        # BLOCKING 2: "reuses the same lock and pin" (unchanged round) and "a
+        # newer lock authorizes an amendment" (changed round) must resolve to
+        # one rule, not two different locks in adjacent sentences.
+        self.assertIn(
+            "The newest recognized lock always wins, which is what reconciles "
+            '"reuses the same lock and pin" with a mid-round amendment: when nothing has '
+            "changed since `start`, the newest lock is still the one it admitted, so this "
+            "round reuses the same pin.",
+            self.revise_norm,
+        )
+        self.assertIn(
+            "When triage posted a newer lock since, authorizing an amendment or an "
+            "expanded selection, that newer lock is now the newest and is what this round "
+            "admits instead.",
+            self.revise_norm,
+        )
+        self.assertIn(
+            "When no newer lock exists, the newest lock is still the old one, pinning the "
+            "old commit",
+            self.revise_norm,
+        )
+        self.assertIn(
+            'never on a comparison against "the lock that opened this pull request" as a '
+            "separate, cached reference",
+            self.revise_norm,
+        )
 
     def test_revise_refuses_source_scope_expansion_without_a_newer_lock(self):
         self.assertIn(
             "An item that asks to touch the pinned source outside that selection is scope "
             "expansion: refuse it here",
             self.revise_norm,
+        )
+
+    def test_delivery_fields_row_refuses_when_verification_or_expectation_is_missing(self):
+        self.assertIn(
+            "`Verification:` and `Expectation:` are both present and non-empty; either "
+            "missing refuses.",
+            self.sufficiency_norm,
+        )
+
+    def test_chunked_ownership_overlap_row_refuses(self):
+        self.assertIn(
+            "confirm the chunks' declared file and target ownership is still disjoint; an "
+            "overlap refuses, whether triage stated it wrong or drift introduced it since.",
+            self.sufficiency_norm,
+        )
+
+    def test_model_fit_row_defers_to_step_3_and_is_not_relitigated(self):
+        self.assertIn(
+            "Checked at step 3; a mismatch found there stands as this row's refusal and is "
+            "not re-litigated here.",
+            self.sufficiency_norm,
         )
 
     def test_admission_precedes_implementation_and_coordinator_dispatch(self):
