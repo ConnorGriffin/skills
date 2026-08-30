@@ -42,7 +42,7 @@ The envelope has one grammar and three source modes:
   `Selected tasks:` and `Acceptance anchors:` are a disjoint slice of the header's
   selection, and the sub-locks together cover exactly what the header selected —
   no more, no less.
-* **`repository-native <path>@<oid>`** — the plan is some other versioned,
+* **`repository-native <path>@<full-commit-oid>`** — the plan is some other versioned,
   reviewable artifact this repository already keeps (a design doc, a checklist) at
   that exact commit. `Selected tasks:` and `Acceptance anchors:` are that artifact's
   own positional numbering, resolved the same way.
@@ -114,7 +114,7 @@ an extra ticket-comment format.
 
 ```
 EXECUTION LOCK v2 <ticket-id> <lock-id>
-Source: <openspec <change-path>@<full-commit-oid> | repository-native <path>@<oid> | inline>
+Source: <openspec <change-path>@<full-commit-oid> | repository-native <path>@<full-commit-oid> | inline>
 Open as: <model> / <effort>.
 Session fit: <selected execution row's Ladder value, with each model's display name in ladder order>. A Claude or Codex session whose system-prompt model is named in this paragraph at or above the selected rung proceeds directly to step 4, skipping the remainder of Model-check and without asking about model fit or effort.
 Execution: single agent.
@@ -182,7 +182,7 @@ execution order.
 
 ```
 EXECUTION LOCK v2 <ticket-id> <lock-id>
-Source: <openspec <change-path>@<full-commit-oid> | repository-native <path>@<oid> | inline>
+Source: <openspec <change-path>@<full-commit-oid> | repository-native <path>@<full-commit-oid> | inline>
 Open as: <orchestrator model> / <effort>.
 Execution: chunked, <n> sub-orders (<n> parallel, <n> serial).
 Launch: open a session at the model above and run `/ticket start <ticket-id>`.

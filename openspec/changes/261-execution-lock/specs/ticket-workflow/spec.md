@@ -54,7 +54,7 @@ to an older comment.
 
 The work-order template MUST define one `EXECUTION LOCK v2 <ticket-id> <lock-id>`
 envelope grammar with exactly three `Source:` modes: `openspec
-<change-path>@<full-commit-oid>`, `repository-native <path>@<oid>`, and `inline`.
+<change-path>@<full-commit-oid>`, `repository-native <path>@<full-commit-oid>`, and `inline`.
 `<lock-id>` MUST be a positive integer, unique within the ticket, starting at 1 and
 incremented for each lock posted on that ticket that supersedes a prior one. The
 envelope MUST exist in a flat shape (one fence, one agent) and a chunked shape

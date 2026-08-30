@@ -24,7 +24,7 @@ change specification and execution authorization, not through either one.
 
 - The work-order template defines a versioned **execution lock** envelope with
   three source modes — `openspec <change-path>@<full-commit-oid>`,
-  `repository-native <path>@<oid>`, and `inline` (today's self-contained
+  `repository-native <path>@<full-commit-oid>`, and `inline` (today's self-contained
   payload) — in both flat and chunked sub-lock shapes. One protocol, not a
   format per repository convention.
 - Triage in an OpenSpec repository authors the change, validates it strictly,

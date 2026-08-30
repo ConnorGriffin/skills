@@ -261,7 +261,7 @@ disclosed target and exact mutation.
     * **Repository-native plan.** When the repo keeps some other versioned,
       reviewable plan artifact instead of OpenSpec, commit it on the ticket branch
       the same way, read back its full commit OID the same way, and set `Source:
-      repository-native <path>@<oid>` to that exact pair. `Selected tasks:`,
+      repository-native <path>@<full-commit-oid>` to that exact pair. `Selected tasks:`,
       `Acceptance anchors:`, `Context`, `Do`, and `Done when` follow the same rules
       as the OpenSpec path, against that artifact's own positional numbering.
     * **Neither exists.** Set `Source: inline` and omit `Selected tasks:` and
