@@ -1300,8 +1300,16 @@ class UiCraftContractTests(unittest.TestCase):
         ):
             self.assertIn(requirement, changes_contract)
 
+        # A case nothing blocks on is not a case: the blocking sentence and the
+        # landing checks reach a moved behavior and a retirement's premise too.
+        self.assertIn(
+            "A dropped, changed or moved behavior without that record blocks",
+            changes_contract,
+        )
         landing = " ".join(revise[revise.index("Before landing, confirm:") :].split())
         self.assertIn("launched by whoever can launch them", landing)
+        self.assertIn("every added, changed or moved behavior", landing)
+        self.assertIn("a recorded premise", landing)
 
         sweep_contract = " ".join(sweep.split())
         self.assertIn("asserts the premise the retirement reasoned from", sweep_contract)

@@ -146,9 +146,9 @@ settled:
   nothing ruled reopens. A round that asks two questions gets an answer to
   neither.
 - **Options differ in concept, not decoration** — five ways to site a control,
-  not five colors of one control. Render each one live at the sizes, states and
-  themes that fail differently, as separate specimens: a small tile at rest is
-  not evidence about a large one being held.
+  not five colors of one control. Render every option live under the coverage
+  §1 already requires, and give each state its own specimen: a small tile at
+  rest is not evidence about a large one being held.
 - **Every option carries a stated cost, the recommended one included.** An
   option offered as free is one whose cost has not been found yet, and it wins
   the round on an omission.
@@ -195,7 +195,9 @@ is failure, never skip.
   header, and prove the old replay fails before the new one passes.
 - **Retired:** require `sanction: <person> · <date> · "<their reason>"`, retain a
   permanent RETIRED entry, and replace the positive replay with an absence
-  assertion that prints the sanction on every run.
+  assertion that prints the sanction on every run. Record the premise the ruling
+  reasoned from on the entry, so that assertion can assert it too
+  (`behavior-sweep`).
 - **Moved:** a behavior that changed which surface owns it gets the same
   ceremony as a removal. Name the fact, the surface it left, the surface it
   landed on, and update every story that reads it in the same change. A move is
@@ -203,8 +205,9 @@ is failure, never skip.
   intact, and the stories still reading the old surface were not wrong when they
   were written and nobody was told they had become wrong.
 
-A dropped or changed behavior without that record blocks the revision. There is
-no lock term to `resettle`; the ledger amendment is the decision record.
+A dropped, changed or moved behavior without that record blocks the revision.
+There is no lock term to `resettle`; the ledger amendment is the decision
+record.
 
 A move, a duplication or a rename also widens what the round owes outside the
 ledger, because each of them changes what an existing assertion means without
@@ -250,8 +253,9 @@ Before landing, confirm:
   actually run, launched by whoever can launch them. An agent whose sandbox
   cannot start a browser has no signal about the surface it just moved, and the
   suites that do run there staying green is not one;
-- every added or changed behavior is represented in the ledger;
-- every retirement has a dated, named, quoted sanction and a loud absence test;
+- every added, changed or moved behavior is represented in the ledger;
+- every retirement has a dated, named, quoted sanction, a recorded premise, and
+  a loud absence test asserting both;
 - no wireframe or duplicated comparison route survives; and
 - the safe-start declaration and exact data source still match what produced the
   evidence.
