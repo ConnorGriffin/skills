@@ -10,7 +10,10 @@
 set -eu
 cd "$(git rev-parse --show-toplevel)"
 
+# Keyword terms plus the phrases that carry the framing with no keyword in them:
+# a wrapped exclusions sentence and the adapter escalation rationale.
 PATTERN='consent|worker-egress|bounded transfer|already granted this dispatch|model service'
+PATTERN="$PATTERN|real database contents|exclusion list|escalation justification|user authorization"
 
 hits=$(grep -rniE "$PATTERN" \
   skills/drivers/ticket skills/drivers/orchestrate scripts \
