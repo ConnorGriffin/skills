@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -31,6 +33,39 @@ def run(command: list[str], *, cwd: Path, env: Optional[dict[str, str]] = None):
         command, cwd=cwd, env=env, text=True, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, check=False,
     )
+
+
+def directory_digest(root: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(item for item in root.rglob("*") if item.is_file()):
+        digest.update(path.relative_to(root).as_posix().encode())
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def git_directory_digest(repo: Path, revision: str, root: str) -> str:
+    listed = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", revision, "--", root],
+        cwd=repo,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    digest = hashlib.sha256()
+    for name in listed.stdout.splitlines():
+        blob = subprocess.run(
+            ["git", "show", f"{revision}:{name}"],
+            cwd=repo,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+        digest.update(name.encode())
+        digest.update(b"\0")
+        digest.update(blob.stdout)
+    return digest.hexdigest()
 
 
 def user_line(text: str, timestamp: str = "2026-01-01T00:00:00Z") -> str:
@@ -1890,7 +1925,6 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
             "#!/usr/bin/env python3\n"
             "import json, os, sys\n"
             "mode = os.environ.get('FAKE_OPENSPEC_MODE', 'ok')\n"
-            "if len(sys.argv) > 1 and sys.argv[1] == 'validate': print(json.dumps({'valid': True})); sys.exit(0)\n"
             "if mode == 'launch': raise OSError('launch denied')\n"
             "if mode == 'nonjson': print('not json')\n"
             "elif mode == 'array': print('[]')\n"
@@ -1988,43 +2022,6 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         self.assertEqual(multiple.returncode, 2)
         self.assertIn("more than one changed active OpenSpec change: three, two", multiple.stderr)
 
-    def test_discovery_selects_one_active_change_for_add_modify_remove_and_rename(self):
-        added = self.preflight()
-        self.assertEqual(added.returncode, 0, added.stderr)
-        self.assertEqual(
-            added.stdout,
-            "ticket: OpenSpec change one applies cleanly in a disposable copy\n",
-        )
-
-        proposal = self.repo / "openspec/changes/one/proposal.md"
-        self.base = self.git("rev-parse", "HEAD").stdout.strip()
-        proposal.write_text("# Changed\n", encoding="utf-8")
-        self.git("add", "openspec")
-        self.git("commit", "-m", "modify change")
-        modified = self.preflight()
-        self.assertEqual(modified.returncode, 0, modified.stderr)
-        self.assertIn("OpenSpec change one applies cleanly", modified.stdout)
-
-        self.base = self.git("rev-parse", "HEAD").stdout.strip()
-        proposal.unlink()
-        self.git("add", "-A")
-        self.git("commit", "-m", "remove change content")
-        removed = self.preflight()
-        self.assertEqual(removed.returncode, 0, removed.stderr)
-        self.assertIn("OpenSpec change one applies cleanly", removed.stdout)
-
-        before = self.repo / "openspec/changes/one/before.md"
-        before.write_text("# Before\n", encoding="utf-8")
-        self.git("add", "openspec")
-        self.git("commit", "-m", "restore change content")
-        self.base = self.git("rev-parse", "HEAD").stdout.strip()
-        before.rename(before.with_name("after.md"))
-        self.git("add", "-A")
-        self.git("commit", "-m", "rename change content")
-        renamed = self.preflight()
-        self.assertEqual(renamed.returncode, 0, renamed.stderr)
-        self.assertIn("OpenSpec change one applies cleanly", renamed.stdout)
-
     def test_archive_json_contract_and_rename_diagnostic_leave_authoritative_trees_intact(self):
         for mode, diagnostic in (
             ("nonjson", "ticket: OpenSpec archive returned invalid JSON\n"),
@@ -2054,20 +2051,6 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
                     self.assertEqual(result.stderr, diagnostic)
                 self.assertEqual(before, (self.tree(), self.tree(self.base)))
                 self.assertEqual(self.git("status", "--short").stdout, "")
-
-    def test_strict_validation_can_pass_while_issue_259_archive_composition_fails(self):
-        environment = self.environment.copy()
-        environment["FAKE_OPENSPEC_MODE"] = "rename"
-        validated = run(
-            ["openspec", "validate", "--all", "--strict", "--json"],
-            cwd=self.repo,
-            env=environment,
-        )
-        self.assertEqual(validated.returncode, 0, validated.stderr)
-
-        result = self.preflight(mode="rename")
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("## RENAMED Requirements", result.stderr)
 
     def test_launch_export_and_symlink_failures_are_clean_and_disposable(self):
         fake = self.bin / "openspec"
@@ -2108,6 +2091,8 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
     def test_overlay_failure_is_diagnostic_and_cleans_the_disposable_tree(self):
         wrapper = self.bin / "git"
         moved_change = Path(self.temporary.name) / "moved-change"
+        ticket_before = directory_digest(self.repo / "openspec")
+        base_before = git_directory_digest(self.repo, self.base, "openspec")
         wrapper.write_text(
             "#!/bin/sh\n"
             "/usr/bin/git \"$@\"\n"
@@ -2118,11 +2103,32 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         )
         wrapper.chmod(0o755)
 
-        result = self.preflight()
+        environment = self.environment.copy()
+        environment["FAKE_OPENSPEC_MODE"] = "ok"
+        try:
+            result = run(
+                [
+                    sys.executable,
+                    str(TICKET_SCRIPT),
+                    "preflight-openspec",
+                    "--repo",
+                    str(self.repo),
+                    "--base-ref",
+                    self.base,
+                ],
+                cwd=self.repo,
+                env=environment,
+            )
+        finally:
+            if moved_change.exists():
+                moved_change.rename(self.repo / "openspec/changes/one")
 
-        self.assertEqual(result.returncode, 2)
+        self.assertNotEqual(result.returncode, 0)
         self.assertEqual(result.stderr, "ticket: could not overlay the active OpenSpec change\n")
         self.assertNotIn("Traceback", result.stderr)
+        self.assertEqual(ticket_before, directory_digest(self.repo / "openspec"))
+        self.assertEqual(base_before, git_directory_digest(self.repo, self.base, "openspec"))
+        self.assertEqual(list(self.preflight_tmp.glob("ticket-openspec-preflight-*")), [])
 
     def test_stale_tracking_base_passes_until_a_real_fetch_refreshes_it(self):
         remote = Path(self.temporary.name) / "remote.git"
@@ -2156,6 +2162,241 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
             self.repo = original_repo
         self.assertNotEqual(refreshed.returncode, 0)
         self.assertIn("base advanced", refreshed.stderr)
+
+
+class TicketOpenSpecRealSemanticTests(unittest.TestCase):
+    BASELINE = """# Widget
+
+## Purpose
+
+Define the manufactured widget behavior.
+
+## Requirements
+
+### Requirement: Existing behavior
+
+The widget MUST preserve its existing behavior.
+
+#### Scenario: Existing behavior is requested
+
+- **WHEN** a caller requests existing behavior
+- **THEN** the widget preserves it
+
+### Requirement: Stable behavior
+
+The widget MUST preserve its stable behavior.
+
+#### Scenario: Stable behavior is requested
+
+- **WHEN** a caller requests stable behavior
+- **THEN** the widget preserves it
+"""
+    ISSUE_259_DELTA = """## MODIFIED Requirements
+
+### Requirement: Renamed behavior
+
+The widget MUST preserve its renamed behavior.
+
+#### Scenario: Renamed behavior is requested
+
+- **WHEN** a caller requests renamed behavior
+- **THEN** the widget preserves it
+"""
+    APPLICABLE_DELTAS = {
+        "added": """## ADDED Requirements
+
+### Requirement: Added behavior
+
+The widget MUST provide added behavior.
+
+#### Scenario: Added behavior is requested
+
+- **WHEN** a caller requests added behavior
+- **THEN** the widget provides it
+""",
+        "modified": """## MODIFIED Requirements
+
+### Requirement: Existing behavior
+
+The widget MUST preserve its updated existing behavior.
+
+#### Scenario: Existing behavior is requested
+
+- **WHEN** a caller requests updated existing behavior
+- **THEN** the widget preserves the updated behavior
+""",
+        "removed": """## REMOVED Requirements
+
+### Requirement: Existing behavior
+
+**Reason**: The manufactured behavior is no longer required.
+""",
+        "renamed": """## MODIFIED Requirements
+
+### Requirement: Renamed behavior
+
+The widget MUST preserve its renamed behavior.
+
+#### Scenario: Existing behavior is requested
+
+- **WHEN** a caller requests renamed behavior
+- **THEN** the widget preserves it
+
+## RENAMED Requirements
+
+- FROM: `### Requirement: Existing behavior`
+- TO: `### Requirement: Renamed behavior`
+""",
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        executable = shutil.which("openspec")
+        if executable is None:
+            raise AssertionError("real installed OpenSpec executable is required")
+        cls.openspec = Path(executable)
+        version = subprocess.run(
+            [str(cls.openspec), "--version"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if version.returncode or version.stdout.strip() != "1.11.0":
+            raise AssertionError(
+                f"OpenSpec 1.11.0 is required, got {version.stdout.strip()!r}: {version.stderr}"
+            )
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name)
+        self.preflight_tmp = self.root / "preflight-tmp"
+        self.preflight_tmp.mkdir()
+        self.environment = os.environ.copy()
+        self.environment["PATH"] = (
+            f"{self.openspec.parent}{os.pathsep}{self.environment['PATH']}"
+        )
+        self.environment["TMPDIR"] = str(self.preflight_tmp)
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def make_repo(self, change: str, delta: str) -> tuple[Path, str]:
+        repo = self.root / change
+        repo.mkdir()
+        for command in (
+            ["git", "init", "-b", "main"],
+            ["git", "config", "user.email", "ticket@example.test"],
+            ["git", "config", "user.name", "Ticket test"],
+        ):
+            subprocess.run(command, cwd=repo, check=True, stdout=subprocess.DEVNULL)
+        (repo / "openspec/specs/widget").mkdir(parents=True)
+        (repo / "openspec/config.yaml").write_text("schema: spec-driven\n", encoding="utf-8")
+        (repo / "openspec/specs/widget/spec.md").write_text(
+            self.BASELINE, encoding="utf-8"
+        )
+        subprocess.run(["git", "add", "openspec"], cwd=repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "baseline"],
+            cwd=repo,
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
+        base = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo,
+            text=True,
+            stdout=subprocess.PIPE,
+            check=True,
+        ).stdout.strip()
+        change_root = repo / "openspec/changes" / change
+        (change_root / "specs/widget").mkdir(parents=True)
+        (change_root / "proposal.md").write_text(
+            f"# {change}\n\n## Why\n\nManufactured semantic regression.\n\n"
+            "## What Changes\n\n- Exercise real OpenSpec composition.\n",
+            encoding="utf-8",
+        )
+        (change_root / "tasks.md").write_text(
+            "## 1. Verification\n\n- [ ] Exercise the manufactured delta.\n",
+            encoding="utf-8",
+        )
+        (change_root / "specs/widget/spec.md").write_text(delta, encoding="utf-8")
+        subprocess.run(["git", "add", "openspec"], cwd=repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", change],
+            cwd=repo,
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
+        return repo, base
+
+    def validate(self, repo: Path, change: str):
+        return run(
+            [str(self.openspec), "validate", change, "--strict"],
+            cwd=repo,
+            env=self.environment,
+        )
+
+    def preflight(self, repo: Path, base: str):
+        result = run(
+            [
+                sys.executable,
+                str(TICKET_SCRIPT),
+                "preflight-openspec",
+                "--repo",
+                str(repo),
+                "--base-ref",
+                base,
+            ],
+            cwd=repo,
+            env=self.environment,
+        )
+        self.assertEqual(list(self.preflight_tmp.glob("ticket-openspec-preflight-*")), [])
+        return result
+
+    def test_real_issue_259_delta_validates_strictly_but_fails_archive_applicability(self):
+        change = "issue-259"
+        repo, base = self.make_repo(change, self.ISSUE_259_DELTA)
+        ticket_before = directory_digest(repo / "openspec")
+        base_before = git_directory_digest(repo, base, "openspec")
+
+        validated = self.validate(repo, change)
+        result = self.preflight(repo, base)
+
+        self.assertEqual(validated.returncode, 0, validated.stderr)
+        self.assertEqual(validated.stdout, "Change 'issue-259' is valid\n")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(
+            result.stderr,
+            "ticket: widget MODIFIED failed for header \"### Requirement: Renamed behavior\" - not found\n"
+            "ticket: if this requirement was renamed, add a `## RENAMED Requirements` "
+            "mapping from its current baseline header to the unmatched delta header; "
+            "otherwise correct the MODIFIED header.\n",
+        )
+        self.assertEqual(ticket_before, directory_digest(repo / "openspec"))
+        self.assertEqual(base_before, git_directory_digest(repo, base, "openspec"))
+
+    def test_real_added_modified_removed_and_renamed_deltas_apply_cleanly(self):
+        for operation, delta in self.APPLICABLE_DELTAS.items():
+            with self.subTest(operation=operation):
+                repo, base = self.make_repo(operation, delta)
+                ticket_before = directory_digest(repo / "openspec")
+                base_before = git_directory_digest(repo, base, "openspec")
+
+                validated = self.validate(repo, operation)
+                result = self.preflight(repo, base)
+
+                self.assertEqual(validated.returncode, 0, validated.stderr)
+                self.assertEqual(validated.stdout, f"Change '{operation}' is valid\n")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stderr, "")
+                self.assertEqual(
+                    result.stdout,
+                    f"ticket: OpenSpec change {operation} applies cleanly in a disposable copy\n",
+                )
+                self.assertEqual(ticket_before, directory_digest(repo / "openspec"))
+                self.assertEqual(base_before, git_directory_digest(repo, base, "openspec"))
 
 
 class TicketLiveProseContractTests(unittest.TestCase):
