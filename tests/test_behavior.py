@@ -5805,9 +5805,30 @@ class DurableWorkerOrderContractTests(unittest.TestCase):
             "reports the dispatch unavailable and does not start the worker",
             "deletes `order.md` first",
             "before `git worktree remove` and before any `status --short` cleanliness check",
+            "chunk dispatch carrying an execution lock, those bytes are the complete "
+            "lock or stand-alone sub-lock",
+            "never a restatement of the pinned source's own plan prose",
+            "uncommitted transport copy of that payload",
+            "never becomes a second authority over the pinned source",
+            "cannot read the pinned source `order.md` names",
+            "no second snapshot is generated to make the prompt self-contained",
         ):
             with self.subTest(home_term=term):
                 self.assertIn(term, home)
+
+        coordinator_mode = self.compact(
+            self.COORDINATOR_MODE.read_text(encoding="utf-8")
+        )
+        for term in (
+            "the prompt carries the sub-lock plus verified source coordinates and "
+            "selected identifiers, never restated plan prose",
+            "a chunk agent that cannot read the sub-lock's pinned source from its "
+            "own worktree stops and reports",
+            "the coordinator does not restate the source's plan prose to make the "
+            "prompt self-contained",
+        ):
+            with self.subTest(coordinator_mode_term=term):
+                self.assertIn(term, coordinator_mode)
 
         template = self.TEMPLATE.read_text(encoding="utf-8")
         flat = template.split("## Flat\n", 1)[1].split("\n---\n\n## Chunked", 1)[0]
