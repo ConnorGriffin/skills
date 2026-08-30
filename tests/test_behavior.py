@@ -1263,6 +1263,88 @@ class UiCraftContractTests(unittest.TestCase):
         for name in ("modern-css", "modern-javascript"):
             self.assertFalse((ROOT / "skills" / "tools" / name).exists())
 
+    def test_revision_rounds_and_retired_premise_bind_through_ui_craft(self):
+        revise = (
+            ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "revise.md"
+        ).read_text(encoding="utf-8")
+        sweep = UI_CRAFT_SWEEP.read_text(encoding="utf-8")
+        build = (ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "build.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("### Running the rounds", revise)
+        rounds = revise[revise.index("### Running the rounds") :]
+        rounds = rounds[: rounds.index("When the decisions settle,")]
+        rounds_contract = " ".join(rounds.split())
+        for requirement in (
+            "Interactive divergent work only",
+            "One question per round",
+            "nothing ruled reopens",
+            "differ in concept, not decoration",
+            "carries a stated cost, the recommended one included",
+            "Measure the claim instead of asserting it",
+            "operator's eye outranks the measurement",
+            "Build only after the direction is ruled",
+        ):
+            self.assertIn(requirement, rounds_contract)
+
+        changes = revise[revise.index("### Behavior changes") :]
+        changes = changes[: changes.index("## 5.")]
+        changes_contract = " ".join(changes.split())
+        self.assertIn("**Moved:**", changes_contract)
+        self.assertIn("same ceremony as a removal", changes_contract)
+        # A move keeps its entry: the sweep admits exactly three entry types, so
+        # leaving this open reads a moved behavior's absence as a retirement.
+        self.assertIn("lands as an amended STORY rather than a retirement", changes_contract)
+        for requirement in (
+            "under-specifies every selector that names it",
+            "presence proxy",
+            "blast radius is the repository, not the directory",
+        ):
+            self.assertIn(requirement, changes_contract)
+
+        # A case nothing blocks on is not a case: the blocking sentence and the
+        # landing checks reach a moved behavior and a retirement's premise too.
+        self.assertIn(
+            "A dropped, changed or moved behavior without that record blocks",
+            changes_contract,
+        )
+        landing = " ".join(revise[revise.index("Before landing, confirm:") :].split())
+        self.assertIn("launched by whoever can launch them", landing)
+        self.assertIn("every added, changed or moved behavior", landing)
+        self.assertIn("everything `behavior-sweep` requires of one", landing)
+
+        sweep_contract = " ".join(sweep.split())
+        self.assertIn("asserts the premise the retirement reasoned from", sweep_contract)
+        self.assertIn("QUESTION-round trigger asking for a fresh ruling", sweep_contract)
+        self.assertIn("not a `replayed-fail`", sweep_contract)
+        self.assertIn("premise:  the preset window controls are present", sweep)
+
+        # What a retirement owes is enumerated on exactly one page. Three pages
+        # each carrying the list is how the premise obligation reached one of
+        # them and not the others; every other page names the case and points.
+        self.assertIn("What a retirement owes, in one place", sweep_contract)
+        resettle = (
+            ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "resettle.md"
+        ).read_text(encoding="utf-8")
+        pages = {
+            "revise.md": revise,
+            "resettle.md": resettle,
+            "build.md": build,
+        }
+        for name, text in pages.items():
+            with self.subTest(page=name):
+                self.assertIn("behavior-sweep", text)
+                # The sanction template is the tell that a page restated the list.
+                self.assertNotIn("sanction: <", text)
+        self.assertEqual(sweep.count("sanction: <"), 1)
+
+        build_contract = " ".join(build.split())
+        self.assertIn(
+            "*premise* has failed while its behavior stays absent is `re-settle requested`",
+            build_contract,
+        )
+
 
 class CodebaseDesignHexagonalContractTests(unittest.TestCase):
     def test_hexagonal_direction_preserves_seam_discipline(self):
