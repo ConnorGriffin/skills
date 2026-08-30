@@ -56,48 +56,6 @@ MUST remain in private data rather than this public pack.
 - **THEN** review stops with the missing-skill result and does not run a nearby
   route
 
-### Requirement: Orchestration authorization and isolation
-
-Literal `/orchestrate` invocation MUST authorize only the work order or task
-prompt plus the repository code, documentation, and UI fidelity evidence rendered
-from manufactured or synthetic fixtures needed for mandatory dispatches, including
-review and orchestration. Evidence rendered from real user, production, or patient
-data MUST remain outside the grant, whether or not a capture is tracked in the
-repository. Automatic activation outside an invoked parent MUST ask once before
-dispatch, and every dispatch MUST continue to use pack-owned isolated adapters
-while excluding credentials, secrets, patient data, `.env`, and real database
-contents. The coordinator MUST own every mandatory reviewer dispatch reached by
-delegated work. Its delegation prompt MUST identify the mandatory-review handoff,
-and the worker MUST return or write its review-ready result through the
-coordinator-recorded durable result locator at that boundary. The coordinator MUST
-collect that result and resume the same worker with verified findings for
-correction or a verified clean verdict to finish. Unavailable review evidence MUST
-block the workflow from advancing as reviewed. Direct adapter dispatch from inside
-a sandboxed worker is unsupported.
-
-#### Scenario: Orchestration activates implicitly
-
-- **WHEN** a workflow reaches orchestration without a literal invocation or an
-  invoked parent that already grants bounded dispatch consent
-- **THEN** it asks once with the payload, destination, and exclusions and stops if
-  consent is denied
-
-#### Scenario: A dispatch carries safe-fixture fidelity evidence
-
-- **WHEN** a literally invoked coordinator dispatches a worker or reviewer with UI
-  fidelity evidence rendered from manufactured or synthetic fixtures
-- **THEN** that evidence is inside the granted payload and needs no further consent
-
-#### Scenario: Delegated work reaches mandatory review
-
-- **WHEN** an Orchestrate worker returns work whose governing workflow requires independent review
-- **THEN** the coordinator dispatches that reviewer through the existing adapter and resumes the same worker with actionable findings or a verified clean verdict instead of asking the worker to launch a nested reviewer
-
-#### Scenario: Delegated review evidence is unavailable
-
-- **WHEN** the mandatory reviewer has a failed launch, nonzero exit, missing result artifact, or missing verdict
-- **THEN** the coordinator reports the review as unavailable and does not advance the workflow as reviewed
-
 ### Requirement: Decision-record home
 
 A new load-bearing decision in a repository that tracks design with OpenSpec MUST
@@ -353,3 +311,25 @@ ordering.
 - **WHEN** the canonical rule, worker-facing instruction, pointer direction, or
   teardown ordering is removed or weakened
 - **THEN** the behavior test fails
+
+### Requirement: Orchestration isolation and review handoff
+
+Every dispatch MUST continue to use pack-owned isolated adapters. The
+coordinator MUST own every mandatory reviewer dispatch reached by delegated
+work. Its delegation prompt MUST identify the mandatory-review handoff, and
+the worker MUST return or write its review-ready result through the
+coordinator-recorded durable result locator at that boundary. The coordinator
+MUST collect that result and resume the same worker with verified findings
+for correction or a verified clean verdict to finish. Unavailable review
+evidence MUST block the workflow from advancing as reviewed. Direct adapter
+dispatch from inside a sandboxed worker is unsupported.
+
+#### Scenario: Delegated work reaches mandatory review
+
+- **WHEN** an Orchestrate worker returns work whose governing workflow requires independent review
+- **THEN** the coordinator dispatches that reviewer through the existing adapter and resumes the same worker with actionable findings or a verified clean verdict instead of asking the worker to launch a nested reviewer
+
+#### Scenario: Delegated review evidence is unavailable
+
+- **WHEN** the mandatory reviewer has a failed launch, nonzero exit, missing result artifact, or missing verdict
+- **THEN** the coordinator reports the review as unavailable and does not advance the workflow as reviewed
