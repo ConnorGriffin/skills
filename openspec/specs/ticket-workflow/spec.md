@@ -11,16 +11,95 @@ human review, merge reconciliation, cleanup, and measured workflow calibration.
 
 The ticket workflow MUST expose one verb at a time: `triage` grounds the ticket and
 posts a locked work order after unconditional `/scope`; `start` executes the newest
-order in an isolated ticket worktree and opens a pull request; `revise` actions one
-review round; and `finalize` reconciles a merged or explicitly abandoned pull
-request with the tracker and local worktree state. Agents MUST stop at the pull
-request boundary and MUST NOT merge.
+order in an isolated ticket worktree and, for an ordinary OpenSpec-backed ticket,
+proves in both flat and chunked execution that its one active change can apply to a
+freshly fetched current baseline without mutating either authoritative tree, then
+opens a pull request; `revise` actions one review round and, for an ordinary
+OpenSpec-backed ticket, completes its active-change edits and repeats that
+applicability proof before pushing; and `finalize`
+reconciles a merged or explicitly abandoned pull request with the tracker and local
+worktree state. Agents MUST stop at the pull request boundary and MUST NOT merge.
 
 #### Scenario: A ticket reaches implementation
 
-- **WHEN** `start` finds a sufficient newest work order and a compatible session
+- **WHEN** `start` finds a sufficient newest work order and a compatible session for
+  an ordinary OpenSpec-backed ticket
 - **THEN** it reuses the ticket's branch and worktree, implements and verifies the
-  order, opens one pull request, and stops for human review
+  order, proves its changed active OpenSpec delta applies in a disposable copy,
+  opens one pull request, and stops for human review
+
+#### Scenario: A chunked ticket reaches pull-request creation
+
+- **WHEN** coordinator mode has merged and reviewed all chunks for an ordinary
+  OpenSpec-backed ticket and recorded its active change
+- **THEN** it proves its one changed active OpenSpec delta applies before rejoining
+  pull-request creation
+
+#### Scenario: The default branch advanced after ticket branch cut
+
+- **WHEN** flat or chunked `start` reaches applicability preflight
+- **THEN** it fetches the remote immediately before exporting the current default-
+  branch OpenSpec tree, and a fetch or base-ref failure stops pull-request creation
+
+#### Scenario: A base ref resembles a Git option
+
+- **WHEN** the public applicability command receives a base-ref value that could be
+  parsed as a Git option rather than a local revision
+- **THEN** it resolves the value with Git's end-of-options form to a verified local
+  commit before merge-base or export, and an unresolved value stops locally without
+  invoking a remote
+
+#### Scenario: The baseline advances after the gate
+
+- **WHEN** the freshly fetched baseline passes applicability preflight and then
+  advances again before the later human merge
+- **THEN** the workflow makes no merge-time guarantee or enforcement claim, and a
+  resulting post-merge archive mismatch stops finalization for manual correction
+
+#### Scenario: A structurally valid delta cannot apply
+
+- **WHEN** strict validation passes but a disposable archive reports an unmatched
+  modified requirement and no archive result
+- **THEN** the workflow stops before the pull request and emits exactly two ordered
+  `ticket:` stderr lines: the unmatched requirement first, then direction to add
+  the missing rename mapping or correct the modified header; it leaves the active
+  change and baseline unchanged
+
+#### Scenario: Applicability infrastructure fails
+
+- **WHEN** executable launch, base export, active-change overlay, or archive CLI
+  execution fails during the disposable applicability proof
+- **THEN** the public command exits nonzero with one `ticket:` stderr diagnostic,
+  removes its temporary directory, and leaves the ticket worktree and base-ref
+  OpenSpec trees unchanged
+
+#### Scenario: A correctly renamed requirement is preflighted
+
+- **WHEN** a change contains a valid mapping from the current baseline requirement
+  header to its modified header
+- **THEN** the disposable archive succeeds and the existing pre-merge and
+  post-merge lifecycle continues without altering the authoritative tree early
+
+#### Scenario: Review changes an active delta
+
+- **WHEN** `revise` changes an ordinary ticket's checklist or decision record
+- **THEN** it completes those active-change edits, fetches the remote immediately
+  before proving the resulting bytes against refreshed `origin/<baseRefName>`, and
+  only then pushes the branch
+
+#### Scenario: An ordinary ticket changes several active changes
+
+- **WHEN** base-diff discovery finds more than one active OpenSpec change still
+  present in the ticket tree
+- **THEN** preflight stops visibly because ordinary-ticket finalization owns one
+  archive unit instead of independently approving interacting deltas
+
+#### Scenario: A ticket uses another change-record convention
+
+- **WHEN** flat start, chunked coordinator mode, or revise operates a repository
+  whose ordinary ticket is not backed by an OpenSpec active change
+- **THEN** it preserves that repository's existing verification and pull-request or
+  push path without invoking the OpenSpec applicability command
 
 ### Requirement: Work-order lock and model fit
 
@@ -133,19 +212,27 @@ and later ticket verbs MUST move only the status axis they own.
 - **THEN** the binding adds `ticket:in-progress` and removes `ticket:triaged`
   without removing the ticket's `build` type
 
-### Requirement: Role-aware telemetry and review depth
+### Requirement: Role-aware measurement and review depth
 
 Each participating session MUST be claimable with both its responsibility
 (`coordinator`, `worker`, or `reviewer`) and the ticket lifecycle verb that
-produced the claim. Finalization MUST record responsibility-tagged and
-verb-tagged costs separately. Worker peaks alone MUST calibrate chunk sizing;
-measurable non-reviewer `start` claims alone MUST calibrate a flat order;
-triage, revise, finalize, and reviewer peaks MUST remain independent overhead.
-Claims without a lifecycle verb MUST remain readable as legacy data and MUST NOT
-be guessed into a verb. A session MUST NOT be reused under a different lifecycle
-verb; same-verb resumes remain valid, while a later verb requires a fresh session.
-Review depth MUST be stamped from change scope and sensitivity rather than inferred
-from slicing telemetry.
+produced the claim. Finalization MUST compute responsibility-tagged and
+verb-tagged costs separately, print the resulting record as JSON, and append that
+same record to the target repository's reviewer-memory store. It MUST NOT create
+or append a second ticket-wide telemetry store. Worker peaks alone MUST calibrate
+chunk sizing; measurable non-reviewer `start` claims alone MUST calibrate a flat
+order; triage, revise, finalize, and reviewer peaks MUST remain independent
+overhead. Claims without a lifecycle verb MUST remain readable as legacy data and
+MUST NOT be guessed into a verb. A session MUST NOT be reused under a different
+lifecycle verb; same-verb resumes remain valid, while a later verb requires a
+fresh session. Review depth MUST be stamped from change scope and sensitivity
+rather than inferred from recorded slicing outcomes.
+
+#### Scenario: A measurable ticket is finalized
+
+- **WHEN** finalization computes a slicing record from attributable claims
+- **THEN** `record` prints the complete JSON record and finalization appends those
+  bytes to reviewer memory without creating a parallel ticket telemetry file
 
 #### Scenario: A flat ticket has expensive lifecycle overhead
 
@@ -226,7 +313,7 @@ and helper constant together.
 
 #### Scenario: Measured chunks were too large
 
-- **WHEN** role-aware telemetry returns `still-degraded`
+- **WHEN** role-aware measurement returns `still-degraded`
 - **THEN** finalization reports the misprediction and shows the user a concrete
   rubric diff without editing the rubric in the ticket branch
 
@@ -287,3 +374,89 @@ authority and archive owner.
 
 - **WHEN** a prior child implementation pull request is not yet human-merged
 - **THEN** the epic refuses the later child handoff regardless of whether the prior child amended the parent plan
+
+### Requirement: Triage mutation authority
+
+Ticket triage MUST confine writes by ownership and purpose. It MAY initialize,
+update, and read operator-local state that the installed workflow requires to
+execute the selected ticket lifecycle. Repository and tracker writes MUST remain in
+the selected ticket's worktree and branch, an ordinary ticket's active change, and
+the selected ticket's comment and status, except for the defined Epic-child
+parent-plan amendment carried by that child's implementation pull request.
+
+Creating or mutating state for a distinct concern outside that selected lifecycle
+MUST require explicit operator authorization to the previously disclosed external
+target and exact mutation. Reading a parent, linked ticket, live service, or
+repository record for grounding MUST NOT grant authority to create or change a
+separate branch, commit, push, pull request, tracker item, or repository artifact
+for that external concern. A newly added operator-local workflow mechanism MUST NOT
+be misclassified as ancillary solely because an older order did not enumerate it.
+
+The selected-ticket active change allowance MUST apply directly only to an ordinary
+ticket. An Epic child MUST create no per-child change record and MUST NOT claim its
+parent's active change as its own. A parent-plan amendment required by the selected
+child's implementation MAY be committed in that child's worktree and travel with its
+implementation pull request under parent ownership; this MUST count as selected-ticket
+lifecycle work rather than ancillary work.
+
+An external amendment MUST be treated as a prerequisite only when omitting it would
+make the current order contradict a recorded destination, constraint, acceptance
+criterion, risk, or sequence in the selected ticket or its governing parent. Triage
+MUST cite that clause, name the exact ancillary target and mutation, stop before the
+mutation, and accept authorization only from an operator response that explicitly
+authorizes the previously disclosed target and exact mutation. Acknowledgment alone
+and the original triage invocation MUST NOT count as that authorization.
+When no such contradiction exists, triage MUST continue and carry the implementation
+decision in the selected ticket's work order.
+
+#### Scenario: A compatible parent clarification appears during triage
+
+- **WHEN** grounding finds a parent-planning clarification that the selected
+  ticket's work order can carry without contradicting a recorded destination,
+  constraint, acceptance criterion, risk, or sequence
+- **THEN** triage records the decision in that order and does not create or require
+  a separate branch, commit, push, pull request, or tracker item
+
+#### Scenario: An external amendment is a true prerequisite
+
+- **WHEN** a safe work order depends on changing a parent or other external
+  authority first because the order would otherwise contradict one of its recorded
+  destination, constraint, acceptance, risk, or sequencing clauses
+- **THEN** triage cites the clause, names the exact target and mutation, stops before
+  external mutation, and waits for an operator response that explicitly authorizes
+  that previously disclosed target and exact mutation
+
+#### Scenario: Required operator-local workflow state is written
+
+- **WHEN** the installed triage workflow requires a claim, exact-worktree Codebase
+  Memory state, reviewer-memory state, or local ref refresh to execute the selected
+  lifecycle
+- **THEN** that operator-local workflow state proceeds without ancillary-work
+  approval and does not authorize a distinct repository or tracker concern
+
+#### Scenario: An Epic child carries a required parent-plan amendment
+
+- **WHEN** the selected ticket is a confirmed Epic child and its implementation
+  requires an amendment to the pinned parent plan
+- **THEN** triage may commit that amendment in the child worktree for the child's
+  implementation pull request, creates no per-child change record, and leaves
+  ownership and archive responsibility with the parent
+
+### Requirement: Slicing traits are optional record evidence
+
+Finalization MUST be able to record a ticket whose work order fired no slicing
+traits without inventing a sentinel trait. The public `record` command MUST emit
+an empty `traits` array when no `--trait` flag is supplied. When one or more
+`--trait` flags are supplied, it MUST preserve their values and order. Trait
+presence MUST NOT alter verdict calculation, session attribution, or
+reviewer-memory persistence.
+
+#### Scenario: A flat order fired no slicing traits
+
+- **WHEN** finalization invokes `record` without a `--trait` flag
+- **THEN** the command succeeds and emits `"traits": []`
+
+#### Scenario: An order fired multiple slicing traits
+
+- **WHEN** finalization invokes `record` with multiple `--trait` flags
+- **THEN** the command emits every supplied trait in the same order

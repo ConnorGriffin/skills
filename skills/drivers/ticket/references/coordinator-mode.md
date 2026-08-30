@@ -8,7 +8,7 @@ whose chunk agent is already gone (step 8) are fixed in place and mentioned in t
 report. Anything larger than mechanical goes back to a delegate.
 
 What follows is what this skill adds on top. It replaces `start` steps 8 through
-11, and rejoins that verb at step 12 when the last chunk has merged.
+12, and rejoins that verb at step 13 when the last chunk has merged.
 
 An epic child creates no per-child change record. Coordinator work preserves the
 parent-plan bytes that triage committed, carries them through the child pull request,
@@ -159,3 +159,21 @@ non-blocking rule.
    branch, at the depth [review-depth.md](review-depth.md) sets for a whole diff.
    Findings route back to the chunk agent that owns the file when its session is
    still alive, and otherwise the coordinator fixes them and says so.
+
+9. **Preflight the outbound OpenSpec change.** Only an ordinary OpenSpec-backed
+   ticket uses this gate. After all chunks merge, whole-diff review and fixes finish,
+   and the coordinator records the active change, run `git fetch origin` immediately
+   before:
+
+   ```sh
+   python3 <ticket-skill-directory>/scripts/ticket.py preflight-openspec \
+     --repo <ticket-worktree> \
+     --base-ref refs/remotes/origin/HEAD
+   ```
+
+   The fetch refreshes the base that the command resolves locally. A ticket using
+   another or no change-record convention, or an epic child, bypasses this gate
+   unchanged. Fetch, ref, or preflight failure stops visibly; do not rejoin pull
+   request creation. This adds no chunk integration or review ownership, preserves
+   one branch and one pull request, and leaves finalization the sole authoritative
+   archive owner.

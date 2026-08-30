@@ -93,6 +93,26 @@ missing result artifact, or missing verdict is reported as unavailable and block
 the workflow from advancing as reviewed. Direct nested adapter dispatch by the
 worker is unsupported.
 
+## Selected-ticket mutation boundary
+
+Triage may mutate operator-local workflow state required by the installed workflow
+to execute the selected ticket lifecycle. Current examples include the lifecycle
+claim, exact-worktree Codebase Memory state, reviewer-memory store, and local
+remote-tracking refs used to resolve and verify the selected ticket's base. These
+examples make the purpose concrete; they are not an exhaustive list.
+
+Triage may also mutate repository or tracker state belonging to the selected ticket
+lifecycle without ancillary approval. Current examples include the selected worktree
+and branch, an ordinary ticket's active change, the selected ticket's comment and
+status, and the defined Epic-child parent-plan amendment carried by that child's
+implementation pull request. These examples make the ownership concrete; they are
+not an exhaustive list.
+
+This authority does not authorize state for a distinct external concern:
+independently addressable work outside the selected lifecycle, such as another
+branch, pull request, issue, ticket, or repository artifact outside the selected
+branch. Broad read-only grounding never authorizes it.
+
 ## Shared rules (every verb)
 
 1. **Open with the ticket summary.** Before any other work, read the ticket and
