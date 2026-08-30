@@ -669,6 +669,8 @@ def command_preflight_openspec(arguments: argparse.Namespace) -> int:
     """Prove the one changed active OpenSpec change applies without mutating either tree."""
     repo = arguments.repo.expanduser().resolve()
     source = repo / "openspec"
+    if source.is_symlink():
+        raise OpenSpecPreflightError(f"OpenSpec root must not be a symlink: {source}", 2)
     if not source.is_dir():
         raise OpenSpecPreflightError(f"OpenSpec root not found: {source}", 2)
 
@@ -718,12 +720,11 @@ def command_preflight_openspec(arguments: argparse.Namespace) -> int:
     for line in changed_paths.stdout.splitlines():
         parts = PurePosixPath(line).parts
         active = source / "changes" / parts[2] if len(parts) >= 3 else None
-        if (
-            active is not None
-            and parts[:2] == ("openspec", "changes")
-            and parts[2] != "archive"
-            and active.is_dir()
-        ):
+        if active is None or parts[:2] != ("openspec", "changes") or parts[2] == "archive":
+            continue
+        if active.is_symlink():
+            raise OpenSpecPreflightError("active OpenSpec change contains a symlink", 2)
+        if active.is_dir():
             changes.add(parts[2])
     if not changes:
         print("ticket: no changed active OpenSpec change")
@@ -799,7 +800,11 @@ def command_preflight_openspec(arguments: argparse.Namespace) -> int:
     try:
         payload = json.loads(result.stdout)
     except json.JSONDecodeError as error:
-        raise OpenSpecPreflightError("OpenSpec archive returned invalid JSON") from error
+        message = "OpenSpec archive returned invalid JSON"
+        raw_diagnostic = result.stderr.rstrip("\r\n")
+        if raw_diagnostic:
+            message += f": {json.dumps(raw_diagnostic)[1:-1]}"
+        raise OpenSpecPreflightError(message) from error
     if not isinstance(payload, dict):
         raise OpenSpecPreflightError("OpenSpec archive JSON must be an object")
     status = payload.get("status", [])

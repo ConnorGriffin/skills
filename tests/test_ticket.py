@@ -1927,6 +1927,8 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
             "mode = os.environ.get('FAKE_OPENSPEC_MODE', 'ok')\n"
             "if mode == 'launch': raise OSError('launch denied')\n"
             "if mode == 'nonjson': print('not json')\n"
+            "elif mode == 'nonjson-stderr': print('not json'); "
+            "print('archive parser failed\\ninspect change delta', file=sys.stderr)\n"
             "elif mode == 'array': print('[]')\n"
             "elif mode == 'nostatus': print(json.dumps({'archive': {}}))\n"
             "elif mode == 'missing': print(json.dumps({'status': []}))\n"
@@ -1973,6 +1975,17 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
 
     def tree(self, revision: str = "HEAD") -> str:
         return self.git("rev-parse", f"{revision}:openspec").stdout.strip()
+
+    def install_command_recorders(self, calls: Path):
+        for name, executable in (("git", "/usr/bin/git"), ("openspec", None)):
+            wrapper = self.bin / name
+            wrapper.write_text(
+                "#!/bin/sh\n"
+                f"printf '%s\\n' \"{name} $*\" >> {calls}\n"
+                + (f'exec {executable} "$@"\n' if executable else "exit 0\n"),
+                encoding="utf-8",
+            )
+            wrapper.chmod(0o755)
 
     def test_success_resolves_local_non_main_base_and_keeps_both_trees_unchanged(self):
         self.git("branch", "release-base", self.base)
@@ -2052,6 +2065,19 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
                 self.assertEqual(before, (self.tree(), self.tree(self.base)))
                 self.assertEqual(self.git("status", "--short").stdout, "")
 
+    def test_malformed_archive_stdout_preserves_stderr_in_one_diagnostic(self):
+        result = self.preflight(mode="nonjson-stderr")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(
+            result.stderr,
+            "ticket: OpenSpec archive returned invalid JSON: "
+            "archive parser failed\\ninspect change delta\n",
+        )
+        self.assertEqual(result.stderr.count("ticket:"), 1)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_launch_export_and_symlink_failures_are_clean_and_disposable(self):
         fake = self.bin / "openspec"
         fake.rename(self.bin / "openspec.saved")
@@ -2087,6 +2113,75 @@ class TicketOpenSpecPreflightTests(unittest.TestCase):
         self.assertEqual(linked.returncode, 2)
         self.assertIn("active OpenSpec change contains a symlink", linked.stderr)
         self.assertNotIn("Traceback", linked.stderr)
+
+    def test_symlinked_openspec_root_is_rejected_before_external_reads_or_commands(self):
+        external = Path(self.temporary.name) / "external-openspec"
+        shutil.copytree(self.repo / "openspec", external)
+        external_before = directory_digest(external)
+        base_before = git_directory_digest(self.repo, self.base, "openspec")
+        shutil.rmtree(self.repo / "openspec")
+        (self.repo / "openspec").symlink_to(external, target_is_directory=True)
+
+        calls = Path(self.temporary.name) / "external-calls"
+        self.install_command_recorders(calls)
+
+        result = self.preflight()
+
+        self.assertEqual(
+            result.returncode,
+            2,
+            result.stdout
+            + result.stderr
+            + (calls.read_text(encoding="utf-8") if calls.exists() else ""),
+        )
+        self.assertEqual(
+            result.stderr,
+            f"ticket: OpenSpec root must not be a symlink: {self.repo.resolve() / 'openspec'}\n",
+        )
+        self.assertEqual(result.stdout, "")
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertFalse(calls.exists())
+        self.assertEqual(external_before, directory_digest(external))
+        self.assertEqual(
+            base_before, git_directory_digest(self.repo, self.base, "openspec")
+        )
+
+    def test_symlinked_active_change_is_rejected_before_export_or_archive(self):
+        active = self.repo / "openspec/changes/one"
+        external = Path(self.temporary.name) / "external-change"
+        shutil.copytree(active, external)
+        external_before = directory_digest(external)
+        base_before = git_directory_digest(self.repo, self.base, "openspec")
+        shutil.rmtree(active)
+        active.symlink_to(external, target_is_directory=True)
+        self.git("add", "-A")
+        self.git("commit", "-m", "replace active change with symlink")
+
+        calls = Path(self.temporary.name) / "external-calls"
+        self.install_command_recorders(calls)
+
+        result = self.preflight()
+
+        self.assertEqual(
+            result.returncode,
+            2,
+            result.stdout
+            + result.stderr
+            + (calls.read_text(encoding="utf-8") if calls.exists() else ""),
+        )
+        self.assertEqual(
+            result.stderr,
+            "ticket: active OpenSpec change contains a symlink\n",
+        )
+        self.assertEqual(result.stdout, "")
+        self.assertNotIn("Traceback", result.stderr)
+        recorded = calls.read_text(encoding="utf-8")
+        self.assertNotIn("git archive ", recorded)
+        self.assertNotIn("openspec ", recorded)
+        self.assertEqual(external_before, directory_digest(external))
+        self.assertEqual(
+            base_before, git_directory_digest(self.repo, self.base, "openspec")
+        )
 
     def test_overlay_failure_is_diagnostic_and_cleans_the_disposable_tree(self):
         wrapper = self.bin / "git"
