@@ -307,6 +307,11 @@ want of it.
 
 The skill records the change where the target repo already records changes.
 
+Whoever executes the change ticks its checklist as work completes, and a checked
+item means implemented and verified, not attempted. That is why a checkbox commit
+in a pinned source is the executor's own bookkeeping rather than an amendment
+([start](verbs/start.md) step 5).
+
 An **epic child** creates no per-child change record. Its parent epic owns the active
 change and its post-merge archive. Triage may commit a required parent-plan
 amendment in the child worktree; start, revise, and coordinator mode preserve the

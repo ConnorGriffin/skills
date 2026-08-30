@@ -272,12 +272,18 @@ disclosed target and exact mutation.
       `Acceptance anchors:`; the fence carries the full `Context` / `Do` / `Done
       when` payload verbatim, as today's work order does.
 
-    Set `Expected diff` in every mode: a closed allowlist of repository-relative
-    paths, with no escape clause, per
-    [drafting conventions](../references/drafting-conventions.md).
+    Set `Expected diff` on every fence — the flat lock, the chunked header, and
+    each sub-lock: a closed allowlist of repository-relative paths, with no escape
+    clause, per [drafting conventions](../references/drafting-conventions.md).
     A chunked order's sub-lock allowlists are pairwise disjoint across parallel
     chunks. Never post a lock whose `Source:` commit has not been read back from
     the actual commit just made; a remembered or predicted OID is not a pin.
+
+    An `investigation` posts a lock only when the work will be dispatched to a
+    bounded worker; that lock is an ordinary one whose `Expected diff` names the
+    findings it may write. An investigation the attended session works itself
+    needs none — the ticket plus its posted findings are the record — and
+    `start` is not run on it.
 
 For a flat order, copy the already-selected execution row's `Ladder` value from [`routing-table.md`](../../orchestrate/references/routing-table.md) into the template's `Session fit:` paragraph, keeping each model's display name and ladder order.
 

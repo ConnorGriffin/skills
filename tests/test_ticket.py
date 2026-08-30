@@ -2954,6 +2954,36 @@ class TicketExecutionLockAdmissionTests(unittest.TestCase):
             self.sufficiency_norm,
         )
 
+    def test_expected_diff_is_admitted_on_every_fence_of_a_chunked_lock(self):
+        # Checking the located comment once lets a chunked lock pass with one
+        # sub-lock missing its allowlist, and that chunk then dispatches with
+        # nothing closing its scope.
+        self.assertIn(
+            "On a chunked lock the allowlist is per fence, so check it on the header and "
+            "on every sub-lock: one sub-lock missing its `Expected diff` refuses the "
+            "whole order,",
+            self.sufficiency_norm,
+        )
+
+    def test_the_executor_ticks_the_checklist_and_a_checked_item_is_verified(self):
+        # The amendment carve-out cites this obligation, so it has to exist
+        # somewhere a reader can find it.
+        self.assertIn(
+            "Whoever executes the change ticks its checklist as work completes, and a "
+            "checked item means implemented and verified, not attempted.",
+            self.skill_norm,
+        )
+
+    def test_an_investigation_gets_a_lock_only_when_it_dispatches_a_worker(self):
+        triage = " ".join(
+            (TICKET_DIRECTORY / "verbs" / "triage.md").read_text(encoding="utf-8").split()
+        )
+        self.assertIn(
+            "An `investigation` posts a lock only when the work will be dispatched to a "
+            "bounded worker;",
+            triage,
+        )
+
     def test_ticking_a_task_checkbox_is_bookkeeping_not_an_amendment(self):
         # The executor is required to tick tasks.md as work completes, so those
         # commits land in the pinned path after the pin. Without this carve-out

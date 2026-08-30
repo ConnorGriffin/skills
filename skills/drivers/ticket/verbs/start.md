@@ -96,7 +96,11 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
      pinned commit against branch head to "catch up" the pin.
    * **Delivery fields.** `Verification:`, `Expectation:`, and `Expected diff`
      are each present and non-empty; any one missing refuses. Without the closed
-     allowlist there is nothing bounding what the executor may touch.
+     allowlist there is nothing bounding what the executor may touch. On a chunked
+     lock the allowlist is per fence, so check it on the header and on every
+     sub-lock: one sub-lock missing its `Expected diff` refuses the whole order,
+     because that chunk's fence would otherwise dispatch with nothing closing its
+     scope.
    * **Ownership.** On a chunked order, confirm the chunks' declared file and
      target ownership is still disjoint; an overlap refuses, whether triage stated
      it wrong or drift introduced it since.

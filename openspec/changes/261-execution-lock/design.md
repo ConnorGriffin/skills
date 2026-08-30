@@ -156,8 +156,9 @@ full authoring-and-pinning ceremony for every one would tax the cheapest tickets
 in the flow to authorize work that touches nothing.
 
 **Decision.** An investigation needs no lock when the attended session does the
-work itself: the issue plus its posted findings are the record. It gets an
-explicit read-only lock only when it dispatches a bounded worker, because that is
+work itself: the issue plus its posted findings are the record. It gets a lock —
+an ordinary one, in whichever source mode fits, whose expected diff names the
+findings it may write — only when it dispatches a bounded worker, because that is
 the point where something other than the operator acts on the ticket and needs
 its authorization written down.
 
