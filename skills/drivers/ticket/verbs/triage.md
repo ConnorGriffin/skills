@@ -225,11 +225,55 @@ disclosed target and exact mutation.
     session: a competent agent with only the ticket and that one block should
     produce the right change. Name files and targets concretely. State what must
     not change. Set the verification command and its expectation. In a chunked
-    order, no sub-order may reference another sub-order's content. Every chunk
+    order, no sub-lock may reference another sub-lock's content. Every chunk
     names its coherent capability and its files or targets; every capability and
     shared contract has exactly one owning chunk, so parallel chunks cannot collide
     or depend on private capability. Check that every fence's `Surface lifecycle:`
     value matches the route and contract artifacts settled in step 7.
+
+    **Author, validate, commit, then pin.** The fence is an `EXECUTION LOCK v2`
+    envelope, not a second copy of the plan: which `Source:` mode it pins depends
+    on what this repo keeps. Set `<lock-id>` to 1 for a ticket's first lock, or to
+    one more than the highest `<lock-id>` already posted on this ticket, whichever
+    protocol that prior lock used — it identifies this lock, and never resets.
+
+    * **OpenSpec repository.** Author the change on the ticket branch — `proposal.md`,
+      `tasks.md`, `design.md` when a decision needs one, and its `specs/` deltas —
+      from what grounding and `/scope` settled. Run `openspec validate <change-id>
+      --strict` and resolve every failure; a change that does not validate strictly
+      is not eligible to be pinned. Commit the authored change on the ticket branch,
+      then read back its full commit OID
+      (`git -C <worktree> rev-parse HEAD`) — never a value remembered from before
+      the commit, and never an abbreviated OID. Set `Source: openspec
+      <change-path>@<full-commit-oid>` to that exact pair. Whole-change ownership is
+      a property of the ticket, not of the fence: set the flat lock's or chunked
+      header's `Selected tasks:` and `Acceptance anchors:` positionally against the
+      pinned commit's `tasks.md` and spec-delta requirements — `all` for an ordinary
+      ticket, which owns its whole change, or the epic child's owned subset — and,
+      when chunked, set each sub-lock's `Selected tasks:` and `Acceptance anchors:`
+      to a disjoint positional slice of that same header selection, together
+      covering it exactly. Leave `Context` as orientation only. Omit `Do` entirely —
+      the pinned tasks are the Do steps. `Done when` states only this lock's own
+      delivery acceptance (the verification command's expectation and the
+      stop-at-pull-request condition), never a restatement of the pinned source's
+      acceptance criteria; the pinned commit is the sole authority for what those
+      criteria are.
+    * **Repository-native plan.** When the repo keeps some other versioned,
+      reviewable plan artifact instead of OpenSpec, commit it on the ticket branch
+      the same way, read back its full commit OID the same way, and set `Source:
+      repository-native <path>@<oid>` to that exact pair. `Selected tasks:`,
+      `Acceptance anchors:`, `Context`, `Do`, and `Done when` follow the same rules
+      as the OpenSpec path, against that artifact's own positional numbering.
+    * **Neither exists.** Set `Source: inline` and omit `Selected tasks:` and
+      `Acceptance anchors:`; the fence carries the full `Context` / `Do` / `Done
+      when` payload verbatim, as today's work order does.
+
+    Set `Expected diff` in every mode: a closed allowlist of repository-relative
+    paths, with no escape clause, per
+    [drafting conventions](../references/drafting-conventions.md).
+    A chunked order's sub-lock allowlists are pairwise disjoint across parallel
+    chunks. Never post a lock whose `Source:` commit has not been read back from
+    the actual commit just made; a remembered or predicted OID is not a pin.
 
 For a flat order, copy the already-selected execution row's `Ladder` value from [`routing-table.md`](../../orchestrate/references/routing-table.md) into the template's `Session fit:` paragraph, keeping each model's display name and ladder order.
 
@@ -306,10 +350,10 @@ For a chunked order, select one coordinator execution row with the same grounded
 
 13. **Confirm, then post.** Show the user the draft. On approval, post it as one
    ticket comment through the contract's post operation: attribution quote block
-   first, then the human summary, then the fenced order or sub-orders. One comment
-   carries the whole order, chunked or not. For an epic child, this is the only
-   fenced `WORK ORDER` and the only execution lock; the issue-body draft never
-   substitutes for it.
+   first, then the human summary, then the fenced `EXECUTION LOCK v2` lock or
+   header-plus-sub-locks. One comment carries the whole order, chunked or not. For
+   an epic child, this is the only fenced execution lock; the issue-body draft
+   never substitutes for it.
 
 14. **Move the status** to triaged, passing the classification from step 6. Report
     a failed move; do not retry. A failed code classification `build` creation or
