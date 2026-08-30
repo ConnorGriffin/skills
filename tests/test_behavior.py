@@ -1312,7 +1312,7 @@ class UiCraftContractTests(unittest.TestCase):
         landing = " ".join(revise[revise.index("Before landing, confirm:") :].split())
         self.assertIn("launched by whoever can launch them", landing)
         self.assertIn("every added, changed or moved behavior", landing)
-        self.assertIn("a recorded premise", landing)
+        self.assertIn("everything `behavior-sweep` requires of one", landing)
 
         sweep_contract = " ".join(sweep.split())
         self.assertIn("asserts the premise the retirement reasoned from", sweep_contract)
@@ -1320,14 +1320,24 @@ class UiCraftContractTests(unittest.TestCase):
         self.assertIn("not a `replayed-fail`", sweep_contract)
         self.assertIn("premise:  the preset window controls are present", sweep)
 
-        # resettle is the other page that enumerates a retirement's change set;
-        # an enumeration lighter than the format it defers to reads as complete.
-        resettle = " ".join(
-            (ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "resettle.md")
-            .read_text(encoding="utf-8")
-            .split()
-        )
-        self.assertIn("with the premise the ruling reasoned from recorded beside it", resettle)
+        # What a retirement owes is enumerated on exactly one page. Three pages
+        # each carrying the list is how the premise obligation reached one of
+        # them and not the others; every other page names the case and points.
+        self.assertIn("What a retirement owes, in one place", sweep_contract)
+        resettle = (
+            ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "resettle.md"
+        ).read_text(encoding="utf-8")
+        pages = {
+            "revise.md": revise,
+            "resettle.md": resettle,
+            "build.md": build,
+        }
+        for name, text in pages.items():
+            with self.subTest(page=name):
+                self.assertIn("behavior-sweep", text)
+                # The sanction template is the tell that a page restated the list.
+                self.assertNotIn("sanction: <", text)
+        self.assertEqual(sweep.count("sanction: <"), 1)
 
         build_contract = " ".join(build.split())
         self.assertIn(

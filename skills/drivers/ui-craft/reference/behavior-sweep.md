@@ -429,6 +429,22 @@ a waiver** — it is the record a waiver would have replaced. A §2 row still at
 `missed`, including one carrying `ruled-elsewhere`, is a QUESTION entry until
 the operator rules it.
 
+**What a retirement owes, in one place.** Every path that retires a behavior —
+`revise`'s ledger amendment, `resettle`'s post-lock ruling, a §2 `missed` row the
+operator rules — owes the same four things, and this page is the only one that
+enumerates them:
+
+1. the **sanction line** above, naming a person, dated, their reason quoted;
+2. a permanent **RETIRED entry** in this ledger;
+3. an **absence assertion** in the replay script that prints that sanction on
+   every run (§4); and
+4. the **premise** the ruling reasoned from, recorded on the entry and asserted
+   beside the absence (§4), so a dead premise asks for a fresh ruling.
+
+A page that routes a retirement here names the case and points at this list. It
+does not restate it: a list kept in three places is how a fourth obligation
+reaches only one of them.
+
 **Retired entries are permanent.** The ledger stops being a record of only what
 the surface does and becomes a record of what it does **and what it deliberately
 stopped doing**; the retired entries with their sanctions are the audit trail,

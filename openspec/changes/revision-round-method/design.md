@@ -33,3 +33,26 @@ The round method binds interactive divergent work only. `revise`'s headless rule
 is unchanged and stands above it: a headless session goes straight to an app
 branch, never opens a wireframe phase, and returns an unsettleable direction as a
 decision instead of inventing one.
+
+## ADR harmonic-219 — One page enumerates what a retirement owes
+
+**Context.** Adding the premise obligation to a retirement exposed how many pages
+already stated that contract. `revise`, `resettle` and `behavior-sweep` each
+carried their own enumeration of the change set, and `build` carried its status
+mapping. Two review rounds each surfaced one more copy than the round before:
+the first found `revise` stale, the second found `resettle` stale. Both were
+consistent with the others at the time they were written and went stale when a
+fifth obligation arrived, which is the failure mode of every restated list.
+
+**Decision.** `behavior-sweep` §5 enumerates what a retirement owes, once, and
+every other page names the case and points at that list instead of repeating it.
+`revise`'s Retired case and its before-landing check, and `resettle`'s post-lock
+`retired` change set, now defer. `build` keeps its own concern — how a replay
+result maps to a ledger status — because that is not the list.
+
+**Consequences.** A new obligation lands in one place and every path inherits it,
+which is what neither review round could rely on before. A reader of `revise` or
+`resettle` takes one hop to see the full set, which is the cost. The test pins
+the enumeration's home and asserts the sanction template appears on exactly one
+page, so a page that re-grows its own copy fails rather than drifting quietly;
+that guard was proven to fail before it was relied on.

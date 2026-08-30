@@ -194,11 +194,9 @@ is failure, never skip.
 - **Added:** add a STORY and replay function in the same change.
 - **Changed:** amend the STORY, record the dated decision under the frozen
   header, and prove the old replay fails before the new one passes.
-- **Retired:** require `sanction: <person> · <date> · "<their reason>"`, retain a
-  permanent RETIRED entry, and replace the positive replay with an absence
-  assertion that prints the sanction on every run. Record the premise the ruling
-  reasoned from on the entry, so that assertion can assert it too
-  (`behavior-sweep`).
+- **Retired:** the behavior owes what `behavior-sweep` requires of a retirement,
+  which that page enumerates in one place. Amend the ledger there, and carry the
+  entry back into this change with its replay function.
 - **Moved:** a behavior that changed which surface owns it owes the same
   ceremony as a removal, and lands as an amended STORY rather than a retirement
   — the behavior still ships, so it keeps its entry and its replay, and no
@@ -259,8 +257,7 @@ Before landing, confirm:
   cannot start a browser has no signal about the surface it just moved, and the
   suites that do run there staying green is not one;
 - every added, changed or moved behavior is represented in the ledger;
-- every retirement has a dated, named, quoted sanction, a recorded premise, and
-  a loud absence test asserting both;
+- every retirement carries everything `behavior-sweep` requires of one;
 - no wireframe or duplicated comparison route survives; and
 - the safe-start declaration and exact data source still match what produced the
   evidence.

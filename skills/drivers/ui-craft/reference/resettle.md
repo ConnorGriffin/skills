@@ -35,10 +35,9 @@ The operator rules it, and the ruling lands as one of two change sets:
   re-settle **adds** the term and says in the mock header's `RE-SETTLED TERM`
   block that it restores a predecessor behavior the lock omitted. The behavior
   ledger gains its STORY and the replay script its function, in the same set.
-- **retired** — no term moves. The sanction line is written into the behavior
-  ledger's RETIRED entry (§2's format), dated and quoted, with the premise the
-  ruling reasoned from recorded beside it, and the entry's absence assertion is
-  added to the replay script, asserting that premise as well as the absence.
+- **retired** — no term moves. The behavior ledger gains its RETIRED entry and
+  the replay script its absence assertion, to `behavior-sweep`'s enumeration of
+  what a retirement owes; this page adds nothing to that list.
   Where the merged lock already spoke to the retirement, that citation rides
   along as the row's `ruled-elsewhere` annotation and nothing more: it is what
   turns the ruling into a one-sentence confirmation instead of a fresh decision,

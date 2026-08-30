@@ -12,4 +12,6 @@
 - [x] Run `scripts/validate.py`, `tests.test_behavior` and the rest of the
       repository verification command from `AGENTS.md`, plus
       `openspec validate --all --strict`.
+- [x] Collapse the retirement enumeration to one page, with the other pages
+      naming the case and deferring, and pin that a page cannot re-grow its copy.
 - [x] Open the pull request linking the originating issue.
