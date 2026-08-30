@@ -64,7 +64,7 @@ Route: interview mode. Dominant uncertainty is how far removal goes, not a missi
 - Review depth: Full on both chunks. Workflow machinery every repo inherits, and this
   alters contract semantics rather than relocating them. inline
 - Probe: `docs/scope/275-probes/no_consent_framing.sh` is the closed-inventory check.
-  It fails first at 34 lines across 15 files on the pre-change tree. inline
+  It fails first at 34 lines across 13 files on the pre-change tree. inline
 - ADR home: the reversal is recorded as `## ADR 275` in the new OpenSpec change's
   `design.md`. `docs/adr/adr-194-literal-invocation-egress-consent.md` is frozen legacy
   and stays byte-identical. inline
