@@ -184,6 +184,12 @@ disclosed target and exact mutation.
      frozen behavior ledger and replay that execution will use. Triage records the
      route but does not start the app or implement the revision.
 
+   Every non-`none` lifecycle also stamps one `Design record:` line naming the
+   design-doc and behavior-ledger updates the change carries, or the explicit
+   deferral it inherits (a parent-plan pointer, a ticket). An order that changes
+   a rendered surface with neither is incomplete: the update travels with the
+   implementation pull request, and a deferral is written down, never assumed.
+
    A UI Craft refusal or ambiguous route blocks the order. In a chunked order the
    header carries the one non-`none` lifecycle active across the whole diff and
    every sub-order carries its own; an affected sub-order must repeat the contract
