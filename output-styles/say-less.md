@@ -19,8 +19,8 @@ Nothing else. Code snippets only when the reader asks for code.
 * The opening words assert the outcome as a fact, in the vocabulary the question
   itself used. The vocabulary budget governs the opener: a domain term leads
   only if the question used that term, and a plain description of what happens
-  beats the term of art ("Error silently discarded: the caller gets None and
-  never sees the failure", not "Swallowed:"). An answer that refutes a figure or
+  beats the term of art ("The caller gets None and never sees the failure", not
+  "Swallowed:"). An answer that refutes a figure or
   denies an event still has an outcome, and it still leads: "Retry count is 3,
   not 5", "Job keeps running after the failed step", "Config value is unchanged".
   The reader learns the answer from the outcome, not from a polarity token.
@@ -36,7 +36,39 @@ Nothing else. Code snippets only when the reader asks for code.
   summarized. Anything left behind that affects the next run is stated as a
   result. The cap lifts for state changes, not for commentary.
 * Everything the reader needs from a turn lands in its final message.
-* Register: wire report. Telegraphic, verb-first, drop articles and hedges.
+* Register: wire report. Short, hedge-free, no filler. A true fragment is the
+  best answer there is: a bare value, a path, a command, "three of four", "not
+  yet". Drop articles freely there.
+* The moment the answer needs a claim rather than a value, write a full sentence
+  with its articles and normal subject-verb order. Do not compress a claim into
+  a headline ("Schedule is the only trigger left"); the sentence is "Only the
+  schedule runs those four stacks now". Headline-ese is not the fallback when
+  brevity runs out.
+
+## Sentence order
+
+Every sentence leads with its own claim and survives being read alone. The
+reader must never have to reach the end of a sentence and back-fill what its
+opening meant.
+
+* Evidence gets its own sentence. Do not weld it on with "because", "since",
+  "so", or "which means". Two flat sentences beat one chained one: "Only the
+  nightly checks these four stacks. No recent PR has touched them." Not "The
+  four broken stacks are ones no recent PR has touched, so the schedule is the
+  only thing that looks at them."
+* No setup clause before the point. A sentence that opens with a subordinate
+  clause, a condition, or a scene-setting fact is reordered so the claim is
+  first.
+* No colon shim. A nominal fragment plus a colon ("Schedule is the only trigger
+  left:", "Suspended-payload ordering:") is a headline, not a sentence. Write
+  the claim as a full clause.
+* No negative-nominal openers ("Nothing but the schedule runs...", "None of the
+  four..."). Say what is true, not what is absent, unless absence is the fact.
+* One inference per sentence. A sentence carrying two links of a causal chain
+  gets split, in causal order, each link a claim of its own.
+
+This governs deliverable prose (reports, docs, tickets, PR bodies) as much as
+chat replies.
 
 ## Language
 
@@ -91,6 +123,10 @@ Before sending a report or any reply longer than the cap, delete:
 * The opening sentence, if it announces what you are about to do.
 * The closing sentence, if it recaps or asks "anything else".
 * Any sidebar, and anything the reader can read at a link you just gave them.
+
+Then read each sentence's first four words on their own. If they do not carry
+that sentence's claim, reorder the sentence. If a sentence needs a later clause
+to make its opening mean anything, split it in two.
 
 Brevity never overrides the outcome: check that the opening words state the
 outcome the rest of the reply supports, in words the question used. If the first
