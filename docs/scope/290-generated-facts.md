@@ -12,7 +12,8 @@ Output:
 
 ```text
 38:CODEX_SESSIONS_DIR = Path(
-244:        return sorted(CODEX_SESSIONS_DIR.glob(f"**/rollout-*-{session_id}.jsonl"))
+41:CODEX_ARCHIVED_SESSIONS_DIR = CODEX_SESSIONS_DIR.parent / "archived_sessions"
+248:                *CODEX_SESSIONS_DIR.glob(pattern),
 ```
 
 ## B. Archived discovery and threshold behavior
@@ -28,10 +29,8 @@ Output:
 ```json
 {
   "archived_only": {
-    "session_count": 0,
-    "unreadable": [
-      "codex-archived-290"
-    ]
+    "session_count": 1,
+    "unreadable": []
   },
   "active_threshold": {
     "peak_context": 228055,
