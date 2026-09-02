@@ -54,8 +54,8 @@ Output:
 ```json
 {
   "root": "archived_sessions",
-  "filename_shape": "rollout-<timestamp>-<session-id>.jsonl",
-  "matching_rollout_exists": true
+  "checked_at_least_one_rollout": true,
+  "all_checked_filenames_end_with_metadata_id": true
 }
 ```
 

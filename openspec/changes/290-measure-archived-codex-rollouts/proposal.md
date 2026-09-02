@@ -8,8 +8,9 @@ Ticket telemetry resolves a claimed Codex session only under the active
 claim is reported unreadable and a measurable flat order becomes
 `unmeasurable`. The redacted real-archive inventory and archived-only
 public-command reproduction are recorded in
-`docs/scope/290-generated-facts.md`; they expose no transcript content or session
-identifier.
+`docs/scope/290-generated-facts.md`; the inventory verifies archived filenames
+against their own session metadata while exposing no filename, transcript
+content, or session identifier.
 
 ## What changes
 
