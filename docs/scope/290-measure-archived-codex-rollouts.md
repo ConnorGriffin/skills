@@ -49,3 +49,19 @@ Disposition: inline
 ## Spawned tasks
 
 - None.
+
+## Plan review
+
+- Round 1 blocker, `authoring`: the 228,055-token `under-sliced`
+  acceptance lacked a generated command-to-output derivation. Resolved with a
+  portable public-command probe and complete deterministic evidence.
+- Round 2 blocker, `authoring`: the real Codex archive premise was supported
+  only by a synthetic fixture. Resolved with a privacy-preserving live
+  inventory.
+- Round 2 blocker, `injected`: the first live-inventory correction printed a
+  hard-coded filename shape without verifying it. Resolved by checking real
+  archived filenames against their own session metadata while emitting only
+  booleans.
+- Round 3: no blocking objections; the fresh cold pass countersigned the plan.
+
+Injected blockers did not climb across rounds. All review findings are resolved.
