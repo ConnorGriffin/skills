@@ -41,7 +41,25 @@ Output:
 }
 ```
 
-## C. Host interpreter versions
+## C. Redacted real archive inventory
+
+Command:
+
+```text
+/opt/homebrew/bin/python3.14 docs/scope/290-probes/inspect-real-archive.py
+```
+
+Output:
+
+```json
+{
+  "root": "archived_sessions",
+  "filename_shape": "rollout-<timestamp>-<session-id>.jsonl",
+  "matching_rollout_exists": true
+}
+```
+
+## D. Host interpreter versions
 
 Command:
 

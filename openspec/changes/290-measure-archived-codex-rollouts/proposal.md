@@ -6,8 +6,10 @@ Ticket telemetry resolves a claimed Codex session only under the active
 `sessions` root. Codex can move completed top-level rollouts to
 `archived_sessions` before a later finalization measures them, so an exact valid
 claim is reported unreadable and a measurable flat order becomes
-`unmeasurable`. The archived-only public-command reproduction is recorded in
-`docs/scope/290-generated-facts.md`.
+`unmeasurable`. The redacted real-archive inventory and archived-only
+public-command reproduction are recorded in
+`docs/scope/290-generated-facts.md`; they expose no transcript content or session
+identifier.
 
 ## What changes
 
