@@ -999,8 +999,10 @@ class TicketTelemetryTests(unittest.TestCase):
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         return path
 
-    def write_codex_session(self, session_id: str, lines: list[str]) -> Path:
-        directory = self.codex_home / "sessions" / "2026" / "01" / "01"
+    def write_codex_session(
+        self, session_id: str, lines: list[str], root: str = "sessions"
+    ) -> Path:
+        directory = self.codex_home / root / "2026" / "01" / "01"
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"rollout-2026-01-01T00-00-00-{session_id}.jsonl"
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -1278,6 +1280,61 @@ class TicketTelemetryTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(len(payload["sessions"][0]["transcripts"]), 2)
         self.assertEqual(payload["peak_context"], 200_000)
+
+    def test_archived_codex_rollout_is_measured_by_scan_and_record(self):
+        archived = self.write_codex_session(
+            "codex-archived", [codex_meta_line("codex-archived"), codex_token_line(228_055)],
+            root="archived_sessions",
+        )
+        self.claim("TICKET-290", "codex-archived", agent="codex")
+
+        scanned = self.ticket("scan", "TICKET-290")
+
+        self.assertEqual(scanned.returncode, 0, scanned.stderr)
+        scan_payload = json.loads(scanned.stdout)
+        self.assertEqual(scan_payload["session_count"], 1)
+        self.assertEqual(scan_payload["peak_context"], 228_055)
+        self.assertEqual(scan_payload["sessions"][0]["transcripts"], [str(archived)])
+
+        recorded = self.ticket(
+            "record", "TICKET-290", "--verb", "start", "--trait", "shared-contract",
+            "--depth", "full",
+        )
+
+        self.assertEqual(recorded.returncode, 0, recorded.stderr)
+        record_payload = json.loads(recorded.stdout)
+        self.assertEqual(record_payload["peak_context"], 228_055)
+        self.assertEqual(record_payload["verdict"], "under-sliced")
+
+    def test_codex_session_spanning_active_and_archived_roots_uses_every_rollout(self):
+        active = self.write_codex_session(
+            "codex-mixed", [codex_meta_line("codex-mixed"), codex_token_line(5_000)]
+        )
+        archived = self.write_codex_session(
+            "codex-mixed", [codex_meta_line("codex-mixed"), codex_token_line(228_055)],
+            root="archived_sessions",
+        )
+        self.claim("TICKET-290-MIXED", "codex-mixed", agent="codex")
+
+        scanned = self.ticket("scan", "TICKET-290-MIXED")
+
+        self.assertEqual(scanned.returncode, 0, scanned.stderr)
+        scan_payload = json.loads(scanned.stdout)
+        self.assertEqual(
+            scan_payload["sessions"][0]["transcripts"],
+            [str(path) for path in sorted((active, archived))],
+        )
+        self.assertEqual(scan_payload["peak_context"], 228_055)
+
+        recorded = self.ticket(
+            "record", "TICKET-290-MIXED", "--verb", "start",
+            "--trait", "shared-contract", "--depth", "full",
+        )
+
+        self.assertEqual(recorded.returncode, 0, recorded.stderr)
+        record_payload = json.loads(recorded.stdout)
+        self.assertEqual(record_payload["peak_context"], 228_055)
+        self.assertEqual(record_payload["verdict"], "under-sliced")
 
     def test_record_flat_order_above_degradation_band_is_under_sliced(self):
         self.worked("TICKET-7", "proj-a", "session-1", [assistant_line(200_000)])
