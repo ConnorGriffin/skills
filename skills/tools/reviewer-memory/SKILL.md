@@ -23,7 +23,7 @@ Run `scripts/memory.py` with one of these commands:
 
 - `ensure <repo>` resolves a remote URL or checkout, creates the missing store skeleton, and prints JSON with its key, paths, and whether the bundle has body content.
 - `append-review <repo>` reads one JSON object from all of standard input and appends a review record to `raw.jsonl`.
-- `append-slicing <repo>` reads one JSON object from all of standard input and appends a slicing-outcome record without renaming its fields.
+- `append-slicing <repo>` reads one JSON object from all of standard input and appends a slicing-outcome record without renaming its fields. Completing either operation returns its result to the caller; it does not complete the caller's review or workflow.
 - `pointer <repo>` prints the absolute path to `okf/index.md` for prompt injection.
 
 `raw.jsonl` is permanent: never truncate or rewrite it as part of ordinary use.

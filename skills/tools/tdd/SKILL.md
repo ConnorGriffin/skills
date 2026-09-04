@@ -48,11 +48,12 @@ When exploring the codebase, read `CONTEXT.md` (if it exists) so that test names
 
 Before writing any code:
 
-- [ ] Confirm with user what interface changes are needed
-- [ ] Confirm with user which behaviors to test (prioritize)
+- [ ] Read the admitted lock and consume any interface and behavior decisions that
+      cover this exact work
+- [ ] Confirm with the user only an interface or behavior decision the lock does not cover
 - [ ] Identify opportunities for deep modules (small interface, deep implementation) — run the `/codebase-design` skill for the vocabulary and the testability checks
 - [ ] List the behaviors to test (not implementation steps)
-- [ ] Get user approval on the plan
+- [ ] Reuse the lock's exact-scope approval; ask the user only for a material new decision
 
 Ask: "What should the public interface look like? Which behaviors are most important to test?"
 

@@ -78,7 +78,7 @@ Two kinds of persona:
   directly to add to the roster, proposed as a record under the same approval
   gate as any other write.
 - **Real-colleague.** Carries the person's real name, and every attribution of its
-  output (its own position, the synthesized verdict, and any hand-back to a
+  output (its own position, the synthesized verdict, and any return to a
   calling skill) is labeled as a simulation of that person with its mine date,
   never presented as their actual words. Its profile is built by `mine <person>`,
   not invented. That labeling governs chat and hand-back attribution only;

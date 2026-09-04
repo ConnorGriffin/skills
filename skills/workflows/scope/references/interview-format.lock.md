@@ -7,7 +7,7 @@ Supersedes: the unlocked format prose that rule 2 carried before this date
 
 ## Precedence
 
-This manifest wins for question rendering wherever interview mode runs; client-specific markdown rendering quirks never justify a format deviation.
+This manifest wins for question rendering wherever interview mode runs; client-specific markdown rendering quirks never justify a format deviation. A higher-priority host restriction that forbids the form is the sole compatibility case: disclose it, present the proposal and substantive alternatives with costs in explanatory prose, then ask one concise stable-Q-ID plain question. This exception retains the normal rendering whenever permitted.
 
 ## Terms
 

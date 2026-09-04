@@ -67,6 +67,14 @@ keep building whatever holds under either answer. If nothing holds, or the premi
 touches safety or authorization, stop and ask. If I reaffirm, build it and don't
 re-raise it.
 
+**Continue the caller.** An answered decision updates the active task and resumes its
+next authorized step. A completed helper returns to its caller; only the outer
+requested workflow's completion or a concrete unresolved boundary ends the turn.
+An unanswered required decision, denial, failed admission, missing required evidence,
+or explicit handoff stops only the work that depends on it. Name that dependent action
+and missing input while continuing unrelated authorized work. Consume an earlier
+approval only when it covers the exact decision and scope; do not ask for it again.
+
 **Register.** The say-less skill in this pack owns response shape and register
 (answer-first, stop when done, terse); follow it wherever it is installed.
 

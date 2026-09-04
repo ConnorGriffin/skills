@@ -1,4 +1,4 @@
 interface:
   display_name: "Writing Great Skills"
   short_description: "Write, review, and audit skills against a shared writing-for-agents vocabulary"
-  default_prompt: "Use $writing-for-agents to draft or review a skill, or $writing-for-agents doctor to audit the loaded estate."
+  default_prompt: "Use $writing-for-agents explicitly to draft or review a skill, or run $writing-for-agents doctor to audit the loaded estate."

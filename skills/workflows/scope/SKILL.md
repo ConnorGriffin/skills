@@ -7,7 +7,8 @@ description: Triage front door for work that isn't ready to build. Classifies th
 
 Diagnose why work isn't buildable yet, route to exactly one specialist skill, and open
 a ledger the moment routing happens. Never do the specialist's work yourself — a
-correct route with no other output is a complete session. For an epic child, every
+correct route with no other output is a complete helper result; return it to the caller,
+which continues its own authorized workflow. For an epic child, every
 specialist instead uses untracked session scratch outside the child branch, discarded after the final order;
 it creates no scope ledger or docs/scope ledger. `/epic` alone owns the parent
 proposal, design, and tasks.
@@ -34,7 +35,7 @@ tractable — and route to exactly one of:
   settled, and any open point has an obvious default → say so in one line, name the
   defaults being assumed, and return control without asking anything. No ledger. Do
   not manufacture questions to justify the invocation; a caller may route here
-  unconditionally, and "nothing to scope" is a correct, complete answer.
+  unconditionally, and "nothing to scope" is a correct helper result.
 
 If the request already names a specialist by trigger phrase (a `grill`-style trigger
 names interview mode; `stress-test this plan` names `plan-review`; an epic map

@@ -98,9 +98,11 @@ them is not made — it becomes a follow-up line.
 Re-run the same test command.
 
 * **Green:** the pass holds; write the ledger.
-* **Red:** revert the cleaner's own edits — `git checkout` the files this pass
-  touched, never a reset of the branch, which would destroy the work the diff
-  came to clean — and report which change broke it, with the failing output.
+* **Red:** restore only the cleaner's own edits from a pre-pass snapshot or patch,
+  preserving the index and working-tree bytes that existed before the pass, including
+  unstaged edits. Do not use `git checkout`, the index, or HEAD as a whole-file
+  substitute for that pre-pass state. If concurrent changes make safe reversal
+  uncertain, preserve them and report the conflict with the failing output.
   Then stop.
 
 ## Ledger
