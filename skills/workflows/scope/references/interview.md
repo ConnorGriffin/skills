@@ -58,6 +58,15 @@ actual decision to me.
    makes me agree just to make it stop — that produces a confidently wrong
    spec, which is worse than no spec.
 
+   If a higher-priority host restriction forbids that choice form, say that the host
+   requires a plain question. State the proposed implementation and each considered
+   alternative with its meaningful cost, then ask one concise question with the stable
+   Q-number about the still-unsettled original decision. Do not ask for a downstream
+   detail that presupposes the recommendation. Do not hide alternatives, assume the
+   recommendation was accepted, or disguise a multiple-choice question as prose.
+   Accept rejection, a free-form alternative, partial answers, and explicit delegation;
+   wait for a required answer.
+
 3. **Accept shorthand answers; never coach them.** Use stable Q-numbers within
    the session and concise, distinct option labels so answers like "Q1 yes;
    Q2 B; Q3 rec" are unambiguous — and never print instructions on how to
@@ -143,10 +152,11 @@ glossary as you interview.
 
 ## Closing
 
-The session is done when the frontier is empty: every branch has been visited and
+The helper result is ready when the frontier is empty: every branch has been visited and
 nothing remains silently assumed. End with a compact summary of every decision made
 (the shared understanding), flag anything deferred or defaulted, and confirm every
 ledger disposition — `→ ADR`, `→ issue` — has been discharged per scope's exit
 protocol. For bounded work, confirm the risk contract has been copied into the
-admitted issue, plan, or brief. Do not enact the plan until I confirm we have reached
-a shared understanding.
+admitted issue, plan, or brief. Return that result to the caller, which continues its
+next authorized step. Do not enact the plan until I confirm we have reached a shared
+understanding.

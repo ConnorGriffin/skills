@@ -35,8 +35,8 @@ Routes are data, not prose, layered from two files:
    `code-review`" or equivalent. This is how the caller knows which review ran, not a
    request for approval.
 3. **Invoke.** Call that route's skill (or, for `security`, the agent's built-in
-   security review) and stop. Nothing here re-runs the review or second-guesses its
-   output.
+   security review), return its result to the caller, and let the caller continue its
+   own completion boundary. Nothing here re-runs the review or second-guesses its output.
 
 ## Ambiguity
 

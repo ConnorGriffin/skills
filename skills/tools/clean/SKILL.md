@@ -12,7 +12,9 @@ This skill **changes code**. It is not a reviewer: it never scores, never grades
 and never emits findings for a human to action inside the diff. Anything it
 notices outside the diff becomes a follow-up line, never an edit.
 
-One pass. When the ledger is written, stop — no second sweep.
+One pass. A standalone clean ends after its ledger. A nested clean returns its ledger
+to the caller, which continues its next authorized work. Neither case starts a second
+sweep.
 
 ## Fixed point
 
@@ -45,6 +47,11 @@ Run it before any edit.
   is being asserted rather than demonstrated, and the ledger has to say which.
 
 Generated and vendored code is skipped and named in the ledger.
+
+Before the first edit, capture a pre-pass snapshot or patch for both the index and
+working tree, including unrelated staged and unstaged content. It must be sufficient
+to undo only the cleaner's edits without replacing the pre-pass state from the index
+or HEAD.
 
 ## Checklist
 
@@ -98,16 +105,19 @@ them is not made — it becomes a follow-up line.
 Re-run the same test command.
 
 * **Green:** the pass holds; write the ledger.
-* **Red:** revert the cleaner's own edits — `git checkout` the files this pass
-  touched, never a reset of the branch, which would destroy the work the diff
-  came to clean — and report which change broke it, with the failing output.
+* **Red:** restore only the cleaner's own edits from a pre-pass snapshot or patch,
+  preserving the index and working-tree bytes that existed before the pass, including
+  unstaged edits. Do not use `git checkout`, the index, or HEAD as a whole-file
+  substitute for that pre-pass state. If concurrent changes make safe reversal
+  uncertain, preserve them and report the conflict with the failing output.
   Then stop.
 
 ## Ledger
 
-The ledger is the final message. Nothing is written to the repo except the
-cleaned code itself: no plan file, no scratch directory, no report committed to
-the branch.
+The ledger is the clean helper's final result. A nested clean returns it to the caller,
+which continues authorized work; a standalone clean ends its single pass. Nothing is
+written to the repo except the cleaned code itself: no plan file, no scratch directory,
+no report committed to the branch.
 
 It carries three things:
 

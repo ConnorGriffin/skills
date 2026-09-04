@@ -91,9 +91,13 @@ directory containing several repositories.
 
    It prints one object on success, `{"root_path", "project", "status"}`, where
    status is `ready` for a project that was already indexed and `indexed` for one it
-   just built. A missing or too-old binary prints `{"status": "unavailable"}` and
-   exits 2, which is a visible degraded mode rather than permission to use some
-   other project. Every other failure exits 1 with nothing on stdout.
+   just built. A missing, unsupported, or unable-to-respond CLI prints
+   `{"status": "unavailable"}` and exits 2, with a bounded actionable reason on
+   stderr; it never exposes raw CLI output, environment values, or private source.
+   Missing and unsupported binaries remain distinguishable. An active-generation
+   conflict says to wait and retry the same checkout, not that a sandbox denied it,
+   and never authorizes closing unrelated sessions. Every malformed response or wrong
+   identity remains fail-closed with exit 1 and nothing on stdout.
 
    In a workspace-write sandbox, try `ensure` normally first. If it exits 2 with
    `{"status": "unavailable"}`, confirm that `codebase-memory-mcp` is present and
@@ -104,7 +108,9 @@ directory containing several repositories.
    make those local-only destinations explicit in the approval rationale; state
    that no repository data is sent to a network destination. Do not request a
    generic permission to “index a private repository,” which hides the actual
-   boundary and can be correctly rejected when the destination is unspecified.
+   boundary and can be correctly rejected when the destination is unspecified. If
+   the diagnostic names an active-generation conflict, wait for it and retry; do not
+   frame it as a sandbox denial or close another session.
 
 5. Verify the project through the available Codebase Memory MCP interface with
    `index_status` or `list_projects`.

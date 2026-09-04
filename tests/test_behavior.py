@@ -96,6 +96,7 @@ with open(os.environ["CBM_FAKE_REQUESTS"], "a", encoding="utf-8") as handle:
 
 indexed = os.environ["CBM_FAKE_INDEXED"]
 if os.environ.get("CBM_FAKE_EMPTY_FAIL") == "1":
+    print(os.environ.get("CBM_FAKE_FAILURE", "connection unavailable"), file=sys.stderr)
     raise SystemExit(1)
 if os.environ.get("CBM_FAKE_MALFORMED") == "1":
     print("not json")
@@ -274,6 +275,48 @@ raise SystemExit(9)
             self.issued(),
             [["cli", "--json", "index_status", "--project", self.project_for(self.repo)]],
         )
+
+    def test_an_empty_failed_response_keeps_the_unavailable_contract_and_explains_the_fallback(self):
+        self.environment["CBM_FAKE_EMPTY_FAIL"] = "1"
+
+        result = self.ensure()
+
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(json.loads(result.stdout), {"status": "unavailable"})
+        self.assertIn("could not return a response", result.stderr)
+        self.assertIn("retry", result.stderr)
+        self.assertNotIn("connection unavailable", result.stderr)
+
+    def test_active_generation_conflicts_are_not_described_as_sandbox_denials(self):
+        for diagnostic in (
+            "active generation conflict for another checkout",
+            "active-generation conflict for another checkout",
+        ):
+            with self.subTest(diagnostic=diagnostic):
+                self.environment["CBM_FAKE_EMPTY_FAIL"] = "1"
+                self.environment["CBM_FAKE_FAILURE"] = diagnostic
+
+                result = self.ensure()
+
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertEqual(json.loads(result.stdout), {"status": "unavailable"})
+                self.assertIn("active-generation conflict", result.stderr)
+                self.assertIn("retry", result.stderr)
+                self.assertNotIn("sandbox", result.stderr.lower())
+
+    def test_missing_and_unsupported_binaries_remain_distinguishable(self):
+        for label, override, expected in (
+            ("missing", {"CODEBASE_MEMORY_BIN": str(self.scratch / "absent")}, "was not found"),
+            ("unsupported", {"CBM_FAKE_VERSION": "codebase-memory-mcp 0.10.7"}, "does not report a supported version"),
+        ):
+            with self.subTest(label):
+                self.environment.update(override)
+                result = self.ensure()
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertEqual(json.loads(result.stdout), {"status": "unavailable"})
+                self.assertIn(expected, result.stderr)
+                self.environment["CODEBASE_MEMORY_BIN"] = str(self.binary)
+                self.environment.pop("CBM_FAKE_VERSION", None)
 
     def test_a_response_for_another_project_root_or_state_stops_the_binding(self):
         self.indexed.touch()

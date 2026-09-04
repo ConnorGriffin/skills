@@ -9,6 +9,10 @@ Follow [reminder.md](reminder.md) for the standing discovery policy; it is the o
 authored policy shared by this skill, the profile pointer, and the installed
 SessionStart hook.
 
+When `ensure` reports unavailable, use its cbm-onboard diagnostic and bounded retry
+sequence rather than guessing at a project or treating every failure as a sandbox
+denial. The reminder owns the details.
+
 ## Activate discovery guidance in Claude Code
 
 After the standard skills installer copies this directory, run:

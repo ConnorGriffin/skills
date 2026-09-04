@@ -315,9 +315,9 @@ Close with the termination state, explicitly:
   Name the structural problem behind them and hand it to the author as a design
   decision. This state ends the review; it is not an invitation to round 4.
 
-A re-review that returns no new violated items on the same enumeration is the
-signal to stop, and the skill should say so rather than leaving the reader to
-guess whether another round would find more.
+A re-review that returns no new violated items on the same enumeration completes the
+review helper. Return that result to the caller, which decides and performs its next
+authorized step.
 
 After stating the round's termination state, send one raw JSON object on standard
 input to:

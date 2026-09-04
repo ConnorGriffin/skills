@@ -107,15 +107,31 @@ def validate_response(project: str, status: str, is_error: str, path: str) -> No
         fail("Codebase Memory response did not match the requested project and status")
 
 
-def unavailable() -> "NoReturn":
-    """Report the one visible degraded mode: no usable Codebase Memory binary."""
+def unavailable(reason: str) -> "NoReturn":
+    """Report the visible degraded mode without exposing tool output."""
 
     json.dump({"status": "unavailable"}, sys.stdout)
     sys.stdout.write("\n")
+    print(reason, file=sys.stderr)
     raise SystemExit(2)
 
 
-def envelope_or_unavailable(code: int, raw: str) -> tuple[dict, object]:
+def unavailable_reason(diagnostic: str) -> str:
+    """Turn a bounded tool failure class into safe operator guidance."""
+
+    if "active generation" in diagnostic.lower() or "active-generation" in diagnostic.lower():
+        return (
+            "Codebase Memory has an active-generation conflict; wait for that generation "
+            "to finish, then retry this checkout. Do not terminate unrelated sessions."
+        )
+    return (
+        "Codebase Memory could not return a response. Verify its supported version; "
+        "in a workspace-write sandbox, retry this same command with the documented "
+        "local-only permission rationale."
+    )
+
+
+def envelope_or_unavailable(code: int, raw: str, diagnostic: str) -> tuple[dict, object]:
     """Read one tool response, distinguishing "produced nothing" from "answered wrongly".
 
     A nonzero exit paired with empty stdout means the binary could not operate
@@ -128,14 +144,14 @@ def envelope_or_unavailable(code: int, raw: str) -> tuple[dict, object]:
     """
 
     if code != 0 and raw == "":
-        unavailable()
+        unavailable(unavailable_reason(diagnostic))
     return read_envelope(raw)
 
 
 def usable_binary() -> str:
     configured = os.environ.get("CODEBASE_MEMORY_BIN") or shutil.which("codebase-memory-mcp")
     if not configured or not os.access(configured, os.X_OK):
-        unavailable()
+        unavailable("codebase-memory-mcp was not found or is not executable.")
     banner = subprocess.run(
         [configured, "--version"],
         stdout=subprocess.PIPE,
@@ -144,18 +160,22 @@ def usable_binary() -> str:
     )
     version = parsed_version(banner.stdout) if banner.returncode == 0 else None
     if version is None or version < MINIMUM_VERSION:
-        unavailable()
+        unavailable("codebase-memory-mcp does not report a supported version (0.10.8 or newer).")
     return configured
 
 
-def call_tool(binary: str, arguments: list[str]) -> tuple[int, str]:
+def call_tool(binary: str, arguments: list[str]) -> tuple[int, str, str]:
     result = subprocess.run(
         [binary, "cli", "--json", *arguments],
         stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
         check=False,
     )
-    return result.returncode, result.stdout.decode("utf-8", "replace")
+    return (
+        result.returncode,
+        result.stdout.decode("utf-8", "replace"),
+        result.stderr.decode("utf-8", "replace"),
+    )
 
 
 def ready_for(structured: dict, reported_error: object, project: str, root: str) -> bool:
@@ -173,8 +193,8 @@ def ensure(target: str) -> None:
     binary = usable_binary()
     root, project = physical_identity(target)
 
-    code, raw = call_tool(binary, ["index_status", "--project", project])
-    structured, reported_error = envelope_or_unavailable(code, raw)
+    code, raw, diagnostic = call_tool(binary, ["index_status", "--project", project])
+    structured, reported_error = envelope_or_unavailable(code, raw, diagnostic)
     if code == 0:
         if not ready_for(structured, reported_error, project, root):
             fail(f"Codebase Memory did not report {project} ready for {root}")
@@ -184,11 +204,11 @@ def ensure(target: str) -> None:
     if code != 1 or reported_error is not True or structured.get("error") != MISSING_PROJECT_ERROR:
         fail(f"Codebase Memory index_status failed for {project}")
 
-    code, raw = call_tool(
+    code, raw, diagnostic = call_tool(
         binary,
         ["index_repository", "--repo-path", root, "--mode", "full", "--name", project],
     )
-    structured, reported_error = envelope_or_unavailable(code, raw)
+    structured, reported_error = envelope_or_unavailable(code, raw, diagnostic)
     if (
         code != 0
         or reported_error is not False
@@ -199,8 +219,8 @@ def ensure(target: str) -> None:
 
     # index_repository never echoes the root it indexed, so the binding is only
     # proven by asking for the project's own root afterwards.
-    code, raw = call_tool(binary, ["index_status", "--project", project])
-    structured, reported_error = envelope_or_unavailable(code, raw)
+    code, raw, diagnostic = call_tool(binary, ["index_status", "--project", project])
+    structured, reported_error = envelope_or_unavailable(code, raw, diagnostic)
     if code != 0 or not ready_for(structured, reported_error, project, root):
         fail(f"Codebase Memory did not report {project} ready for {root} after indexing")
     json.dump({"root_path": root, "project": project, "status": "indexed"}, sys.stdout)

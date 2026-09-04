@@ -54,7 +54,7 @@ verdict on their own.
 ## 2. First-hour spike
 
 Before any reviewer sees the draft, **execute the plan's opening steps against
-the real artifacts for thirty to sixty minutes.** Open the page and pass the
+the real artifacts for the effort needed to establish its admitted behavior.** Open the page and pass the
 param. List the network fetches. Run the instrument once, in each state it
 claims to compare. Delete the fixture and watch what the fallback actually does.
 
@@ -81,8 +81,9 @@ because that's when patches are landing under time pressure.
 
 ## Hand-back
 
-Preflight ends by handing the grounded plan to `plan-review`, with the
-generated-facts appendix and the spike's findings attached.
+Preflight returns the grounded plan to its caller, with the generated-facts appendix
+and the spike's findings attached. The caller continues its next authorized step,
+which may be `plan-review`; preflight itself does not claim the parent workflow ended.
 
 Recommend that review's **first** round be three to five **parallel specialized
 lenses** rather than one generalist pass — machinery-interaction, cold-executor

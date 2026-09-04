@@ -59,8 +59,9 @@ this skill. See [docs/overlay.md](../../../docs/overlay.md).
    reader's decision.
 3. **Stop when done.** End on the last piece of information: drop the trailing
    summary, sign-off, "going forward", "let me know if".
-4. **When the reader agrees, the exchange is over.** "Makes sense" gets silence or
-   the next step, nothing new added.
+4. **When the reader agrees, resume the active task's next authorized step.** The
+   agreement ends only the exchange; a helper returns to its caller and the outer
+   workflow ends only at its own completion boundary.
 5. **A recommendation carries its tradeoffs in the same breath.** Surface a catch
    before the reader agrees. A caveat that doesn't change the recommendation stays
    unsaid.
@@ -108,6 +109,15 @@ this skill. See [docs/overlay.md](../../../docs/overlay.md).
 8. **Suppress tangents.** Finish the first issue; offer a second issue as a
    separate question at the end, once. A question that comes up mid-work is part
    of the work: answer it yourself if you can and fold the result in.
+
+## Host-compatible decisions
+
+Use the locked question format when the host permits it. If a higher-priority host
+restriction requires a plain question, disclose the format change, state the proposed
+implementation and substantive alternatives with their meaningful costs, then ask one
+concise question with a stable Q identifier. The recommendation is not an answer.
+Accept rejection, free-form alternatives, partial answers, and explicit delegation;
+wait for a required unanswered decision and do not repeat a settled choice.
 
 ## Language
 
