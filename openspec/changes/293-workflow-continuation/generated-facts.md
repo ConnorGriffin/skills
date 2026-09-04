@@ -26,45 +26,45 @@ Exit: 0
 
 Exit: 0
 
-## rg -l 'When the reader agrees|complete session|stop-at-pull-request|AskUserQuestion|Session fit|unavailable|thirty to sixty|real devices|disable-model-invocation|git checkout|resume the original|outside the repo' skills profile output-styles docs README.md -g '*.md' -g '*.yaml' -g '*.py'
+## rg --sort path -l 'When the reader agrees|complete session|stop-at-pull-request|AskUserQuestion|Session fit|unavailable|thirty to sixty|real devices|disable-model-invocation|git checkout|resume the original|outside the repo' skills profile output-styles docs README.md -g '*.md' -g '*.yaml' -g '*.py'
 
 ```text
-profile/base.md
-skills/workflows/scope/SKILL.md
-skills/workflows/scope/references/interview.md
 skills/drivers/orchestrate/SKILL.md
-docs/scope/293-astra-workflow-conflicts.md
-docs/scope/78-claims-sandbox-docs.md
-skills/tools/preflight/SKILL.md
 skills/drivers/orchestrate/agents/openai.yaml
-docs/research/openspec-work-order-authority.md
 skills/drivers/orchestrate/references/review-routing.md
-skills/tools/code-review/SKILL.md
-docs/scope/cbm-hook-name-takeover.md
-docs/scope/nested-adapter-dispatch.md
-docs/research/openspec-cli.md
-docs/scope/255-compaction-proof-worker-orders.md
-docs/epic-flow.md
-skills/tools/say-less/SKILL.md
-skills/tools/writing-for-agents/SKILL.md
-skills/drivers/ticket/verbs/start.md
-skills/tools/codebase-memory/reminder.md
-skills/tools/writing-for-agents/references/doctor.md
-skills/tools/clean/SKILL.md
-skills/drivers/ticket/agents/openai.yaml
-skills/drivers/ticket/verbs/triage.md
 skills/drivers/ticket/SKILL.md
-skills/tools/codebase-design/references/DESIGN-IT-TWICE.md
-skills/drivers/ticket/templates/work-order.md
-skills/tools/cbm-onboard/SKILL.md
+skills/drivers/ticket/agents/openai.yaml
 skills/drivers/ticket/references/coordinator-mode.md
-skills/tools/cbm-onboard/scripts/cbm-lifecycle.py
-skills/drivers/ui-craft/reference/polish.md
-skills/drivers/ui-craft/reference/lock.md
-skills/drivers/ui-craft/reference/init.md
-skills/drivers/ui-craft/reference/document.md
+skills/drivers/ticket/templates/work-order.md
+skills/drivers/ticket/verbs/start.md
+skills/drivers/ticket/verbs/triage.md
 skills/drivers/ui-craft/SKILL.md
 skills/drivers/ui-craft/reference/critique.md
+skills/drivers/ui-craft/reference/document.md
+skills/drivers/ui-craft/reference/init.md
+skills/drivers/ui-craft/reference/lock.md
+skills/drivers/ui-craft/reference/polish.md
+skills/tools/cbm-onboard/SKILL.md
+skills/tools/cbm-onboard/scripts/cbm-lifecycle.py
+skills/tools/clean/SKILL.md
+skills/tools/code-review/SKILL.md
+skills/tools/codebase-design/references/DESIGN-IT-TWICE.md
+skills/tools/codebase-memory/reminder.md
+skills/tools/preflight/SKILL.md
+skills/tools/say-less/SKILL.md
+skills/tools/writing-for-agents/SKILL.md
+skills/tools/writing-for-agents/references/doctor.md
+skills/workflows/scope/SKILL.md
+skills/workflows/scope/references/interview.md
+profile/base.md
+docs/epic-flow.md
+docs/research/openspec-cli.md
+docs/research/openspec-work-order-authority.md
+docs/scope/255-compaction-proof-worker-orders.md
+docs/scope/293-astra-workflow-conflicts.md
+docs/scope/78-claims-sandbox-docs.md
+docs/scope/cbm-hook-name-takeover.md
+docs/scope/nested-adapter-dispatch.md
 ```
 
 Exit: 0

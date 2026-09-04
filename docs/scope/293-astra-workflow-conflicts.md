@@ -84,3 +84,8 @@ Two serial chunks are the current candidate: shared continuation/admission contr
 - **Disposition:** copy unchanged into the admitted design record.
 
 - The active OpenSpec change now records all settled decisions and the unchanged risk contract. Two serial chunks keep shared contracts with their owning tools and integrate consumers afterwards. No epic or child issues were created.
+
+## Review round 1
+
+- Authoring: inventory evidence used an unsorted rg result; corrected to deterministic path ordering and regenerated literal output.
+- Authoring: chunk header and first-chunk mode differed; corrected the header and made incorporate-before-next-worktree explicit. No policy or scope changed.
