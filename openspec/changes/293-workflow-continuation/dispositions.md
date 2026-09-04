@@ -32,4 +32,3 @@ These dispositions are governed by the settled decisions in design.md; implement
 | 26 | External follow-up | Private credential-handling skill is outside this public repo. No secrets or private configuration published; no private skill mutation under this lock. External follow-up remains tracked under finding 26 of https://github.com/ConnorGriffin/skills/issues/293; it is not a requirement to mutate a private repository during this implementation. |
 
 Related boundaries: https://github.com/ConnorGriffin/skills/issues/289 remains the owner of scope-ledger disposal; https://github.com/ConnorGriffin/skills/issues/292 remains the owner of guided manual orders. Both verified open during triage. Neither is absorbed into continuation repair.
-

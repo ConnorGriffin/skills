@@ -92,3 +92,5 @@ Two serial chunks are the current candidate: shared continuation/admission contr
 
 - Authoring: the model metadata source was unspecified; fixed by naming exact current-session declarations or matching local rollout fields and the missing-input outcome.
 - Refuted: a claimed omission of JavaScript paths from generated inventory did not reproduce. The recorded command filters extensions, and re-executing its exact arguments matched the saved output byte for byte. No source expansion.
+
+- Injected during the metadata correction: event payload nesting was abbreviated ambiguously. Corrected to type=session_meta with payload.id/payload.session_id, and type=turn_context with payload.model/payload.effort, matching the executed local read.

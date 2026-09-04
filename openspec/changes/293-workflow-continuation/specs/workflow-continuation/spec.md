@@ -73,4 +73,3 @@ Implementation MUST account for every numbered finding under dispositions.md, pr
 
 - **WHEN** the pack corrections are complete but finding 26 requires separate private work
 - **THEN** the ticket records that external follow-up as outstanding rather than claiming it repaired or publishing private data
-
