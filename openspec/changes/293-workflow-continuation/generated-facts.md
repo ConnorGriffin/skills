@@ -105,3 +105,9 @@ restore captured pre-clean bytes preserves operator edit: True
 ```
 
 This probes the proposed preservation mechanism, not the yet-unwritten skill revision. Implementation still owes the staged-and-unstaged failure replay.
+
+## Current-session metadata probe
+
+An executed local read verified that CODEX_THREAD_ID matches this task, its matching rollout session_meta carries the same identity, and the latest turn_context reports model gpt-6-astra and effort medium. Only these non-sensitive fields were inspected for admission; no private transcript is attached. This is current-session evidence, not a promise that future hosts expose the same metadata. The design names the missing-source fallback explicitly.
+
+The worker adapter probe returned a known session-bound headroom and a successful one-word response under read-only dispatch. That establishes this host's existing dispatch capability, not Astra's reviewer eligibility.

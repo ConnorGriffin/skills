@@ -89,3 +89,6 @@ Two serial chunks are the current candidate: shared continuation/admission contr
 
 - Authoring: inventory evidence used an unsorted rg result; corrected to deterministic path ordering and regenerated literal output.
 - Authoring: chunk header and first-chunk mode differed; corrected the header and made incorporate-before-next-worktree explicit. No policy or scope changed.
+
+- Authoring: the model metadata source was unspecified; fixed by naming exact current-session declarations or matching local rollout fields and the missing-input outcome.
+- Refuted: a claimed omission of JavaScript paths from generated inventory did not reproduce. The recorded command filters extensions, and re-executing its exact arguments matched the saved output byte for byte. No source expansion.
