@@ -291,6 +291,7 @@ raise SystemExit(9)
         for diagnostic in (
             "active generation conflict for another checkout",
             "active-generation conflict for another checkout",
+            "codebase-memory-mcp: CBM CLI could not start because a pre-coordination or unverified CBM generation is active; close all CBM sessions and commands, then retry",
         ):
             with self.subTest(diagnostic=diagnostic):
                 self.environment["CBM_FAKE_EMPTY_FAIL"] = "1"
