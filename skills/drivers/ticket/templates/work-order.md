@@ -118,7 +118,7 @@ an extra ticket-comment format.
 EXECUTION LOCK v2 <ticket-id> <lock-id>
 Source: <openspec <change-path>@<full-commit-oid> | repository-native <path>@<full-commit-oid> | inline>
 Open as: <model> / <effort>.
-Session fit: <selected execution row's Ladder value, with each model's display name in ladder order>. A Claude or Codex session whose system-prompt model is named in this paragraph at or above the selected rung proceeds directly to step 4, skipping the remainder of Model-check and without asking about model fit or effort.
+Session fit: <selected execution row's Ladder value, with each model's display name in ladder order>; or `explicit Astra executor admission` when `Open as:` selects GPT-6 Astra. The latter uses current authoritative host metadata and the installed-adapter probe, is not a benchmark rung or reviewer admission, and requires the actual effort.
 Execution: single agent.
 
 Classification: <code | investigation | manual>
@@ -186,6 +186,7 @@ execution order.
 EXECUTION LOCK v2 <ticket-id> <lock-id>
 Source: <openspec <change-path>@<full-commit-oid> | repository-native <path>@<full-commit-oid> | inline>
 Open as: <orchestrator model> / <effort>.
+Executor admission: <ladder admission | explicit Astra executor admission from authoritative current-session metadata; reviewer routing remains independent>.
 Execution: chunked, <n> sub-orders (<n> parallel, <n> serial).
 Launch: open a session at the model above and run `/ticket start <ticket-id>`.
         It loads /orchestrate and coordinates the sub-orders itself.
@@ -221,7 +222,9 @@ Done when (whole ticket)
 Boundaries
 * One ticket branch, one pull request. Chunks land on per-chunk branches cut from it
   and merge back.
-* Only the coordinator records the change.
+* Each chunk commits only its owned work and returns its commit and bounded evidence
+  to the coordinator. Only the coordinator records the aggregate change or opens
+  the ticket pull request.
 * Stop at the pull request. Do not merge. Do not touch <explicitly out-of-scope things>.
 ```
 
@@ -246,7 +249,7 @@ Context
 
 ### Session fit
 
-Session fit: <the selected execution row's Ladder value, with each model's display name in ladder order>; selected Agent rung: <Rung>. A Claude or Codex coordinator whose system-prompt model is named in this paragraph at or above the selected Agent rung proceeds directly to step 4, skipping the remainder of Model-check and without asking about model fit or effort.
+Session fit: <the selected execution row's Ladder value, with each model's display name in ladder order>; selected Agent rung: <Rung>. An explicit GPT-6 Astra coordinator admission is recorded separately from this ladder and never changes reviewer eligibility or a worker's selected rung.
 
 ### Builder self-check
 

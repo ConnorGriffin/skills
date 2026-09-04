@@ -53,7 +53,9 @@ graph-identity rule.
 
 3. **Dispatch one agent per chunk** at the tier its `Agent:` line names. The
    coordinator supplies the selected adapter, the explicit worker model resolved for
-   that tier, and explicit worker effort. Dispatch only through
+   that tier, and explicit worker effort. An explicitly admitted Astra coordinator
+   may use these existing worker routes; its admission does not promote Astra into
+   a worker or reviewer ladder. Dispatch only through
    `skills/drivers/orchestrate/scripts/codex-worker.py` or
    `skills/drivers/orchestrate/scripts/claude-worker.py`. Never use the built-in
    Agent tool, Workflow tool, background-agent machinery, or native agent dispatch.

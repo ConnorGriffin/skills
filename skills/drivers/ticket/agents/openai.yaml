@@ -1,4 +1,4 @@
 interface:
   display_name: "Ticket"
   short_description: "Drive one tracked ticket through triage, start, revise, and finalize, one verb at a time"
-  default_prompt: "Use $ticket to drive one ticket through triage, start, revise, or finalize. For delegated Ticket work, the coordinator dispatches every mandatory reviewer, resumes the same worker with the verified verdict, and missing review evidence is unavailable."
+  default_prompt: "Use $ticket to drive one ticket through triage, start, revise, or finalize. Explicit GPT-6 Astra executor admission is separate from reviewer eligibility. For delegated Ticket work, the coordinator dispatches every mandatory reviewer, resumes the same worker with the verified verdict, and missing review evidence is unavailable."

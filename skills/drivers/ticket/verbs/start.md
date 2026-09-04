@@ -18,7 +18,29 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    decides which path step 5 takes: legacy `WORK ORDER`, or `EXECUTION LOCK
    <version>`.
 
-3. **Model-check.** On a flat order with `Session fit:`, a session whose system-prompt model is named in that paragraph at or above the selected rung proceeds directly to step 4, skipping the remainder of Model-check and without asking about model fit or effort. On a chunked order, take that same fast path only when every `SUB-ORDER` has exactly one `Session fit:` paragraph whose ladder is an ordered non-empty sequence of display-name rungs byte-identical across every `SUB-ORDER`, whose exactly one `selected Agent rung: <Rung>` annotation names exactly one rung in that paragraph, and whose coordinator system-prompt model is named at or above that selected rung in every paragraph. Otherwise, the order's `Open as:` line names a required model and effort. A session cannot reliably introspect its own reasoning effort from context, so do not guess it, and do not answer from memory of an earlier guess. State the model name this session's own system prompt reports, then ask the user in prose to confirm the effort level this session is running. Compare both against `Open as:`. Weaker on either axis: say so and stop, so the user relaunches correctly. Same or stronger on both: proceed. On a chunked order, also check every `SUB-ORDER`'s `Agent:` line against the confirmed model: the session must be at least as strong as the strongest chunk. Weaker than any one of them and the whole order is refused. Never run part of it, and never launch an agent smarter than the coordinator.
+3. **Model-check.** `Session fit:` admits only the named benchmark ladder it
+   records; do not invent cross-family strength ordering. An order explicitly
+   selecting `gpt-6-astra` for executor or coordinator work is admitted separately:
+   first accept an exact current-model declaration naming GPT-6 Astra. Otherwise,
+   on Codex read this session's own local rollout only: `CODEX_THREAD_ID` must
+   match `session_meta.payload.id` or `session_meta.payload.session_id`, and the
+   latest matching `turn_context` must report `payload.model: gpt-6-astra` and
+   `payload.effort: medium` or a higher host-identified effort. Never select the
+   newest unrelated rollout, a global default, or another worker's state. If a
+   required field is absent, ask once for the actual model or effort; do not guess.
+   Then verify the installed worker adapter's existing read-only probe and the
+   repository read/write capability this order requires. Failure admits neither
+   execution nor a substitute session. This explicit executor admission is not a
+   reviewer admission: preserve the stamped depth and route review independently.
+
+   For every other selection, a session whose system-prompt model is named in the
+   lock's ladder at or above its selected rung proceeds directly to step 4. Without
+   that evidence, `Open as:` names the required model and effort; state the model
+   the session reports and ask once for its effort rather than guessing. A weaker
+   or unconfirmed session stops before work. On a chunked order, each sub-order's
+   `Session fit:` paragraph, whose ladder is an ordered non-empty sequence of display-name rungs byte-identical across every `SUB-ORDER`, must have one selected Agent rung; that established fast path allows skipping the remainder of Model-check. Each
+   `Agent:` admission is then checked independently; do not use a coordinator's
+   model to infer a worker or reviewer route.
 
 4. **Worktree and branch.** This is the first repository action after the shared
    opening. Never work in the control checkout. Reuse the worktree
@@ -26,7 +48,8 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    `git -C <worktree> branch --show-current`. Only cut fresh when triage's worktree
    is gone, with the same command shape triage used
    ([verbs/triage.md](triage.md), step 2). The helper refuses if the control
-   checkout is dirty or the target path exists; surface that, and do not force it.
+   checkout is dirty or the target path exists; a dirty control checkout remains
+   valid, while an existing target path must be surfaced without forcing it.
    Use the worktree path the helper printed as the working directory for every step
    below. Move the ticket to in progress. Then bind that worktree's graph identity
    per the skill page's graph-identity rule, before step 5 reads any code, and

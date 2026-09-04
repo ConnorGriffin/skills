@@ -1,4 +1,4 @@
 interface:
   display_name: "Orchestrate"
   short_description: "Coordinator mode: route real work to benchmarked workers"
-  default_prompt: "Use $orchestrate to act as a coordinator. For delegated workflow work, the coordinator dispatches every mandatory reviewer, resumes the same worker with the verified verdict, and missing review evidence is unavailable."
+  default_prompt: "Use $orchestrate to act as a coordinator. Explicit GPT-6 Astra executor admission does not change model ladders or reviewer eligibility. For delegated workflow work, the coordinator dispatches every mandatory reviewer, resumes the same worker with the verified verdict, and missing review evidence is unavailable."

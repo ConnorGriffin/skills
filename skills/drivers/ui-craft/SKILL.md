@@ -40,6 +40,12 @@ Before routing any design change:
    predecessor fallback in `reference/revise.md`, not ordinary `lock`
    permission.
 
+Ticket triage may prepare a shipped surface's first-revision evidence in its
+admitted checkout only after this route verifies a safe start and manufactured
+data. It runs `behavior-sweep`, then freezes the ledger and replay through the
+existing sanction path before source admission. This authorizes evidence
+preparation, not implementation, a new mock, or a replacement checkout/base.
+
 For `revise`, `lock`, `build`, and general design invocations only:
 
 5. Read the project's design system: tokens, theme, one representative
@@ -119,6 +125,10 @@ General design invocations with no mode match (e.g. "make this less bland",
 "fix the spacing") route by embodiment: shipped surface → `revise`-then-fix;
 greenfield surface → `critique`-then-fix. Use
 [reference/design-rules.md](reference/design-rules.md) for the craft pass.
+
+When a mode settles an answer or completes a helper, resume the caller's next
+authorized step. Stop only the dependent work for an unanswered decision, denied
+sanction, unavailable required evidence, or explicit handoff.
 
 **Web implementation.** For `build`, `revise`, and general UI implementation that
 changes CSS or JavaScript/TypeScript, read

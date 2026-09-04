@@ -23,7 +23,7 @@ Browse the pack at <https://connorgriffin.github.io/skills/>.
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
 | [`epic`](skills/drivers/epic/SKILL.md) | Maintain an OpenSpec epic, file at most three children by default, and stop at an operator-invoked ticket triage handoff | GitHub CLI; composes with `scope`'s interview mode and `ui-craft` |
-| [`implement`](skills/drivers/implement/SKILL.md) | Implement a PRD or issue set via `tdd`, then `code-review`, then commit | `tdd` and `code-review` from this pack |
+| [`implement`](skills/drivers/implement/SKILL.md) | Routes tracked work through `ticket`; gives an explicit isolated-worktree intake for an untracked PRD | `ticket` and `review` from this pack |
 | [`openspec-adopt`](skills/drivers/openspec-adopt/SKILL.md) | Initialize the OpenSpec v1 layout and baseline specs describing the system today, delivered as a documentation-only PR | GitHub CLI; global `@fission-ai/openspec@1.11.0` |
 | [`ui-craft`](skills/drivers/ui-craft/SKILL.md) | Full surface lifecycle: revise shipped UI in the running app, lock greenfield specs, build, critique, audit, polish, re-settle | `drive-local-webapp` for rendered review; `spin-worktree` for live base comparison; parallel-agent support is recommended |
 | [`orchestrate`](skills/drivers/orchestrate/SKILL.md) | Flip the session into coordinator mode: delegate all real work to sub-agents routed by an empirically benchmarked model capability table | Codex CLI for GPT-tier sub-agents; table re-benchmarked per its bundled procedure |
@@ -44,7 +44,7 @@ Browse the pack at <https://connorgriffin.github.io/skills/>.
 | [`handoff`](skills/tools/handoff/SKILL.md) | Produce a decision-safe handoff for a fresh agent | — |
 | [`persona-review`](skills/tools/persona-review/SKILL.md) | Convene a panel of persistent reviewer personas to review a document and synthesize a verdict | Private data repo for persona memory; GitHub CLI for mining real-colleague profiles; parallel-agent support recommended |
 | [`plan-review`](skills/tools/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | `orchestrate` is an optional integration used for reviewer routing when installed; `reviewer-memory` from this pack; parallel-agent support recommended; `persona-review` optional for load-bearing plans; the round-count evidence behind its rules is in [docs/review-round-mining.md](docs/review-round-mining.md) |
-| [`pr-body`](skills/tools/pr-body/SKILL.md) | Write a PR body and score it before the PR opens, or audit an existing one, against a deterministic linter and a voice judge | A PreToolUse hook that hard-denies `gh pr create` until the body is scored, installed separately from `hooks/` |
+| [`pr-body`](skills/tools/pr-body/SKILL.md) | Write a PR body and score it before the PR opens, or audit an existing one, against a deterministic linter and a voice judge | An optional separately installed PreToolUse hook can deny `gh pr create` until the body is scored |
 | [`preflight`](skills/tools/preflight/SKILL.md) | Ground a plan's facts, spike its first hour, and single-source its rules before review or execution | — |
 | [`prototype`](skills/tools/prototype/SKILL.md) | Build a throwaway prototype — a terminal app for logic questions or switchable UI variants in the real app | — |
 | [`research`](skills/tools/research/SKILL.md) | Investigate a question against primary sources and capture findings as Markdown in the repo | — |

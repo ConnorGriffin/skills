@@ -37,9 +37,10 @@ already used by `mockups/INDEX.md` or the app route. No agent picks a nickname.
 
 **Proportionality.** Sweep depth scales with the handler inventory: a surface
 whose inventory fits on one screen may fold the passes below into a single
-sitting. The **ledger**, the **completeness check**, the **predecessor diff**
-wherever a predecessor exists, and the **QUESTION round** are never waived, at
-any size.
+sitting. Keep the **ledger**, **completeness check**, predecessor diff wherever
+a predecessor exists, and every genuinely unanswered QUESTION. Do not require a
+ceremonial question round or elapsed-time busywork when the admitted behavior
+leaves no decision open.
 
 ## 1. Inventory (static — this is not evidence)
 
