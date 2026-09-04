@@ -287,17 +287,22 @@ raise SystemExit(9)
         self.assertIn("retry", result.stderr)
         self.assertNotIn("connection unavailable", result.stderr)
 
-    def test_an_active_generation_conflict_is_not_described_as_a_sandbox_denial(self):
-        self.environment["CBM_FAKE_EMPTY_FAIL"] = "1"
-        self.environment["CBM_FAKE_FAILURE"] = "active generation conflict for another checkout"
+    def test_active_generation_conflicts_are_not_described_as_sandbox_denials(self):
+        for diagnostic in (
+            "active generation conflict for another checkout",
+            "active-generation conflict for another checkout",
+        ):
+            with self.subTest(diagnostic=diagnostic):
+                self.environment["CBM_FAKE_EMPTY_FAIL"] = "1"
+                self.environment["CBM_FAKE_FAILURE"] = diagnostic
 
-        result = self.ensure()
+                result = self.ensure()
 
-        self.assertEqual(result.returncode, 2, result.stderr)
-        self.assertEqual(json.loads(result.stdout), {"status": "unavailable"})
-        self.assertIn("active-generation conflict", result.stderr)
-        self.assertIn("retry", result.stderr)
-        self.assertNotIn("sandbox", result.stderr.lower())
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertEqual(json.loads(result.stdout), {"status": "unavailable"})
+                self.assertIn("active-generation conflict", result.stderr)
+                self.assertIn("retry", result.stderr)
+                self.assertNotIn("sandbox", result.stderr.lower())
 
     def test_missing_and_unsupported_binaries_remain_distinguishable(self):
         for label, override, expected in (

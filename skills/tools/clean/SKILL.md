@@ -12,7 +12,9 @@ This skill **changes code**. It is not a reviewer: it never scores, never grades
 and never emits findings for a human to action inside the diff. Anything it
 notices outside the diff becomes a follow-up line, never an edit.
 
-One pass. When the ledger is written, stop — no second sweep.
+One pass. A standalone clean ends after its ledger. A nested clean returns its ledger
+to the caller, which continues its next authorized work. Neither case starts a second
+sweep.
 
 ## Fixed point
 
@@ -45,6 +47,11 @@ Run it before any edit.
   is being asserted rather than demonstrated, and the ledger has to say which.
 
 Generated and vendored code is skipped and named in the ledger.
+
+Before the first edit, capture a pre-pass snapshot or patch for both the index and
+working tree, including unrelated staged and unstaged content. It must be sufficient
+to undo only the cleaner's edits without replacing the pre-pass state from the index
+or HEAD.
 
 ## Checklist
 
@@ -107,9 +114,10 @@ Re-run the same test command.
 
 ## Ledger
 
-The ledger is the final message. Nothing is written to the repo except the
-cleaned code itself: no plan file, no scratch directory, no report committed to
-the branch.
+The ledger is the clean helper's final result. A nested clean returns it to the caller,
+which continues authorized work; a standalone clean ends its single pass. Nothing is
+written to the repo except the cleaned code itself: no plan file, no scratch directory,
+no report committed to the branch.
 
 It carries three things:
 

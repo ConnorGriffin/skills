@@ -61,9 +61,11 @@ actual decision to me.
    If a higher-priority host restriction forbids that choice form, say that the host
    requires a plain question. State the proposed implementation and each considered
    alternative with its meaningful cost, then ask one concise question with the stable
-   Q-number. Do not hide alternatives, assume the recommendation was accepted, or
-   disguise a multiple-choice question as prose. Accept rejection, a free-form
-   alternative, partial answers, and explicit delegation; wait for a required answer.
+   Q-number about the still-unsettled original decision. Do not ask for a downstream
+   detail that presupposes the recommendation. Do not hide alternatives, assume the
+   recommendation was accepted, or disguise a multiple-choice question as prose.
+   Accept rejection, a free-form alternative, partial answers, and explicit delegation;
+   wait for a required answer.
 
 3. **Accept shorthand answers; never coach them.** Use stable Q-numbers within
    the session and concise, distinct option labels so answers like "Q1 yes;
