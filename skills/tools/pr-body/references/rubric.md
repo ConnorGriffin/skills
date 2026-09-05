@@ -52,7 +52,9 @@ attribution out of trailers.
 when the body has more than one heading (a trailing blank section is almost
 always optional metadata, not an abandoned one).
 
-**Fix** Fill in the named section, or delete it if it does not apply.
+**Fix** Fill in the named section. Delete a heading only when it is a non-shipped
+optional heading; retain every heading supplied by the repository or organization
+template and fill it with applicable substance.
 
 **Grounds** Corpus: the human-era failure mode is underfill, typically a 52-char
 body that is the repo template with every section left empty. Labels confirm

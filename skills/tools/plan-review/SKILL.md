@@ -248,7 +248,8 @@ definitions below are the fallback.
      between the plan's own decided constraints, and claims that are subtly
      rather than obviously wrong. Its objections loop back through steps 3
      and 4.
-     A clean fresh pass ends the review: state **countersigned** plainly.
+     A clean fresh pass completes the review helper: state **countersigned** plainly
+     and return the result to the caller, which continues its own authorized workflow.
 
    After every panel reaches its verdict, send one raw JSON object containing the
    ticket, round, verdict, findings summary, and reviewer model on standard input to:

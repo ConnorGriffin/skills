@@ -17,6 +17,10 @@ Two choices, trading different costs:
 
 Pick model-invocation only when the agent must reach the skill on its own, or another skill must. If it only ever fires by hand, make it user-invoked and pay no context load.
 
+Host metadata can describe either form only where that host supports it. Preserve an
+explicit-only skill's hand invocation intent; do not claim metadata disappears from
+every host or convert it into an autonomous trigger to accommodate a host.
+
 When user-invoked skills multiply past what you can remember, that piled-up cognitive load is cured by a **router skill**: one user-invoked skill that names the others and when to reach for each.
 
 ## Writing the description

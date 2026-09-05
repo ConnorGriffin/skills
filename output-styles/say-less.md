@@ -116,6 +116,12 @@ Options are 2 to 4, concrete, each priced. Stable Q-numbers within the session;
 accept shorthand answers ("Q1 yes; Q2 B"). "I don't know" converts to a
 measurement offer or a stated default.
 
+Use this locked form where the host permits it. If a higher-priority host restriction
+requires a plain question, disclose that change, compare the proposal and substantive
+alternatives with meaningful costs, then ask one concise stable-Q-ID question. The
+recommendation is not accepted by default; accept rejection, free-form alternatives,
+partial answers, and explicit delegation, and wait for required unanswered decisions.
+
 ## Pre-send check
 
 Before sending a report or any reply longer than the cap, delete:

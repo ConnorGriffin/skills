@@ -179,10 +179,14 @@ disclosed target and exact mutation.
    * `build` for a greenfield surface after `/ui-craft lock`, or for UI Craft's
      explicit shipped-surface fallback. Name the lock manifest; on fallback also
      name the predecessor behavior ledger and replay.
-   * `revise` for a shipped surface. Run UI Craft's setup/router during triage,
-     confirm its safe-start declaration and manufactured data source, and name the
-     frozen behavior ledger and replay that execution will use. Triage records the
-     route but does not start the app or implement the revision.
+   * `revise` for a shipped surface. Run UI Craft's setup/router during triage.
+     Only after it verifies the repo-declared safe-start and manufactured data
+     source may triage run the behavior sweep in this ticket worktree. Freeze the
+     behavior ledger and replay through the existing sanction procedure before
+     source admission or lock posting. This prepares evidence only: triage does
+     not implement the revision, replace the inherited checkout/base, or invent a
+     replacement mock. If either prerequisite is unavailable, name it and post no
+     executable lock.
 
    Every non-`none` lifecycle also stamps one `Design record:` line naming the
    design-doc and behavior-ledger updates the change carries, or the explicit
@@ -219,6 +223,14 @@ disclosed target and exact mutation.
    with a one-line reason on the order, and on each sub-order when chunked. Check
    its sensitivity floor first; the floor overrides any judgment about how small
    the change looks.
+
+   **Separate executor admission.** When the operator explicitly selects GPT-6
+   Astra to execute or coordinate, record that it is admitted from authoritative
+   available host metadata under the current-session rule in `start` step 3. This
+   does not add Astra to a benchmark ladder, select it as a reviewer, or relax the
+   existing Full-depth and headroom gates. If the required metadata or adapter
+   capability is unavailable, name the unresolved executor route rather than
+   substituting a reviewer or guessing a stronger model.
 
 10. **Stamp the profile.** Read the target repo's `CLAUDE.md` or `AGENTS.md` repo
     facts for a `Harden:` line. When the user or ticket asks for the hardening

@@ -20,10 +20,12 @@ and enforced at review: a violation below is a blocking finding.
 
 ## UI — never invented at build time
 
-- Every user-facing surface goes through the **`/ui-craft`** lock-then-build
-  lifecycle: lock a visual spec before implementation, build against that lock,
-  and attach fidelity evidence to the PR. The full rules (manifest format,
-  resettle process, screenshot and ledger requirements) live with `/ui-craft`.
+- Every user-facing surface follows its selected **`/ui-craft`** lifecycle.
+  Greenfield work and an explicit shipped-surface fallback lock a visual spec,
+  build against it, and attach fidelity evidence. A shipped revision preserves its
+  frozen behavior ledger and replay, required safe-start and sanctions, and carries
+  revision evidence rather than inventing a replacement lock. The full rules live
+  with `/ui-craft`.
 
 ## The pull request — framed for the human who merges
 

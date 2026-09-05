@@ -25,6 +25,11 @@ Haiku never reviews.
 Reviewer-routing stakes and plan-review's plan stakes tier are independent.
 Neither derives from, overrides, or rewrites the other.
 
+An explicit Astra executor/coordinator admission is not reviewer evidence. It
+does not alter this matrix, the Full-review route, or headroom handling. When the
+selected review route cannot run, report it as unresolved; never promote Astra or
+silently downgrade the review.
+
 | Review skill | Routing stakes | Initial route |
 |---|---|---|
 | code-review | routine | Run the Codex presence/headroom gate first. With usable Codex, use Luna from the Code review row. On absent, unknown, ≤5%, or rate-limited Codex, enter Claude-only mode at Sonnet from the Code review row and make no second Codex attempt for the session. |

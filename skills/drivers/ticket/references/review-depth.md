@@ -59,5 +59,10 @@ Review depth is an input to
 [review-routing.md](../../orchestrate/references/review-routing.md), which owns
 reviewer classification, eligibility, and model precedence.
 
+An executor or coordinator admitted through explicit host metadata is not thereby
+eligible to review. Keep the existing reviewer route, Full-depth requirement, and
+headroom checks; report an unavailable reviewer route rather than silently
+downgrading it.
+
 * A whole diff assembled from chunks is reviewed Targeted, or Full when any chunk
   was Full.

@@ -33,6 +33,11 @@ routine/load-bearing routing stakes and their initial route directly from
 Opus in the Plan / spec writing ladder is an availability rung, not a benchmarked
 plan-writing win.
 
+Explicit GPT-6 Astra executor/coordinator admission is deliberately outside this
+table. It consumes authoritative current-session metadata and required adapter
+capabilities; it changes no route, ladder, effort default, benchmark result, or
+reviewer eligibility.
+
 ## Routes (cheapest that clears the bar) and escalation ladders
 
 Escalate one step at a time along the row's ladder; at the last rung, stop and

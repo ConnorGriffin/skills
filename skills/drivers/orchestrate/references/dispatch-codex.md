@@ -13,6 +13,11 @@ control checkout. Persist one state file per worker. Use `resume` with that
 state file for retry findings and ordinary follow-ups; it restores the captured
 model, sandbox, and canonical cwd rather than taking replacements.
 
+The adapter's successful probe establishes dispatch capability, not a review
+ranking. An explicitly admitted Astra coordinator may dispatch the routes their
+existing locks select, but this page neither admits Astra as a reviewer nor changes
+the review-routing precedence.
+
 ## Hosted source access
 
 `start --network` opts the worker into provider-hosted source retrieval. The

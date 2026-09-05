@@ -160,6 +160,6 @@ missing file is non-blocking.
 * Delete what nothing invokes. A skill with no recorded invocation gets deleted, not
   kept in case it is useful later. The local transcripts are the evidence.
 * A skill that carries always-on behavior ships a `reminder.md` digest, owns any
-  portable hook and registration template that enforces it, and documents its
+  portable hook and registration template that can enforce it when installed, and documents its
   activation command and shared-profile pointer. Machine-only hooks remain in
   dotfiles.

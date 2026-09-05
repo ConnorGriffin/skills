@@ -3,16 +3,13 @@ name: implement
 description: "Implement a piece of work based on a PRD or set of issues."
 ---
 
-Implement the work described by the user in the PRD or issues.
+For a tracked ticket, consume its selected caller lifecycle and admitted lock. Do
+not re-triage a valid lock, run more than one ticket verb in one session, or create
+a competing current-branch path. `triage`, `start`, `revise`, and `finalize` stay
+fresh sessions; `start` stops at its open pull request and `finalize` runs only
+after human merge. Explicit operator overrides still control their stated scope.
 
-Use /tdd where possible, at pre-agreed seams.
-
-Run typechecking regularly, single test files regularly, and the full test suite once at the end.
-
-Before /code-review, run /simplify over the changed code.
-<!-- simplify is deliberately not wired into the unattended build path (BUILD_PROMPT):
-     unattended builds are budget-bound and simplify applies edits outside the diff. -->
-
-Once done, use /code-review to review the work.
-
-Commit your work to the current branch.
+For an untracked PRD, resolve the tracked path explicitly: ask whether the operator
+wants a ticket filed, then route a yes through `/ticket triage <id>`. If the
+operator explicitly declines, return that there is no tracked implementation path
+rather than duplicating ticket's worktree, lock, review, commit, or PR procedure.

@@ -30,6 +30,8 @@ description" sections of this skill's own `SKILL.md` (terms defined in `GLOSSARY
 * **User-invoked skills missing the manual-invocation signal** — a skill with
   `disable-model-invocation: true` whose description still reads like an autonomous
   trigger list instead of a human-facing summary.
+* **Host-metadata overclaim** — metadata that says an explicit-only invocation is
+  hidden or enforced on every host, rather than describing the host it actually serves.
 * **Trigger overlap between skills** — two descriptions matching the same phrase or
   intent, risking the wrong skill firing.
 

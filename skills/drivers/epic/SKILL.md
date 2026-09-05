@@ -38,7 +38,7 @@ research, interview, mockup, or a human prerequisite. File a build only as a bou
 refusal: refuse to file a build while an open spike or named open question can
 invalidate its outcome, constraints, or acceptance criteria.
 
-Before filing a build, require every relevant load-bearing ruling in the repository's ADR home. User-facing work also requires a locked `/ui-craft` spec. The build issue must stand alone and receive the normal `$ticket` triage flow; the epic does not manufacture a work order.
+Before filing a build, require every relevant load-bearing ruling in the repository's ADR home. User-facing work follows its selected `/ui-craft` lifecycle: a greenfield or explicit fallback build requires its locked visual spec, while a shipped revision requires its frozen behavior ledger, replay, safe-start, sanctions, and revision evidence. The build issue must stand alone and receive the normal `$ticket` triage flow; the epic does not manufacture a work order.
 
 Use native `blocked-by` edges for actual dependencies. A follow-up required to reach
 the epic destination is an in-scope native child. A follow-up outside that
