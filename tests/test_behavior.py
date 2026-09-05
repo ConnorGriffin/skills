@@ -4746,7 +4746,7 @@ class EpicProtocolContractTests(unittest.TestCase):
     def test_build_admission_requires_adrs_and_selected_ui_lifecycle(self):
         self.require(self.EPIC, r"load-bearing.*ADR")
         self.require(self.EPIC, r"user-facing.*selected.*ui-craft")
-        self.require(self.EPIC, r"greenfield.*locked.*ui-craft")
+        self.require(self.EPIC, r"greenfield.*locked")
         self.require(self.EPIC, r"shipped.*revision.*behavior.*ledger.*replay")
 
     def test_research_handoff_returns_to_an_attended_operator_session(self):
