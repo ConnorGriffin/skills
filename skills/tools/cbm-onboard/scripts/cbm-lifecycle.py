@@ -119,7 +119,11 @@ def unavailable(reason: str) -> "NoReturn":
 def unavailable_reason(diagnostic: str) -> str:
     """Turn a bounded tool failure class into safe operator guidance."""
 
-    if "active generation" in diagnostic.lower() or "active-generation" in diagnostic.lower():
+    if (
+        "active generation" in diagnostic.lower()
+        or "active-generation" in diagnostic.lower()
+        or "generation is active" in diagnostic.lower()
+    ):
         return (
             "Codebase Memory has an active-generation conflict; wait for that generation "
             "to finish, then retry this checkout. Do not terminate unrelated sessions."

@@ -291,6 +291,7 @@ raise SystemExit(9)
         for diagnostic in (
             "active generation conflict for another checkout",
             "active-generation conflict for another checkout",
+            "codebase-memory-mcp: CBM CLI could not start because a pre-coordination or unverified CBM generation is active; close all CBM sessions and commands, then retry",
         ):
             with self.subTest(diagnostic=diagnostic):
                 self.environment["CBM_FAKE_EMPTY_FAIL"] = "1"
@@ -4742,9 +4743,11 @@ class EpicProtocolContractTests(unittest.TestCase):
         self.require(self.EPIC, r"refuse.*build.*open spike.*open question")
         self.require(self.EPIC, r"invalidate.*outcome.*constraints.*acceptance criteria")
 
-    def test_build_admission_requires_adrs_and_locked_surface_spec(self):
+    def test_build_admission_requires_adrs_and_selected_ui_lifecycle(self):
         self.require(self.EPIC, r"load-bearing.*ADR")
-        self.require(self.EPIC, r"user-facing.*locked.*ui-craft")
+        self.require(self.EPIC, r"user-facing.*selected.*ui-craft")
+        self.require(self.EPIC, r"greenfield.*locked.*ui-craft")
+        self.require(self.EPIC, r"shipped.*revision.*behavior.*ledger.*replay")
 
     def test_research_handoff_returns_to_an_attended_operator_session(self):
         self.require(self.EPIC, r"research.*attended.*operator")
