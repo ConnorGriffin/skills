@@ -226,7 +226,9 @@ Before marking as done:
 
 - **Use it yourself**: Actually interact with the feature.
 - **Test on real devices**: Not just browser DevTools.
-- **Ask someone else to review**: Fresh eyes catch things.
+- **Get fresh evidence when proportionate**: use another reviewer when the
+  admitted contract requires it; do not make an external participant mandatory
+  for a small, otherwise evidenced change.
 - **Compare to design**: Match intended design.
 - **Walk the lock manifest**: If the surface has `mockups/<surface>.lock.md`, run the lock-fidelity audit from `audit.md` — paired mock/build renders, every term met or in `resettle`. A locked surface cannot pass polish on the generic checklist alone; drift found here blocks completion.
 - **Check all states**: Don't just test happy path.

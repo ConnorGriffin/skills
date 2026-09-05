@@ -66,7 +66,10 @@ Optional evocative subtitles are allowed in the form `## 2. Colors: The [Name] P
 - An existing `DESIGN.md` is stale (the design has drifted).
 - Before a large redesign, to capture the current state as a reference.
 
-If a `DESIGN.md` already exists, **do not silently overwrite it**. Show the user the existing file and STOP and call the AskUserQuestion tool to clarify. whether to refresh, overwrite, or merge.
+If a `DESIGN.md` already exists, **do not silently overwrite it**. Show the user
+the existing file and ask whether to refresh, overwrite, or merge. Use the host's
+supported choice interface where permitted; otherwise disclose the alternatives
+and costs in prose with a stable question identifier, then wait.
 
 ## Two paths
 
@@ -112,7 +115,10 @@ Skip anything the project doesn't have. Empty scale keys or fabricated tokens po
 
 ### Step 3: Ask the user for qualitative language
 
-The following require creative input that cannot be auto-extracted. Group them into one `AskUserQuestion` interaction:
+The following require creative input that cannot be auto-extracted. Group them
+into one supported interview round. Where the host forbids a choice interface,
+state the considered alternatives and costs in prose with stable identifiers,
+then wait rather than treating the recommendation as accepted:
 
 - **Creative North Star**: a single named metaphor for the whole system ("The Editorial Sanctuary", "The Golden State Curator", "The Lab Notebook"). Offer 2-3 options that honor PRODUCT.md's brand personality.
 - **Overview voice**: mood adjectives, aesthetic philosophy in 2-3 sentences, anti-references (what the system should not feel like).
@@ -348,7 +354,9 @@ If the user prefers to skip, stop. No file.
 
 ### Step 2: Five questions
 
-Group into one `AskUserQuestion` interaction. Options must be concrete.
+Group into one supported interview round. Options must be concrete; when the
+host forbids a choice interface, state the alternatives and costs in prose with
+stable identifiers and wait for the answer.
 
 1. **Color strategy.** Pick one:
    - Restrained: tinted neutrals + one accent ≤10%

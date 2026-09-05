@@ -148,12 +148,12 @@ Score an existing body and report. Never modify it.
 
 ## The gate
 
-A PreToolUse hook on `Bash` matches `gh pr create` and `gh pr edit`, hashes the
+A separately installed PreToolUse hook on `Bash` matches `gh pr create` and `gh pr edit`, hashes the
 `--body-file` it was handed, and denies when no receipt matches that hash. It
 also denies the forms it cannot read: inline `--body`, heredocs, a tilde path, a
 file that does not exist yet.
 
-There is no bypass, and the hook fails closed. The escape that exists is
+When that hook is installed, there is no bypass and it fails closed. The escape that exists is
 uninstalling the hook from `~/.claude/hooks/`, which a human can do and an agent
 must not.
 

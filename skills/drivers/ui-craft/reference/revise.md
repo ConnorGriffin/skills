@@ -121,7 +121,7 @@ the shipping shell, under all of these constraints:
 
 - human and agent work the wireframe together; it is never an unattended phase;
 - it lives in the change's own decision record — its OpenSpec change folder when
-  the repo uses OpenSpec, otherwise `docs/scope/<slug>/`;
+  the repo uses OpenSpec, otherwise the repository's resolved ADR home;
 - it never lives in `mockups/`;
 - it says `WIREFRAME — NO FIDELITY CLAIM — NOT LOCKABLE` at its top;
 - it may explore structure and interaction, but makes no claim to match the app;

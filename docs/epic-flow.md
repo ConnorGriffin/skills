@@ -58,7 +58,7 @@ After the operator confirms the draft, triage posts one attributed comment with 
 
 The stamp is not only a model name. It records the execution shape, selected review depth, profile, surface lifecycle, expected diff, verification contract, and a `Session fit:` paragraph copied from the selected routing-table row. A flat order carries the row's ladder. A chunked order carries the same ladder in each sub-order and exactly one `selected Agent rung` per sub-order.
 
-`start` proceeds without asking about model fit or effort when the current session is named in the stamped fit at or above the selected rung. Otherwise the session must compare its own system-prompt model and confirmed effort with the order's `Open as:` requirement. A weaker model or effort stops the run. For a chunked order, the coordinator must also be at least as strong as the strongest chunk agent.
+`start` proceeds under the stamped ladder only when its session is named there. An explicit Astra executor/coordinator selection instead needs authoritative current-session metadata, actual effort, and the adapter probe. It changes neither reviewer eligibility nor the Full-review route. Otherwise the session compares its own model and confirmed effort with `Open as:`; missing evidence or a weaker session stops the dependent run.
 
 ### Build
 

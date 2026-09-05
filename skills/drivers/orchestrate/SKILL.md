@@ -7,6 +7,16 @@ description: "Flip the session into coordinator mode — the parent agent plans,
 
 ## Invocation
 
+## Explicit executor admission
+
+An operator may explicitly select GPT-6 Astra for executor or coordinator work
+when current authoritative host metadata identifies it and the required adapter
+probe succeeds. This is admission to execute, not a benchmark result: do not add
+Astra to a ladder, infer hidden effort, compare it across families, or use it to
+choose a reviewer. Keep the existing headroom gate and review-routing contract.
+If identity, effort, repository access, or the adapter capability is unavailable,
+report that unresolved executor route and stop only dependent dispatch.
+
 For delegated workflow work, the coordinator owns every mandatory reviewer
 dispatch. The worker returns review-ready work to that coordinator; direct adapter
 dispatch from inside a sandboxed worker is unsupported. The coordinator resumes

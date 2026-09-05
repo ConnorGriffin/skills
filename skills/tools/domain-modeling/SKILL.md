@@ -14,7 +14,8 @@ model, not just consuming it.)
 
 Two files, two different contents: sharpened glossary terms go to
 `CONTEXT.md`; decisions that constrain architecture or behaviour go to the
-active scope ledger (`docs/scope/<slug>.md`) with a disposition tag. Don't
+repository's resolved ADR home. With active OpenSpec, that is the change's
+`design.md`; otherwise follow `references/ADR-FORMAT.md`. Don't
 conflate them — a term is not a decision, and a decision is not a definition.
 
 ## File structure
@@ -28,8 +29,8 @@ with no existing decision record; resolve the ADR's home first, per
 ├── CONTEXT.md
 ├── docs/
 │   └── adr/
-│       ├── 0001-event-sourced-orders.md
-│       └── 0002-postgres-for-write-model.md
+│       ├── adr-42-event-sourced-orders.md
+│       └── adr-57-postgres-for-write-model.md
 └── src/
 ```
 

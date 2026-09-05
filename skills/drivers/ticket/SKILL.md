@@ -250,8 +250,11 @@ It prints one object, and the verb reports it verbatim:
 * `ready` or `indexed`: query the graph as exactly that `project`. Never pick the
   graph by project name, branch-like label, list order, apparent recency, or because
   it was the only result.
-* `unavailable` (exit 2): no usable Codebase Memory here, so say so in one line and
-  use ordinary discovery for the rest of the session.
+* `unavailable` (exit 2): follow the owning `cbm-onboard` skill's bounded
+  supported-version and sandbox retry/fallback sequence first.
+  An active-generation conflict means wait and retry the same checkout; it is not a
+  sandbox escalation or authority to close another session. After that owned
+  sequence is exhausted, say so in one line and use ordinary discovery.
 * Any other failure (exit 1): stop the verb and report what `ensure` printed on
   stderr, which names the cause — a path that is not a checkout, or an installed
   tool answering for the wrong project or root. Neither is a case where guessing a
