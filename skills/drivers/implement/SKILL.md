@@ -3,12 +3,13 @@ name: implement
 description: "Implement a piece of work based on a PRD or set of issues."
 ---
 
-For a tracked ticket, enter through `/ticket triage <id>` and continue through
-`start`, `revise`, and `finalize`; that lifecycle owns the worktree, lock, review,
-commit, and pull-request boundary. Do not create a competing current-branch path.
+For a tracked ticket, consume its selected caller lifecycle and admitted lock. Do
+not re-triage a valid lock, run more than one ticket verb in one session, or create
+a competing current-branch path. `triage`, `start`, `revise`, and `finalize` stay
+fresh sessions; `start` stops at its open pull request and `finalize` runs only
+after human merge. Explicit operator overrides still control their stated scope.
 
-For an untracked PRD, first ask the operator whether to file a ticket. If they
-explicitly keep it untracked, use an isolated worktree, agree the interface and
-tests, work test-first where meaningful, run the repository's verification, then
-invoke `/review` before returning the commit and evidence. Do not open or merge a
-pull request unless the operator separately asks.
+For an untracked PRD, resolve the tracked path explicitly: ask whether the operator
+wants a ticket filed, then route a yes through `/ticket triage <id>`. If the
+operator explicitly declines, return that there is no tracked implementation path
+rather than duplicating ticket's worktree, lock, review, commit, or PR procedure.

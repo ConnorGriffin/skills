@@ -18,38 +18,48 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
    decides which path step 5 takes: legacy `WORK ORDER`, or `EXECUTION LOCK
    <version>`.
 
-3. **Model-check.** `Session fit:` admits only the named benchmark ladder it
-   records; do not invent cross-family strength ordering. An order explicitly
-   selecting `gpt-6-astra` for executor or coordinator work is admitted separately:
-   first accept an exact current-model declaration naming GPT-6 Astra. Otherwise,
-   on Codex read this session's own local rollout only: `CODEX_THREAD_ID` must
-   match `session_meta.payload.id` or `session_meta.payload.session_id`, and the
-   latest matching `turn_context` must report `payload.model: gpt-6-astra` and
-   `payload.effort: medium` or a higher host-identified effort. Never select the
-   newest unrelated rollout, a global default, or another worker's state. If a
-   required field is absent, ask once for the actual model or effort; do not guess.
-   Then verify the installed worker adapter's existing read-only probe and the
-   repository read/write capability this order requires. Failure admits neither
-   execution nor a substitute session. This explicit executor admission is not a
-   reviewer admission: preserve the stamped depth and route review independently.
+3. **Model-check.** An order explicitly selecting `gpt-6-astra` for executor or
+   coordinator work is admitted separately from every benchmark ladder. First use
+   an exact current-model declaration from system/developer context naming GPT-6
+   Astra. Otherwise, on Codex use only this session's local rollout:
+   `CODEX_THREAD_ID` must match `session_meta.payload.id` or
+   `session_meta.payload.session_id`, and the latest matching `turn_context` must
+   report `payload.model: gpt-6-astra`. Never select the newest unrelated rollout,
+   a global default, or another worker's state. Compare the actual current effort
+   to the effort requested by `Open as:`. Consume an already provided actual effort;
+   ask once only when it is unavailable. A lower effort stops the dependent work.
+   Then verify the installed adapter's existing read-only probe and the repository
+   read/write capability this order requires. Missing identity, effort, or capability
+   admits neither execution nor a substitute session. This explicit executor
+   admission is not reviewer admission: preserve the stamped depth and route review
+   independently. Do not infer cross-family strength or hidden effort.
 
-   For every other selection, a session whose system-prompt model is named in the
-   lock's ladder at or above its selected rung proceeds directly to step 4. Without
-   that evidence, `Open as:` names the required model and effort; state the model
-   the session reports and ask once for its effort rather than guessing. A weaker
-   or unconfirmed session stops before work. On a chunked order, each sub-order's
-   `Session fit:` paragraph, whose ladder is an ordered non-empty sequence of display-name rungs byte-identical across every `SUB-ORDER`, must have one selected Agent rung; that established fast path allows skipping the remainder of Model-check. Each
-   `Agent:` admission is then checked independently; do not use a coordinator's
-   model to infer a worker or reviewer route.
+   On a flat non-Astra order with `Session fit:`, a session whose system-prompt
+   model is named in that paragraph at or above the selected rung proceeds directly
+   to step 4, skipping the remainder of Model-check and without asking about model
+   fit or effort. On a chunked non-Astra order, take that same fast path only when
+   every `SUB-ORDER` has exactly one `Session fit:` paragraph whose ladder is an ordered non-empty sequence of display-name rungs byte-identical across every `SUB-ORDER`, whose exactly one `selected Agent rung: <Rung>` annotation names
+   exactly one rung in that paragraph, and whose coordinator system-prompt model is
+   named at or above that selected rung in every paragraph. Otherwise, the order's
+   `Open as:` line names a required model and effort. A session cannot reliably
+   introspect its own reasoning effort from context, so do not guess it or answer
+   from memory of an earlier guess. Consume actual effort already provided by the
+   host; otherwise ask the user in prose to confirm it. Compare both against
+   `Open as:`. Weaker on either axis: say so and stop, so the user relaunches
+   correctly. Same or stronger on both: proceed. On a chunked order, also check
+   every `SUB-ORDER`'s `Agent:` line against the confirmed model: the session must
+   be at least as strong as the strongest chunk. Weaker than any one and the whole
+   order is refused. Never run part of it or launch an agent smarter than the
+   coordinator.
 
 4. **Worktree and branch.** This is the first repository action after the shared
    opening. Never work in the control checkout. Reuse the worktree
    and branch triage cut, verifying with
    `git -C <worktree> branch --show-current`. Only cut fresh when triage's worktree
    is gone, with the same command shape triage used
-   ([verbs/triage.md](triage.md), step 2). The helper refuses if the control
-   checkout is dirty or the target path exists; a dirty control checkout remains
-   valid, while an existing target path must be surfaced without forcing it.
+   ([verbs/triage.md](triage.md), step 2). A dirty control checkout is valid and
+   remains untouched. The helper refuses an existing target path; surface that
+   ownership check and do not force it.
    Use the worktree path the helper printed as the working directory for every step
    below. Move the ticket to in progress. Then bind that worktree's graph identity
    per the skill page's graph-identity rule, before step 5 reads any code, and
@@ -161,7 +171,7 @@ Execute a locked work order in a fresh session. Ends at the open pull request.
 Before declaring the change ready, run each check below.
 
 1. **External surface by execution.** Before coding against a CLI or API surface, run `--help` or a probe call against that surface; do not infer flags, arguments, or behavior from memory.
-2. **Fail-first tests.** Before production edits, run every new test against the pre-change behavior or a deliberately broken variant and observe the expected failure. A fake that accepts every input or a mock of the function under test is not evidence.
+2. **Fail-first tests.** For changed executable behavior where a meaningful negative test exists, run it against the pre-change behavior or a deliberately broken variant and observe the expected failure. A fake that accepts every input or a mock of the function under test is not evidence. Prose behavior uses the admitted bounded fresh-session evidence, not a string-matching test.
 3. **Boundaries by execution.** Prove a security or confinement claim by attempting the forbidden action in a real run; configuration inspection alone is not evidence.
 4. **Post-fix sweep.** After each late fix, sweep its affected path for uncalled symbols, dead parameters, and prose that still describes the pre-fix behavior.
 

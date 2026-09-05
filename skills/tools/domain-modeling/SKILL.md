@@ -29,8 +29,8 @@ with no existing decision record; resolve the ADR's home first, per
 ├── CONTEXT.md
 ├── docs/
 │   └── adr/
-│       ├── 0001-event-sourced-orders.md
-│       └── 0002-postgres-for-write-model.md
+│       ├── adr-42-event-sourced-orders.md
+│       └── adr-57-postgres-for-write-model.md
 └── src/
 ```
 
