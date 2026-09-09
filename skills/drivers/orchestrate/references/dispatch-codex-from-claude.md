@@ -19,6 +19,12 @@ model-quality failure once through `codex-worker.py resume` against the same
 state file, carrying the specific finding; do not start a second worker for the
 retry. Review is a read task, so `workspace-write` is never correct for it.
 
+Codex fast mode is available on this path as `codex-worker.py start --fast`,
+but review is a load-bearing verdict: leave fast mode off for it. An explicit
+operator selection of GPT-6 Astra (`--model gpt-6-astra`) is an executor
+admission and never a reviewer selection; the matrix above still picks the
+reviewer.
+
 ## Infrastructure failure vs. model-quality failure
 
 A worker that failed to launch, hung before session start, lost its rollout,

@@ -149,6 +149,8 @@ def _valid_common_schema(
         return False
     if "network" in state and type(state["network"]) is not bool:
         return False
+    if "fast" in state and type(state["fast"]) is not bool:
+        return False
     control = state.get("control_checkout")
     if control is not None and not _canonical_path(control):
         return False
@@ -162,7 +164,7 @@ def valid_family_schema(state: dict[str, Any], *, effort_levels: set[str]) -> bo
     identity = {"pid", "pgid", "sid", "birth"}
     if not identity.issubset(state):
         return False
-    allowed = BASE_STATE_FIELDS | identity | {"control_checkout", "effort", "network"}
+    allowed = BASE_STATE_FIELDS | identity | {"control_checkout", "effort", "network", "fast"}
     if not _valid_common_schema(state, allowed, effort_levels=effort_levels):
         return False
     for field in ("pid", "pgid", "sid"):
@@ -179,7 +181,7 @@ def valid_family_schema(state: dict[str, Any], *, effort_levels: set[str]) -> bo
 
 
 def valid_portable_schema(state: dict[str, Any], *, effort_levels: set[str]) -> bool:
-    allowed = BASE_STATE_FIELDS | {"control_checkout", "family_semantics", "generation", "effort", "network"}
+    allowed = BASE_STATE_FIELDS | {"control_checkout", "family_semantics", "generation", "effort", "network", "fast"}
     if not _valid_common_schema(state, allowed, effort_levels=effort_levels):
         return False
     if state["lifecycle"] != "exited":
@@ -446,6 +448,8 @@ def prepare_start(
         "session_id": "",
         "network": bool(getattr(args, "network", False)),
     }
+    if getattr(args, "fast", False):
+        state["fast"] = True
     if effort != default_effort:
         state["effort"] = effort
     if args.control_checkout:
@@ -465,11 +469,13 @@ def prepare_resume(
             return None, None, "state file is malformed or incomplete"
         if "version" not in state:
             legacy = {"session_id", "model", "sandbox", "cwd"}
-            if not legacy.issubset(state) or not set(state).issubset(legacy | {"control_checkout", "effort", "network"}):
+            if not legacy.issubset(state) or not set(state).issubset(legacy | {"control_checkout", "effort", "network", "fast"}):
                 return None, None, "state file is malformed or incomplete"
             if not all(isinstance(state[key], str) and state[key] for key in legacy):
                 return None, None, "state file is malformed or incomplete"
             if "network" in state and type(state["network"]) is not bool:
+                return None, None, "state file is malformed or incomplete"
+            if "fast" in state and type(state["fast"]) is not bool:
                 return None, None, "state file is malformed or incomplete"
         elif not (
             valid_family_schema(state, effort_levels=effort_levels)
@@ -505,6 +511,8 @@ def prepare_resume(
             "cwd": str(cwd),
             "network": state.get("network", False),
         }
+        if state.get("fast", False):
+            fresh["fast"] = True
         if effort != default_effort:
             fresh["effort"] = effort
         if sandbox == "workspace-write":

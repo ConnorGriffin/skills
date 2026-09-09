@@ -11,11 +11,18 @@ description: "Flip the session into coordinator mode — the parent agent plans,
 
 An operator may explicitly select GPT-6 Astra for executor or coordinator work
 when current authoritative host metadata identifies it and the required adapter
-probe succeeds. This is admission to execute, not a benchmark result: do not add
+probe succeeds. Dispatch it as `codex-worker.py start --model gpt-6-astra`, with
+the effort the order states. This is admission to execute, not a benchmark result: do not add
 Astra to a ladder, infer hidden effort, compare it across families, or use it to
 choose a reviewer. Keep the existing headroom gate and review-routing contract.
 If identity, effort, repository access, or the adapter capability is unavailable,
 report that unresolved executor route and stop only dependent dispatch.
+
+An operator may also ask for Codex fast mode, which the adapter carries as
+`codex-worker.py start --fast`. It is a latency choice, not a capability or a
+rung: keep it off for review, plan/spec writing, and any load-bearing verdict,
+and never read a fast-mode result as benchmark evidence. See
+`references/dispatch-codex.md` for the option's persistence and resume behavior.
 
 For delegated workflow work, the coordinator owns every mandatory reviewer
 dispatch. The worker returns review-ready work to that coordinator; direct adapter
