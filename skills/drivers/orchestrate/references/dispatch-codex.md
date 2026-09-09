@@ -47,6 +47,30 @@ On success the helper emits one public JSON object. Read its `final_message`
 field as the current worker's answer; do not infer an answer from its session or
 headroom metadata.
 
+## Fast mode
+
+`start --fast` runs the worker in Codex fast mode. The adapter maps the option to
+`--enable fast_mode`, persists the boolean in lifecycle state, replays it on
+`resume` without a replacement flag, and reports it as `fast` in successful
+output. Omitting the option passes `--disable fast_mode` explicitly, so a worker
+never inherits whatever `features.fast_mode` the operator's `~/.codex/config.toml`
+happens to set; existing state without the field resumes with fast mode off.
+
+Fast mode trades reasoning depth for latency. Ask for it when the operator asks
+for it, or for a bounded, low-judgment run such as the headroom probe. Do not
+use it for review, plan/spec writing, or any load-bearing verdict, and never read
+a fast-mode result as evidence about a model's benchmarked rung.
+
+## Explicit Astra selection
+
+An operator may explicitly select GPT-6 Astra as the worker model; pass
+`--model gpt-6-astra` to the helper. This is an operator admission to execute,
+not a benchmarked route: it never enters the admission table below, never
+selects a reviewer, and never escalates to or from a benchmarked rung. Astra
+takes `--effort` like any other Codex model, so state the effort the order
+requires rather than inferring a hidden one. `review-routing.md` remains the sole
+authority for review precedence.
+
 ## Worker liveness
 
 When the adapter is still running but has no terminal output or session ID, wait

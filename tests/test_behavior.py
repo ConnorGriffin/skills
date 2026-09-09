@@ -1865,6 +1865,8 @@ class CodexWorkerTests(unittest.TestCase):
                 'sandbox_mode="workspace-write"',
                 "-c",
                 "model_reasoning_effort=medium",
+                "--disable",
+                "fast_mode",
                 "--skip-git-repo-check",
                 "--json",
                 "continue with the failing test",
@@ -2619,6 +2621,56 @@ class WorkerEffortDialTests(unittest.TestCase):
         self.assertIn(["-c", "tools.web_search=true"], [argv[index:index + 2] for index in range(len(argv) - 1)])
         self.assertIs(json.loads(self.state.read_text(encoding="utf-8"))["network"], True)
         self.assertIs(json.loads(result.stdout)["network"], True)
+
+    def test_codex_start_disables_fast_mode_unless_asked(self):
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+
+        result = self.run_codex(
+            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--model", "Terra", "--sandbox", "read-only",
+            "--cwd", str(self.worktree), "do the work",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn(["--disable", "fast_mode"], [argv[index:index + 2] for index in range(len(argv) - 1)])
+        self.assertNotIn("fast", json.loads(self.state.read_text(encoding="utf-8")))
+        self.assertIs(json.loads(result.stdout)["fast"], False)
+
+    def test_codex_start_fast_enables_fast_mode_and_persists_it(self):
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+
+        result = self.run_codex(
+            "start", "--codex", str(self.codex_binary), "--state", str(self.state),
+            "--model", "gpt-6-astra", "--sandbox", "read-only", "--fast",
+            "--cwd", str(self.worktree), "do the work",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn(["--enable", "fast_mode"], [argv[index:index + 2] for index in range(len(argv) - 1)])
+        self.assertIn(["-m", "gpt-6-astra"], [argv[index:index + 2] for index in range(len(argv) - 1)])
+        self.assertIs(json.loads(self.state.read_text(encoding="utf-8"))["fast"], True)
+        self.assertIs(json.loads(result.stdout)["fast"], True)
+
+    def test_codex_resume_replays_persisted_fast_mode(self):
+        persisted = {
+            "version": LIFECYCLE_MODULE.STATE_VERSION, "lifecycle": "exited",
+            "session_id": "worker-1", "model": "gpt-6-astra", "sandbox": "read-only",
+            "cwd": str(self.worktree.resolve()), "fast": True,
+            "family_semantics": "unsupported", "generation": 1,
+        }
+        self.state.write_text(json.dumps(persisted), encoding="utf-8")
+        self.environment["FAKE_OUTPUT"] = '{"type":"thread.started","thread_id":"worker-1"}\n{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}\n'
+
+        result = self.run_codex(
+            "resume", "--codex", str(self.codex_binary), "--state", str(self.state), "continue",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = json.loads(self.arguments.read_text(encoding="utf-8"))
+        self.assertIn(["--enable", "fast_mode"], [argv[index:index + 2] for index in range(len(argv) - 1)])
+        self.assertIs(json.loads(result.stdout)["fast"], True)
 
     def test_codex_effort_enum_matches_the_live_api_probe(self):
         self.assertEqual(
