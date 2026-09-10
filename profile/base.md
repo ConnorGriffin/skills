@@ -112,6 +112,15 @@ categories that don't apply.
   (including `profile/CHARTER.md`) or a must-prevent outcome in the admitted risk
   contract. Prefer ordinary semantic interpretation and the smallest change that
   works.
+- **Verify what a change touches; run the whole suite once, before the push.**
+  While iterating, run only the tests, stories or legs the change touches, at
+  the one configuration that reproduces the problem. Run each complete suite,
+  ledger or replay exactly once per push, on the commit that will be pushed —
+  never after every commit, and never two runs that share a port or a machine
+  at the same time. A green full run on a commit that is not the one pushed
+  proves nothing; a full run after every one-line fix costs hours and proves
+  nothing extra. When a full run is long (minutes to an hour), say its cost
+  before starting it.
 - **No background-task chips.** Don't use `spawn_task`. File a tracked issue
   instead.
 
