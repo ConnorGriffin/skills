@@ -95,6 +95,10 @@ Fixes PROJ-7351
 * Anything addressed to the reviewer: "worth checking", "please look at the IAM
   change". Telling a reviewer where to look tells them where not to.
 * Method narration: "I ran preview against dev and prd", "verified with".
+* An agentless verb where an actor exists: "the node is promoted", "the
+  threshold gets updated", "the volume grows", "the change lands". Name what
+  does it: "`ghe-repl-promote` converts the node", "the reconciler writes the
+  threshold", "the apply resizes the volume".
 * A retelling of the spec or the diff: the reasoning behind a value, the
   alternatives weighed, the order the commands ran in. Name where it lives.
 * An empty template section. Cut the heading only if the template does not ship

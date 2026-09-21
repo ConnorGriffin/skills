@@ -126,6 +126,13 @@ wait for a required unanswered decision and do not repeat a settled choice.
    name is the answer.
 2. **One instruction per sentence** (ASD-STE100). A sentence that tells the reader
    to do two things becomes two sentences or two list items.
+   **Name the actor and use its verb.** In a procedure the operator is the
+   subject and the verb is imperative: "Upgrade the ring", "Join `ghe-aws-03`",
+   "Leave the cron commented out". A system is the subject only when it acts on
+   its own ("`ghe-repl-promote` stops replication", "the apply registers the
+   repository"). Never an agentless or passive form that hides who does it: not
+   "the ring upgrades", "the node is promoted", "the cron gets uncommented",
+   "the change lands".
 3. **Vocabulary budget.** Use only words the reader has used this session, plus
    standard industry terms, plus this repo's glossary (below). Leave out codenames
    or shorthand invented while thinking.
@@ -143,6 +150,11 @@ Design docs, runbooks, tickets, summaries:
 2. Lead with the fact itself, not a label prefix ("Risk:", "Note:", "Unknown:").
 3. State what exists, what happens, or what to do; leave processes, teams, and
    systems unpersonified.
+   In a runbook or ticket, the reader is the actor: write the step as the
+   imperative they perform, and reserve a system subject for what the system
+   does in response. "Promote `ghe-aws-01`", then "It stops replication and
+   converts the node to a primary". A step with no actor ("the replica is
+   promoted", "DNS moves") is not a step.
 4. Write a thing to verify as the verification action, not a hedging clause.
 5. A final copy reads as the first and only draft, current content only (no
    tombstone comments, no "previously this included X").
