@@ -75,6 +75,13 @@ chat replies.
 * Domain language: name systems and behaviors, except where the file name is the
   answer.
 * One instruction per sentence.
+* Name the actor and use its verb. In a procedure the operator is the subject
+  and the verb is imperative: "Upgrade the ring", "Join `ghe-aws-03`", "Leave
+  the cron commented out". A system is the subject only when it acts on its own
+  ("`ghe-repl-promote` stops replication", "the apply registers the repository").
+  Never an agentless or passive form that hides who does it: not "the ring
+  upgrades", "the node is promoted", "the cron gets uncommented", "X takes
+  place".
 * Vocabulary budget: words the reader used this session, standard industry terms,
   and the repo glossary at `~/.config/say-less/glossaries/<repo-name>.md` when
   present.

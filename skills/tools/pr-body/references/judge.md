@@ -58,7 +58,7 @@ the reader would notice, or a single sentence that is plainly wrong.
 
 ## What to look for
 
-Eight textures, each drawn from the operator's own annotations on real bodies.
+Nine textures, each drawn from the operator's own annotations on real bodies.
 Examples first; the rules underneath them are short on purpose, because the quiz
 that produced these preferences showed examples carry voice where abstract rules
 do not.
@@ -121,6 +121,24 @@ Every backticked symbol sends the reader to the diff to find out what the
 sentence meant. Name the behavior instead. A symbol earns its place when the
 symbol itself is the fact the reader needs (a config key they will set, a flag
 they will pass).
+
+### Agentless verbs
+
+> The passive replica is promoted and DNS is updated, after which the old
+> primary gets decommissioned.
+
+Becomes:
+
+> `ghe-repl-promote` converts `ghe-aws-01` to primary. The DNS change points
+> the service name at it. `ghe-repl-decommission` removes the old primary from
+> the ring.
+
+Every verb has a subject that does it. "Is promoted", "gets updated", "the ring
+upgrades", "the change lands" all hide the actor, and the reader cannot check a
+sentence whose actor is missing. A system is the subject when the system does
+it; the operator is the subject when a human does it. Tells: "is/are/gets"
+plus a participle, and an intransitive verb on a thing that cannot act
+("upgrades", "moves", "lands", "takes place").
 
 ### Paragraphs where bullets belong
 
