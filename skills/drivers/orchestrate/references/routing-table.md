@@ -8,6 +8,7 @@ GPT-5.3-Codex-Spark (full suite); GPT-5.5, GPT-5.4, GPT-5.4-Mini (light pass: pl
 review only). Codex runs at `model_reasoning_effort=medium`. Scores 1–5, judged blind by
 the coordinator against ground truth; published-eval data was a secondary signal only.
 Re-benchmark when a new model ships — and note Claude routes dispatch via unversioned aliases (`opus`/`sonnet`/`haiku`), so re-verify this stamp when Anthropic rolls a snapshot, not only on a named launch. See `benchmark/README.md`.
+Since 2026-09-24 the `opus` alias resolves to Claude Opus 5.5 (`claude-opus-5-5`, Claude Code 2.1.280 or newer), so every Opus route below dispatches Opus 5.5. Its scores were benchmarked on Opus 5 and have not been re-run on 5.5.
 
 Cost tiers as of 2026-08-03 — routes were selected at these prices; re-check on a
 price move (per M tokens in/out): Opus $5/$25 · Sonnet $3/$15 · Haiku $1/$5 ·
