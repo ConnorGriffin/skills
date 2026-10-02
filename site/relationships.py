@@ -20,7 +20,6 @@ RELATIONSHIPS = {
     "handoff": {"uses": [], "requirements": ""},
     "persona-review": {"uses": ["orchestrate"], "requirements": "Private data repo for persona memory; GitHub CLI for mining real-colleague profiles; parallel-agent support recommended"},
     "plan-review": {"uses": ["orchestrate", "persona-review", "reviewer-memory"], "requirements": "`orchestrate` is an optional integration used for reviewer routing when installed; `reviewer-memory` from this pack; parallel-agent support recommended; `persona-review` optional for load-bearing plans; the round-count evidence behind its rules is in [docs/review-round-mining.md](docs/review-round-mining.md)"},
-    "pr-body": {"uses": [], "requirements": "A PreToolUse hook that hard-denies `gh pr create` until the body is scored, installed separately from `hooks/`"},
     "preflight": {"uses": ["plan-review"], "requirements": ""},
     "prototype": {"uses": [], "requirements": ""},
     "research": {"uses": [], "requirements": ""},

@@ -32,7 +32,6 @@ EXPECTED = {
     "tools/handoff",
     "tools/persona-review",
     "tools/plan-review",
-    "tools/pr-body",
     "tools/preflight",
     "tools/prototype",
     "tools/research",
