@@ -1,8 +1,7 @@
 """Behavior tests for scripts/check_dco.py.
 
 Drives the script as a subprocess against a throwaway fixture git repository,
-following tests/test_pr_body_gate.py's pattern of testing a script rather than
-importing it as a module.
+testing the script rather than importing it as a module.
 """
 
 from __future__ import annotations

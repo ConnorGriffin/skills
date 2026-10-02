@@ -11,7 +11,7 @@ map of decision tickets and hands clear subtrees onward as build issues, `implem
 `ui-craft` run their procedures and delegate subgoals, `orchestrate` delegates but is
 chosen by the operator knowing what that means. Tools do one job themselves, chosen either
 by the operator or invoked from a driver: `code-review` scores a diff, `plan-review`
-audits plans, `tdd` runs tests, `spin-worktree` cuts a worktree, `pr-body` scores a body.
+audits plans, `tdd` runs tests, and `spin-worktree` cuts a worktree.
 
 The original framing split on whether a skill "routes to or drives other skills" versus
 "does one job". That rule admits most of the pack, because almost every non-trivial skill
@@ -49,7 +49,7 @@ Skills live in category folders inside `skills/`, three siblings one level deep:
   `implement`, `ui-craft`, `orchestrate`, `ticket`, `openspec-adopt`.
 * `skills/tools/<name>` holds a skill that does one job itself, whether or not another
   skill invokes it: `code-review`, `plan-review`, `persona-review`, `tdd`, `prototype`,
-  `research`, `preflight`, `handoff`, `pr-body`, `say-less`, `spin-worktree`,
+  `research`, `preflight`, `handoff`, `say-less`, `spin-worktree`,
   `drive-local-webapp`, `cbm-onboard`, `ci-design`, `codebase-design`,
   `domain-modeling`, `writing-for-agents`.
 

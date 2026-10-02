@@ -78,8 +78,8 @@ nothing here is personal or sensitive. What the build must exercise:
   `ui-craft` is the locked exemplar and carries all five (verified at lock: 1
   table, 3 lists, 1 ordered list, 3 emphases).
 - **A skill page whose body has a fenced code block.** `ui-craft`'s does not,
-  so the mock never exercised `<pre>`. The build must render one — `pr-body`
-  and `cbm-onboard` have fenced blocks — and prove it does not force a
+  so the mock never exercised `<pre>`. The build must render one — `cbm-onboard`
+  has fenced blocks — and prove it does not force a
   horizontal page scroll at 375px (term 10).
 - **A skill page for a leaf** — one with no inbound and no outbound edges
   (`cbm-onboard`, `openspec-adopt`) — so term 21's empty bands are designed,

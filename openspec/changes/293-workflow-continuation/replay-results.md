@@ -117,9 +117,9 @@ Full and the benchmark table was not promoted.
 
 ## Disposition closure
 
-All 26 dispositions remain governed by [dispositions.md](dispositions.md):
+All 25 dispositions remain governed by [dispositions.md](dispositions.md):
 
-- 01–04, 06–11, 13–15, 19, 21 and 24–25: the named public instruction changes are
+- 01–04, 06–11, 13–15, 19, 20 and 23–24: the named public instruction changes are
   implemented; bounded outcomes and limits are reported above.
 - 12: pre-pass capture and scoped rollback are implemented with disposable proof.
 - 18: owner-based retry/fallback and bounded diagnostics are implemented, including
@@ -127,13 +127,11 @@ All 26 dispositions remain governed by [dispositions.md](dispositions.md):
 - 05, 16 and 17: reviewer policy, explicit sanctions and installed-store failure
   policy are retained. Prior exact-scope approval is reused; optional persona
   persistence does not invalidate a completed verdict.
-- 20: public hook-enforcement claims are corrected; live installation work remains
-  an external follow-up on the originating ticket.
-- 22: transport/recovery remains with #263 and forbidden verification legs with
+- 21: transport/recovery remains with #263 and forbidden verification legs with
   #288; this change does not absorb them.
-- 23: competing external obligations remain subject to actual higher-priority
+- 22: competing external obligations remain subject to actual higher-priority
   instructions; no bundled Sites or deployment changes were made.
-- 26: private credential-skill work remains outside this public pack and outstanding
+- 25: private credential-skill work remains outside this public pack and outstanding
   on the originating ticket. No private skill or configuration was changed.
 
 Scope-ledger disposal remains with #289, and guided manual orders remain with

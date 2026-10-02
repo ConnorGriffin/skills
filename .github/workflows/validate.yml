@@ -31,9 +31,6 @@ jobs:
         run: >-
           python3 -m unittest -v
           tests.test_behavior
-          tests.test_pr_body
-          tests.test_pr_body_gate
-          tests.test_pr_body_bench
           tests.test_ticket
           tests.test_reviewer_memory
           tests.test_codebase_memory_install

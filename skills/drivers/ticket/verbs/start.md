@@ -266,9 +266,8 @@ Before declaring the change ready, run each check below.
     exists anywhere, write the body free-form. Either way the body carries what
     changed, the verification output in a fence, and a link to the ticket. Under
     `Profile: hardening`, it also carries the `Harden:` output in a fence, the
-    survivor list with dispositions, and the QA script verbatim. When
-    `/pr-body` is installed, score the body with it before opening. Then move the
-    ticket to pending review and comment on it (attribution first) with the pull
+    survivor list with dispositions, and the QA script verbatim. Then move the ticket
+    to pending review and comment on it (attribution first) with the pull
     request link and a one-line status.
 
     **Surface evidence follows the lifecycle.** A `build` attaches paired

@@ -47,13 +47,12 @@ This is triage intake, not an execution lock. Policy proposals below remain unap
 | 17 | Retain policy | Keep the installed-store failure gate unless explicitly changed. Optional persona-record approval does not invalidate a completed review; distinguish the two outcomes. |
 | 18 | Fix here; external restart excluded | Single-source supported retry/fallback instructions and expose the observed CBM diagnostic through supported troubleshooting. Prefer prose guidance; executable diagnostic changes require explicit scope in the lock. Do not close unrelated CBM sessions. |
 | 19 | Fix here | Describe invocation metadata per host and preserve hand-only intent using supported Codex metadata; do not promise the description disappears on every host. |
-| 20 | Fix public claim; external installation follow-up | Distinguish mandatory PR-body scoring from whether a host actually installed enforcement. No live hook installation or global configuration changes here. |
-| 21 | Fix here without weakening owed evidence | Make exploratory and verification effort proportional to the concrete accepted behavior. Preserve public-interface regressions and every explicitly owed evidence leg; do not require elapsed-time busywork for prose. |
-| 22 | Already covered | Preserve worker headroom and lifecycle gates. Transport/recovery belongs to https://github.com/ConnorGriffin/skills/issues/263; forbidden verification legs belong to https://github.com/ConnorGriffin/skills/issues/288. Both verified open during triage. |
-| 23 | Retain external boundary | Document applicability only: resolve competing checkout/design obligations under actual higher-priority instructions before dispatch. Do not edit bundled Sites or add deployment work. |
-| 24 | Fix here | Presentation and quiet-wait rules cannot imply parent completion or override higher-priority progress requirements. No bundled visualization edits. |
-| 25 | Fix here | Reconcile the interview line budget, issue-based ADR example, and shipped-template heading rule at their existing authorities. |
-| 26 | External follow-up | Private credential-handling skill is outside this public repo. No secrets or private configuration published; no private skill mutation under this lock. Follow-up destination must be supplied or authorized before filing outside this ticket. |
+| 20 | Fix here without weakening owed evidence | Make exploratory and verification effort proportional to the concrete accepted behavior. Preserve public-interface regressions and every explicitly owed evidence leg; do not require elapsed-time busywork for prose. |
+| 21 | Already covered | Preserve worker headroom and lifecycle gates. Transport/recovery belongs to https://github.com/ConnorGriffin/skills/issues/263; forbidden verification legs belong to https://github.com/ConnorGriffin/skills/issues/288. Both verified open during triage. |
+| 22 | Retain external boundary | Document applicability only: resolve competing checkout/design obligations under actual higher-priority instructions before dispatch. Do not edit bundled Sites or add deployment work. |
+| 23 | Fix here | Presentation and quiet-wait rules cannot imply parent completion or override higher-priority progress requirements. No bundled visualization edits. |
+| 24 | Fix here | Reconcile the interview line budget, issue-based ADR example, and shipped-template heading rule at their existing authorities. |
+| 25 | External follow-up | Private credential-handling skill is outside this public repo. No secrets or private configuration published; no private skill mutation under this lock. Follow-up destination must be supplied or authorized before filing outside this ticket. |
 
 Related boundaries: https://github.com/ConnorGriffin/skills/issues/289 remains the owner of scope-ledger disposal; https://github.com/ConnorGriffin/skills/issues/292 remains the owner of guided manual orders. Both verified open during triage. Neither is absorbed into continuation repair.
 
