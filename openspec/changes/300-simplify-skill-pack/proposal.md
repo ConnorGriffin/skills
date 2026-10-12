@@ -22,18 +22,21 @@ persona panels added review rounds without a matching gain.
 - Remove `persona-review`, the review front door's `personas` route, plan-review's
   persona panel step, and UI Craft's `consensus` panel mode and its `init` persona
   panel step.
-- Delete the `scope` and `preflight` skills. Other skills point to
-  `/ticket triage` instead; a follow-up under this issue folds their behavior into
-  triage and rewrites the ticket skill.
+- Delete the `scope` and `preflight` skills and fold their behavior into
+  `/ticket triage`.
+- Rewrite the ticket skill to under 600 lines of prose: one artifact per verb, one
+  cold plan review only at Full depth, one code-review pass, no chunked orders.
+- Remove the `epic` skill; triage files oversized work as child issues tracked on a
+  parent checklist.
 
 ## Risk contract
 
 - **Must prevent:** a surviving skill instructing an agent to run a deleted script
-  or skill outside the ticket skill, whose rewrite is the follow-up; a broken
+  or skill; a broken
   repository link; a weakened assertion about a surviving skill's behavior.
 - **Must recover:** none; every removal is a reversible git change.
-- **Accepted failure:** the ticket skill still names `/scope`, `/orchestrate`,
-  and the Codebase Memory graph identity until the ticket rewrite lands.
+- **Accepted failure:** active change 273's finalization delta still mentions epic
+  children, an inert clause left to that change.
 - **Unsupported:** rewriting archived OpenSpec changes, frozen ADRs, or historical
   scope notes beyond the links the validator requires.
 - **Evidence owed:** strict OpenSpec validation, the structural validator, and the
@@ -41,7 +44,7 @@ persona panels added review rounds without a matching gain.
 
 ## Impact
 
-Removes six skills and their tests. Changes `code-review`, `plan-review`,
+Removes seven skills and their tests, and rewrites the ticket skill. Changes `code-review`, `plan-review`,
 `research`, `codebase-design`, `review`, `ui-craft`, the README, the docs site
 sources and mockups, CI workflows, and `profile/base.md`. Supersedes ADR 65,
-ADR 149, and ADR 150.
+ADR 149, ADR 150, and ADR 143.

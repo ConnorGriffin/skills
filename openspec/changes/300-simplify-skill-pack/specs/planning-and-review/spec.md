@@ -30,8 +30,8 @@ is no pack-owned adapter whose liveness the coordinator polls.
 rule and its adapter dispatch.
 
 **Migration**: Write-mode work runs as native subagents with worktree isolation.
-The ticket rewrite under issue 300 specifies any order-file rule chunked tickets
-keep.
+The ticket rewrite under issue 300 removes chunked orders, so no order-file rule
+survives.
 
 ### Requirement: Orchestration isolation and review handoff
 
@@ -41,6 +41,55 @@ through pack-owned isolated adapters.
 **Migration**: Follow `profile/base.md` "Delegating to subagents". The ticket
 workflow's `Coordinator-owned review handoff` requirement still governs
 mandatory review reached by delegated ticket work.
+
+### Requirement: Worker payload boundary
+
+**Reason**: ADR 300 removes chunked ticket orders, so no coordinator assembles a
+chunk-worker prompt.
+
+**Migration**: Work too big for one session becomes child issues, each triaged into
+its own work order; see the ticket-workflow delta.
+
+### Requirement: Epic OpenSpec authority
+
+**Reason**: ADR 300 removes the `epic` skill.
+
+**Migration**: Track multi-session work as child issues on a parent issue's
+checklist; each child carries its own OpenSpec change.
+
+### Requirement: Epic lifecycle without a ledger
+
+**Reason**: ADR 300 removes the `epic` skill.
+
+**Migration**: The parent issue's checklist and live tracker state replace the epic
+lifecycle.
+
+### Requirement: Epic dispatch remains human-operated
+
+**Reason**: ADR 300 removes the `epic` skill.
+
+**Migration**: The operator still invokes every `/ticket` verb on each child issue.
+
+### Requirement: Epic child drafts pin their parent-plan base
+
+**Reason**: ADR 300 removes the `epic` skill and its parent-plan branch.
+
+**Migration**: Each child ticket is triaged from the default branch like any other
+ticket.
+
+### Requirement: Epic slicing defaults to three or fewer children
+
+**Reason**: ADR 300 removes the `epic` skill.
+
+**Migration**: `/ticket triage` slices oversized work into pull-request-sized child
+issues by its own sizing rule.
+
+### Requirement: Epic planning artifacts ship with implementation
+
+**Reason**: ADR 300 removes the `epic` skill and its shared parent change.
+
+**Migration**: Each child ticket's own change rides its own implementation pull
+request.
 
 ## MODIFIED Requirements
 
