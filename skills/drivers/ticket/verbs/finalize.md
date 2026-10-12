@@ -32,7 +32,7 @@ the code host back to the tracker; this verb is that sync. Its fresh session cla
    archive branch there, run `openspec archive <change-name> --json --yes`, verify
    its archive JSON, run `openspec validate --all --strict`, create a Signed-off-by
    archive commit, push that branch, and open a follow-up pull request against
-   `main`, scoring the body with `/pr-body` when it is installed. Never push an
+   `main`. Never push an
    archive commit directly or forcibly to `main`, and never merge the archive pull
    request. Then comment on the ticket (attribution first) with the merged
    implementation pull request link, the post-merge evidence, and a line reading

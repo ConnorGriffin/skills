@@ -85,12 +85,11 @@ Exit: 0
 
 ```text
 15:- Test: `python3 scripts/validate.py && python3 -m unittest tests.test_behavior
-16:  tests.test_pr_body tests.test_pr_body_gate tests.test_pr_body_bench
-17:  tests.test_ticket tests.test_reviewer_memory tests.test_codebase_memory_install tests.test_check_dco
-18:  tests.test_ci_changed_paths tests.test_site_build && python3 -m py_compile
-20:  skills/drivers/orchestrate/scripts/worker_lifecycle.py
-21:  skills/drivers/orchestrate/scripts/codex-worker.py
-22:  skills/drivers/orchestrate/scripts/claude-worker.py`. Requires Python 3.10
+16:  tests.test_ticket tests.test_reviewer_memory tests.test_codebase_memory_install tests.test_check_dco
+17:  tests.test_ci_changed_paths tests.test_site_build && python3 -m py_compile
+19:  skills/drivers/orchestrate/scripts/worker_lifecycle.py
+20:  skills/drivers/orchestrate/scripts/codex-worker.py
+21:  skills/drivers/orchestrate/scripts/claude-worker.py`. Requires Python 3.10
 ```
 
 Exit: 0

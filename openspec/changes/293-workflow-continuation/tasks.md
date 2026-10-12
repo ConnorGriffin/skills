@@ -11,5 +11,5 @@
 
 - [x] 2.1 Integrate explicit Astra executor/coordinator admission separately from reviewer policy, retaining current benchmark ladders, Full review, headroom checks, and truthful unresolved-route reporting.
 - [x] 2.2 Integrate safe triage-time first behavior sweep, inherited checkout/base ownership, correct lifecycle umbrella rules, and chunk-owned completion into ticket, epic, and UI prose.
-- [x] 2.3 Reconcile implement entry, stale UI modes/question-tool assumptions, proportionality, ADR example, PR-body template/enforcement claims, and all inventory consumer references according to dispositions.md.
-- [x] 2.4 Run the complete repository checks and strict OpenSpec validation; return fresh-session integration and negative-boundary evidence for coordinator recording, with all 26 dispositions accounted for and external work explicitly outstanding.
+- [x] 2.3 Reconcile implement entry, stale UI modes/question-tool assumptions, proportionality, ADR example, and all inventory consumer references according to dispositions.md.
+- [x] 2.4 Run the complete repository checks and strict OpenSpec validation; return fresh-session integration and negative-boundary evidence for coordinator recording, with all 25 dispositions accounted for and external work explicitly outstanding.

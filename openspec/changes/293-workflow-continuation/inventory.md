@@ -54,8 +54,6 @@ Only paths listed for a chunk are editable by that chunk. Inclusion permits only
 - `skills/drivers/ui-craft/reference/polish.md`
 - `skills/tools/domain-modeling/SKILL.md`
 - `skills/tools/domain-modeling/references/ADR-FORMAT.md`
-- `skills/tools/pr-body/SKILL.md`
-- `skills/tools/pr-body/references/rubric.md`
 - `docs/overlay.md`
 - `docs/orchestrate-spec.md`
 - `tests/test_ticket.py`

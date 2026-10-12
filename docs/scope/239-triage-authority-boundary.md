@@ -161,7 +161,7 @@ Final verification commands, run from the ticket worktree after merging current
 ```sh
 openspec validate --all --strict
 /opt/homebrew/bin/python3.14 scripts/validate.py
-/opt/homebrew/bin/python3.14 -m unittest tests.test_behavior tests.test_pr_body tests.test_pr_body_gate tests.test_pr_body_bench tests.test_ticket tests.test_reviewer_memory tests.test_codebase_memory_install tests.test_check_dco tests.test_ci_changed_paths tests.test_site_build
+/opt/homebrew/bin/python3.14 -m unittest tests.test_behavior tests.test_ticket tests.test_reviewer_memory tests.test_codebase_memory_install tests.test_check_dco tests.test_ci_changed_paths tests.test_site_build
 /opt/homebrew/bin/python3.14 -m py_compile skills/tools/codebase-memory/scripts/install.py skills/tools/reviewer-memory/scripts/memory.py scripts/ci_changed_paths.py skills/drivers/orchestrate/scripts/worker_lifecycle.py skills/drivers/orchestrate/scripts/codex-worker.py skills/drivers/orchestrate/scripts/claude-worker.py
 ```
 
