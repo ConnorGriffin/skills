@@ -338,12 +338,12 @@ class PlanReviewDispatchTests(unittest.TestCase):
         self.assertIn(b"record that plan file path", dispatch)
         self.assertIn(b"plan-review-mechanical-fixes.md", dispatch)
 
-    def test_cold_reader_prompt_has_exactly_five_allowed_inputs(self):
+    def test_cold_reader_prompt_has_exactly_four_allowed_inputs(self):
         text = self.source.decode("utf-8")
         dispatch = text.split("## Cold-reader dispatch\n", 1)[1].split(
             "## Mechanical fix in place\n", 1
         )[0]
-        self.assertIn("cold-reader prompt's five allowed inputs", dispatch)
+        self.assertIn("cold-reader prompt's four allowed inputs", dispatch)
 
         input_list = dispatch.split("The cold-reader prompt contains exactly:\n", 1)[1].split(
             "\n\n", 1
@@ -355,7 +355,6 @@ class PlanReviewDispatchTests(unittest.TestCase):
                 "2. the five-axis rubric;",
                 "3. stakes tier;",
                 "4. a context-free fresh-reviewer phase instruction that requires the reviewer",
-                "5. the reviewer-memory store index path printed by `python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>`.",
             ],
         )
 
@@ -373,90 +372,6 @@ class PlanReviewDispatchTests(unittest.TestCase):
             "a settled ruling stays in the panel-or-operator path and does consume the ordinary "
             "revision cycle.",
             text,
-        )
-
-
-class ReviewerMemoryConsumerContractTests(unittest.TestCase):
-    TRIAGE = ROOT / "skills" / "drivers" / "ticket" / "verbs" / "triage.md"
-    FINALIZE = ROOT / "skills" / "drivers" / "ticket" / "verbs" / "finalize.md"
-    CODE_REVIEW = ROOT / "skills" / "tools" / "code-review" / "SKILL.md"
-    PLAN_REVIEW = ROOT / "skills" / "tools" / "plan-review" / "SKILL.md"
-
-    def test_triage_ensures_and_consults_memory_under_the_authoritative_failure_rule(self):
-        text = " ".join(self.TRIAGE.read_text(encoding="utf-8").split())
-        self.assertIn(
-            "python3 <reviewer-memory-skill-directory>/scripts/memory.py ensure <repo>",
-            text,
-        )
-        self.assertIn(
-            "[reviewer-memory failure rule](../../../tools/reviewer-memory/SKILL.md#failure-rule)",
-            text,
-        )
-        self.assertIn("including its not-installed carve-out", text)
-        self.assertIn("slicing records", text)
-
-    def test_code_review_injects_the_pointer_and_appends_rounds_under_the_authoritative_failure_rule(self):
-        text = " ".join(self.CODE_REVIEW.read_text(encoding="utf-8").split())
-        pointer = "python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>"
-        append = "python3 <reviewer-memory-skill-directory>/scripts/memory.py append-review <repo>"
-        self.assertGreaterEqual(text.count(pointer), 2)
-        self.assertIn(append, text)
-        self.assertIn(
-            "[reviewer-memory failure rule](../reviewer-memory/SKILL.md#failure-rule)",
-            text,
-        )
-        self.assertIn("including its not-installed carve-out", text)
-        self.assertIn(
-            "The object contains the ticket, round, verdict, findings summary, and reviewer model.",
-            text,
-        )
-
-    def test_finalize_appends_the_record_output_under_the_authoritative_failure_rule(self):
-        text = " ".join(self.FINALIZE.read_text(encoding="utf-8").split())
-        self.assertIn(
-            "python3 <reviewer-memory-skill-directory>/scripts/memory.py append-slicing <repo>",
-            text,
-        )
-        self.assertIn(
-            "[reviewer-memory failure rule](../../../tools/reviewer-memory/SKILL.md#failure-rule)",
-            text,
-        )
-        self.assertIn("including its not-installed carve-out", text)
-        self.assertIn("Retain a successful record command's standard output in `record_json`", text)
-        self.assertIn("without rerunning `record`", text)
-        self.assertIn("printf '%s\\n' \"$record_json\" |", text)
-        self.assertIn("matching the repository identity resolved from `--project`", text)
-
-    def test_plan_review_injects_the_pointer_and_appends_rounds_under_the_authoritative_failure_rule(self):
-        text = " ".join(self.PLAN_REVIEW.read_text(encoding="utf-8").split())
-        pointer = "python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>"
-        append = "python3 <reviewer-memory-skill-directory>/scripts/memory.py append-review <repo>"
-        self.assertGreaterEqual(text.count(pointer), 2)
-        self.assertIn(append, text)
-        self.assertIn(
-            "[reviewer-memory failure rule](../reviewer-memory/SKILL.md#failure-rule)",
-            text,
-        )
-        self.assertIn("including its not-installed carve-out", text)
-        self.assertIn("The cold reviewer reads the bundle at that fifth path before reviewing.", text)
-
-    def test_memory_and_pointer_content_stays_out_of_published_artifacts(self):
-        pages = {
-            self.TRIAGE: "Keep the index and store content local",
-            self.FINALIZE: "Keep the record and store content local",
-            self.CODE_REVIEW: "Keep the pointer and store content inside reviewer prompts only",
-            self.PLAN_REVIEW: "Keep the pointer and store content inside worker prompts only",
-        }
-        for path, contract in pages.items():
-            with self.subTest(path=path):
-                text = " ".join(path.read_text(encoding="utf-8").split())
-                self.assertIn(contract, text)
-                self.assertIn("pull request bod", text)
-
-        plan_review = self.PLAN_REVIEW.read_text(encoding="utf-8")
-        self.assertIn(
-            "The cross-ticket reviewer-memory store is neither earlier-round material nor author-session material.",
-            " ".join(plan_review.split()),
         )
 
 

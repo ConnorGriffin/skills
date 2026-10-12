@@ -86,3 +86,13 @@ on its own `start` peak, because no prose passes those flags since chunked order
 were removed. The `workflows` category stays defined in the validator although it is
 now empty, since nothing requires a category to be populated. Active change 293
 still names the removed skills in its inventory; that change owns those references.
+
+## ADR 300 — Remove reviewer-memory
+
+The pack no longer ships `reviewer-memory`. Its local review and slicing store was
+read before reviews and triage and appended after them, but the durable lessons it
+held belong where every agent already reads them: each repository's `AGENTS.md`
+(moved there, e.g. harmonichq/harmonic#479). `code-review` and `plan-review` drop
+the pointer and append steps, plan-review's cold reader takes four inputs, triage
+grounds in the repository alone, and finalize prints the slicing record without
+persisting it. `ticket.py record` is unchanged.

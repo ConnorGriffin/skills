@@ -115,14 +115,14 @@ and MUST NOT merge.
 
 Ticket verbs MUST confine writes to the selected ticket's worktree, branch, active
 change, comments, and status, plus operator-local state the workflow needs (claims,
-reviewer memory, fetched refs). Creating or changing a separate branch, issue, pull
+fetched refs). Creating or changing a separate branch, issue, pull
 request, or repository artifact MUST require the user's approval of that exact
 target and mutation. Reading something for grounding MUST NOT grant authority to
 write it.
 
 #### Scenario: Required operator-local workflow state is written
 
-- **WHEN** a verb records a claim, reviewer-memory state, or a fetched ref
+- **WHEN** a verb records a claim or a fetched ref
 - **THEN** it proceeds without separate approval and gains no authority over a
   distinct repository or tracker concern
 
@@ -163,9 +163,8 @@ and `Done when` payload.
 Each participating session MUST be claimable with both its responsibility
 (`coordinator`, `worker`, or `reviewer`) and the ticket lifecycle verb that
 produced the claim. Finalization MUST compute responsibility-tagged and
-verb-tagged costs separately, print the resulting record as JSON, and append that
-same record to the target repository's reviewer-memory store. It MUST NOT create
-or append a second ticket-wide telemetry store. Measurable non-reviewer `start` claims
+verb-tagged costs separately and print the resulting record as JSON. It MUST NOT
+create or append a ticket-wide telemetry store. Measurable non-reviewer `start` claims
 alone MUST calibrate an order; triage, revise, finalize, and reviewer peaks MUST remain independent
 overhead. Claims without a lifecycle verb MUST remain readable as legacy data and
 MUST NOT be guessed into a verb. A session MUST NOT be reused under a different
@@ -176,8 +175,8 @@ rather than inferred from recorded slicing outcomes.
 #### Scenario: A measurable ticket is finalized
 
 - **WHEN** finalization computes a slicing record from attributable claims
-- **THEN** `record` prints the complete JSON record and finalization appends those
-  bytes to reviewer memory without creating a parallel ticket telemetry file
+- **THEN** `record` prints the complete JSON record and finalization creates no
+  ticket telemetry file
 
 #### Scenario: A flat ticket has expensive lifecycle overhead
 
@@ -216,9 +215,7 @@ rather than inferred from recorded slicing outcomes.
 
 Finalization MUST report the misprediction for an `under-sliced` verdict, naming which rubric call was wrong and by how much. It
 MUST NOT draft a slicing-rubric amendment, MUST NOT prompt the operator on that
-path, and MUST NOT edit the rubric. The slicing record already appended to the
-target repository's reviewer-memory store is the calibration sink for those
-lessons. Finalization MUST NOT report a misprediction for `no-data` or
+path, and MUST NOT edit the rubric. Finalization MUST NOT report a misprediction for `no-data` or
 `unmeasurable`. A change to the
 slicing thresholds themselves MUST be operator-initiated and MUST update the
 rubric prose and the helper constant together.
@@ -226,9 +223,8 @@ rubric prose and the helper constant together.
 #### Scenario: A measured order was too large
 
 - **WHEN** role-aware measurement returns `under-sliced`
-- **THEN** finalization reports the misprediction against the stamped shape, names
-  the per-repo slicing record as the calibration, and neither drafts a rubric diff
-  nor asks the operator anything
+- **THEN** finalization reports the misprediction against the stamped shape and
+  neither drafts a rubric diff nor asks the operator anything
 
 #### Scenario: A verdict is not a misprediction
 
@@ -341,6 +337,24 @@ NOT refuse.
 
 - **WHEN** the located lock carries no `Expected diff` allowlist
 - **THEN** admission refuses, since nothing would bound what the executor may touch
+
+### Requirement: Slicing traits are optional record evidence
+
+Finalization MUST be able to record a ticket whose work order fired no slicing
+traits without inventing a sentinel trait. The public `record` command MUST emit
+an empty `traits` array when no `--trait` flag is supplied. When one or more
+`--trait` flags are supplied, it MUST preserve their values and order. Trait
+presence MUST NOT alter verdict calculation or session attribution.
+
+#### Scenario: A flat order fired no slicing traits
+
+- **WHEN** finalization invokes `record` without a `--trait` flag
+- **THEN** the command succeeds and emits `"traits": []`
+
+#### Scenario: An order fired multiple slicing traits
+
+- **WHEN** finalization invokes `record` with multiple `--trait` flags
+- **THEN** the command emits every supplied trait in the same order
 
 ## REMOVED Requirements
 

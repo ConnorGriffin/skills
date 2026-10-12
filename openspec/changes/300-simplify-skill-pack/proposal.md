@@ -32,6 +32,8 @@ persona panels added review rounds without a matching gain.
   and preview tools), `clean` (`/simplify`), `spin-worktree` (native worktree
   isolation), and the `review` front door (`/code-review` or `/plan-review`). Drop
   `ticket.py record`'s chunked-order verdict, which no prose calls.
+- Remove the `reviewer-memory` skill and the steps in `code-review`, `plan-review`,
+  and the ticket skill that read or wrote its per-repository store.
 
 ## Risk contract
 
@@ -48,7 +50,7 @@ persona panels added review rounds without a matching gain.
 
 ## Impact
 
-Removes eleven skills and their tests, and rewrites the ticket skill. Changes `code-review`, `plan-review`,
+Removes twelve skills and their tests, and rewrites the ticket skill. Changes `code-review`, `plan-review`,
 `research`, `codebase-design`, `ui-craft`, the README, the docs site
 sources and mockups, CI workflows, and `profile/base.md`. Supersedes ADR 65,
 ADR 149, ADR 150, ADR 143, and ADR 52.

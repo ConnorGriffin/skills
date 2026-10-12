@@ -25,7 +25,6 @@ EXPECTED = {
     "tools/plan-review",
     "tools/prototype",
     "tools/research",
-    "tools/reviewer-memory",
     "tools/say-less",
     "tools/tdd",
     "tools/writing-for-agents",

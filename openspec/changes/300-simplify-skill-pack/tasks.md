@@ -27,5 +27,8 @@
       a fresh worktree, `/code-review`, and `/plan-review`; mark ADR 52
       superseded; record the pack-integrity and planning-and-review deltas.
 - [x] Drop `ticket.py record`'s unused chunked-order verdict and its tests.
+- [x] Remove `reviewer-memory`, its test, validator, CI, README, and site entries,
+      and the read and append steps in `code-review`, `plan-review`, and the ticket
+      skill; record the ticket-workflow delta.
 - [x] Run `openspec validate --all --strict`, `python3 scripts/validate.py`, and the
       behavior suites from `.github/workflows/validate.yml`.

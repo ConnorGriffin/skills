@@ -17,21 +17,20 @@ Browse the pack at <https://connorgriffin.github.io/skills/>.
 | [`implement`](skills/drivers/implement/SKILL.md) | Routes tracked work through `ticket`; gives an explicit isolated-worktree intake for an untracked PRD | `ticket` and `code-review` from this pack |
 | [`openspec-adopt`](skills/drivers/openspec-adopt/SKILL.md) | Initialize the OpenSpec v1 layout and baseline specs describing the system today, delivered as a documentation-only PR | GitHub CLI; global `@fission-ai/openspec@1.11.0` |
 | [`ui-craft`](skills/drivers/ui-craft/SKILL.md) | Full surface lifecycle: revise shipped UI in the running app, lock greenfield specs, build, critique, audit, polish, re-settle | The harness's built-in browser or preview tool for rendered review; parallel-agent support is recommended |
-| [`ticket`](skills/drivers/ticket/SKILL.md) | Drive one tracked ticket through four verbs, one artifact each with a human gate between: triage resolves open questions and locks a work order on the ticket, start builds it to an open pull request, revise actions one review round, finalize closes it after a human merges and records what it cost. Agents never merge | GitHub CLI for the bundled issues binding, one binding page per other tracker; composes with `plan-review`, `code-review`; `reviewer-memory` from this pack |
+| [`ticket`](skills/drivers/ticket/SKILL.md) | Drive one tracked ticket through four verbs, one artifact each with a human gate between: triage resolves open questions and locks a work order on the ticket, start builds it to an open pull request, revise actions one review round, finalize closes it after a human merges and records what it cost. Agents never merge | GitHub CLI for the bundled issues binding, one binding page per other tracker; composes with `plan-review`, `code-review` |
 
 ### Tools
 
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
 | [`ci-design`](skills/tools/ci-design/SKILL.md) | Vocabulary and principles for well-designed CI | — |
-| [`code-review`](skills/tools/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | `reviewer-memory` from this pack; parallel-agent support recommended; GitHub CLI to fetch an originating issue; see [docs/review-round-mining.md](docs/review-round-mining.md) for the mined evidence behind the fix protocol and the round cap |
+| [`code-review`](skills/tools/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | Parallel-agent support recommended; GitHub CLI to fetch an originating issue; see [docs/review-round-mining.md](docs/review-round-mining.md) for the mined evidence behind the fix protocol and the round cap |
 | [`codebase-design`](skills/tools/codebase-design/SKILL.md) | Shared vocabulary for designing deep modules | — |
 | [`domain-modeling`](skills/tools/domain-modeling/SKILL.md) | Build and sharpen a project's domain model | — |
 | [`handoff`](skills/tools/handoff/SKILL.md) | Produce a decision-safe handoff for a fresh agent | — |
-| [`plan-review`](skills/tools/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | `reviewer-memory` from this pack; parallel-agent support recommended; the round-count evidence behind its rules is in [docs/review-round-mining.md](docs/review-round-mining.md) |
+| [`plan-review`](skills/tools/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | Parallel-agent support recommended; the round-count evidence behind its rules is in [docs/review-round-mining.md](docs/review-round-mining.md) |
 | [`prototype`](skills/tools/prototype/SKILL.md) | Build a throwaway prototype — a terminal app for logic questions or switchable UI variants in the real app | — |
 | [`research`](skills/tools/research/SKILL.md) | Investigate a question against primary sources and capture findings as Markdown in the repo | — |
-| [`reviewer-memory`](skills/tools/reviewer-memory/SKILL.md) | Store durable review and slicing observations as append-only JSON plus an OKF digest | — |
 | [`say-less`](skills/tools/say-less/SKILL.md) | Answer-first output shaping with a per-repo glossary of approved terms; adapted from i-have-adhd, merged with this pack's reader-preference rules and an ASD-STE100 subset | Optional prompt hook for always-on digest; see [docs/overlay.md](docs/overlay.md) and the [measured comparison](docs/before-after.md) |
 | [`tdd`](skills/tools/tdd/SKILL.md) | Test-driven development through public interfaces, red-green-refactor | — |
 | [`writing-for-agents`](skills/tools/writing-for-agents/SKILL.md) | Write or review a skill against a shared pointer/load/pruning vocabulary; `doctor` verb audits the loaded skill and `CLAUDE.md`/`AGENTS.md` estate for token cost and trigger risk | Hand-only; invoke by name |

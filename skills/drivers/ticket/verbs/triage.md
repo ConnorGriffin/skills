@@ -15,13 +15,8 @@ one artifact: the order, posted on the ticket after the user approves it.
    `origin/<default branch>` into its own worktree, or use the harness's native worktree
    isolation. A reused worktree must be on the ticket's branch. Never force.
 
-3. **Ground.** Follow shared rule 6, then for each target repo run
-   `python3 <reviewer-memory-skill-directory>/scripts/memory.py ensure <repo>` and read
-   the index it names, including its slicing records. Keep the index and store content
-   local; never copy it into the order, a tracker comment, a pull request body, or the
-   repo. Obey the [reviewer-memory failure rule](../../../tools/reviewer-memory/SKILL.md#failure-rule),
-   including its not-installed carve-out. A target repo that does not exist yet stops
-   triage: name the ticket that has to land first.
+3. **Ground.** Follow shared rule 6 for each target repo. A target repo that does not
+   exist yet stops triage: name the ticket that has to land first.
 
    * **Live state is checked live.** A claim about what exists now (a deployed resource,
      a secret, a required check) gets a read-only command run now, not a doc or comment.
@@ -64,8 +59,7 @@ one artifact: the order, posted on the ticket after the user approves it.
    issues, each a pull-request-sized piece with its own triage, and track them as a
    checklist on this ticket, which closes when every box is checked; a child projected
    under ~120k folds into a neighbour. A child whose outcome hangs on an unsettled
-   decision waits behind a spike child that settles it. Record which traits fired, and
-   whether a nearby reviewer-memory slicing record agreed, without quoting it.
+   decision waits behind a spike child that settles it. Record which traits fired.
 
 8. **Stamp** `Review depth:` and `Profile:` per the skill page's review-depth section,
    checking the sensitivity floor first, and `Surface lifecycle:` per the template. A

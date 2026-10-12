@@ -174,23 +174,10 @@ not a code finding.
 
 ### 4. Run both axes in parallel
 
-Before composing either reviewer prompt, run:
-
-```sh
-python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>
-```
-
-Obey the [reviewer-memory failure rule](../reviewer-memory/SKILL.md#failure-rule),
-including its not-installed carve-out. Keep the pointer and store content inside
-reviewer prompts only; never copy them into the review report, a tracker
-comment, work order, pull request body, or target-repository file.
-
 The coordinator supplies the reviewer model. Dispatch each admitted axis as a
 read-only subagent with that model named on the dispatch, and launch every admitted
 axis before waiting on any. Give each one the shared brief, the axis brief, the diff
-command, commit list, enumeration, risk contract when one exists, and the store index
-path printed by
-`python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>`. The
+command, commit list, enumeration, and risk contract when one exists. The
 prompt must say that the reviewer must not modify, patch, or stash. When a verdict
 depends on rendered evidence, give each relevant reviewer every required image path
 and require it to open each one.
@@ -201,9 +188,7 @@ a retry does not start a replacement reviewer.
 
 **Shared brief** — give this to both:
 
-> Reviewer memory index: the path printed by
-> `python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>`.
-> Read that bundle before reviewing. Trace every claim to the code before reporting
+> Trace every claim to the code before reporting
 > it. For each finding state a
 > failure scenario: the concrete input or state, and the wrong output, crash, or
 > false statement that results. If you cannot construct one, put the item under
@@ -273,18 +258,6 @@ Close with the termination state, explicitly:
 A re-review that returns no new violated items on the same enumeration completes the
 review helper. Return that result to the caller, which decides and performs its next
 authorized step.
-
-After stating the round's termination state, send one raw JSON object on standard
-input to:
-
-```sh
-python3 <reviewer-memory-skill-directory>/scripts/memory.py append-review <repo>
-```
-
-The object contains the ticket, round, verdict, findings summary, and reviewer
-model. Obey the
-[reviewer-memory failure rule](../reviewer-memory/SKILL.md#failure-rule), including
-its not-installed carve-out.
 
 ## Reporting rules
 

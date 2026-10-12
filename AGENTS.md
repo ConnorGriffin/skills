@@ -11,9 +11,9 @@ ui-surfaces: none
 
 - Install: none for the pack itself; Python 3 standard library only.
 - Test: `python3 scripts/validate.py && python3 -m unittest tests.test_behavior
-  tests.test_ticket tests.test_reviewer_memory tests.test_check_dco
-  tests.test_ci_changed_paths tests.test_site_build && python3 -m py_compile
-  skills/tools/reviewer-memory/scripts/memory.py scripts/ci_changed_paths.py`.
+  tests.test_ticket tests.test_check_dco tests.test_ci_changed_paths
+  tests.test_site_build && python3 -m py_compile
+  skills/drivers/ticket/scripts/ticket.py scripts/ci_changed_paths.py`.
 - Dev: no app to run. To exercise a skill, install the pack into a scratch
   directory with `npx skills add . --skill '<name>' --copy --yes`.
 - Source: `skills/<category>/<name>/`, where `<category>` is exactly one of

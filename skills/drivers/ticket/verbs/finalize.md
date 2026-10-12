@@ -33,29 +33,18 @@ code host back to the tracker; this verb is that sync.
 5. **Record what it cost**, before removing the worktree:
 
    ```sh
-   record_json=$(python3 <ticket-skill-directory>/scripts/ticket.py record <ticket-id> \
+   python3 <ticket-skill-directory>/scripts/ticket.py record <ticket-id> \
      --verb <each verb that ran> [--trait <each trait triage recorded>] \
-     --depth <stamped depth> [--project <ticket worktree>])
+     --depth <stamped depth> [--project <ticket worktree>]
    ```
 
-   Retain a successful record command's standard output in `record_json` and print it
-   once. Then pipe those same bytes, without rerunning `record`, into reviewer memory:
-
-   ```sh
-   printf '%s\n' "$record_json" |
-     python3 <reviewer-memory-skill-directory>/scripts/memory.py append-slicing <repo>
-   ```
-
-   `<repo>` is the target repository, matching the repository identity resolved from
-   `--project` when it is passed. Obey the
-   [reviewer-memory failure rule](../../../tools/reviewer-memory/SKILL.md#failure-rule),
-   including its not-installed carve-out. Keep the record and store content local; never
-   copy it into a tracker comment, work order, pull request body, or the repo.
+   Print a successful record command's standard output once. Keep the record local;
+   never copy it into a tracker comment, work order, pull request body, or the repo.
 
    Report the verdict. `under-sliced` means a flat order peaked past the ~180k band: say
    which traits triage read and what peak contradicted the call. `no-data` and
-   `unmeasurable` mean nothing usable was claimed; say which. The appended record is the
-   calibration; never edit the slicing rule or propose a change to it here.
+   `unmeasurable` mean nothing usable was claimed; say which. Never edit the slicing rule
+   or propose a change to it here.
    `ticket.py scan <ticket-id>` shows per-session peaks without recording anything.
 
 6. **Tear down.**

@@ -47,7 +47,7 @@ request, not after green CI. Merging is the human's gate.
    standing-decisions source; read it when it exists and say so in one line when not.
 7. **Stay inside the selected ticket.** A verb may write the ticket's worktree, branch,
    active change, comments, and status, plus operator-local state the workflow needs
-   (claims, reviewer memory, fetched refs). Anything outside that (another branch,
+   (claims, fetched refs). Anything outside that (another branch,
    issue, pull request, or repository artifact) needs the user to approve that exact
    target and mutation first. Reading something for grounding never grants writing it.
 
