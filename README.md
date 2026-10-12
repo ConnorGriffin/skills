@@ -21,11 +21,10 @@ Browse the pack at <https://connorgriffin.github.io/skills/>.
 
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
-| [`epic`](skills/drivers/epic/SKILL.md) | Maintain an OpenSpec epic, file at most three children by default, and stop at an operator-invoked ticket triage handoff | GitHub CLI; composes with `ticket` triage and `ui-craft` |
 | [`implement`](skills/drivers/implement/SKILL.md) | Routes tracked work through `ticket`; gives an explicit isolated-worktree intake for an untracked PRD | `ticket` and `review` from this pack |
 | [`openspec-adopt`](skills/drivers/openspec-adopt/SKILL.md) | Initialize the OpenSpec v1 layout and baseline specs describing the system today, delivered as a documentation-only PR | GitHub CLI; global `@fission-ai/openspec@1.11.0` |
 | [`ui-craft`](skills/drivers/ui-craft/SKILL.md) | Full surface lifecycle: revise shipped UI in the running app, lock greenfield specs, build, critique, audit, polish, re-settle | `drive-local-webapp` for rendered review; `spin-worktree` for live base comparison; parallel-agent support is recommended |
-| [`ticket`](skills/drivers/ticket/SKILL.md) | Drive one tracked ticket through four verbs: triage locks a brief on the ticket, start implements it to an open pull request, revise actions one review round, finalize closes it and records what it cost | GitHub CLI for the bundled issues binding, one binding page per other tracker; composes with `plan-review`, `review`, `spin-worktree`; `reviewer-memory` from this pack |
+| [`ticket`](skills/drivers/ticket/SKILL.md) | Drive one tracked ticket through four verbs, one artifact each with a human gate between: triage resolves open questions and locks a work order on the ticket, start builds it to an open pull request, revise actions one review round, finalize closes it after a human merges and records what it cost. Agents never merge | GitHub CLI for the bundled issues binding, one binding page per other tracker; composes with `plan-review`, `code-review`, `spin-worktree`; `reviewer-memory` from this pack |
 
 ### Tools
 
@@ -83,8 +82,8 @@ ship in this pack and are optional because a partial install can leave them out:
 - **`codebase-design`:** ships in this pack; referenced by `tdd`; helps shape
   non-trivial module interfaces. Without it, keep the shipping module shape and
   preserve locality.
-- **`domain-modeling`:** ships in this pack; referenced by `ticket` triage
-  and `epic`; maintains a project's domain vocabulary. Without it, ground terms
+- **`domain-modeling`:** ships in this pack; referenced by `clean` and
+  `codebase-design`; maintains a project's domain vocabulary. Without it, ground terms
   in the repo's own docs.
 
 ## Attribution

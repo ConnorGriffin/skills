@@ -103,7 +103,7 @@ reference can preserve that safety without copying the specification prose.
 | Branch/worktree reuse rules | Repository rules | Delivery mechanics enforced by the ticket workflow, not tracker data. |
 | Builder self-check and drafting conventions | Repository rules | Reusable worker contract; reference or inject once rather than copying into every lock. |
 | Comment chronology | Tracker state | The tracker supplies ordered comments. |
-| Newest-valid-lock-wins selection | Repository rules | The ticket contract applies chronology and never merges older locks ([tracker contract, lines 49–57](../../skills/drivers/ticket/references/tracker-contract.md#L49)). |
+| Newest-valid-lock-wins selection | Repository rules | The ticket contract applies chronology and never merges older locks ([tracker contract, lines 49–57](../../skills/drivers/ticket/SKILL.md)). |
 | `Why sliced` | Execution lock | Delivery rationale and later slicing evidence. |
 | `Launch` line | Removable duplication | Normal `/ticket start` mechanics belong in workflow documentation. |
 | Repeated classification | Removable duplication | Resolve from tracker state. |

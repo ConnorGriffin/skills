@@ -2,10 +2,9 @@
 
 RELATIONSHIPS = {
     "review": {"uses": ["code-review", "plan-review"], "requirements": ""},
-    "epic": {"uses": ["research", "ui-craft", "ticket"], "requirements": "GitHub CLI; composes with `research`, `ticket` triage, `ui-craft`"},
     "implement": {"uses": ["tdd", "code-review"], "requirements": "`tdd` and `code-review` from this pack"},
     "openspec-adopt": {"uses": [], "requirements": "GitHub CLI; global `@fission-ai/openspec@1.11.0`"},
-    "ticket": {"uses": ["plan-review", "review", "spin-worktree", "reviewer-memory"], "requirements": "GitHub CLI for the bundled issues binding, one binding page per other tracker; composes with `plan-review`, `review`, `spin-worktree`; `reviewer-memory` from this pack"},
+    "ticket": {"uses": ["plan-review", "code-review", "spin-worktree", "reviewer-memory"], "requirements": "GitHub CLI for the bundled issues binding, one binding page per other tracker; composes with `plan-review`, `code-review`, `spin-worktree`; `reviewer-memory` from this pack"},
     "ui-craft": {"uses": ["drive-local-webapp", "spin-worktree"], "requirements": "`drive-local-webapp` for rendered review; `spin-worktree` for live base comparison; parallel-agent support is recommended"},
     "ci-design": {"uses": [], "requirements": ""},
     "clean": {"uses": ["codebase-design", "domain-modeling"], "requirements": "`codebase-design` from this pack; `domain-modeling` optional"},
