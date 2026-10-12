@@ -1,11 +1,11 @@
 ---
 title: The review front door
 description: How a review request reaches one specialist review path.
-flow: review,code-review,plan-review,persona-review
+flow: review,code-review,plan-review
 ---
 
-## One route, not a panel by default
+## One route per review
 
-`review` classifies the thing in front of it and routes to exactly one specialist. Code changes go to `code-review`; a load-bearing plan goes to `plan-review`; a document needing cold perspectives goes to `persona-review`.
+`review` classifies the thing in front of it and routes to exactly one specialist. Code changes go to `code-review`; a load-bearing plan goes to `plan-review`.
 
 This makes the review result finite: the selected skill owns its vocabulary, evidence, and stopping rule.

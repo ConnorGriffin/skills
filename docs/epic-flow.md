@@ -5,7 +5,7 @@ This is the operator's path from an idea to merged code. The flow has two levels
 - An epic holds uncertainty and decisions in one active OpenSpec change; its child tickets hold live work state.
 - A child ticket becomes a locked work order, is implemented and reviewed, and stops at an open pull request until a human merges it.
 
-The primary contracts are [`epic`](../skills/drivers/epic/SKILL.md), [`ticket`](../skills/drivers/ticket/SKILL.md), and [`orchestrate`](../skills/drivers/orchestrate/SKILL.md). GitHub Issues are the reference tracker binding; see [`github-issues.md`](../skills/drivers/ticket/bindings/github-issues.md).
+The primary contracts are [`epic`](../skills/drivers/epic/SKILL.md), and [`ticket`](../skills/drivers/ticket/SKILL.md). GitHub Issues are the reference tracker binding; see [`github-issues.md`](../skills/drivers/ticket/bindings/github-issues.md).
 
 ## OpenSpec change lifecycle
 
@@ -44,13 +44,13 @@ Run `/ticket triage <id>`. For an epic child, triage first fetches the remote an
 Triage then:
 
 - Classifies the ticket as `code`, `investigation`, or `manual`.
-- Runs `/scope` unconditionally after grounding and classification. Resolved decisions go into the order. A human-only unresolved decision means nothing is posted until the operator answers through the scope interview.
+- Resolves open decisions after grounding and classification. Resolved decisions go into the order. A human-only unresolved decision means nothing is posted until the operator answers.
 - Resolves the surface lifecycle. `none` changes no rendered surface; `build` requires a locked `/ui-craft` manifest; `revise` requires a shipped behavior ledger, replay, safe dev-server entrypoint, and fixture source.
 - Chooses a flat or chunked order using the slicing rubric. A chunked order gives every capability and shared contract exactly one owning chunk and declares file or target ownership and serial dependencies.
 - Stamps `Focused`, `Targeted`, or `Full` review depth with a one-line reason.
 - Stamps `Profile: hardening` only when the target repository declares a `Harden:` command and the user or ticket requests that profile. Otherwise it stamps `Profile: none`.
 - Drafts the work order from the template and drafting conventions. Each fenced order is self-sufficient — under a pinned `Source:` that means the lock plus the source it pins, not copied plan prose — names concrete targets, states what must not change, and names a verification command and expectation.
-- Runs mandatory adversarial `/plan-review` before showing or posting the draft. The review checks grounding, acceptance, interface shape, scope and risk, and cost. Ordinary orders use one panel. Load-bearing plans continue until a fresh cold pass has no blocking objections, with a hard cap of three panels.
+- Runs mandatory adversarial `/plan-review` before showing or posting the draft. The review checks grounding, acceptance, interface shape, scope and risk, and cost.
 
 After the operator confirms the draft, triage posts one attributed comment with the complete work order fenced as an `EXECUTION LOCK` (or, on a ticket still running the legacy protocol, `WORK ORDER`), then moves the issue to `ticket:triaged`. For a `code` ticket the GitHub binding also attaches the `build` label. The posted lock is the sole authorization to execute: `start` and `revise` scan comments newest-first and use the newest fenced lock of either protocol; no order means no execution.
 
@@ -62,7 +62,7 @@ The stamp is not only a model name. It records the execution shape, selected rev
 
 ### Build
 
-Run `/ticket start <id>` in a fresh session. It claims the session as the ticket's `coordinator`, locates the newest order, checks the model contract, reuses the triage worktree, moves the issue to in progress, and binds that worktree's Codebase Memory identity before reading code. A fresh session does not rely on triage memory. If the order no longer matches the repository or its chunks overlap, it stops for re-triage.
+Run `/ticket start <id>` in a fresh session. It claims the session as the ticket's `coordinator`, locates the newest order, checks the model contract, reuses the triage worktree, and moves the issue to in progress. A fresh session does not rely on triage memory. If the order no longer matches the repository or its chunks overlap, it stops for re-triage.
 
 The builder follows the order's `Do` section and repository rules. Before declaring readiness it probes external CLI or API surfaces, runs new tests against the pre-change behavior, proves boundary claims by execution, and sweeps affected paths after late fixes. It runs the order's verification command until its output matches the stated expectation. It records the repository's existing change convention on the same branch.
 
@@ -139,10 +139,9 @@ The operator types `/epic` to open or resume an epic, files or answers tracked i
 - `/ticket revise <id>` handles one review round.
 - `/ticket finalize <id>` closes the loop after human merge.
 
-The operator invokes every ticket verb, supplies decisions that `/scope` identifies
+The operator invokes every ticket verb, supplies decisions that triage identifies
 as human-only, and reviews and merges pull requests. Epic writes each issue-body
-draft and stops. Ticket sessions claim themselves, cut or reuse worktrees, bind graph
-identity, enforce the fenced lock, run mandatory plan and code review, verify the
+draft and stops. Ticket sessions claim themselves, cut or reuse worktrees, enforce the fenced lock, run mandatory plan and code review, verify the
 change, and open the implementation pull request. A failed status move is non-fatal
 and is not retried. A tracker, authentication, or Git failure stops the operation
 that needs it.
@@ -160,4 +159,4 @@ that needs it.
 - A failed post-merge workflow blocks finalization. For ordinary OpenSpec changes, an archive, validation, commit, push, pull-request creation, or archive CI failure also blocks finalization before completion is posted or the ticket moves to done, and an archive pull request that is still open or was closed unmerged leaves the ticket incomplete for the operator.
 - A finalize verdict of under-sliced, over-sliced, or still-degraded is reported and nothing more. The per-repo slicing record is the calibration; `finalize` proposes no amendment to `references/slicing.md` and never edits it.
 
-For complete mechanics, start with [`ticket/SKILL.md`](../skills/drivers/ticket/SKILL.md), then the verb page for the current phase. For orchestration, read [`orchestrate/SKILL.md`](../skills/drivers/orchestrate/SKILL.md) and its routing references. For planning objections, read [`plan-review/SKILL.md`](../skills/tools/plan-review/SKILL.md).
+For complete mechanics, start with [`ticket/SKILL.md`](../skills/drivers/ticket/SKILL.md), then the verb page for the current phase. For planning objections, read [`plan-review/SKILL.md`](../skills/tools/plan-review/SKILL.md).

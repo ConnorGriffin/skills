@@ -25,7 +25,7 @@ switcher: these are separate URLs, not modes of one screen.
 |---|------|------|-------------------|
 | 1 | Zero JavaScript ships. No `<script>` tag, no inline handler, no `javascript:` href, on any page. | gate | grep across built output |
 | 2 | Exactly one hand-written stylesheet, linked as `_theme.css` (renamed at build). Per-skill edge-isolation rules are generated into an inline `<style>` on the pages that carry an isolating map, and are the only other CSS. A page with no isolating map (the narrative template) carries no `<style>` at all. | gate | assertion: exactly one `<link rel=stylesheet>` per page; at most one `<style>`, containing only `.diagram:has(...)` rules |
-| 3 | No **fetched** asset anywhere: no external font, CDN, script, image, `@import`, or off-origin `url()`/`src`. *Hyperlinks* are governed by where they sit. **Site chrome** — the nav, the meta Source row, the footer — links only to `github.com/ConnorGriffin/skills`. **Rendered SKILL.md body content may link to any origin**, because real bodies do: `say-less` cites `github.com/ayghri/i-have-adhd` and `persona-review` cites `ConnorGriffin/follow-through`. A body link is never rewritten to the skills repo and never dropped. *(Re-settled 2026-08-26, second pass.)* | gate | assertion: zero off-origin `<script>`/`<link>`/`@import`/`url(`/`src`; every **chrome** `href` matches the skills-repo prefix; **body** `href`s unrestricted by origin but never `#` or empty |
+| 3 | No **fetched** asset anywhere: no external font, CDN, script, image, `@import`, or off-origin `url()`/`src`. *Hyperlinks* are governed by where they sit. **Site chrome** — the nav, the meta Source row, the footer — links only to `github.com/ConnorGriffin/skills`. **Rendered SKILL.md body content may link to any origin**, because real bodies do: `say-less` cites `github.com/ayghri/i-have-adhd`. A body link is never rewritten to the skills repo and never dropped. *(Re-settled 2026-08-26, second pass.)* | gate | assertion: zero off-origin `<script>`/`<link>`/`@import`/`url(`/`src`; every **chrome** `href` matches the skills-repo prefix; **body** `href`s unrestricted by origin but never `#` or empty |
 | 4 | Diagrams are build-time inline `<svg>` generated from the repository's own data — never a library, never a raster, never hand-drawn. Node and edge data come from `site/relationships.py` (term 7); the text in each box and each description comes from SKILL.md frontmatter (term 17). *(Re-settled 2026-08-26.)* | gate | assertion: `<svg class="diagram">` present, no chart library in output |
 | 5 | Every diagram box is coloured by its skill's category, using `--cat`/`--cat-bg`, on every page. Colour is the only carrier of category meaning in the palette. | gate | assertion: each `.node` carries a `cat-*` class matching its skill's directory |
 | 6 | Edges are directed: every edge path carries `marker-end` pointing at the referenced skill. | gate | assertion |
@@ -48,7 +48,7 @@ switcher: these are separate URLs, not modes of one screen.
 | 23 | The flow diagram wraps serpentine — left-to-right, then right-to-left — so it fits the frame without shrinking boxes below the index map's box size. | eye | render |
 | 24 | Persistent chrome on all three templates: the same six-item nav above the masthead, and the same footer line below the content. The nav marks the current page with `aria-current="page"`. Nothing else persists; there is no sidebar, no breadcrumb, no search. | gate | assertion: nav items verbatim and in order on each page |
 | 25 | The `.mockbar` strip does not ship. Neither does any `href="#"` placeholder — every link resolves to a real generated page or a real GitHub URL (term 3 permits the latter). | gate | grep built output for `href="#"`; every remaining `href` resolves |
-| 26 | Links inside a rendered SKILL.md body keep working, by a fixed destination rule: a link to **another skill's `SKILL.md`** maps to that skill's generated page; **any other repository-relative link** maps to the canonical GitHub blob URL on `main`. Relative links resolve against the directory of the SKILL.md being rendered, not the repo root — `reference/lock.md` inside `skills/drivers/ui-craft/SKILL.md` is `…/blob/main/skills/drivers/ui-craft/reference/lock.md`. Absolute `http(s)` links (any origin, per term 3), `mailto:`, and bare fragments pass through **unchanged**. **A trailing fragment is split off before the rule is applied and re-attached after**, so `../scope/SKILL.md#risk-contract` becomes `scope.html#risk-contract` — not a blob path with a fragment glued on. *(Added 2026-08-26; passthrough and fragment-splitting settled in the second pass.)* | gate | assertion: no body link is `#` or empty; each repo-relative link resolves to an existing path; skill-to-skill links end in `.html` or `.html#…` and name a real skill; absolute and `mailto:` links byte-identical to the source |
+| 26 | Links inside a rendered SKILL.md body keep working, by a fixed destination rule: a link to **another skill's `SKILL.md`** maps to that skill's generated page; **any other repository-relative link** maps to the canonical GitHub blob URL on `main`. Relative links resolve against the directory of the SKILL.md being rendered, not the repo root — `reference/lock.md` inside `skills/drivers/ui-craft/SKILL.md` is `…/blob/main/skills/drivers/ui-craft/reference/lock.md`. Absolute `http(s)` links (any origin, per term 3), `mailto:`, and bare fragments pass through **unchanged**. **A trailing fragment is split off before the rule is applied and re-attached after**, so `../code-review/SKILL.md#modes` becomes `code-review.html#modes` — not a blob path with a fragment glued on. *(Added 2026-08-26; passthrough and fragment-splitting settled in the second pass.)* | gate | assertion: no body link is `#` or empty; each repo-relative link resolves to an existing path; skill-to-skill links end in `.html` or `.html#…` and name a real skill; absolute and `mailto:` links byte-identical to the source |
 | 27 | **Anchor contract.** Every rendered body heading carries a deterministic GitHub-style slug as its `id`: lowercase, spaces to hyphens, every character that is not alphanumeric or a hyphen dropped, and a duplicate slug suffixed `-1`, `-2`, … in document order. A fragment **must resolve** under this rule — a bare `#frag` against its own page, and a cross-page `other.html#frag` against that page's headings (term 26 splits it). Verified at lock across all 27 bodies: 2 same-page fragments (`plan-review`'s `#mechanical-fix-in-place`, `persona-review`'s `#panelist-dispatch`) and 3 cross-page ones (into `code-review` and `scope`) all resolve. *(Added by re-settle 2026-08-26, second pass.)* | gate | assertion: slug function matches the rule on a fixture with a duplicate and a punctuated heading; every fragment, same-page or cross-page, resolves to an emitted heading id on its target page |
 
 ## Fixture obligations
@@ -67,8 +67,8 @@ nothing here is personal or sensitive. What the build must exercise:
   that isolating one skill changes nothing visible.
 - **At least one skill with a `requirements` entry and one without**, or term
   19's "no entry shows no requirement" branch is never exercised.
-- **A body with an off-repo link** (`say-less`, `persona-review`) and **a body
-  with a fragment link** (`plan-review`, `persona-review`), or terms 3 and 27
+- **A body with an off-repo link** (`say-less`) and **a body
+  with a fragment link** (`plan-review`), or terms 3 and 27
   are asserted against content that never exercises them.
 - **A body with two identically-titled headings**, or term 27's `-1`/`-2`
   dedupe branch is never exercised. No skill in the pack has one today, so this
@@ -78,11 +78,11 @@ nothing here is personal or sensitive. What the build must exercise:
   `ui-craft` is the locked exemplar and carries all five (verified at lock: 1
   table, 3 lists, 1 ordered list, 3 emphases).
 - **A skill page whose body has a fenced code block.** `ui-craft`'s does not,
-  so the mock never exercised `<pre>`. The build must render one — `cbm-onboard`
+  so the mock never exercised `<pre>`. The build must render one — `code-review`
   has fenced blocks — and prove it does not force a
   horizontal page scroll at 375px (term 10).
 - **A skill page for a leaf** — one with no inbound and no outbound edges
-  (`cbm-onboard`, `openspec-adopt`) — so term 21's empty bands are designed,
+  (`openspec-adopt`) — so term 21's empty bands are designed,
   not discovered.
 - **Both schemes and four widths** for terms 10, 13 and 14.
 

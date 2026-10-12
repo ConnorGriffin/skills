@@ -43,14 +43,14 @@ Skills live in category folders inside `skills/`, three siblings one level deep:
 
 * `skills/workflows/<name>` holds a front door: the skill you invoke when you do not yet
   know which skill the work needs. It classifies the subject and routes to another skill,
-  doing none of that skill's work. Members: `scope` and `review`.
+  doing none of that skill's work. Members: `review`.
 * `skills/drivers/<name>` holds a multi-phase procedure that calls other skills by name
   to do its work, but is chosen by the operator, not by a router: `wayfinder`,
-  `implement`, `ui-craft`, `orchestrate`, `ticket`, `openspec-adopt`.
+  `implement`, `ui-craft`, `ticket`, `openspec-adopt`.
 * `skills/tools/<name>` holds a skill that does one job itself, whether or not another
-  skill invokes it: `code-review`, `plan-review`, `persona-review`, `tdd`, `prototype`,
-  `research`, `preflight`, `handoff`, `say-less`, `spin-worktree`,
-  `drive-local-webapp`, `cbm-onboard`, `ci-design`, `codebase-design`,
+  skill invokes it: `code-review`, `plan-review`, `tdd`, `prototype`,
+  `research`, `handoff`, `say-less`, `spin-worktree`,
+  `drive-local-webapp`, `ci-design`, `codebase-design`,
   `domain-modeling`, `writing-for-agents`.
 
 The distinguishing test is who chooses the skill, not whether it invokes others. A front

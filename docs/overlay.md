@@ -104,10 +104,8 @@ A skill carrying always-on rules ships a `reminder.md` digest next to its `SKILL
 Those rules decay over a long session, so a `UserPromptSubmit` hook re-injects the
 digest at prompt time. There is no second copy to drift.
 
-The event belongs to the behavior: `say-less` uses `UserPromptSubmit`, while
-`codebase-memory` installs its byte-identical reminder for `SessionStart` and keeps
-the canonical registrations under `skills/tools/codebase-memory/config/`. In both
-cases `reminder.md` is the only authored policy.
+The event belongs to the behavior: `say-less` uses `UserPromptSubmit`, and
+`reminder.md` is the only authored policy.
 
 ```json
 {
