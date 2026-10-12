@@ -1,6 +1,6 @@
 # ADR 150 — Shared worker lifecycle module
 
-Status: accepted (2026-08-24)
+Status: superseded by #300 (orchestrate removed; native subagents replace the worker adapters — see `openspec/changes/300-simplify-skill-pack/design.md`)
 
 ## Context
 
@@ -44,7 +44,7 @@ contract and break callers that return it directly.
 The shared launch interface accepts keyword-only `stdin_text`. A string selects a pipe and
 is written only after the process-family gate is released; `None` selects
 `subprocess.DEVNULL`. This supersedes issue #62's blanket “Unsupported” stdin ruling in
-the [Codex stdin liveness ledger](../scope/orchestrate-codex-stdin-liveness.md) for the
+the Codex stdin liveness ledger (`docs/scope/orchestrate-codex-stdin-liveness.md`, removed in #300) for the
 shared module: Claude requires prompt-over-stdin. The Codex adapter still passes `None`,
 retains `DEVNULL`, and remains covered by the open-stdin regression guard from #62.
 

@@ -63,7 +63,7 @@ then repeat their substance in the work-order template.
   write-mode `ORDER.md`; a test intentionally pins two of those copies byte for
   byte
   ([ticket tests, lines 1910–1919](../../tests/test_ticket.py#L1910),
-  [orchestrate, lines 283–310](../../skills/drivers/orchestrate/SKILL.md#L283)).
+  orchestrate `SKILL.md` lines 283–310, removed in #300).
 - UI execution contracts already live in separate manifests or behavior
   ledgers/replays; `start` only requires the order to name and validate them
   ([start, lines 41–50](../../skills/drivers/ticket/verbs/start.md#L41)).
@@ -103,7 +103,7 @@ reference can preserve that safety without copying the specification prose.
 | Branch/worktree reuse rules | Repository rules | Delivery mechanics enforced by the ticket workflow, not tracker data. |
 | Builder self-check and drafting conventions | Repository rules | Reusable worker contract; reference or inject once rather than copying into every lock. |
 | Comment chronology | Tracker state | The tracker supplies ordered comments. |
-| Newest-valid-lock-wins selection | Repository rules | The ticket contract applies chronology and never merges older locks ([tracker contract, lines 49–57](../../skills/drivers/ticket/references/tracker-contract.md#L49)). |
+| Newest-valid-lock-wins selection | Repository rules | The ticket contract applies chronology and never merges older locks ([tracker contract, lines 49–57](../../skills/drivers/ticket/SKILL.md)). |
 | `Why sliced` | Execution lock | Delivery rationale and later slicing evidence. |
 | `Launch` line | Removable duplication | Normal `/ticket start` mechanics belong in workflow documentation. |
 | Repeated classification | Removable duplication | Resolve from tracker state. |
@@ -198,7 +198,7 @@ new rule generalizes that pattern to every pinned change.
 | `revise` | Reuse the same lock and pin. Review fixes may satisfy selected work but may not expand source scope. A scope/source amendment requires a newer lock. |
 | Flat execution | Dispatch one executor with the complete lock and verified source coordinates. |
 | Chunked execution | The header owns the common pin and whole-ticket policy; each sub-lock owns a disjoint task subset and capability/file/contract allocation. Every worker receives a stand-alone sub-lock plus verified source coordinates. |
-| Worker compaction | Keep `ORDER.md` as an uncommitted transport copy of the complete lock and dispatch instructions. If the worker cannot read the pinned source, it stops rather than continuing from memory ([orchestrate, lines 298–310](../../skills/drivers/orchestrate/SKILL.md#L298)). |
+| Worker compaction | Keep `ORDER.md` as an uncommitted transport copy of the complete lock and dispatch instructions. If the worker cannot read the pinned source, it stops rather than continuing from memory (orchestrate `SKILL.md` lines 298–310, removed in #300). |
 | Missing or invalid source | Missing object/path, abbreviated or mismatched OID, failed validation, or missing selected anchors refuses execution and routes to attended re-triage. |
 | Amended source | A different commit is unauthorized until a newer lock pins it. |
 | Archived source | A new `start` cannot execute an archived change. During an already-open PR, `revise` remains valid only while the active pinned source is available under the current pre-merge rule. |

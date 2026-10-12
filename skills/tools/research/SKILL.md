@@ -7,32 +7,18 @@ description: Investigate a question against high-trust primary sources and captu
 
 Use exactly one research worker; never create a chain of workers.
 
-The coordinator supplies the selected adapter, explicit research-worker model,
-explicit research-worker effort, and the complete research task. Dispatch only
-through `skills/drivers/orchestrate/scripts/codex-worker.py` or
-`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
-adapter's read-only surface. Never use the built-in Agent tool, Workflow tool,
-or background-agent machinery.
-
-Use the provider-neutral hosted-source capability defined by the selected
-adapter's dispatch reference on every read-only research `start`, with one
-coordinator-owned state file under the coordinator's session-scratch directory.
-The selected adapter's `resume`, `stop`, and `verify` surfaces retain lifecycle
-ownership. Do not restate provider argv here.
-
-After selection, this interface does not reclassify research work or choose a
-model or effort. Preserve adapter-owned state and coordinator-owned recovery
-through the orchestrate adapter contract; do not restate its command or
-lifecycle mechanics here.
+The coordinator supplies the research-worker model and the complete research
+task. Dispatch the worker as a read-only subagent with that model named on the
+dispatch and hosted web search and fetch tools allowed.
 
 Before dispatch, the coordinator writes the exact complete research-task prompt
 bytes to an immutable session-scratch file and passes that file's contents as
-the selected adapter's positional prompt. The worker receives no chat transcript
-or other coordinator-session material. The prompt requires the worker to return
-a final message beginning `SOURCE_ACCESS_UNAVAILABLE:` when hosted search or
-fetch is refused, and to write no findings document in that case.
+the worker's prompt. The worker receives no chat transcript or other
+coordinator-session material. The prompt requires the worker to return a final
+message beginning `SOURCE_ACCESS_UNAVAILABLE:` when hosted search or fetch is
+refused, and to write no findings document in that case.
 
-Only when that start completed with a terminal, resumable session and its final
+Only when that worker finished in a terminal, resumable session and its final
 message begins with the exact `SOURCE_ACCESS_UNAVAILABLE:` prefix may the
 coordinator fetch the required public sources. Create a unique
 `.research-sources.*` directory under the worker cwd, store only fetched public
@@ -41,7 +27,7 @@ URL, and resume the same worker with the manifest's absolute path. This bounded
 handoff is the sole narrow exception to the original-prompt-only rule and takes
 precedence over it. The directory is removed after completion.
 
-If the adapter leaves no resumable session or the coordinator cannot obtain the
+If the worker leaves no resumable session or the coordinator cannot obtain the
 required primary sources, stop explicitly and write no successful findings
 document. Never put transcripts, credentials, secrets, `.env`, patient data,
 authenticated or private source material, or unrelated coordinator-session

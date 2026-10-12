@@ -1,3 +1,0 @@
-interface:
-  display_name: "Clean"
-  short_description: "Clean a branch's diff in one pass without changing behavior, then report a ledger"

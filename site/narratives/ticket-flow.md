@@ -1,11 +1,11 @@
 ---
 title: The ticket flow
 description: How one tracked issue becomes merged history, and which skill owns each step.
-flow: epic,ticket,scope,orchestrate,review
+flow: ticket,code-review
 ---
 
 ## The common path
 
-The planning stack turns an idea into a durable work order before implementation begins. `epic` maps a large effort into clear child tickets; small work can begin at `ticket`. `ticket` owns the lifecycle: triage locks the brief, start creates the implementation path, revise actions a review round, and finalize records the result after merge.
+Tracked work starts at `ticket`; triage splits work too big for one session into child issues on a parent checklist. Each ticket verb produces one artifact and stops at a human gate. Triage resolves the open questions, asking the operator in rounds when only they can decide, and locks a work order the operator approves. Start builds to that order, verifies it, passes one `code-review`, and opens a pull request. Revise actions a review round. A human merges, and finalize closes the ticket, archives its change through a reviewed pull request, and records what the ticket cost.
 
-`scope` resolves thin uncertainty, while `orchestrate` slices work that needs parallel attention. `review` is the front door for a terminating review round.
+Agents never merge. At Full review depth, triage also sends the draft order through one cold `plan-review` pass.

@@ -2,85 +2,56 @@
 
 A portable skill pack for coding agents. Skills live under [`skills/`](skills/)
 and work with clients that support the Agent Skills format. Each skill files under
-one of three categories: `workflows` (front doors invoked when the next skill isn't
-yet known), `drivers` (multi-phase procedures chosen deliberately, which call other
-skills by name), and `tools` (skills that do one job themselves). Some skills compose:
-the UI workflow uses the bundled browser driver for rendered evidence.
+one of two categories: `drivers` (multi-phase procedures chosen deliberately, which
+call other skills by name) and `tools` (skills that do one job themselves). Some
+skills compose: `ticket` calls `plan-review` and `code-review` at its gates.
 
 Browse the pack at <https://connorgriffin.github.io/skills/>.
 
 ## Included skills
 
-### Workflows
-
-| Skill | Purpose | Extra requirement |
-| --- | --- | --- |
-| [`scope`](skills/workflows/scope/SKILL.md) | Triage front door for work that isn't ready to build: classify the dominant uncertainty and route to one specialist skill, including a bundled interview mode | — |
-| [`review`](skills/workflows/review/SKILL.md) | Front door for review: classify what's in front of it and route to exactly one review skill (`code-review`, `plan-review`, `persona-review`, or the agent's built-in security review) | — |
-
 ### Drivers
 
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
-| [`epic`](skills/drivers/epic/SKILL.md) | Maintain an OpenSpec epic, file at most three children by default, and stop at an operator-invoked ticket triage handoff | GitHub CLI; composes with `scope`'s interview mode and `ui-craft` |
-| [`implement`](skills/drivers/implement/SKILL.md) | Routes tracked work through `ticket`; gives an explicit isolated-worktree intake for an untracked PRD | `ticket` and `review` from this pack |
+| [`implement`](skills/drivers/implement/SKILL.md) | Routes tracked work through `ticket`; gives an explicit isolated-worktree intake for an untracked PRD | `ticket` and `code-review` from this pack |
 | [`openspec-adopt`](skills/drivers/openspec-adopt/SKILL.md) | Initialize the OpenSpec v1 layout and baseline specs describing the system today, delivered as a documentation-only PR | GitHub CLI; global `@fission-ai/openspec@1.11.0` |
-| [`ui-craft`](skills/drivers/ui-craft/SKILL.md) | Full surface lifecycle: revise shipped UI in the running app, lock greenfield specs, build, critique, audit, polish, re-settle | `drive-local-webapp` for rendered review; `spin-worktree` for live base comparison; parallel-agent support is recommended |
-| [`orchestrate`](skills/drivers/orchestrate/SKILL.md) | Flip the session into coordinator mode: delegate all real work to sub-agents routed by an empirically benchmarked model capability table | Codex CLI for GPT-tier sub-agents; table re-benchmarked per its bundled procedure |
-| [`ticket`](skills/drivers/ticket/SKILL.md) | Drive one tracked ticket through four verbs: triage locks a brief on the ticket, start implements it to an open pull request, revise actions one review round, finalize closes it and records what it cost | GitHub CLI for the bundled issues binding, one binding page per other tracker; composes with `scope`, `plan-review`, `review`, `spin-worktree`, `orchestrate`; `reviewer-memory` from this pack |
+| [`ui-craft`](skills/drivers/ui-craft/SKILL.md) | Full surface lifecycle: revise shipped UI in the running app, lock greenfield specs, build, critique, audit, polish, re-settle | The harness's built-in browser or preview tool for rendered review; parallel-agent support is recommended |
+| [`ticket`](skills/drivers/ticket/SKILL.md) | Drive one tracked ticket through four verbs, one artifact each with a human gate between: triage resolves open questions and locks a work order on the ticket, start builds it to an open pull request, revise actions one review round, finalize closes it after a human merges and records what it cost. Agents never merge | GitHub CLI for the bundled issues binding, one binding page per other tracker; composes with `plan-review`, `code-review` |
 
 ### Tools
 
 | Skill | Purpose | Extra requirement |
 | --- | --- | --- |
-| [`cbm-onboard`](skills/tools/cbm-onboard/SKILL.md) | Keep a maintained checkout indexed, or onboard and tear down a hookless ephemeral worktree | `codebase-memory-mcp` on `PATH`; v0.10.8+ for ephemeral lifecycle |
-| [`codebase-memory`](skills/tools/codebase-memory/SKILL.md) | Explore indexed code through the graph and activate portable Claude Code discovery hooks | `codebase-memory-mcp` for graph queries; activation fails open without it |
 | [`ci-design`](skills/tools/ci-design/SKILL.md) | Vocabulary and principles for well-designed CI | — |
-| [`clean`](skills/tools/clean/SKILL.md) | Clean a branch's diff in one pass — naming, dead code, duplication, and the charter's deep-module rules — without changing behavior, ending in a ledger rather than a verdict | `codebase-design` from this pack; `domain-modeling` optional |
-| [`code-review`](skills/tools/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | `orchestrate` is an optional integration used for reviewer routing when installed; `reviewer-memory` from this pack; parallel-agent support recommended; GitHub CLI to fetch an originating issue; see [docs/review-round-mining.md](docs/review-round-mining.md) for the mined evidence behind the fix protocol and the round cap |
+| [`code-review`](skills/tools/code-review/SKILL.md) | Review changes since a fixed point on two axes, Standards and Spec, each returning a verdict per enumerated item so a round terminates | Parallel-agent support recommended; GitHub CLI to fetch an originating issue; see [docs/review-round-mining.md](docs/review-round-mining.md) for the mined evidence behind the fix protocol and the round cap |
 | [`codebase-design`](skills/tools/codebase-design/SKILL.md) | Shared vocabulary for designing deep modules | — |
 | [`domain-modeling`](skills/tools/domain-modeling/SKILL.md) | Build and sharpen a project's domain model | — |
-| [`drive-local-webapp`](skills/tools/drive-local-webapp/SKILL.md) | Drive and screenshot a local web app with headless Chromium | Node.js 20+; installs Playwright locally |
 | [`handoff`](skills/tools/handoff/SKILL.md) | Produce a decision-safe handoff for a fresh agent | — |
-| [`persona-review`](skills/tools/persona-review/SKILL.md) | Convene a panel of persistent reviewer personas to review a document and synthesize a verdict | Private data repo for persona memory; GitHub CLI for mining real-colleague profiles; parallel-agent support recommended |
-| [`plan-review`](skills/tools/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | `orchestrate` is an optional integration used for reviewer routing when installed; `reviewer-memory` from this pack; parallel-agent support recommended; `persona-review` optional for load-bearing plans; the round-count evidence behind its rules is in [docs/review-round-mining.md](docs/review-round-mining.md) |
-| [`preflight`](skills/tools/preflight/SKILL.md) | Ground a plan's facts, spike its first hour, and single-source its rules before review or execution | — |
+| [`plan-review`](skills/tools/plan-review/SKILL.md) | Adversarially review a plan or work order with cold agents before building | Parallel-agent support recommended; the round-count evidence behind its rules is in [docs/review-round-mining.md](docs/review-round-mining.md) |
 | [`prototype`](skills/tools/prototype/SKILL.md) | Build a throwaway prototype — a terminal app for logic questions or switchable UI variants in the real app | — |
 | [`research`](skills/tools/research/SKILL.md) | Investigate a question against primary sources and capture findings as Markdown in the repo | — |
-| [`reviewer-memory`](skills/tools/reviewer-memory/SKILL.md) | Store durable review and slicing observations as append-only JSON plus an OKF digest | — |
 | [`say-less`](skills/tools/say-less/SKILL.md) | Answer-first output shaping with a per-repo glossary of approved terms; adapted from i-have-adhd, merged with this pack's reader-preference rules and an ASD-STE100 subset | Optional prompt hook for always-on digest; see [docs/overlay.md](docs/overlay.md) and the [measured comparison](docs/before-after.md) |
-| [`spin-worktree`](skills/tools/spin-worktree/SKILL.md) | Create isolated Git worktrees for issue and PR work | Git; GitHub CLI only for `--pr` discovery |
 | [`tdd`](skills/tools/tdd/SKILL.md) | Test-driven development through public interfaces, red-green-refactor | — |
 | [`writing-for-agents`](skills/tools/writing-for-agents/SKILL.md) | Write or review a skill against a shared pointer/load/pruning vocabulary; `doctor` verb audits the loaded skill and `CLAUDE.md`/`AGENTS.md` estate for token cost and trigger risk | Hand-only; invoke by name |
 
 ## Install
 
-Install the primary UI workflow with its required browser driver using the
-standard [`skills` CLI](https://github.com/vercel-labs/skills):
+Install one skill with the standard
+[`skills` CLI](https://github.com/vercel-labs/skills):
+
+```sh
+npx skills add ConnorGriffin/skills --skill ui-craft
+```
+
+Install several together:
 
 ```sh
 npx skills add ConnorGriffin/skills \
-  --skill ui-craft \
-  --skill drive-local-webapp \
-  --skill spin-worktree
+  --skill ticket \
+  --skill plan-review \
+  --skill code-review
 ```
-
-Install another skill by itself:
-
-```sh
-npx skills add ConnorGriffin/skills --skill spin-worktree
-```
-
-Install and activate the code-discovery bundle:
-
-```sh
-npx skills add ConnorGriffin/skills --skill codebase-memory
-python3 ~/.claude/skills/codebase-memory/scripts/install.py
-```
-
-The activation command merges the skill-owned hook registrations into existing
-Claude Code settings without replacing unrelated hooks. It does not install the
-external `codebase-memory-mcp` executable/server or index a repository.
 
 Install every skill:
 
@@ -90,33 +61,24 @@ npx skills add ConnorGriffin/skills --all
 
 The CLI prompts for the target agents and whether to install per-project or
 globally. Review skill instructions and scripts before running them; several
-skills intentionally start processes, modify repositories, or install Git
-hooks.
+skills intentionally start processes or modify repositories.
 
 ## Optional integrations
 
-Optional integrations are enhancements, not hidden runtime requirements. Only
-Codebase Memory is external; the other three ship in this pack and are optional
-because a partial install can leave them out:
+Optional integrations are enhancements, not hidden runtime requirements. Both
+ship in this pack and are optional because a partial install can leave them out:
 
-- **`codebase-memory-mcp`:** the external executable/server used by the included
-  `codebase-memory` skill for graph queries. Without the server, the discovery
-  augmentation hook fails open and ordinary repository search and file reads remain
-  available; installing or activating the skill does not install the server.
 - **`codebase-design`:** ships in this pack; referenced by `tdd`; helps shape
   non-trivial module interfaces. Without it, keep the shipping module shape and
   preserve locality.
-- **`domain-modeling`:** ships in this pack; referenced by `scope`'s interview mode
-  and `epic`; maintains a project's domain vocabulary. Without it, ground terms
+- **`domain-modeling`:** ships in this pack; referenced by
+  `codebase-design`; maintains a project's domain vocabulary. Without it, ground terms
   in the repo's own docs.
-- **`persona-review`:** ships in this pack; referenced by `plan-review` for
-  load-bearing plans; convenes a panel of persistent reviewer personas. Without it,
-  `plan-review` proceeds on its own fresh-cold-pass termination alone.
 
 ## Attribution
 
 The `implement`, `tdd`, and `prototype` skills are adopted from — and
-`scope`'s interview mode and `code-review` are derived from — [Matt Pocock's
+`code-review` is derived from — [Matt Pocock's
 skills repository](https://github.com/mattpocock/skills) (MIT, copyright (c) 2026
 Matt Pocock), lightly edited here to be self-contained. See [LICENSE](LICENSE) and
 [NOTICE](NOTICE).

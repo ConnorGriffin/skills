@@ -8,9 +8,8 @@ Uses the vocabulary in [../SKILL.md](../SKILL.md) — **module**, **interface**,
 **seam**, **adapter**, **leverage**.
 
 Offerable in two places: standalone, or mid-interview as a grounding step —
-when `scope`'s interview mode (`skills/workflows/scope/references/interview.md`) hits an
-interface-shape frontier question, this can run right there, the same way
-that file's `ground it` escape hatch grounds a question before re-asking it.
+when a `/ticket triage` interview hits an interface-shape frontier question,
+this can run right there to ground the question before re-asking it.
 
 ## Process
 
@@ -30,27 +29,10 @@ thinks while the sub-agents work in parallel.
 
 ### 2. Dispatch parallel design alternatives
 
-The coordinator supplies the selected adapter, explicit design-agent model, and
-explicit design-agent effort. Pass model and effort unchanged to every design
-worker. This procedure does not select an adapter, model, or effort, apply a
-routing table or headroom policy, or add defaults.
+The coordinator supplies the design-agent model. Dispatch each alternative as a
+read-only subagent with that model named on the dispatch.
 
-Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or
-`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
-adapter's read-only surface. Never use the built-in Agent tool, Workflow tool,
-or background-agent machinery.
-
-Create one coordinator-owned `<session-scratch>/design-it-twice/` directory.
-For alternative `<n>`, write its complete independent technical brief to
-`design-<n>.prompt.md`; use `design-<n>.json` as that worker's state file; and
-capture its launcher stdout and stderr in `design-<n>.stdout` and
-`design-<n>.stderr`. The coordinator passes the contents of
-`design-<n>.prompt.md` as the adapter's positional prompt text. State files
-carry lifecycle metadata only; successful design output comes from each
-launcher's stdout `final_message`.
-
-Start alternatives 1, 2, and 3 through the selected adapter before waiting on
-any launcher, retaining each launcher PID and joining each individually. Each
+Start alternatives 1, 2, and 3 before waiting on any of them. Each
 worker receives its separate technical brief and one different constraint:
 
 - Alternative 1: "Minimize the interface — aim for 1–3 entry points max.
@@ -72,9 +54,8 @@ Each worker outputs:
 4. Dependency strategy and adapters (see [DEEPENING.md](DEEPENING.md))
 5. Trade-offs — where leverage is high, where it's thin
 
-On one nonzero completion, use the selected adapter's `resume` surface once
-against that alternative's same state file. If it still does not produce a
-successful `final_message`, mark that alternative unavailable. With two or more
+On one failed completion, resume that same subagent once (`SendMessage`). If it
+still does not produce a successful result, mark that alternative unavailable. With two or more
 successful alternatives, present and compare the available designs, naming every
 unavailable alternative. With zero or one successful alternative, report that
 the design-it-twice pass did not produce enough alternatives and return to the

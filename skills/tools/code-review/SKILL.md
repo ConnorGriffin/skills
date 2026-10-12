@@ -35,15 +35,10 @@ Invoking this skill authorizes every sub-agent dispatch that this procedure mark
 
 ## Dependency and reviewer selection
 
-At the standard skill root, when `orchestrate` is installed, read its
-`references/review-routing.md` and `references/routing-table.md` directly before
-dispatch. Use the four-row reviewer matrix, classify this skill's area as
-`Code review`, and apply the matrix's Claude-parent Codex presence/headroom gate
-to select the initial reviewer adapter and model.
-
-When `orchestrate` or its `review-routing.md` is not installed, say so in one
-line and continue Claude-only: use Sonnet for routine review or Opus for
-load-bearing review, with no Codex attempt.
+Use Sonnet for routine review or Opus for load-bearing review unless the caller
+names another model. For a load-bearing pre-merge review, `/code-review ultra` is
+the native alternative. For a Codex reviewer, use the codex plugin
+(`/codex:review`) or ask Codex directly.
 
 ## Modes
 
@@ -163,14 +158,11 @@ in isolation passes clean and then spends the next round on nothing but seam
 defects.
 
 Before declaring the Spec axis unavailable, extract the admitted
-[risk contract](../../workflows/scope/SKILL.md#risk-contract) from the spec, then look in the
-matching scope ledger if necessary. Do not substitute the PR description written by
+[risk contract](../../drivers/ticket/verbs/triage.md#risk-contract) from the spec, then look in the
+ticket's work order if necessary. Do not substitute the PR description written by
 the same author as the code.
 
-If neither a spec nor a risk contract exists, skip the Spec sub-agent and say so. A
-ledger-only contract still bounds the review: run the Spec sub-agent against it and
-include an unmet item stating that admission never promoted it into an authoritative
-artifact. If a bounded spec exists but failure handling, recovery, or evidence scope
+If neither a spec nor a risk contract exists, skip the Spec sub-agent and say so. If a bounded spec exists but failure handling, recovery, or evidence scope
 is material and its contract is missing, add that omission as an unmet Spec item;
 otherwise do not manufacture one.
 
@@ -182,73 +174,21 @@ not a code finding.
 
 ### 4. Run both axes in parallel
 
-Before composing either positional prompt, run:
+The coordinator supplies the reviewer model. Dispatch each admitted axis as a
+read-only subagent with that model named on the dispatch, and launch every admitted
+axis before waiting on any. Give each one the shared brief, the axis brief, the diff
+command, commit list, enumeration, and risk contract when one exists. The
+prompt must say that the reviewer must not modify, patch, or stash. When a verdict
+depends on rendered evidence, give each relevant reviewer every required image path
+and require it to open each one.
 
-```sh
-python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>
-```
-
-Obey the [reviewer-memory failure rule](../reviewer-memory/SKILL.md#failure-rule),
-including its not-installed carve-out. Keep the pointer and store content inside
-worker positional prompts only; never copy them into the review report, a tracker
-comment, work order, pull request body, or target-repository file.
-
-The coordinator supplies three explicit seam inputs: the adapter appropriate to the
-coordinator's existing parent policy, reviewer model, and reviewer effort. Pass model
-and effort through unchanged to the selected helper. This process does not choose a
-model or effort, consume a routing table, classify work, apply headroom rules, or add
-defaults.
-
-Dispatch only through `skills/drivers/orchestrate/scripts/codex-worker.py` or
-`skills/drivers/orchestrate/scripts/claude-worker.py`. For every admitted axis, use
-the selected helper's `start` command with `--sandbox read-only`, the explicit
-coordinator-supplied `--model` and `--effort`, `--cwd` set to the reviewed checkout,
-and one state file. Give the shared brief, the axis brief, the diff command, commit
-list, enumeration, risk contract when one exists, and the store index path printed by
-`python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>` as the
-helper's positional prompt. The prompt must say that the reviewer must not modify,
-patch, or stash. Codex
-receives the positional prompt with inherited stdin closed; Claude adapter receives
-the positional prompt and delivers it to the child on stdin.
-
-When a verdict depends on rendered evidence, include every required image in each
-relevant Codex axis invocation with the repeated `--image` option required by
-orchestrate's reviewer-routing contract. Do not substitute prompt text containing
-image paths for actual attachments.
-
-Create one coordinator-owned `<review-state-dir>` and use deterministic state paths
-`<review-state-dir>/standards.json` and `<review-state-dir>/spec.json`. Capture each
-axis's launcher stdout and stderr separately in `standards.stdout`, `standards.stderr`,
-`spec.stdout`, and `spec.stderr` within that directory. State files carry lifecycle
-metadata only and never the reviewer answer.
-
-When Spec is admitted, start all admitted helper invocations as background processes
-before waiting for readiness. Retain each axis-specific launcher PID and start the
-second admitted axis while the first remains active. Launcher PIDs are wait handles
-only; cleanup authority remains with adapter state and scoped `stop` / `verify`.
-On the portable path `run_portable` blocks and writes state only after worker exit, so
-the second admitted axis starts while the first remains active: never wait for state
-readiness before launching another admitted axis. When Spec is unavailable, launch
-Standards only, do not launch Spec, and report Spec unavailable.
-
-Join every launched helper by waiting on its retained PID individually. Reject every
-nonzero exit. For every successful helper, parse `final_message` from its stdout
-artifact. Retry an axis with the selected helper's `resume` command against the same
-axis state file; a retry does not start a replacement state.
-
-If a later launch fails after another worker launched, wait for the surviving helper to
-reach valid readable state or exit. A valid process-family state is recoverable; a
-portable terminal state records an already-exited worker and is not stop/verify-capable,
-so wait for the portable helper to exit instead of treating the state file's existence
-as readiness. Only when recoverable state exists, run that launched worker's scoped
-`stop --state ... --cwd ...`, then scoped `verify --state ... --cwd ...`. Then join
-that worker's retained PID. Do not discover, stop, verify, or join an unlaunched worker.
+When Spec is unavailable, launch Standards only, do not launch Spec, and report Spec
+unavailable. Retry a failed axis once by resuming the same subagent (`SendMessage`);
+a retry does not start a replacement reviewer.
 
 **Shared brief** — give this to both:
 
-> Reviewer memory index: the path printed by
-> `python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>`.
-> Read that bundle before reviewing. Trace every claim to the code before reporting
+> Trace every claim to the code before reporting
 > it. For each finding state a
 > failure scenario: the concrete input or state, and the wrong output, crash, or
 > false statement that results. If you cannot construct one, put the item under
@@ -318,18 +258,6 @@ Close with the termination state, explicitly:
 A re-review that returns no new violated items on the same enumeration completes the
 review helper. Return that result to the caller, which decides and performs its next
 authorized step.
-
-After stating the round's termination state, send one raw JSON object on standard
-input to:
-
-```sh
-python3 <reviewer-memory-skill-directory>/scripts/memory.py append-review <repo>
-```
-
-The object contains the ticket, round, verdict, findings summary, and reviewer
-model. Obey the
-[reviewer-memory failure rule](../reviewer-memory/SKILL.md#failure-rule), including
-its not-installed carve-out.
 
 ## Reporting rules
 

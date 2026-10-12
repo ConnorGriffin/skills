@@ -1,5 +1,7 @@
 # ADR 52 — `/review` as a routing front door with a config route table
 
+Status: superseded by #300 (`review` removed; ask for `/code-review` on code and diffs or `/plan-review` on plans and specs — see `openspec/changes/300-simplify-skill-pack/design.md`)
+
 ## Context
 
 Review is not one activity. Changed code wants a standards-and-spec pass; a plan wants

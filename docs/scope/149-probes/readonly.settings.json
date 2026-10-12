@@ -1,8 +1,0 @@
-{
-  "sandbox": {
-    "enabled": true,
-    "allowUnsandboxedCommands": false,
-    "filesystem": { "denyWrite": ["/", "~/"] }
-  },
-  "permissions": { "deny": ["Write", "Edit", "NotebookEdit"] }
-}

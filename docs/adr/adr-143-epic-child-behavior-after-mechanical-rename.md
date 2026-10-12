@@ -1,5 +1,7 @@
 # ADR 143 — Epic-child behavior after the mechanical rename
 
+Status: superseded by #300 (`epic` removed from the pack; triage slices oversized work into child issues tracked on a parent issue's checklist — see `openspec/changes/300-simplify-skill-pack/design.md`)
+
 ## Context
 
 ADR 51 records the legacy `wayfinder` taxonomy and its mechanical path move. The

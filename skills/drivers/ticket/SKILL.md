@@ -1,326 +1,111 @@
 ---
 name: ticket
-description: "Drive one tracked ticket from arrival to resolution through four verbs: triage, start, revise, finalize. Use when the user says triage/start/revise/finalize with a ticket id, asks to turn a ticket into a locked brief, to action a review round on a ticket's pull request, or to close out a merged ticket. When delegated, the coordinator dispatches every mandatory reviewer and resumes the same worker."
+description: "Drive one tracked ticket from arrival to resolution through four verbs: triage, start, revise, finalize. Use when the user says triage/start/revise/finalize with a ticket id, asks to turn a ticket into a locked work order, to build a locked ticket to a pull request, to action a review round on a ticket's pull request, or to close out a merged ticket."
 ---
 
 # Ticket
 
-One ticket, one verb at a time. Each verb is a full procedure in `verbs/<verb>.md`;
-read that file before doing anything else, then follow it. This page holds only
-what every verb shares.
+One ticket, one verb, one artifact per stage, a human at every gate.
 
-## Invocation
+| Verb | Produces | Human gate after it |
+|---|---|---|
+| [triage](verbs/triage.md) | a locked work order posted on the ticket | the user approves the order before it posts |
+| [start](verbs/start.md) | an open pull request | a human reviews |
+| [revise](verbs/revise.md) | one review round pushed | a human reviews again or merges |
+| [finalize](verbs/finalize.md) | the ticket closed, the change archived, the cost recorded | a human merges the archive pull request |
 
-`/ticket <verb> <ticket-id>`, where verb is `triage`, `start`, `revise`, or
-`finalize`. No verb or no ticket id: ask for it, one line. Unknown verb: list the
-four.
+`/ticket <verb> <ticket-id>`. No verb or no id: ask, one line. Unknown verb: list the
+four. Read the verb's page in full before acting on it.
 
-## The pipeline
+**Agents never merge.** Not the implementation pull request, not the archive pull
+request, not after green CI. Merging is the human's gate.
 
-* `triage` reads the ticket and the repo, interviews the user through `/scope`
-  when scope is thin, and ends by posting the **work order**: a locked brief as a
-  ticket comment. Work too big for one agent's context is sliced into sub-orders
-  in that same comment ([references/slicing.md](references/slicing.md)). It
-  writes nothing to the repo except scope and spec documents committed in the
-  ticket's worktree. An epic child treats its issue-body order as a draft and may
-  commit a required parent-plan amendment in the child worktree before posting the
-  reviewed lock; that amendment travels with the implementation pull request.
-* `start` runs in a fresh session, fetches the work order, refuses if there is
-  none, implements it on a branch in an isolated worktree (or, on a sliced order,
-  coordinates one agent per chunk), iterates the verification step until the
-  result matches the order's expectation, passes an adversarial review at the
-  order's stamped depth ([references/review-depth.md](references/review-depth.md))
-  unless `Profile: hardening` replaces it below Full depth,
-  opens the pull request, and stops. Agents never merge.
-* `revise` actions one review round on the open pull request: reload the ticket
-  and the order, fix, re-verify, push.
-* `finalize` runs after a human merged: verify the merge and post-merge workflow,
-  complete the repository's post-merge archive guidance for an ordinary OpenSpec
-  change, which opens a reviewed archive pull request and posts its `Archive PR:`
-  locator before stopping, then on a later finalization, once a human merged that
-  pull request, close the ticket with a comment linking the pull request, record
-  what the ticket actually cost in context, and tear the worktree down, so this
-  repo's slicing calibration is tuned against measured numbers rather than
-  intuition.
+## Shared rules
 
-## The tracker contract
-
-Every tracker interaction goes through four operations: read a ticket, post a
-comment on a ticket, move a ticket's status, and locate the newest work order on
-a ticket. [references/tracker-contract.md](references/tracker-contract.md)
-defines them, and one binding page supplies them for one tracker. GitHub issues
-ship as the reference binding
-([bindings/github-issues.md](bindings/github-issues.md)).
-
-The procedures below and in `verbs/` call the contract, never a tracker's API
-directly. A verb that cannot reach the contract stops and names what is missing.
-
-## Review front door
-
-`start` and `revise` reach code review as `/review` on the changed code, which
-routes to `code-review`. Neither verb calls a reviewer any other way, and neither
-substitutes a lighter check for the depth the order stamped. Below Full depth under
-`Profile: hardening`, [start](verbs/start.md) and [revise](verbs/revise.md) use its
-exception instead.
+1. **Open with the ticket.** Read it and tell the user in one line what it is and what
+   this verb will do. Mark a chapter `<ticket-id> <verb>` when the harness has a
+   chapter tool.
+2. **Claim the session**, so finalize can measure what the ticket cost:
+   `python3 <ticket-skill-directory>/scripts/ticket.py claim <ticket-id> --verb <verb>`.
+   Pass `--session`/`--agent` when the environment carries no session id, and `--role
+   reviewer` for a session that only reviews. Each verb runs in its own fresh session.
+   A failed claim is one line and never blocks the verb.
+3. **Attribute every comment.** Open each tracker comment with
+   `> Written by an AI agent operating for <operator>. Verify before relying on it.`
+   The name comes from `~/.config/ticket/config.json` key `operator`; without one, drop
+   ` operating for <operator>`.
+4. **One worktree and one branch per ticket, for the whole lifecycle.** Triage cuts
+   them fresh off the up-to-date remote base; start and revise reuse them; finalize
+   tears them down. Never read, write, stash, or switch the control checkout, even when
+   it is dirty. Confirm the working directory is the ticket worktree before the first
+   write.
+5. **The tracker is the source of truth for status.** Triage moves the ticket to
+   triaged, start to in progress and then pending review, finalize to done. A failed
+   move is said in one line and never retried.
+6. **Ground in the repo first.** Its `AGENTS.md`/`CLAUDE.md`, decision and change
+   records, `docs/`, recent `git log`, and CI workflows. A project may name a
+   standing-decisions source; read it when it exists and say so in one line when not.
+7. **Stay inside the selected ticket.** A verb may write the ticket's worktree, branch,
+   active change, comments, and status, plus operator-local state the workflow needs
+   (claims, fetched refs). Anything outside that (another branch,
+   issue, pull request, or repository artifact) needs the user to approve that exact
+   target and mutation first. Reading something for grounding never grants writing it.
 
 ## Delegation authority
 
-This authority covers triage's mandatory `/plan-review` and start/revise's `/review` route. Invoking `/ticket` authorizes every sub-agent dispatch that this procedure marks mandatory, including the coordinator's mandatory reviewer dispatch. Do not ask again solely because a session-level preference says "do not spawn agents"; apply that preference to discretionary delegation only. An explicit task-level refusal of this required review or revocation of delegation overrides this authorization: stop and state that the requested workflow cannot run without its required independent review.
+Invoking `/ticket` authorizes every sub-agent dispatch that this procedure marks mandatory: triage's mandatory `/plan-review` at Full depth and the `/code-review` pass in start and revise. Do not ask again solely because a session-level preference says "do not spawn agents"; apply that preference to discretionary delegation only. An explicit task-level refusal of this required review or revocation of delegation overrides this authorization: stop and state that the requested workflow cannot run without its required independent review.
 
-When Ticket work is delegated, the delegation prompt identifies the
-mandatory-review handoff. At that boundary the worker returns or writes its
-review-ready result through the coordinator-recorded durable result locator and
-does not launch a reviewer. The coordinator dispatches every mandatory reviewer
-through the existing adapter after collecting the result, verifies the returned
-verdict, and resumes the same worker. Actionable findings resume it for correction; a
-verified clean verdict resumes it to finish. A failed launch, nonzero exit,
-missing result artifact, or missing verdict is reported as unavailable and blocks
-the workflow from advancing as reviewed. Direct nested adapter dispatch by the
-worker is unsupported.
+Delegate build work per `profile/base.md` "Delegating to subagents": name the model,
+isolate an implementer in the ticket worktree, and demand the full verify output. The
+coordinator dispatches every reviewer and resumes the same worker with `SendMessage`;
+a worker never launches its own reviewer. A review that fails to launch or returns no
+verdict is unavailable, never clean, and the ticket does not advance as reviewed.
 
-## Selected-ticket mutation boundary
+## Review depth
 
-Triage may mutate operator-local workflow state required by the installed workflow
-to execute the selected ticket lifecycle. Current examples include the lifecycle
-claim, exact-worktree Codebase Memory state, reviewer-memory store, and local
-remote-tracking refs used to resolve and verify the selected ticket's base. These
-examples make the purpose concrete; they are not an exhaustive list.
+Triage stamps one depth with a one-line reason; start and revise review at it.
 
-Triage may also mutate repository or tracker state belonging to the selected ticket
-lifecycle without ancillary approval. Current examples include the selected worktree
-and branch, an ordinary ticket's active change, the selected ticket's comment and
-status, and the defined Epic-child parent-plan amendment carried by that child's
-implementation pull request. These examples make the ownership concrete; they are
-not an exhaustive list.
+| Depth | The reviewer checks | Fits |
+|---|---|---|
+| Focused | the exact change, and that nothing else moved | a value change, a version bump, a typo |
+| Targeted | the changed behavior end to end and the repo rules that govern it | most tickets |
+| Full | the whole diff, every check the repo defines, adversarially | the floor below, or anything wide |
 
-This authority does not authorize state for a distinct external concern:
-independently addressable work outside the selected lifecycle, such as another
-branch, pull request, issue, ticket, or repository artifact outside the selected
-branch. Broad read-only grounding never authorizes it.
+**Sensitivity floor.** Authentication or authorization, secrets, destructive or
+irreversible operations, and behavior shared across an organization are Full,
+whatever the size. Depth escalates when the diff proves wider than the stamp and never
+downgrades. A missing stamp reviews as Targeted. A finding blocks only when it breaks
+the order's `Done when`, its verification expectation, or a named repo rule.
 
-## Shared rules (every verb)
-
-1. **Open with the ticket summary.** Before any other work, read the ticket and
-   give the user an extremely high-level, human-readable summary: what the ticket
-   is and what this verb is about to do on it (as simple as "implementing
-   `<ticket-id>`, which is `<one-line description>`"). Then mark a chapter titled
-   `<ticket-id> <verb>` when the harness offers a chapter tool, so the user can
-   scroll back to it. Skip the chapter silently when it does not.
-
-2. **Claim the session.** Immediately after the ticket summary, run
-   `python3 <ticket-skill-directory>/scripts/ticket.py claim <ticket-id> --verb
-   <current verb>`, so the
-   sessions that worked this ticket are recorded as they work it rather than
-   guessed from prose afterwards. Pass `--session` and `--agent` whenever the
-   environment cannot answer on its own: no session id in it, or more than one,
-   which is what a worker launched from another agent's session sees. Pass
-   `--role` to say what the session is doing on the ticket: `coordinator` (the
-   session driving the ticket, and the default), `worker` (an agent building one
-   chunk), or `reviewer` (a session that only reviews). The role decides which
-   costs are evidence about how big the work was, so a session claimed under the
-   wrong one is a measurement error. The required `--verb` is `triage`, `start`,
-   `revise`, or `finalize`, matching the lifecycle verb this session is running.
-   One session serves one lifecycle verb: same-verb resumes reuse the claim, while
-   changing verbs requires a fresh session. A cross-verb re-claim keeps and prints
-   the persisted claim, reports the persisted and submitted verbs as one visible
-   conflict, and exits successfully; telemetry never claims the submitted metadata
-   landed. A claim that fails is said in one
-   line and never blocks the verb: telemetry is a measurement, not a gate. A
-   sandboxed session (a Codex `workspace-write` sandbox, for one) that cannot
-   write the claims file under `~/.config/ticket/` sees that one-line denial
-   name the path and the fix: rerun the same claim command outside the sandbox
-   or with escalated permissions.
-
-3. **Attribution first.** Every comment this skill posts opens with a one-line
-   quote block. With an operator name configured:
-
-   > Written by an AI agent operating for `<operator>`. Verify before relying on it.
-
-   With none configured:
-
-   > Written by an AI agent. Verify before relying on it.
-
-   The name comes from `~/.config/ticket/config.json`, key `operator`. No file, no
-   key, or an empty value all mean the nameless form. Then the content. Never post
-   an unattributed comment.
-
-4. **The lock is the only entry to execution.** A work order is a ticket comment
-   whose fence header starts `EXECUTION LOCK ` (any version) or, on a ticket still
-   running the legacy protocol, `WORK ORDER`. `start` and `revise` locate it with
-   the tracker contract's locate operation
-   ([references/tracker-contract.md](references/tracker-contract.md)): newest
-   comment wins by post time across both protocols, and no field is ever merged
-   from an older comment into a newer one. No order, no execution: refuse and
-   route to `/ticket triage <ticket-id>`. Admission is the consumer's job: an
-   unrecognized `EXECUTION LOCK` version or `Source:` mode refuses the same way
-   rather than falling back to an older comment. A legacy `WORK ORDER` keeps
-   today's sufficiency rules with no inferred pin, forever; any supersession uses
-   the new protocol.
-
-5. **One worktree, one branch, per ticket, for the whole lifecycle.** `triage`
-   cuts the branch and worktree through `spin-worktree`; `start` and `revise`
-   reuse them; `finalize` tears them down. The first repository action after the
-   summary-and-claim opening, before grounding or any repo read, is to cut or
-   reuse the ticket's worktree. The one pre-worktree exception is fresh epic-child
-   triage: it fetches and verifies the issue body's pinned remote parent-plan base,
-   then passes that branch to the helper. Outside an epic child, grounding, scope ledgers, and
-   the active change record are written and committed there; post-merge archiving
-   follows `operations.archive.guidance` in a sibling archive checkout, which is the
-   one narrow post-merge exception to this rule and lands through its own reviewed
-   pull request rather than a push to `main`. An epic child keeps its
-   instrumentation in session scratch and relies on its parent record. The control checkout may be dirty, stale, or
-   on another branch: its working tree is never read or written, and it never
-   switches branches. Never commit, stash, move, or clean its files, and never
-   substitute another task's worktree as the control checkout. It holds the
-   ticket's branch ref, which is what the worktree is cut from. Before its first
-   write, every verb confirms that its working directory is the path the worktree
-   helper reported; a mismatch stops the verb.
-   A chunked order is the one exception and does not loosen the rule: chunk agents
-   work in per-chunk worktrees cut from the ticket branch and torn down as each
-   chunk merges back into it, so the ticket still ends with one branch and one
-   pull request ([references/coordinator-mode.md](references/coordinator-mode.md)).
-
-6. **Working state lives on the ticket.** No scratch directories live on the branch.
-   Outside an epic, the branch carries shipping code plus the repo's own change
-   record. An epic child creates no per-child change record; its branch carries
-   implementation plus any required parent-plan amendment that triage committed,
-   while the parent epic's active change remains the authority.
-
-7. **Ground in what the repo already says.** Read the repo's own decision and
-   change records, `docs/`, and recent `git log` before forming opinions. Read the
-   standing-decisions source named below when a project configured one.
-
-8. **Status transitions.** Verbs move the ticket: `triage` to triaged, `start` to
-   in progress when the branch is cut, `start` to pending review when the pull
-   request opens, `finalize` to done. Status is the contract's one non-fatal
-   operation: when a move is unavailable or fails, say so in one line and
-   continue. Never retry a failed move and never force a workaround.
-
-9. **Stop at the pull request boundary.** Opening the pull request ends `start`.
-   Merging is human. `finalize` only runs after a human merged.
-
-10. **Fresh-session contract.** `start` assumes no memory of triage. Under a
-   legacy `WORK ORDER`, everything it needs must be on the ticket, in the
-   description plus the work order's own copied prose. Under an
-   `EXECUTION LOCK`, self-sufficiency means deterministic acquisition and
-   verification of the authorized source instead of copied prose, and what that
-   means depends on the source mode. For `openspec` and `repository-native`,
-   the pinned commit OID plus the lock's own execution-shape fields (session
-   fit, verification, expected diff) are enough for a fresh session to resolve,
-   read, and admit the source itself, per [start](verbs/start.md) step 5. For
-   `inline`, there is no commit to resolve: the fence's own `Context`/`Do`/`Done
-   when` payload is the self-sufficient copy, the same as a legacy order's.
-   Either way, if what a fresh session needs is not there, that is a triage
-   defect: refuse and say what is missing.
-
-## The verification step
-
-Every order names one verification step and one expectation for its output. The
-step is a slot:
-
-* **Default:** the target repo's own lint and tests, discovered from the repo. Read
-  its `AGENTS.md` or `CLAUDE.md` for a test command, then its CI workflows, then
-  its package scripts. Name the command in the order.
-* **A binding may fill the slot with something stronger.** An infrastructure
-  preview is the worked example: a read-only plan against real state, run locally
-  before the pull request. When a binding fills the slot, the order's expectation
-  line describes that tool's output instead of a test result.
-* **The rule that survives either way:** iterate locally until the result is
-  exactly what the order's expectation says. CI is the check of record, not the
-  iteration loop.
-* **Never fabricate expected output.** When verification cannot run at all (no
-  credentials, no access, no runnable suite), say so, open the pull request as a
-  draft, and name the missing evidence.
-
-## The graph identity
-
-Before a verb reads code structurally, it binds its current checkout to exactly one
-Codebase Memory project, from that checkout's own path:
-
-```sh
-python3 <cbm-onboard-skill-directory>/scripts/cbm-lifecycle.py ensure <worktree path>
-```
-
-It prints one object, and the verb reports it verbatim:
-
-```json
-{"root_path": "<canonical physical checkout>", "project": "cbm-onboard-v1-<sha256>", "status": "ready"}
-```
-
-* `ready` or `indexed`: query the graph as exactly that `project`. Never pick the
-  graph by project name, branch-like label, list order, apparent recency, or because
-  it was the only result.
-* `unavailable` (exit 2): follow the owning `cbm-onboard` skill's bounded
-  supported-version and sandbox retry/fallback sequence first.
-  An active-generation conflict means wait and retry the same checkout; it is not a
-  sandbox escalation or authority to close another session. After that owned
-  sequence is exhausted, say so in one line and use ordinary discovery.
-* Any other failure (exit 1): stop the verb and report what `ensure` printed on
-  stderr, which names the cause — a path that is not a checkout, or an installed
-  tool answering for the wrong project or root. Neither is a case where guessing a
-  graph is safe.
-* The command never ran at all, no exit code, because the harness or sandbox
-  refused it (a permission classifier declining the Bash call, for example): say so
-  in one line and use ordinary discovery for the rest of the session, the same as
-  `unavailable`.
-
-Every session recomputes this from the checkout it just verified, never from chat
-memory or a remembered earlier run. It names one machine's paths, so it never goes
-into a work order or any other tracker comment; a chunk agent is handed its own in
-its prompt.
-
-Before Git removes a worktree this skill authored, the same directory's
-`cbm-teardown.sh` deletes that checkout's project, while the checkout still exists
-for the identity to be derived from. Teardown fails loudly on a machine with no
-Codebase Memory installed, which is expected: report it in one line and carry on
-with the removal. It never holds up the removal, and it is never retried.
-
-## The hardening profile
-
-The target repo declares `Harden: <command>` beside its test command in repo facts.
-Triage stamps `Profile: hardening` only when that line exists.
-It replaces the review rounds as [start](verbs/start.md) and [revise](verbs/revise.md) specify.
-A hardening command that cannot run is an error, never a pass.
-The profile order's QA script lives in its pull request body.
-
-## Standing decisions
-
-A project may point this skill at a knowledge base of standing decisions and
-traps to read before grounding in the repo. Its location is the project's to
-name: a path in the repo, a file the operator configured, or a page the binding
-knows about.
-
-Absent, the verb says so in one line and continues. It never refuses a ticket for
-want of it.
+**Hardening profile.** When the target repo declares `Harden: <command>` and the user
+asks for it, triage stamps `Profile: hardening`. Start and revise then run `/simplify` and
+the `Harden:` command until it exits 0 (three passes at most, residue listed in the pull
+request), and run `/code-review` only at Full depth. A `Harden:` command that cannot run
+is an error, never a pass.
 
 ## The change record
 
-The skill records the change where the target repo already records changes.
+Record the change where the repo already records changes. In an OpenSpec repo that is
+an active change on the ticket branch (`proposal.md`, `tasks.md`, spec deltas, and
+`design.md` when a decision needs one); it rides the pull request unarchived, and
+finalize archives it after the merge. Whoever executes ticks `tasks.md` as items are
+done and verified. A repo with another convention follows it; a repo with none gets a
+note where its readers look. Never invent a convention.
 
-Whoever executes the change ticks its checklist as work completes, and a checked
-item means implemented and verified, not attempted. That is why a checkbox commit
-in a pinned source is the executor's own bookkeeping rather than an amendment
-([start](verbs/start.md) step 5).
+## The tracker contract
 
-An **epic child** creates no per-child change record. Its parent epic owns the active
-change and its post-merge archive. Triage may commit a required parent-plan
-amendment in the child worktree; start, revise, and coordinator mode preserve the
-parent-plan bytes through the implementation pull request, and finalize leaves the
-parent active and unarchived.
+Verbs call four operations, never a tracker's API directly. One binding page supplies
+them; GitHub issues is the shipped one ([bindings/github-issues.md](bindings/github-issues.md)).
 
-Outside an epic, follow this per-ticket rule:
+1. **Read** a ticket: title, body, parent, labels, and comments with creation times.
+2. **Post** a comment. On failure, print the body so nothing is lost, then stop.
+3. **Move** status to triaged, in progress, pending review, or done. A move to triaged
+   carries the classification; `code` also ensures the `build` label, and a failure
+   there skips `ticket:triaged`.
+4. **Locate** the newest work order: the newest comment whose fence opens
+   `EXECUTION LOCK ` (any version) or the legacy `WORK ORDER`. Newest by post time wins;
+   no field is ever merged from an older comment.
 
-1. The repo has an OpenSpec layout (`openspec/`): write the change folder on the
-   ticket branch (`proposal.md`, `tasks.md`, and `design.md` when the work
-   embodies a real decision). Start and revise keep the active change and its
-   deltas reviewable in the ticket pull request; they do not fold or archive it
-   before merge. The repository's `operations.archive.guidance` determines when
-   finalization archives a verified merge, and the archive itself lands through a
-   reviewed follow-up pull request that a human merges, never a direct push to the
-   default branch. `/openspec-adopt`, when it is installed,
-   is what adopts OpenSpec in a repo that lacks it. OpenSpec is the worked example,
-   never a requirement.
-2. The repo has a different convention (a changelog, a decision-record tree, a
-   design log): follow that convention exactly as the repo already uses it.
-3. The repo has no convention: write down what changed and why, where that repo's
-   readers would look. Do not invent a convention for it.
+A binding for another tracker is one page with the same four operations, the command
+for each, what it needs installed, and the message it prints when that is missing. It
+never falls back to another tracker or a local substitute.

@@ -213,8 +213,6 @@ class ValidateWorkflowContractTests(unittest.TestCase):
     EXPENSIVE_STEPS = (
         "Fresh-install through the standard skills CLI",
         "Verify installed skills",
-        "Install pinned browser driver dependencies",
-        "Run browser driver self-check",
     )
     CLASSIFIER_CONDITION = "steps.changed-paths.outputs.run_expensive != 'false'"
 
@@ -243,7 +241,7 @@ class ValidateWorkflowContractTests(unittest.TestCase):
         self.assertIn('--head "${{ github.event.pull_request.head.sha }}"', classifier)
         self.assertIn('--github-output "$GITHUB_OUTPUT"', classifier)
         self.assertLess(
-            self.workflow.index("Check Python, JavaScript, and shell syntax"),
+            self.workflow.index("Check Python syntax"),
             self.workflow.index("Classify changed paths"),
         )
 
@@ -255,7 +253,7 @@ class ValidateWorkflowContractTests(unittest.TestCase):
             conditions.append(
                 next(line.strip() for line in step.splitlines() if line.strip().startswith("if:"))
             )
-        self.assertEqual(conditions, [f"if: {self.CLASSIFIER_CONDITION}"] * 4)
+        self.assertEqual(conditions, [f"if: {self.CLASSIFIER_CONDITION}"] * len(self.EXPENSIVE_STEPS))
 
 
 if __name__ == "__main__":

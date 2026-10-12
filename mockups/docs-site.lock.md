@@ -1,7 +1,7 @@
 # Lock manifest — docs-site
 
 Locked: 2026-08-26 by Claude Fable 5 (ui-craft `lock`, issue #198)
-Re-settled: 2026-08-26 — first pass: terms 3, 4, 7, 19, the footer string, new term 26. Second pass: term 3 again, term 26 clarified, new term 27 (see **Re-settled terms** below)
+Re-settled: 2026-08-26 — first pass: terms 3, 4, 7, 19, the footer string, new term 26. Second pass: term 3 again, term 26 clarified, new term 27 (see **Re-settled terms** below). #300 pass: terms 7 and 15, the nav, the category list, and the lede count, because the pack no longer ships a `workflows` skill
 Mocks: `docs-site-index.html`, `docs-site-skill.html`, `docs-site-narrative.html`, `_theme.css`, `SCAFFOLD.md`
 Supersedes: — (greenfield; this repo ships no application and no prior docs surface, so the predecessor inventory is skipped by the one-line greenfield rule in `lock.md` §9.3)
 
@@ -25,11 +25,11 @@ switcher: these are separate URLs, not modes of one screen.
 |---|------|------|-------------------|
 | 1 | Zero JavaScript ships. No `<script>` tag, no inline handler, no `javascript:` href, on any page. | gate | grep across built output |
 | 2 | Exactly one hand-written stylesheet, linked as `_theme.css` (renamed at build). Per-skill edge-isolation rules are generated into an inline `<style>` on the pages that carry an isolating map, and are the only other CSS. A page with no isolating map (the narrative template) carries no `<style>` at all. | gate | assertion: exactly one `<link rel=stylesheet>` per page; at most one `<style>`, containing only `.diagram:has(...)` rules |
-| 3 | No **fetched** asset anywhere: no external font, CDN, script, image, `@import`, or off-origin `url()`/`src`. *Hyperlinks* are governed by where they sit. **Site chrome** — the nav, the meta Source row, the footer — links only to `github.com/ConnorGriffin/skills`. **Rendered SKILL.md body content may link to any origin**, because real bodies do: `say-less` cites `github.com/ayghri/i-have-adhd` and `persona-review` cites `ConnorGriffin/follow-through`. A body link is never rewritten to the skills repo and never dropped. *(Re-settled 2026-08-26, second pass.)* | gate | assertion: zero off-origin `<script>`/`<link>`/`@import`/`url(`/`src`; every **chrome** `href` matches the skills-repo prefix; **body** `href`s unrestricted by origin but never `#` or empty |
+| 3 | No **fetched** asset anywhere: no external font, CDN, script, image, `@import`, or off-origin `url()`/`src`. *Hyperlinks* are governed by where they sit. **Site chrome** — the nav, the meta Source row, the footer — links only to `github.com/ConnorGriffin/skills`. **Rendered SKILL.md body content may link to any origin**, because real bodies do: `say-less` cites `github.com/ayghri/i-have-adhd`. A body link is never rewritten to the skills repo and never dropped. *(Re-settled 2026-08-26, second pass.)* | gate | assertion: zero off-origin `<script>`/`<link>`/`@import`/`url(`/`src`; every **chrome** `href` matches the skills-repo prefix; **body** `href`s unrestricted by origin but never `#` or empty |
 | 4 | Diagrams are build-time inline `<svg>` generated from the repository's own data — never a library, never a raster, never hand-drawn. Node and edge data come from `site/relationships.py` (term 7); the text in each box and each description comes from SKILL.md frontmatter (term 17). *(Re-settled 2026-08-26.)* | gate | assertion: `<svg class="diagram">` present, no chart library in output |
 | 5 | Every diagram box is coloured by its skill's category, using `--cat`/`--cat-bg`, on every page. Colour is the only carrier of category meaning in the palette. | gate | assertion: each `.node` carries a `cat-*` class matching its skill's directory |
 | 6 | Edges are directed: every edge path carries `marker-end` pointing at the referenced skill. | gate | assertion |
-| 7 | Index hero is the full pack map, in four layout columns labelled `workflows` / `drivers` / `tools` (tools split across two columns). **The authoritative graph is the hand-maintained `site/relationships.py`** — a `uses` and a `requirements` field per skill, transcribed from the README tables and SKILL.md prose — and node and edge counts follow that data file. Endpoint existence is checked at build: every endpoint must name a real skill directory. Stale or incomplete edges are an accepted failure, not a build error. The map rendered in the lock mock is an exploratory SKILL.md body scan and is **not** authoritative; no count from it is binding. *(Re-settled 2026-08-26.)* | gate | assertion: `.node` count == skills in `relationships.py`, `.edge` count == `uses` entries, every endpoint resolves to a real skill directory |
+| 7 | Index hero is the full pack map, in three layout columns labelled `drivers` / `tools` (tools split across two columns). **The authoritative graph is the hand-maintained `site/relationships.py`** — a `uses` and a `requirements` field per skill, transcribed from the README tables and SKILL.md prose — and node and edge counts follow that data file. Endpoint existence is checked at build: every endpoint must name a real skill directory. Stale or incomplete edges are an accepted failure, not a build error. The map rendered in the lock mock is an exploratory SKILL.md body scan and is **not** authoritative; no count from it is binding. *(Re-settled 2026-08-26.)* | gate | assertion: `.node` count == skills in `relationships.py`, `.edge` count == `uses` entries, every endpoint resolves to a real skill directory |
 | 8 | Edges rest at 16% opacity. Hovering or keyboard-focusing a box drops all other edges to 5% and lifts that skill's edges to 95% in its category colour. Pure CSS `:has()`; a `@supports not selector(:has(*))` fallback renders the map static at 20%. | eye | paired render, rest vs. hover |
 | 9 | Every diagram box is keyboard reachable (`tabindex="0"`) and carries a `<title>` naming the skill and its category; every `<svg class="diagram">` has `role="img"` and a sentence-long `aria-label`. | gate | assertion |
 | 10 | The page body never scrolls horizontally, at 375px, 768px, 1280px, or 1440px. Diagrams scroll inside their own `.diagram-scroll` box (`min-width: 620px`). | gate | browser-gate: `documentElement.scrollWidth <= innerWidth` at four widths |
@@ -37,7 +37,7 @@ switcher: these are separate URLs, not modes of one screen.
 | 12 | Body text is the serif stack; all UI furniture — nav, headings, labels, tags, captions, table headers, footer — is the sans stack. Code is the mono stack. No web fonts; system stacks only. | gate | computed-style assertion on one element of each class |
 | 13 | Light and dark both ship, via `prefers-color-scheme` only. There is no theme toggle — adding one would need JavaScript and violate term 1. | gate | render both schemes |
 | 14 | All body and UI text meets WCAG AA (4.5:1) against its own background in both schemes. Measured at lock: light `--ink-dim` 4.97:1, dark 4.89:1; category ink on its own box ≥5.14:1. | gate | contrast assertion over the token pairs |
-| 15 | Index category board is asymmetric: a narrow left column carrying workflows and drivers stacked, and a wide right column where the tools list flows into two text columns. Collapses to one column below 52rem. A symmetric three-column board is banned — it strands ~1400px beside the 19-row tools list. | gate | computed `grid-template-columns` at 1280 and 375 |
+| 15 | Index category board is asymmetric: a narrow left column carrying drivers, and a wide right column where the tools list flows into two text columns. Collapses to one column below 52rem. A symmetric three-column board is banned — it strands ~1400px beside the 19-row tools list. | gate | computed `grid-template-columns` at 1280 and 375 |
 | 16 | Each category section shows its name, its live count, and a one-sentence blurb, in that order, above the list. | eye | render |
 | 17 | Every skill entry is its name plus the first sentence of its real SKILL.md `description`. No invented copy, no truncation with an ellipsis, no count badges. | gate | string diff against frontmatter |
 | 18 | Skill page order is fixed: category tag, name, full description, meta list, focused map, then the rendered SKILL.md body under an `SKILL.md` heading. | eye | render |
@@ -48,7 +48,7 @@ switcher: these are separate URLs, not modes of one screen.
 | 23 | The flow diagram wraps serpentine — left-to-right, then right-to-left — so it fits the frame without shrinking boxes below the index map's box size. | eye | render |
 | 24 | Persistent chrome on all three templates: the same six-item nav above the masthead, and the same footer line below the content. The nav marks the current page with `aria-current="page"`. Nothing else persists; there is no sidebar, no breadcrumb, no search. | gate | assertion: nav items verbatim and in order on each page |
 | 25 | The `.mockbar` strip does not ship. Neither does any `href="#"` placeholder — every link resolves to a real generated page or a real GitHub URL (term 3 permits the latter). | gate | grep built output for `href="#"`; every remaining `href` resolves |
-| 26 | Links inside a rendered SKILL.md body keep working, by a fixed destination rule: a link to **another skill's `SKILL.md`** maps to that skill's generated page; **any other repository-relative link** maps to the canonical GitHub blob URL on `main`. Relative links resolve against the directory of the SKILL.md being rendered, not the repo root — `reference/lock.md` inside `skills/drivers/ui-craft/SKILL.md` is `…/blob/main/skills/drivers/ui-craft/reference/lock.md`. Absolute `http(s)` links (any origin, per term 3), `mailto:`, and bare fragments pass through **unchanged**. **A trailing fragment is split off before the rule is applied and re-attached after**, so `../scope/SKILL.md#risk-contract` becomes `scope.html#risk-contract` — not a blob path with a fragment glued on. *(Added 2026-08-26; passthrough and fragment-splitting settled in the second pass.)* | gate | assertion: no body link is `#` or empty; each repo-relative link resolves to an existing path; skill-to-skill links end in `.html` or `.html#…` and name a real skill; absolute and `mailto:` links byte-identical to the source |
+| 26 | Links inside a rendered SKILL.md body keep working, by a fixed destination rule: a link to **another skill's `SKILL.md`** maps to that skill's generated page; **any other repository-relative link** maps to the canonical GitHub blob URL on `main`. Relative links resolve against the directory of the SKILL.md being rendered, not the repo root — `reference/lock.md` inside `skills/drivers/ui-craft/SKILL.md` is `…/blob/main/skills/drivers/ui-craft/reference/lock.md`. Absolute `http(s)` links (any origin, per term 3), `mailto:`, and bare fragments pass through **unchanged**. **A trailing fragment is split off before the rule is applied and re-attached after**, so `../code-review/SKILL.md#modes` becomes `code-review.html#modes` — not a blob path with a fragment glued on. *(Added 2026-08-26; passthrough and fragment-splitting settled in the second pass.)* | gate | assertion: no body link is `#` or empty; each repo-relative link resolves to an existing path; skill-to-skill links end in `.html` or `.html#…` and name a real skill; absolute and `mailto:` links byte-identical to the source |
 | 27 | **Anchor contract.** Every rendered body heading carries a deterministic GitHub-style slug as its `id`: lowercase, spaces to hyphens, every character that is not alphanumeric or a hyphen dropped, and a duplicate slug suffixed `-1`, `-2`, … in document order. A fragment **must resolve** under this rule — a bare `#frag` against its own page, and a cross-page `other.html#frag` against that page's headings (term 26 splits it). Verified at lock across all 27 bodies: 2 same-page fragments (`plan-review`'s `#mechanical-fix-in-place`, `persona-review`'s `#panelist-dispatch`) and 3 cross-page ones (into `code-review` and `scope`) all resolve. *(Added by re-settle 2026-08-26, second pass.)* | gate | assertion: slug function matches the rule on a fixture with a duplicate and a punctuated heading; every fragment, same-page or cross-page, resolves to an emitted heading id on its target page |
 
 ## Fixture obligations
@@ -67,8 +67,8 @@ nothing here is personal or sensitive. What the build must exercise:
   that isolating one skill changes nothing visible.
 - **At least one skill with a `requirements` entry and one without**, or term
   19's "no entry shows no requirement" branch is never exercised.
-- **A body with an off-repo link** (`say-less`, `persona-review`) and **a body
-  with a fragment link** (`plan-review`, `persona-review`), or terms 3 and 27
+- **A body with an off-repo link** (`say-less`) and **a body
+  with a fragment link** (`plan-review`), or terms 3 and 27
   are asserted against content that never exercises them.
 - **A body with two identically-titled headings**, or term 27's `-1`/`-2`
   dedupe branch is never exercised. No skill in the pack has one today, so this
@@ -78,27 +78,26 @@ nothing here is personal or sensitive. What the build must exercise:
   `ui-craft` is the locked exemplar and carries all five (verified at lock: 1
   table, 3 lists, 1 ordered list, 3 emphases).
 - **A skill page whose body has a fenced code block.** `ui-craft`'s does not,
-  so the mock never exercised `<pre>`. The build must render one — `cbm-onboard`
+  so the mock never exercised `<pre>`. The build must render one — `code-review`
   has fenced blocks — and prove it does not force a
   horizontal page scroll at 375px (term 10).
 - **A skill page for a leaf** — one with no inbound and no outbound edges
-  (`cbm-onboard`, `openspec-adopt`) — so term 21's empty bands are designed,
+  (`openspec-adopt`) — so term 21's empty bands are designed,
   not discovered.
 - **Both schemes and four widths** for terms 10, 13 and 14.
 
 ## Verbatim strings
 
 Navigation, in order, on every page:
-`Overview` · `Workflows` · `Drivers` · `Tools` · `The ticket flow` · `Source on GitHub`
+`Overview` · `Drivers` · `Tools` · `The ticket flow` · `Source on GitHub`
 
 Category names and blurbs:
 
-- `workflows` — "Front doors. You name the situation; the workflow classifies it and routes to exactly one specialist skill — it does no work itself."
 - `drivers` — "Lifecycles. A driver owns a piece of work from arrival to done, through named verbs and state it records outside the conversation."
 - `tools` — "References and single passes. Load one for its vocabulary, its checklist, or one bounded job, then get on with the work."
 
 Index lede:
-"A portable skill pack for coding agents. Twenty-seven skills that turn a vague request into tracked work, that work into a reviewed pull request, and that pull request into merged history — with the decisions written down as they are made."
+"A portable skill pack for coding agents. Sixteen skills that turn a vague request into tracked work, that work into a reviewed pull request, and that pull request into merged history — with the decisions written down as they are made."
 
 Diagram captions:
 

@@ -102,7 +102,6 @@ acting — it defines the flow.
 | `audit [target]` | Technical checks (a11y, contrast, responsive, detector) + lock-fidelity audit when a manifest exists | [reference/audit.md](reference/audit.md) |
 | `polish [target]` | Pre-ship quality gate; includes the manifest walk | [reference/polish.md](reference/polish.md) |
 | `resettle [term]` | Amend a locked term with record-keeping | [reference/resettle.md](reference/resettle.md) |
-| `consensus [question]` | Settle a contested design decision via a 3-persona vote-and-negotiate panel (advisory; requires repo personas) | [reference/consensus.md](reference/consensus.md) |
 | `init` / `document` | Project context setup / generate DESIGN.md | [reference/init.md](reference/init.md), [reference/document.md](reference/document.md) |
 
 No argument: recommend the 1–3 most useful modes from context (a shipped
@@ -150,12 +149,10 @@ any general invocation; the other modes consult it as needed.
 
 Persona walkthroughs live in `critique` (five built-in archetypes plus
 project-specific ones). **Repo personas win:** if the repo has its own persona
-definitions (canonically `.claude/qa/personas/*.md` — written by `init`'s
-persona-panel step — or a location named in its CLAUDE.md/AGENTS.md), use
-those personas — a diabetic user, a concerned parent — instead of inventing
-equivalents, and follow the repo's sweep protocol when one exists. The
-`consensus` mode requires these repo personas and refuses to run on generic
-archetypes.
+definitions (canonically `.claude/qa/personas/*.md`, or a location named in
+its CLAUDE.md/AGENTS.md), use those personas — a diabetic user, a concerned
+parent — instead of inventing equivalents, and follow the repo's sweep protocol
+when one exists.
 
 **"The repo's sweep protocol" is not `behavior-sweep`.** That phrase means the
 repo's persona-driven QA pass — exploratory, judgment-led, run against a live
@@ -185,8 +182,8 @@ Neither substitutes for the other.
 - Vary the concept, not the decoration; three variants that differ only in
   color are one design.
 - Inspect rendered output — source review alone never validates a visual
-  artifact. Use `drive-local-webapp` for rendering; ask to install it if
-  missing.
+  artifact. Use the harness's built-in browser or preview tool to render and
+  screenshot.
 - **Sibling exactness** ([reference/sibling-fidelity.md](reference/sibling-fidelity.md)):
   any element with a sibling in a shipped surface uses the shipped values
   exactly — geometry, type, alignment spines, chart furniture, and interaction

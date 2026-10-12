@@ -13,31 +13,19 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 CATEGORIES = {"workflows", "drivers", "tools"}
 EXPECTED = {
-    "workflows/scope",
-    "workflows/review",
-    "drivers/epic",
     "drivers/implement",
     "drivers/openspec-adopt",
     "drivers/ui-craft",
-    "drivers/orchestrate",
     "drivers/ticket",
-    "tools/cbm-onboard",
-    "tools/codebase-memory",
     "tools/ci-design",
-    "tools/clean",
     "tools/code-review",
     "tools/codebase-design",
     "tools/domain-modeling",
-    "tools/drive-local-webapp",
     "tools/handoff",
-    "tools/persona-review",
     "tools/plan-review",
-    "tools/preflight",
     "tools/prototype",
     "tools/research",
-    "tools/reviewer-memory",
     "tools/say-less",
-    "tools/spin-worktree",
     "tools/tdd",
     "tools/writing-for-agents",
 }
@@ -62,10 +50,6 @@ FORBIDDEN = (
     re.compile("j" + r"ira\.corp", re.IGNORECASE),
     re.compile(r"~/\.config/" + "j" + "ira-ticket/"),
 )
-PERSONA_REVIEW_ALLOWLIST = {
-    "SKILL.md",
-    "agents/openai.yaml",
-}
 LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 HISTORY_PATTERN = "|".join(
     (
@@ -174,20 +158,6 @@ def validate_links(path: Path, errors: list[str]) -> None:
             fail(errors, f"{path.relative_to(ROOT)}: broken link: {target}")
 
 
-def validate_persona_review_allowlist(errors: list[str]) -> None:
-    skill_dir = SKILLS / "tools" / "persona-review"
-    if not skill_dir.exists():
-        return
-    for path in skill_dir.rglob("*"):
-        if path.is_file():
-            relative = path.relative_to(skill_dir).as_posix()
-            if relative not in PERSONA_REVIEW_ALLOWLIST:
-                fail(
-                    errors,
-                    f"skills/tools/persona-review: file not on the allowlist: {relative}",
-                )
-
-
 def validate_reachable_history(errors: list[str]) -> None:
     commits = subprocess.run(
         ["git", "rev-list", "--all"],
@@ -277,7 +247,6 @@ def main() -> int:
         if not metadata.exists():
             fail(errors, f"skills/{skill}: missing agents/openai.yaml")
 
-    validate_persona_review_allowlist(errors)
     validate_reachable_history(errors)
 
     if errors:

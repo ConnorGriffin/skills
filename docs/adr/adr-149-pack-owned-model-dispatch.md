@@ -1,6 +1,6 @@
 # ADR 149 — Pack-owned model dispatch, with effort settable everywhere
 
-Status: accepted (2026-08-24)
+Status: superseded by #300 (orchestrate removed; native subagents replace the worker adapters — see `openspec/changes/300-simplify-skill-pack/design.md`)
 
 ## Context
 
