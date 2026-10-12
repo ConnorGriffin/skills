@@ -21,5 +21,11 @@
 - [x] Remove `epic`, its tests, validator and CI entries, docs guide, README, site,
       and mockup entries; mark ADR 143 superseded; record the ticket-workflow and
       planning-and-review deltas.
+- [x] Remove `drive-local-webapp`, `clean`, `spin-worktree`, and the `review` front
+      door with their scripts, tests, validator, CI, README, NOTICE, site, and
+      mockup entries; point surviving skills at the harness browser, `/simplify`,
+      a fresh worktree, `/code-review`, and `/plan-review`; mark ADR 52
+      superseded; record the pack-integrity and planning-and-review deltas.
+- [x] Drop `ticket.py record`'s unused chunked-order verdict and its tests.
 - [x] Run `openspec validate --all --strict`, `python3 scripts/validate.py`, and the
       behavior suites from `.github/workflows/validate.yml`.

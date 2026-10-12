@@ -57,8 +57,7 @@ pass and delegates through native subagents. Chunked orders, coordinator mode, s
 fit and model admission, persona panels, multi-round lock panels, the graph identity,
 and the per-ticket scope ledger are gone, because native subagents and the shorter
 lifecycle cover them and instructions this long were not being read in full. The
-`ticket.py` script keeps all four subcommands, since the slim prose still uses each;
-its chunked-verdict code stays as working, tested behavior with no prose caller. The
+`ticket.py` script keeps all four subcommands, since the slim prose still uses each. The
 lock keeps its `EXECUTION LOCK v2` header and pinned-source admission, so existing
 locks remain readable.
 
@@ -72,3 +71,18 @@ epic-child carve-outs in the ticket skill go with it, because they existed only 
 coordinate work that one checklist and independent tickets now carry. This supersedes
 ADR 143. Active change 273's finalization delta still mentions epic children; that
 clause becomes inert and is left to that change.
+
+## ADR 300 — Remove skills duplicated by the harness
+
+The pack no longer ships four skills that the agent harness now provides natively.
+`drive-local-webapp` and its Playwright package give way to the harness's built-in
+browser or preview tool; `clean` gives way to `/simplify`; `spin-worktree` gives way
+to native worktree isolation, so skills say to work in a fresh worktree off the
+up-to-date remote base; and the `review` front door, which only routed between
+`code-review` and `plan-review` once persona panels were gone, gives way to asking for
+either directly. This supersedes ADR 52. CI drops the browser-driver install and
+self-check. `ticket.py record` loses `--chunked` and `--chunks` and judges every order
+on its own `start` peak, because no prose passes those flags since chunked orders
+were removed. The `workflows` category stays defined in the validator although it is
+now empty, since nothing requires a category to be populated. Active change 293
+still names the removed skills in its inventory; that change owns those references.

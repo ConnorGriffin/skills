@@ -28,6 +28,10 @@ persona panels added review rounds without a matching gain.
   cold plan review only at Full depth, one code-review pass, no chunked orders.
 - Remove the `epic` skill; triage files oversized work as child issues tracked on a
   parent checklist.
+- Remove four skills the harness now covers: `drive-local-webapp` (built-in browser
+  and preview tools), `clean` (`/simplify`), `spin-worktree` (native worktree
+  isolation), and the `review` front door (`/code-review` or `/plan-review`). Drop
+  `ticket.py record`'s chunked-order verdict, which no prose calls.
 
 ## Risk contract
 
@@ -44,7 +48,7 @@ persona panels added review rounds without a matching gain.
 
 ## Impact
 
-Removes seven skills and their tests, and rewrites the ticket skill. Changes `code-review`, `plan-review`,
-`research`, `codebase-design`, `review`, `ui-craft`, the README, the docs site
+Removes eleven skills and their tests, and rewrites the ticket skill. Changes `code-review`, `plan-review`,
+`research`, `codebase-design`, `ui-craft`, the README, the docs site
 sources and mockups, CI workflows, and `profile/base.md`. Supersedes ADR 65,
-ADR 149, ADR 150, and ADR 143.
+ADR 149, ADR 150, ADR 143, and ADR 52.

@@ -91,20 +91,15 @@ issues by its own sizing rule.
 **Migration**: Each child ticket's own change rides its own implementation pull
 request.
 
-## MODIFIED Requirements
-
 ### Requirement: Review routing and containment
 
-`/review` MUST classify a review subject and route it to exactly one registered
-review skill. A registered route whose implementation is missing MUST stop rather
-than substitute another review.
+**Reason**: ADR 300 removes the `review` front door. With persona panels gone it
+only routed between `code-review` and `plan-review`.
 
-#### Scenario: A registered review route is unavailable
+**Migration**: Ask for `/code-review` on code and diffs or `/plan-review` on plans
+and specs.
 
-- **WHEN** route resolution finds the requested route but cannot find its named
-  review skill
-- **THEN** review stops with the missing-skill result and does not run a nearby
-  route
+## MODIFIED Requirements
 
 ### Requirement: Research worker source access
 
