@@ -68,7 +68,7 @@ jobs:
         if: steps.changed-paths.outputs.run_expensive != 'false'
         run: |
           for skill in drive-local-webapp spin-worktree research \
-            implement tdd review prototype epic plan-review ui-craft; do
+            implement tdd review prototype plan-review ui-craft; do
             test -f ".agents/skills/$skill/SKILL.md"
           done
       - name: Install pinned browser driver dependencies

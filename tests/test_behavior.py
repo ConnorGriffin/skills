@@ -534,23 +534,6 @@ class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
             text,
         )
 
-    def test_ticket_coordinator_keeps_unchanged_worker_waits_silent(self):
-        text = " ".join(
-            (ROOT / "skills/drivers/ticket/references/coordinator-mode.md")
-            .read_text(encoding="utf-8")
-            .split()
-        )
-
-        self.assertIn(
-            "While a dispatched worker is still running, re-polled unchanged worker state, "
-            "files, result sets, and result locators produce no update, including after three "
-            "batches. Elapsed time alone is no news and never a milestone. Report completion, "
-            "failure, an abandoned wait, and a predeclared operator-relevant external-state "
-            "or coordinator decision/action milestone immediately. The shared state-change "
-            "rule still reports any external state change the coordinator caused.",
-            text,
-        )
-
 
 class CodeReviewDispatchTests(unittest.TestCase):
     SKILL = ROOT / "skills" / "tools" / "code-review" / "SKILL.md"
@@ -653,10 +636,6 @@ class ReviewerMemoryConsumerContractTests(unittest.TestCase):
         )
         self.assertIn("including its not-installed carve-out", text)
         self.assertIn("slicing records", text)
-        self.assertIn(
-            "say when a nearby record contradicts the call the rubric points at",
-            text,
-        )
 
     def test_code_review_injects_the_pointer_and_appends_rounds_under_the_authoritative_failure_rule(self):
         text = " ".join(self.CODE_REVIEW.read_text(encoding="utf-8").split())
@@ -705,7 +684,7 @@ class ReviewerMemoryConsumerContractTests(unittest.TestCase):
 
     def test_memory_and_pointer_content_stays_out_of_published_artifacts(self):
         pages = {
-            self.TRIAGE: "Keep the index and store content in worker prompts only",
+            self.TRIAGE: "Keep the index and store content local",
             self.FINALIZE: "Keep the record and store content local",
             self.CODE_REVIEW: "Keep the pointer and store content inside reviewer prompts only",
             self.PLAN_REVIEW: "Keep the pointer and store content inside worker prompts only",
@@ -765,9 +744,9 @@ class AssuranceLevelMatchingContractTests(unittest.TestCase):
     def test_cycle_rereads_settled_decisions_after_compaction(self):
         self.assertIn(
             "If the coordinator session running the review has its context compacted mid-review, "
-            "it re-reads the settled decisions in the plan's scope ledger wherever `/ticket triage` "
-            "placed it (`docs/scope/<slug>.md` or the session scratchpad) and the risk contract "
-            "copied into the plan before evaluating the reviewer's deltas. It treats decisions "
+            "it re-reads the settled decisions and risk contract `/ticket triage` recorded in the "
+            "plan (the order's Context or the change's `design.md` and `proposal.md`) before "
+            "evaluating the reviewer's deltas. It treats decisions "
             "recorded there as settled rather than re-deriving them from what survived "
             "compaction. Cold reviewers stay cold: this rule adds nothing to the cold-reader "
             "prompt, and `plan-review-mechanical-fixes.md` remains the round ledger rather than "
@@ -1203,168 +1182,6 @@ export const chromium = {
         self.assertNotIn("HEADLESS-SANDBOX-BLOCKED", result.stdout + result.stderr)
 
 
-class EpicProtocolContractTests(unittest.TestCase):
-    RESEARCH = (ROOT / "skills" / "tools" / "research" / "SKILL.md").read_text(encoding="utf-8")
-    EPIC = (ROOT / "skills" / "drivers" / "epic" / "SKILL.md").read_text(
-        encoding="utf-8"
-    )
-    TRACKER = (
-        ROOT / "skills" / "drivers" / "epic" / "bindings" / "github-issues.md"
-    ).read_text(encoding="utf-8")
-
-    def require(self, text, pattern):
-        self.assertRegex(text, re.compile(pattern, re.IGNORECASE))
-
-    def test_research_worker_performs_research_directly(self):
-        self.require(self.RESEARCH, r"worker performs the research directly")
-
-    def test_research_forbids_recursive_delegation(self):
-        self.require(
-            self.RESEARCH,
-            r"(never|do not) spawn (a |another )?(nested|background )?(agent|worker)",
-        )
-
-    def test_epic_names_proposal_design_and_tasks_as_authority(self):
-        self.require(self.EPIC, r"proposal\.md.*design\.md.*tasks\.md.*authority")
-
-    def test_epic_change_folder_uses_openspec_authority_and_task_linked_children(self):
-        self.require(self.EPIC, r"proposal\.md.*design\.md.*tasks\.md.*authority")
-        self.require(self.EPIC, r"tasks\.md.*link.*child issue")
-        self.require(self.EPIC, r"live tracker state.*truth.*child")
-        self.assertNotIn("ledger.md", self.EPIC)
-
-    def test_named_design_open_questions_replace_fog(self):
-        self.require(self.EPIC, r"design\.md.*named open question")
-        self.require(self.EPIC, r"open question.*decision.*spike")
-        self.assertIn("Do not add pointer-only Notes", self.EPIC)
-        self.assertNotIn("## Fog", self.EPIC)
-
-    def test_build_admission_refuses_open_spikes_or_design_questions(self):
-        self.require(self.EPIC, r"refuse.*build.*open spike.*open question")
-        self.require(self.EPIC, r"invalidate.*outcome.*constraints.*acceptance criteria")
-
-    def test_build_admission_requires_adrs_and_selected_ui_lifecycle(self):
-        self.require(self.EPIC, r"load-bearing.*ADR")
-        self.require(self.EPIC, r"user-facing.*selected.*ui-craft")
-        self.require(self.EPIC, r"greenfield.*locked")
-        self.require(self.EPIC, r"shipped.*revision.*behavior.*ledger.*replay")
-
-    def test_research_handoff_returns_to_an_attended_operator_session(self):
-        self.require(self.EPIC, r"research.*attended.*operator")
-        self.require(self.EPIC, r"record.*tracker result.*design\.md")
-
-    def test_research_close_uses_verified_tracker_evidence(self):
-        self.require(self.EPIC, r"close.*spike.*only after.*tracker.*result")
-        self.require(self.EPIC, r"failed.*attended session.*spike.*open")
-
-    def test_deferred_children_have_explicit_close_out_dispositions(self):
-        self.require(self.EPIC, r"promote.*remove.*deferred")
-        self.require(self.EPIC, r"reparent.*future epic.*retaining.*deferred")
-        self.require(self.EPIC, r"NOT_PLANNED.*remove.*deferred")
-        self.require(self.EPIC, r"refuse.*archive.*open.*deferred")
-
-    def test_tracker_bootstraps_the_four_protocol_labels_without_touching_ticket_axis(self):
-        self.require(self.TRACKER, r"epic.*spike.*build.*deferred")
-        self.require(self.TRACKER, r"ticket:\*.*independent")
-
-    def test_tracker_uses_native_children_and_blocked_by_edges(self):
-        self.require(self.TRACKER, r"--add-sub-issue")
-        self.require(self.TRACKER, r"--add-blocked-by")
-
-    def test_tracker_has_one_command_follow_up_creation_interface(self):
-        self.require(
-            self.TRACKER,
-            r"gh issue create --repo OWNER/REPO --title.*--body-file.*--label (build|spike).*--parent EPIC_NUMBER",
-        )
-        self.require(self.TRACKER, r"returned URL.*originating ticket")
-        self.require(
-            self.TRACKER,
-            r"gh issue create --help.*--repo.*--title.*--body-file.*--label.*--parent",
-        )
-
-    def test_tracker_reads_child_completion_fields_and_merged_at(self):
-        self.require(self.TRACKER, r"subIssues\.nodes")
-        self.require(self.TRACKER, r"stateReason")
-        self.require(self.TRACKER, r"closedByPullRequestsReferences")
-        self.require(self.TRACKER, r"mergedAt")
-
-    def test_completion_checks_are_direct_and_merged_or_not_planned(self):
-        self.require(self.TRACKER, r"no open spike child")
-        self.require(self.TRACKER, r"merged.*NOT_PLANNED")
-        self.require(self.TRACKER, r"no open deferred child")
-
-    def test_epic_close_uses_live_checks_and_repository_archive_guidance(self):
-        self.require(self.EPIC, r"completion predicates.*directly from GitHub")
-        self.require(self.EPIC, r"repository.*archive guidance")
-        self.require(self.EPIC, r"child work.*human-merged")
-        self.assertNotIn("planning pull request", self.EPIC.lower())
-
-
-class EpicHumanDispatchContractTests(unittest.TestCase):
-    SURFACES = {
-        "skill": ROOT / "skills" / "drivers" / "epic" / "SKILL.md",
-        "guide": ROOT / "docs" / "epic-flow.md",
-        "readme": ROOT / "README.md",
-        "metadata": ROOT / "skills" / "drivers" / "epic" / "agents" / "openai.yaml",
-    }
-
-    def setUp(self):
-        self.text = {
-            name: " ".join(path.read_text(encoding="utf-8").split())
-            for name, path in self.SURFACES.items()
-        }
-
-    def test_public_surfaces_describe_operator_triage_instead_of_epic_execution(self):
-        for name, text in self.text.items():
-            with self.subTest(surface=name):
-                self.assertRegex(text, r"(?i)operator.{0,180}ticket triage")
-                self.assertNotRegex(text, r"(?i)delegate a (?:locked|settled) epic subtree")
-                self.assertNotRegex(text, r"(?i)epic.{0,120}(?:worker adapter|adapter state|execution wave)")
-
-    def test_epic_surfaces_remove_every_epic_owned_execution_mechanism(self):
-        removed_promises = (
-            "## Delegated execution",
-            "## Worker dispatch",
-            "temporary per-spike worktree",
-            "home session dispatches",
-            "pack adapters",
-            "fan-out",
-            "Collect child results",
-            "applicable routing ladder is exhausted",
-            "coordinator-owned state file",
-            "same-session retry",
-            "unfinished delegated worker",
-            "create chunk waves",
-            "write and collect adapter state",
-            "verify worker results",
-        )
-
-        for surface in ("skill", "guide"):
-            with self.subTest(surface=surface):
-                for promise in removed_promises:
-                    self.assertNotIn(promise.lower(), self.text[surface].lower())
-
-    def test_epic_skill_pins_the_parent_plan_and_stops_before_the_lock(self):
-        epic = self.text["skill"]
-        self.assertIn("Parent plan base:", epic)
-        self.assertRegex(epic, r"(?i)pushed epic planning branch.{0,180}full commit")
-        self.assertRegex(epic, r"(?i)does not post.{0,120}fenced.{0,80}work order")
-        self.assertRegex(epic, r"(?i)does not invoke.{0,120}/ticket triage")
-
-    def test_epic_skill_limits_children_and_serializes_handoffs(self):
-        epic = self.text["skill"]
-        self.assertRegex(epic, r"(?i)(?:three or fewer|at most three).{0,180}child")
-        self.assertRegex(epic, r"(?i)fourth or later.{0,180}design\.md.{0,220}(?:capability boundary|dependency)")
-        self.assertRegex(epic, r"(?i)one.{0,80}in-flight.{0,80}child")
-        self.assertRegex(epic, r"(?i)human-merged.{0,220}updated remote default")
-
-    def test_epic_skill_bans_planning_only_pull_requests(self):
-        epic = self.text["skill"]
-        self.assertRegex(epic, r"(?i)never opens a pull request")
-        self.assertRegex(epic, r"(?i)planning-only pull request.{0,120}unsupported")
-        self.assertRegex(epic, r"(?i)planning artifacts.{0,180}implementation pull request")
-
-
 class ReviewRouteResolverTests(unittest.TestCase):
     RESOLVER = ROOT / "skills" / "workflows" / "review" / "scripts" / "resolve_route.py"
     ROUTES_JSON = ROOT / "skills" / "workflows" / "review" / "routes.json"
@@ -1638,123 +1455,6 @@ class UiCraftCliMainGuardTests(unittest.TestCase):
         )
 
 
-class CoordinatorOwnedReviewContractTests(unittest.TestCase):
-    TICKET = ROOT / "skills" / "drivers" / "ticket" / "SKILL.md"
-    TICKET_VERBS = {
-        "triage": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "triage.md",
-        "start": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "start.md",
-        "revise": ROOT / "skills" / "drivers" / "ticket" / "verbs" / "revise.md",
-    }
-    OPENAI_PROMPTS = (
-        ROOT / "skills" / "drivers" / "ticket" / "agents" / "openai.yaml",
-    )
-    BASELINE_SPECS = (
-        ROOT / "openspec" / "specs" / "ticket-workflow" / "spec.md",
-    )
-
-    @staticmethod
-    def compact(text: str) -> str:
-        return " ".join(text.split()).lower()
-
-    @staticmethod
-    def frontmatter_description(path: Path) -> str:
-        source = path.read_text(encoding="utf-8")
-        frontmatter = source.split("---\n", 2)[1]
-        return next(
-            line.removeprefix("description:").strip().strip('"')
-            for line in frontmatter.splitlines()
-            if line.startswith("description:")
-        )
-
-    @staticmethod
-    def section(path: Path, heading: str) -> str:
-        source = path.read_text(encoding="utf-8")
-        anchor = f"{heading}\n\n"
-        assert anchor in source
-        return source.split(anchor, 1)[1].split("\n\n## ", 1)[0]
-
-    def assert_catalog_handoff(self, description: str) -> None:
-        description = self.compact(description)
-        self.assertIn("coordinator dispatches every mandatory reviewer", description)
-        self.assertIn("resumes the same worker", description)
-        self.assertNotIn("worker launches a nested reviewer", description)
-
-    def assert_unavailable_review_is_not_clean(self, contract: str) -> None:
-        contract = self.compact(contract)
-        for term in (
-            "failed launch",
-            "nonzero exit",
-            "missing result artifact",
-            "missing verdict",
-            "reported as unavailable",
-            "never interpreted as an empty finding list",
-            "blocks the workflow from advancing as reviewed",
-        ):
-            self.assertIn(term, contract)
-
-    def test_catalogs_assign_delegated_mandatory_review_to_the_coordinator(self):
-        self.assert_catalog_handoff(self.frontmatter_description(self.TICKET))
-
-    def test_ticket_authority_defines_the_fail_closed_review_handoff(self):
-        ticket = self.compact(self.section(self.TICKET, "## Delegation authority"))
-        for term in (
-            "delegation prompt identifies the mandatory-review handoff",
-            "coordinator-recorded durable result locator",
-            "coordinator dispatches every mandatory reviewer",
-            "verifies the returned verdict",
-            "resumes the same worker",
-            "failed launch",
-            "nonzero exit",
-            "missing result artifact",
-            "missing verdict",
-            "reported as unavailable",
-            "blocks the workflow from advancing as reviewed",
-            "direct nested adapter dispatch by the worker is unsupported",
-        ):
-            with self.subTest(term=term):
-                self.assertIn(term, ticket)
-
-    def test_delegated_ticket_verbs_return_review_ready_work_to_the_coordinator(self):
-        for verb, path in self.TICKET_VERBS.items():
-            with self.subTest(verb=verb):
-                procedure = self.compact(path.read_text(encoding="utf-8"))
-                self.assertIn(f"delegated `{verb}` worker", procedure)
-                self.assertIn("returns its review-ready", procedure)
-                self.assertIn("coordinator-recorded durable result locator", procedure)
-                self.assertIn("to its coordinator", procedure)
-                self.assertIn("resumes the same worker", procedure)
-                self.assertIn("must not launch a nested reviewer", procedure)
-
-    def test_openai_prompts_assign_delegated_review_to_the_coordinator(self):
-        for path in self.OPENAI_PROMPTS:
-            with self.subTest(path=path):
-                prompt = self.compact(path.read_text(encoding="utf-8"))
-                self.assert_catalog_handoff(prompt)
-                self.assertIn("missing review evidence is unavailable", prompt)
-
-    def test_baseline_specs_reject_every_unavailable_review_shape(self):
-        for path in self.BASELINE_SPECS:
-            with self.subTest(path=path):
-                spec = self.compact(path.read_text(encoding="utf-8"))
-                for term in (
-                    "failed launch",
-                    "nonzero exit",
-                    "missing result artifact",
-                    "missing verdict",
-                    "unavailable",
-                    "does not advance the workflow as reviewed",
-                ):
-                    self.assertIn(term, spec)
-
-    def test_old_worker_owned_and_missing_verdict_wording_fail_the_contract(self):
-        catalog = self.frontmatter_description(self.TICKET).replace(
-            "the coordinator dispatches every mandatory reviewer",
-            "the worker launches a nested reviewer",
-        )
-        with self.assertRaises(AssertionError):
-            self.assert_catalog_handoff(catalog)
-
-
 class DelegationAuthorityContractTests(unittest.TestCase):
     CODE_REVIEW = (ROOT / "skills" / "tools" / "code-review" / "SKILL.md").read_text(
         encoding="utf-8"
@@ -1794,87 +1494,7 @@ class DelegationAuthorityContractTests(unittest.TestCase):
             self.assertIn(self.REFUSAL_STOPS_WORKFLOW, skill)
 
     def test_ticket_authority_covers_triage_plan_review(self):
-        self.assertIn("triage's mandatory `/plan-review`", self.TICKET)
-
-    def test_triage_points_to_ticket_authority_without_repeating_it(self):
-        self.assertIn("ticket skill page's `## Delegation authority` section", self.TRIAGE)
-        self.assertNotIn(self.AUTHORIZATION, self.TRIAGE)
-
-
-class DurableWorkerOrderContractTests(unittest.TestCase):
-    COORDINATOR_MODE = (
-        ROOT / "skills" / "drivers" / "ticket" / "references" / "coordinator-mode.md"
-    )
-    FINALIZE = ROOT / "skills" / "drivers" / "ticket" / "verbs" / "finalize.md"
-    REVISE = ROOT / "skills" / "drivers" / "ticket" / "verbs" / "revise.md"
-    TEMPLATE = ROOT / "skills" / "drivers" / "ticket" / "templates" / "work-order.md"
-
-    @staticmethod
-    def compact(text: str) -> str:
-        return " ".join(text.split()).lower()
-
-    @staticmethod
-    def section(path: Path, heading: str) -> str:
-        source = path.read_text(encoding="utf-8")
-        anchor = f"{heading}\n\n"
-        assert anchor in source
-        return source.split(anchor, 1)[1].split("\n\n## ", 1)[0]
-
-
-    def test_write_mode_workers_keep_and_recover_their_closed_order(self):
-        coordinator_mode = self.compact(
-            self.COORDINATOR_MODE.read_text(encoding="utf-8")
-        )
-        for term in (
-            "the prompt carries the sub-lock plus verified source coordinates and "
-            "selected identifiers, never restated plan prose",
-            "a chunk agent that cannot read the sub-lock's pinned source from its "
-            "own worktree stops and reports",
-            "the coordinator does not restate the source's plan prose to make the "
-            "prompt self-contained",
-        ):
-            with self.subTest(coordinator_mode_term=term):
-                self.assertIn(term, coordinator_mode)
-
-        template = self.TEMPLATE.read_text(encoding="utf-8")
-        flat = template.split("## Flat\n", 1)[1].split("\n---\n\n## Chunked", 1)[0]
-        chunked = template.split("## Chunked\n", 1)[1]
-        chunked_header, sub_order = chunked.split("SUB-ORDER 1/<n>", 1)
-        flat = self.compact(flat)
-        chunked_header = self.compact(chunked_header)
-        sub_order = self.compact(sub_order)
-        standing_instruction = (
-            "re-read `order.md` before each commit and again before declaring the work done"
-        )
-        self.assertIn(standing_instruction, sub_order)
-        self.assertIn("`done when` is closed", sub_order)
-        self.assertIn("propose any further improvement rather than making it", sub_order)
-        self.assertIn("stop and report rather than continuing from memory", sub_order)
-        self.assertNotIn(standing_instruction, flat)
-        self.assertNotIn(standing_instruction, chunked_header)
-
-        teardown_checks = (
-            (self.COORDINATOR_MODE, "<path>/ORDER.md", "worktree remove <path>"),
-            (self.FINALIZE, "<worktree path>/ORDER.md", "worktree remove <worktree path>"),
-            (self.REVISE, "<path>/ORDER.md", "status --short"),
-        )
-        for path, order_file, later_step in teardown_checks:
-            with self.subTest(teardown=path):
-                source = path.read_text(encoding="utf-8")
-                self.assertIn(order_file, source)
-                self.assertLess(source.index(order_file), source.index(later_step))
-
-
-class LiveProseContractTests(unittest.TestCase):
-    def test_review_depth_and_slicing_keep_their_load_bearing_rules(self):
-        depth = (ROOT / "skills/drivers/ticket/references/review-depth.md").read_text(encoding="utf-8")
-        slicing = (ROOT / "skills/drivers/ticket/references/slicing.md").read_text(encoding="utf-8")
-        self.assertIn("Full-depth orders keep one review round", " ".join(depth.split()))
-        self.assertIn(
-            "The coordinator never launches an agent smarter than itself.",
-            " ".join(slicing.split()),
-        )
-
+        self.assertIn("triage's mandatory `/plan-review` at Full depth", self.TICKET)
 
 if __name__ == "__main__":
     unittest.main()

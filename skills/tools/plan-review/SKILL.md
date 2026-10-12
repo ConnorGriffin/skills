@@ -62,7 +62,7 @@ The cold-reader prompt contains exactly:
 2. the five-axis rubric;
 3. stakes tier;
 4. a context-free fresh-reviewer phase instruction that requires the reviewer
-   to read [drafting conventions](../../drivers/ticket/references/drafting-conventions.md); and
+   to read [the work-order template](../../drivers/ticket/templates/work-order.md); and
 5. the reviewer-memory store index path printed by `python3 <reviewer-memory-skill-directory>/scripts/memory.py pointer <repo>`.
 
 The cold reviewer reads the bundle at that fifth path before reviewing.
@@ -122,7 +122,7 @@ definitions below are the fallback.
    at build time is how shallow modules happen.
 4. **Scope, risk contract, and complexity budget.** Out-of-scope must be explicit.
    For bounded work, load the admitted
-   [risk contract](../../drivers/ticket/verbs/triage.md) from `/ticket triage`. Missing risk decisions block
+   [risk contract](../../drivers/ticket/verbs/triage.md#risk-contract) from `/ticket triage`. Missing risk decisions block
    countersign only when the build would otherwise have to invent failure handling,
    recovery, or evidence obligations. An edge case earns handling only if it is
    reachable from inputs the acceptance criteria describe **and** its contracted
@@ -198,9 +198,9 @@ definitions below are the fallback.
    fix" was applied verbatim still need verifying against the real machinery.
 
    If the coordinator session running the review has its context compacted mid-review,
-   it re-reads the settled decisions in the plan's scope ledger wherever `/ticket triage`
-   placed it (`docs/scope/<slug>.md` or the session scratchpad) and the risk contract
-   copied into the plan before evaluating the reviewer's deltas. It treats decisions
+   it re-reads the settled decisions and risk contract `/ticket triage` recorded in the
+   plan (the order's Context or the change's `design.md` and `proposal.md`) before
+   evaluating the reviewer's deltas. It treats decisions
    recorded there as settled rather than re-deriving them from what survived
    compaction. Cold reviewers stay cold: this rule adds nothing to the cold-reader
    prompt, and `plan-review-mechanical-fixes.md` remains the round ledger rather than

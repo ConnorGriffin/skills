@@ -1,77 +1,46 @@
 # Binding: GitHub issues
 
-The reference binding for [the tracker contract](../references/tracker-contract.md).
-Ticket ids are issue numbers. Transport is the GitHub CLI (`gh`), authenticated
-for the target repository.
+Supplies [the tracker contract](../SKILL.md#the-tracker-contract) for GitHub. Ticket
+ids are issue numbers. Pass `--repo <org/repo>` on every command so it works from a
+worktree whose remote is not the ticket's repository.
 
-Run every command with `--repo <org/repo>` so the binding works from a worktree
-whose remote is not the ticket's repository.
+Needs `gh` on `PATH`, authenticated, with issue-write access. Without it, report
+`ticket: github issues binding needs an authenticated gh; run gh auth login`, name the
+operation that could not run, and stop.
 
-## Requirements
-
-* `gh` on `PATH`, authenticated (`gh auth status`).
-* Push and issue-write access to `<org/repo>`.
-
-`gh` absent or unauthenticated is a stop, not a degraded mode: report
-`ticket: github issues binding needs an authenticated gh; run gh auth login`,
-name the operation that could not run, and stop. Never substitute a local file,
-another tracker, or a guess at the ticket's contents.
-
-## 1. Read a ticket
+## 1. Read
 
 ```sh
 gh issue view <id> --repo <org/repo> --json number,title,body,state,labels,parent,comments
 ```
 
-`parent` lets triage find a candidate parent; a second read through this same
-operation supplies that parent's `labels` so triage can confirm the `epic` type.
-`comments` arrives oldest-first, each with `body` and `createdAt`. Sort by
-`createdAt` when a verb wants newest-first.
+Comments arrive oldest-first with `body` and `createdAt`. `Could not resolve to an issue` means the ticket is absent.
 
-A missing issue exits non-zero with `Could not resolve to an issue`. That is the
-absent-ticket failure: stop, naming the id.
-
-## 2. Post a comment on a ticket
+## 2. Post
 
 ```sh
-gh issue comment <id> --repo <org/repo> --body-file <path to the comment body>
+gh issue comment <id> --repo <org/repo> --body-file <path>
 ```
 
-Write the body to a file in the ticket's worktree, outside the branch's tracked
-content, and pass it with `--body-file`. Passing prose through `--body` puts
-fenced blocks and quote lines at the mercy of shell quoting.
+Write the body as GitHub-flavored markdown (the order in a triple-backtick fence with no
+language tag) to a file outside the branch's tracked content; `--body` mangles fences
+and quote lines through shell quoting.
 
-## 3. Move a ticket's status
+## 3. Move status
 
-GitHub issues have no status workflow, so this binding maps the four states onto
-labels plus the issue's own open or closed state:
+GitHub issues have no workflow, so status is labels plus open or closed:
 
-| State | What the binding does |
+| State | Action |
 |---|---|
-| triaged | Receives triage's classification. `code` first creates (if needed) and attaches `build`, then adds `ticket:triaged`; `investigation` and `manual` add only `ticket:triaged`. |
+| triaged | `code` only: `gh label create build --repo <org/repo> --color 1d76db --description "Implementable ticket" --force` and `gh issue edit <id> --repo <org/repo> --add-label build`. Then add `ticket:triaged`. |
 | in progress | add `ticket:in-progress`, remove `ticket:triaged` |
 | pending review | add `ticket:pending-review`, remove `ticket:in-progress` |
-| done | `gh issue close <id> --repo <org/repo>` and remove `ticket:pending-review` |
+| done | `gh issue close <id> --repo <org/repo>`, remove `ticket:pending-review` |
 
-Create a missing status label once with
-`gh label create ticket:<state> --repo <org/repo>`. For a `code` triage, first
-ensure and attach the independent type label:
-
-```sh
-gh label create build --repo <org/repo> --color 1d76db --description "Implementable ticket" --force
-gh issue edit <id> --repo <org/repo> --add-label build
-gh issue edit <id> --repo <org/repo> --add-label ticket:triaged
-```
-
-Creation failure or attachment failure is the contract's one non-fatal status
-failure: report it, retain the posted work order, and do not run the later
-`ticket:triaged` command. `investigation` does not create or attach `build` and
-applies only `ticket:triaged`. `manual` does not create or attach `build` and
-applies only `ticket:triaged`. Every other `ticket:*` transition
-remains exactly as listed above.
-
-A repository whose project board owns status is served the same way. The labels
-are this binding's status channel, and the board stays the humans' view.
+Create a missing status label once with `gh label create ticket:<state> --repo
+<org/repo>`. A failure to create or attach `build` skips `ticket:triaged` and keeps the
+posted order. The `build` type label and the `ticket:*` status
+labels stay independent.
 
 ## 4. Locate the newest work order
 
@@ -80,21 +49,6 @@ gh issue view <id> --repo <org/repo> --json comments \
   --jq '[.comments[] | select(.body | test("(?m)^```[a-z]*\\s*\\r?\\n(EXECUTION LOCK |WORK ORDER)"))] | last'
 ````
 
-The scan is newest-first in effect: `gh` returns comments oldest-first, so the
-last match is the newest order, whichever protocol it is. The `EXECUTION LOCK `
-half of the predicate is version-agnostic on purpose: it matches any lock version,
-so a newer `EXECUTION LOCK v3` fence outranks an older `EXECUTION LOCK v2` one the
-same way a newer comment of either protocol outranks an older one. This operation
-never checks whether the version after `EXECUTION LOCK ` is one `start` or
-`revise` recognizes; that check is the consumer's fail-closed admission step, not
-this one. Empty output means no order, which is the refusal in `start` and
-`revise`, not an error to work around.
-
-A non-zero exit is a transport failure, and is reported as such rather than as an
-absent order.
-
-## Markup
-
-GitHub-flavored markdown. Headings are `##`, the attribution line is a `>` quote,
-and the work order sits in a triple-backtick fence with no language tag. The
-templates carry the substance; this binding decides the markup.
+The last match is the newest order, of any lock version. Empty output means no order,
+which is `start`'s refusal; a non-zero exit is a transport failure and is reported as
+one.

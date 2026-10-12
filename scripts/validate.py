@@ -14,7 +14,6 @@ SKILLS = ROOT / "skills"
 CATEGORIES = {"workflows", "drivers", "tools"}
 EXPECTED = {
     "workflows/review",
-    "drivers/epic",
     "drivers/implement",
     "drivers/openspec-adopt",
     "drivers/ui-craft",

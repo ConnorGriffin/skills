@@ -158,14 +158,11 @@ in isolation passes clean and then spends the next round on nothing but seam
 defects.
 
 Before declaring the Spec axis unavailable, extract the admitted
-[risk contract](../../drivers/ticket/verbs/triage.md) from the spec, then look in the
-matching scope ledger if necessary. Do not substitute the PR description written by
+[risk contract](../../drivers/ticket/verbs/triage.md#risk-contract) from the spec, then look in the
+ticket's work order if necessary. Do not substitute the PR description written by
 the same author as the code.
 
-If neither a spec nor a risk contract exists, skip the Spec sub-agent and say so. A
-ledger-only contract still bounds the review: run the Spec sub-agent against it and
-include an unmet item stating that admission never promoted it into an authoritative
-artifact. If a bounded spec exists but failure handling, recovery, or evidence scope
+If neither a spec nor a risk contract exists, skip the Spec sub-agent and say so. If a bounded spec exists but failure handling, recovery, or evidence scope
 is material and its contract is missing, add that omission as an unmet Spec item;
 otherwise do not manufacture one.
 

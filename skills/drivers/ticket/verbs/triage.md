@@ -1,393 +1,119 @@
 # /ticket triage `<ticket-id>`
 
-Turn a ticket into a locked work order, or establish why it cannot be one yet.
-Runs in the ticket's worktree. Outside an epic it writes the tracker and the
-applicable scope and spec documents there. An **epic child** creates no per-child
-change record. Its review instrumentation stays in untracked session scratch, while
-any required parent-plan amendment is committed in the child worktree and travels
-with the implementation pull request; the parent epic retains archive ownership.
-
-Use the shared selected-ticket mutation boundary. Keep grounding broad and
-read-only. When a distinct external prerequisite would otherwise contradict a
-recorded destination, constraint, acceptance criterion, risk, or sequence, cite
-that clause, disclose the exact external target and mutation, and stop before
-mutation until a subsequent operator response explicitly authorizes the previously
-disclosed target and exact mutation.
+Turn a ticket into a locked work order, or say why it cannot be one yet. The output is
+one artifact: the order, posted on the ticket after the user approves it.
 
 ## Procedure
 
-1. **Read the ticket.** Use the contract's read operation for the description and
-   every comment. Note the parent, the links, and any prior work order comment. If
-   an order already exists, say so and ask whether to supersede it; a new order
-   posted later wins. A non-null parent is only an epic-child candidate: read that
-   parent through the tracker contract and select the epic-child lifecycle only
-   when its labels include the `epic` label. A missing parent or a parent without
-   `epic` leaves this as an ordinary ticket.
+1. **Read the ticket** through the tracker contract, with every comment. An existing
+   order: say so and ask whether to supersede it. A parent ticket whose checklist tracks
+   child issues is not triaged itself: triage the next open child instead.
 
-2. **Cut or reuse the worktree.** Verify an epic-child draft first. Before any
-   grounding or repo read, derive a short kebab slug from the ticket title.
-
-   For a fresh epic-child worktree, treat the issue-body draft as untrusted input.
-   Require exactly one `Parent plan base: <parent-plan branch>@<pinned full commit>`
-   field, with an unprefixed remote branch name and a full commit. Then run:
-
-   ```sh
-   git -C <control checkout> fetch origin
-   git -C <control checkout> rev-parse origin/<parent-plan branch>
-   ```
-
-   Require the resolved commit to equal the pinned full commit exactly. Resolve the
-   branch only as `origin/<parent-plan branch>`; never accept a local branch or an
-   abbreviated commit. A missing or mismatched value is a stale draft: post nothing,
-   create no worktree, and return to the attended epic session for a new issue-body
-   draft and pin.
-
-   Then cut or reuse the worktree:
-
-   a. Numeric ticket id:
+2. **Cut or reuse the worktree** before reading the repo. Derive a short kebab slug from
+   the title.
 
    ```sh
    python3 <spin-worktree-skill-directory>/scripts/spin-worktree.py \
-     --repo <control checkout> \
-     --issue <ticket-id> \
-     --slug <slug> \
-     --name <ticket-id> \
-     [--base <parent-plan branch>]
+     --repo <control checkout> --issue <ticket-id> --slug <slug> --name <ticket-id>
    ```
 
-   b. Non-numeric ticket id: create the branch ref from the remote default branch
-   first, without switching the control checkout, then spin the worktree onto it:
+   A non-numeric id first creates `<prefix>/<id-lowercased>-<slug>` from
+   `origin/<default branch>` with `git -C <control checkout> branch`, then passes it as
+   `--branch`; `<prefix>` is whatever `spin-worktree` resolves, never invented. A reused
+   worktree must be on the ticket's branch. Surface the helper's refusals; never force.
 
-   ```sh
-   git -C <control checkout> fetch origin
-   git -C <control checkout> branch <prefix>/<ticket-id-lowercased>-<slug> origin/<default branch>
-   python3 <spin-worktree-skill-directory>/scripts/spin-worktree.py \
-     --repo <control checkout> \
-     --branch <prefix>/<ticket-id-lowercased>-<slug> \
-     --name <ticket-id-lowercased>
-   ```
+3. **Ground.** Follow shared rule 6, then for each target repo run
+   `python3 <reviewer-memory-skill-directory>/scripts/memory.py ensure <repo>` and read
+   the index it names, including its slicing records. Keep the index and store content
+   local; never copy it into the order, a tracker comment, a pull request body, or the
+   repo. Obey the [reviewer-memory failure rule](../../../tools/reviewer-memory/SKILL.md#failure-rule),
+   including its not-installed carve-out. A target repo that does not exist yet stops
+   triage: name the ticket that has to land first.
 
-   For an epic child, the bracketed `--base <parent-plan branch>` is required and
-   receives the same unprefixed branch name verified above. For an ordinary ticket,
-   omit it.
+   * **Live state is checked live.** A claim about what exists now (a deployed resource,
+     a secret, a required check) gets a read-only command run now, not a doc or comment.
+   * **A bug is reproduced** before anything is drafted, and the reproduction goes in
+     the order.
+   * **Changed documented behavior** gets a grep for its terms across every doc, and the
+     order lists the complete inventory.
+   * **CI or workflow changes** read `/ci-design` first.
 
-   c. `<prefix>` is whatever `spin-worktree` resolves: its `--branch-prefix` flag,
-   then `branchPrefix` in `~/.config/spin-worktree/config.json`, else no prefix.
-   When no prefix resolves, omit `<prefix>/` entirely. Never invent a prefix here,
-   and keep both paths on the same one so the branch name does not depend on which
-   path ran.
+4. **Classify:** `code` (lands as a pull request), `investigation` (findings on the
+   ticket, no pull request), or `manual` (a human does it; the order says what).
 
-   d. Use the worktree path the helper printed as the working directory for every
-   step below. If the ticket's worktree already exists, verify it is on the
-   ticket's branch (`git -C <worktree> branch --show-current`) and reuse it rather
-   than respinning.
+5. **Resolve the dominant uncertainty.** Name the one uncertainty that, once settled,
+   makes the rest tractable, and handle it before drafting:
 
-   e. A dirty control checkout is valid: leave its files untouched and spin from
-   it directly. Never search the existing task worktrees for a clean substitute.
-   The helper still refuses an existing target path; surface that refusal to the
-   user rather than forcing past it.
+   | Uncertainty | Move |
+   |---|---|
+   | None: the decisions are settled or have obvious defaults | Say so in one line, name the defaults, and continue. |
+   | A decision only the user can make | Ask in rounds: every question whose prerequisites are settled goes in one numbered round, each with options, costs, and a recommendation. |
+   | A fact the docs or sources can answer | `/research`. |
+   | A load-bearing assumption nobody has run | Spike the first hour (below). |
+   | Behavior only running code can show | `/prototype`. |
+   | What a surface should look like | `/ui-craft lock`. |
+   | Too big for one session | Slice (below). |
 
-   f. Bind that worktree's graph identity before grounding, per the skill page's
-   graph-identity rule, and report what it printed. A reused worktree gets the same
-   check: the identity is recomputed here every session, never remembered from the
-   run that cut it.
+   Record each settled decision where the repo records decisions (an OpenSpec
+   `design.md` ADR section, or the order's Context). If the user is unavailable for a
+   decision only they can make, post nothing and list the open questions.
 
-3. **Identify the repo or repos.** From the ticket text, its parent, and its links.
-   If the target repo does not exist yet, stop: repo scaffolding happens outside
-   this skill. Post nothing, and tell the user which ticket has to land first.
+6. **Spike the first hour** whenever the order rests on an assumption nobody has run.
+   Execute its opening steps against the real artifacts: pass the parameter, run the
+   tool once in each state it claims, remove the fixture and watch the fallback. Every
+   claim of the form "X is honored by Y" gets one live probe. Findings amend the draft;
+   the scratch work is never committed unless the order references it as a test.
 
-4. **Read the standing decisions**, per the skill page's standing-decisions slot,
-   before grounding in the repo. Absent, say so in one line and continue. This
-   never refuses the ticket.
+7. **Slice when the work will not fit one session.** It will not fit when two or more of
+   these traits fire, or when it projects past a ~180k-token peak: `multiple targets`,
+   `live-resource import`, `cross-trust-boundary writes`, `multiple deliverables`,
+   `live run inside the ticket`, `split-path evidence`, `lockstep copies`. File child
+   issues, each a pull-request-sized piece with its own triage, and track them as a
+   checklist on this ticket, which closes when every box is checked; a child projected
+   under ~120k folds into a neighbour. A child whose outcome hangs on an unsettled
+   decision waits behind a spike child that settles it. Record which traits fired, and
+   whether a nearby reviewer-memory slicing record agreed, without quoting it.
 
-   Then, for each target repo, run:
+8. **Stamp** `Review depth:` and `Profile:` per the skill page's review-depth section,
+   checking the sensitivity floor first, and `Surface lifecycle:` per the template. A
+   `revise` lifecycle runs `/ui-craft`'s setup during triage and freezes the behavior
+   ledger and replay before the lock; when its safe-start or fixture source is missing,
+   name it and post no lock.
 
-   ```sh
-   python3 <reviewer-memory-skill-directory>/scripts/memory.py ensure <repo>
-   ```
+9. **Draft the order** from [the template](../templates/work-order.md) and run its
+   before-the-draft checks.
+   * **OpenSpec repo:** author the change on the ticket branch, run `openspec validate
+     <change> --strict` until it passes, commit, read back `git rev-parse HEAD`, and pin
+     `Source: openspec <change-path>@<that full OID>`.
+   * **Another versioned plan artifact:** commit and pin it the same way as
+     `repository-native`.
+   * **Neither:** `Source: inline`.
+   * An `investigation` worked in this session needs no lock; one dispatched to a
+     worker gets an ordinary lock whose `Expected diff` names the findings files.
 
-   Read the store index path it names, following links only where relevant to the
-   ticket. When it reports an empty bundle, say so in one line and continue. Keep
-   the index and store content in worker prompts only; never copy them into the
-   work order, a tracker comment, a pull request body, or the target repository.
-   Obey the [reviewer-memory failure rule](../../../tools/reviewer-memory/SKILL.md#failure-rule),
-   including its not-installed carve-out.
+10. **Review the draft.** At Full depth, run `/plan-review` once, as an ordinary plan:
+    one cold, fresh-context reviewer, one round. Reproduce each objection's claim before
+    acting on it (run the regex, open the cited line) and drop the ones that fail. Fix
+    what blocks; an objection that turns out to be an unsettled decision goes back to
+    the user per step 5. Below Full depth, run the template's checks yourself.
 
-5. **Ground.** In each target repo:
+11. **Confirm, then post.** Show the user the draft. On approval, post it as one comment
+    (attribution, summary, fence) and move the ticket to triaged with its
+    classification.
 
-   a. The repo's own change and decision records, active and archived.
+## Risk contract
 
-   b. `docs/` (architecture, runbooks), `README`, `CONTRIBUTING`, and the repo's
-   `AGENTS.md` or `CLAUDE.md`.
+Settle one for every bounded order. It lives in the OpenSpec change's `proposal.md`
+when there is one, otherwise in the order.
 
-   c. `git log --oneline -30`, plus recent pull requests touching the same area.
+* **Must prevent:** outcomes the work may never produce. Default: secret exposure,
+  irreversible loss of authoritative data, silent incorrect success. Changing a default
+  needs the user's decision.
+* **Must recover:** failures that need automatic recovery.
+* **Accepted failure:** a concrete failure and the consequence the user accepts. Rare,
+  recoverable failures default to a clear stop with manual recovery.
+* **Unsupported:** inputs or conditions the work does not promise to handle.
+* **Evidence owed:** the behaviors and invariants that need a test or explicit check.
 
-   d. The CI workflows that will judge the change.
-
-   Record what the repo already decided that constrains this ticket.
-
-   **Verify live state live, never from docs or ticket comments.** Any claim the
-   order depends on about what exists right now (a deployed resource, repository
-   secrets, required checks) gets checked against the live source: run the
-   read-only describe, hit the API, list the state. Repo docs and prior ticket
-   comments both go stale, in opposite directions: one measured triage found the
-   repo claiming a production target did not exist while a ticket comment claimed
-   the platform work was done, and both were part right. A wrong premise here
-   poisons every downstream decision in the order.
-
-   **When the change alters documented behavior, build a closed document
-   inventory.** Grep the repo for the behavior's terms (the command, the setting,
-   the promise) across all docs, templates, and comments. Never sample the docs you
-   already know about. The order lists the inventory, so review checks it for
-   completeness instead of discovering documents one per round; one measured review
-   leaked one stale document per round for four rounds because each pass sampled
-   instead of searching.
-
-   **Route the grounding by ticket shape.** A bug report is reproduced before
-   anything is drafted, and the reproduction goes into the order. A ticket touching
-   CI or a workflow file reads `/ci-design` before the order is drafted.
-
-6. **Classify.** One of:
-
-   * `code`: lands as a pull request.
-   * `investigation`: the deliverable is findings on the ticket, no pull request.
-   * `manual`: human-only operational work. Triage still grounds and scopes it, but
-     the order says what a human does, not what an agent implements.
-
-7. **Run `/scope`, always, unconditionally.** After grounding and classification,
-   invoke it with the ticket summary and what grounding found. It classifies the
-   dominant uncertainty and routes it, and its interview is the only interface for
-   putting decisions to the user. Never present findings and free-form questions
-   instead. A single missing fact with no judgment attached (a hostname, a version)
-   is the only exception. When nothing is genuinely uncertain, scope says so and
-   returns without asking anything; that outcome is the pass signal, not a wasted
-   step. Resolved answers go into the order. The epic issue-body draft enters this
-   ordinary grounding, scope, and mandatory-review path; it is never executable by
-   itself. For an epic child, every `/scope`
-   specialist keeps its instrumentation in untracked session scratch outside the branch, discards it
-   after the final order, and creates no scope ledger or docs/scope state. `/epic` alone owns the
-   proposal, design, and tasks. If triage discovers a required parent-plan
-   amendment, edit and commit it in the child worktree, include those paths and
-   acceptance effects in mandatory review, and carry it into the order that will
-   govern the implementation pull request. This is still the parent active change,
-   not a per-child change record.
-
-   **Resolve the surface lifecycle.** Every order and sub-order gets one closed
-   `Surface lifecycle:` value:
-
-   * `none` when it changes no rendered surface.
-   * `build` for a greenfield surface after `/ui-craft lock`, or for UI Craft's
-     explicit shipped-surface fallback. Name the lock manifest; on fallback also
-     name the predecessor behavior ledger and replay.
-   * `revise` for a shipped surface. Run UI Craft's setup/router during triage.
-     Only after it verifies the repo-declared safe-start and manufactured data
-     source may triage run the behavior sweep in this ticket worktree. Freeze the
-     behavior ledger and replay through the existing sanction procedure before
-     source admission or lock posting. This prepares evidence only: triage does
-     not implement the revision, replace the inherited checkout/base, or invent a
-     replacement mock. If either prerequisite is unavailable, name it and post no
-     executable lock.
-
-   Every non-`none` lifecycle also stamps one `Design record:` line naming the
-   design-doc and behavior-ledger updates the change carries, or the explicit
-   deferral it inherits (a parent-plan pointer, a ticket). An order that changes
-   a rendered surface with neither is incomplete: the update travels with the
-   implementation pull request, and a deferral is written down, never assumed.
-
-   A UI Craft refusal or ambiguous route blocks the order. In a chunked order the
-   header carries the one non-`none` lifecycle active across the whole diff and
-   every sub-order carries its own; an affected sub-order must repeat the contract
-   paths it needs to stand alone. If chunks would mix `build` and `revise`, split
-   them into separate tickets instead of adding another lifecycle value.
-
-8. **Decide the shape: flat or chunked.** Read
-   [references/slicing.md](../references/slicing.md) and run its trait rubric
-   against what grounding found. The rubric carries the traits and the thresholds;
-   this repo's own anchors live in its reviewer-memory slicing records, so read
-   those for the shapes and measured peaks the traits are calibrated against here,
-   and say when a nearby record contradicts the call the rubric points at. The
-   rubric decides flat or chunked and, when chunked,
-   sizes the chunks and names each one's mode, coherent capability ownership, file
-   or target ownership, shared-contract ownership, agent tier, and the orchestrator
-   tier. Every capability and shared contract has exactly one owning chunk. A
-   parallel chunk must not implement, revise, or depend on another chunk's private
-   capability; make that work serial when the dependency is real. Record which
-   traits fired, and whether a nearby reviewer-memory anchor agreed with the call,
-   disagreed with it, or was absent from the store. Record the fact of that match,
-   never the record: store content stays out of the order under step 4's rule, so
-   an anchor is never quoted, named, or given its measured peaks here. The order
-   carries that reasoning, so a wrong call is visible later.
-
-9. **Stamp the review depth.** Read
-   [references/review-depth.md](../references/review-depth.md) and stamp one depth
-   with a one-line reason on the order, and on each sub-order when chunked. Check
-   its sensitivity floor first; the floor overrides any judgment about how small
-   the change looks.
-
-   **Separate executor admission.** When the operator explicitly selects GPT-6
-   Astra to execute or coordinate, record that it is admitted from authoritative
-   available host metadata under the current-session rule in `start` step 3. This
-   does not add Astra to a benchmark ladder, select it as a reviewer, or relax the
-   existing Full-depth and headroom gates. If the required metadata or adapter
-   capability is unavailable, name the unresolved executor route rather than
-   substituting a reviewer or guessing a stronger model.
-
-10. **Stamp the profile.** Read the target repo's `CLAUDE.md` or `AGENTS.md` repo
-    facts for a `Harden:` line. When the user or ticket asks for the hardening
-    profile and that line exists, stamp `Profile: hardening` and write the QA script
-    from the acceptance criteria. When the line is absent, stamp `Profile: none`,
-    say so in the order's Context, and continue with the default workflow. Stamp
-    `Profile: none` on every chunked order: the profile is flat-only.
-
-11. **Draft the work order.** Read
-    [drafting conventions](../references/drafting-conventions.md), apply
-    [references/brief-quality.md](../references/brief-quality.md), then fill
-    [templates/work-order.md](../templates/work-order.md), the flat shape or the
-    chunked shape per step 8, and run that page's two authoring checks before the
-    draft leaves this step. Each fenced block must be self-sufficient for a fresh
-    session, which under a pinned `Source:` means deterministic acquisition rather
-    than copied prose: a competent agent with the ticket, that one block, and the
-    source the block pins should produce the right change without asking anyone
-    what was meant. Under `Source: inline`, the block alone carries it. Name files
-    and targets concretely. State what must
-    not change. Set the verification command and its expectation. In a chunked
-    order, no sub-lock may reference another sub-lock's content. Every chunk
-    names its coherent capability and its files or targets; every capability and
-    shared contract has exactly one owning chunk, so parallel chunks cannot collide
-    or depend on private capability. Check that every fence's `Surface lifecycle:`
-    value matches the route and contract artifacts settled in step 7.
-
-    **Author, validate, commit, then pin.** The fence is an `EXECUTION LOCK v2`
-    envelope, not a second copy of the plan: which `Source:` mode it pins depends
-    on what this repo keeps. Set `<lock-id>` to 1 for a ticket's first lock, or to
-    one more than the highest `<lock-id>` already posted on this ticket — it
-    identifies this lock, and never resets. A legacy `WORK ORDER` carries no
-    `<lock-id>` and contributes no number, so a lock superseding one reads 1.
-
-    * **OpenSpec repository.** Author the change on the ticket branch — `proposal.md`,
-      `tasks.md`, `design.md` when a decision needs one, and its `specs/` deltas —
-      from what grounding and `/scope` settled. Run `openspec validate <change-id>
-      --strict` and resolve every failure; a change that does not validate strictly
-      is not eligible to be pinned. Commit the authored change on the ticket branch,
-      then read back its full commit OID
-      (`git -C <worktree> rev-parse HEAD`) — never a value remembered from before
-      the commit, and never an abbreviated OID. Set `Source: openspec
-      <change-path>@<full-commit-oid>` to that exact pair. Whole-change ownership is
-      a property of the ticket, not of the fence: set the flat lock's or chunked
-      header's `Selected tasks:` and `Acceptance anchors:` positionally against the
-      pinned commit's `tasks.md` and spec-delta requirements — `all` for an ordinary
-      ticket, which owns its whole change, or the epic child's owned subset — and,
-      when chunked, set each sub-lock's `Selected tasks:` and `Acceptance anchors:`
-      to a disjoint positional slice of that same header selection, together
-      covering it exactly. Leave `Context` as orientation only. Omit `Do` entirely —
-      the pinned tasks are the Do steps. `Done when` states only this lock's own
-      delivery acceptance (the verification command's expectation and the
-      stop-at-pull-request condition), never a restatement of the pinned source's
-      acceptance criteria; the pinned commit is the sole authority for what those
-      criteria are.
-    * **Repository-native plan.** When the repo keeps some other versioned,
-      reviewable plan artifact instead of OpenSpec, commit it on the ticket branch
-      the same way, read back its full commit OID the same way, and set `Source:
-      repository-native <path>@<full-commit-oid>` to that exact pair. `Selected tasks:`,
-      `Acceptance anchors:`, `Context`, `Do`, and `Done when` follow the same rules
-      as the OpenSpec path, against that artifact's own positional numbering.
-    * **Neither exists.** Set `Source: inline` and omit `Selected tasks:` and
-      `Acceptance anchors:`; the fence carries the full `Context` / `Do` / `Done
-      when` payload verbatim, as today's work order does.
-
-    Set `Expected diff` on every fence — the flat lock, the chunked header, and
-    each sub-lock: a closed allowlist of repository-relative paths, with no escape
-    clause, per [drafting conventions](../references/drafting-conventions.md).
-    A chunked order's sub-lock allowlists are pairwise disjoint across parallel
-    chunks. Never post a lock whose `Source:` commit has not been read back from
-    the actual commit just made; a remembered or predicted OID is not a pin.
-
-    An `investigation` posts a lock only when the work will be dispatched to a
-    bounded worker; that lock is an ordinary one whose `Expected diff` names the
-    findings it may write. An investigation the attended session works itself
-    needs none — the ticket plus its posted findings are the record — and
-    `start` is not run on it.
-
-For a flat order, copy the already-selected execution row's `Ladder` value from `routing-table.md` into the template's `Session fit:` paragraph, keeping each model's display name and ladder order.
-
-### Chunked session fit
-
-For a chunked order, select one coordinator execution row with the same grounded, fail-closed classification rule that selects a flat order's execution row. Copy that row's `Ladder` value into exactly one `Session fit:` paragraph in every sub-order fence, keeping each model's display name and ladder order, and annotate each paragraph with exactly one `selected Agent rung: <Rung>`. A missing, duplicate, malformed, unresolved, or ineligible ladder or selected rung returns through `/scope` and produces no draft or comment.
-
-12. **Adversarial review, mandatory.** Every draft order gets reviewed before it is
-    shown to the user or posted; there is no unreviewed path to step 13. A
-    delegated `triage` worker returns its review-ready draft to its coordinator
-    through the coordinator-recorded durable result locator, then stops at this
-    boundary. Its coordinator dispatches `/plan-review`, verifies the verdict, and
-    resumes the same worker with actionable findings or a verified clean verdict.
-    The worker must not launch a nested reviewer. A coordinator-run triage runs
-    `/plan-review` against the draft directly: it spawns cold reviewer agents with the
-    five-axis rubric (grounding, acceptance, interface shape, scope, cost) and
-    returns objections and a verdict. Review depth follows that skill's stakes
-    tiering: an ordinary order gets one panel, and a load-bearing one ends only
-    when a fresh cold pass returns no blocking objections.
-    The ticket skill page's `## Delegation authority` section covers this mandatory
-    `/plan-review`.
-
-    When the stamped profile is hardening, run `/plan-review` only on Full-depth
-    orders. Default-workflow orders keep this review unconditionally.
-
-    Triage-specific additions on top of that skill:
-
-    a. Verify every finding against ground truth (the repo, a provider's source,
-    live state) before acting on it, and carry verified facts forward in each next
-    reviewer's prompt so settled points do not re-litigate. This gate is
-    structural, not advisory: no objection reaches a fix round until its factual
-    claims are reproduced (execute the regex, parse the shell, open the cited
-    file), and the fix-round prompt carries the evidence per objection. A claim
-    that fails reproduction is recorded as refuted and never forwarded. One
-    measured review forwarded a single unverified reviewer claim; it got baked into
-    the order and cost a full round to retract.
-
-    b. Outside an epic child, instrument every round in the scope ledger:
-    blockers found, each tagged `authoring` (present since the draft) or
-    `injected` (introduced by a prior fix round). For an epic child, keep the same
-    instrumentation in untracked session scratch outside the branch and discard it after the final
-    order; create no scope ledger or docs/scope state. The reviewed parent-plan amendment from
-    step 7 is the only planning artifact this child branch may write. Injected blockers climbing
-    across rounds is the rewrite-clean signal firing.
-
-    c. Reviewers get the facts already verified live this session and the user's
-    settled decisions, marked do-not-re-litigate.
-
-    d. Each objection states the claim or gap, the evidence (file and line, or the
-    live query), why it breaks the build if unfixed, and the cheapest fix, marked
-    **blocks posting** or **note**. Anything that would not change what gets built
-    is discarded rather than reported. Taste is not an objection. An empty list on a
-    sound order is a successful review.
-
-    e. Chunked orders get one more axis: does each sub-order stand alone in a fresh
-    agent; does every capability and shared contract have exactly one owning chunk;
-    are two parallel chunks' file, target, and capability ownership disjoint; and
-    does the serial ordering reflect a real dependency rather than habit. A chunk
-    failing any of those is a blocking objection.
-
-    Hard cap at three review panels regardless of tier. Blocking objections still
-    arriving at the cap mean the order has unsettled decisions, not undiscovered
-    typos: route them through `/scope` (step 7) and stop drafting until it resolves
-    them. When rounds accumulate, rewrite the order clean instead of patching it; in
-    one measured run, roughly a third of late findings were defects the patches
-    themselves introduced. Stop earlier when a round yields only wording polish,
-    because the executing agent grounds in the same repo and resolves polish itself.
-
-13. **Confirm, then post.** Show the user the draft. On approval, post it as one
-   ticket comment through the contract's post operation: attribution quote block
-   first, then the human summary, then the fenced `EXECUTION LOCK v2` lock or
-   header-plus-sub-locks. One comment carries the whole order, chunked or not. For
-   an epic child, this is the only fenced execution lock; the issue-body draft
-   never substitutes for it.
-
-14. **Move the status** to triaged, passing the classification from step 6. Report
-    a failed move; do not retry. A failed code classification `build` creation or
-    attachment retains the posted work order but prevents `ticket:triaged`.
-
-## Refusals
-
-* The ticket is really a parent: triage the child, not the parent.
-* Scope requires decisions only a human can make and the user is unavailable: post
-  nothing, and list the open questions in the session.
+Price it from consequence, exposure, and recoverability, never from a target test
+count. Reviewers test the work against this contract and do not raise it.

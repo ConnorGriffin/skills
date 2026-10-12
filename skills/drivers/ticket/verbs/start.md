@@ -1,296 +1,80 @@
 # /ticket start `<ticket-id>`
 
-Execute a locked work order in a fresh session. Ends at the open pull request.
+Build to the locked order in a fresh session. The output is one open pull request.
 
 ## Procedure
 
-1. **Complete the shared opening.** Complete shared rules 1–2: read and summarize
-   the ticket, then claim the session before locating the work order or reaching
-   any later refusal. This session drives the ticket, so it claims itself with
-   `--verb start --role coordinator` (the default role) on a flat and a chunked
-   order alike. Use the shared claim command and its visible, non-blocking failure
-   semantics; do not duplicate them here.
+1. **Open and claim** per shared rules 1 and 2, before locating the order.
 
-2. **Fetch the order.** Use the contract's locate operation. None found: refuse,
-   say "no work order on `<ticket-id>`; run /ticket triage `<ticket-id>`", and stop.
-   The comment's `Execution:` line says `single agent` or `chunked`; an order with
-   no `Execution:` line is a flat order. Note the fence header now, since it
-   decides which path step 5 takes: legacy `WORK ORDER`, or `EXECUTION LOCK
-   <version>`.
+2. **Locate and admit the lock.** Use the tracker's locate operation. No order: refuse
+   with "no work order on `<ticket-id>`; run /ticket triage `<ticket-id>`" and stop.
+   Then, from the ticket worktree, every check below must pass; any failure names the
+   check, refuses, and routes to `/ticket triage <ticket-id>`. Never fall back to an
+   older comment and never patch a field from one.
 
-3. **Model-check.** An order explicitly selecting `gpt-6-astra` for executor or
-   coordinator work is admitted separately from every benchmark ladder. First use
-   an exact current-model declaration from system/developer context naming GPT-6
-   Astra. Otherwise, on Codex use only this session's local rollout:
-   `CODEX_THREAD_ID` must match `session_meta.payload.id` or
-   `session_meta.payload.session_id`, and the latest matching `turn_context` must
-   report `payload.model: gpt-6-astra`. Never select the newest unrelated rollout,
-   a global default, or another worker's state. Compare the actual current effort
-   to the effort requested by `Open as:`. Consume an already provided actual effort;
-   ask once only when it is unavailable. A lower effort stops the dependent work.
-   Then verify the installed adapter's existing read-only probe and the repository
-   read/write capability this order requires. Missing identity, effort, or capability
-   admits neither execution nor a substitute session. This explicit executor
-   admission is not reviewer admission: preserve the stamped depth and route review
-   independently. Do not infer cross-family strength or hidden effort.
+   * The fence is `EXECUTION LOCK v2` (or a legacy `WORK ORDER`, read as `inline`), with
+     a `Source:` mode of `openspec`, `repository-native`, or `inline`.
+   * `Verification:`, `Expectation:`, and `Expected diff` are present and non-empty.
+   * **Pinned sources only:** `git cat-file -e <oid>^{commit}` resolves the full OID;
+     `git ls-tree <oid> -- <path>` finds the source; `git merge-base --is-ancestor <oid>
+     HEAD` holds (never substitute the branch head for the pin).
+   * **Pinned sources only:** `git diff <oid> HEAD -- <path>` shows nothing but
+     `tasks.md` checkbox ticks. Any other edit is an amendment that needs a newer lock.
+   * **`openspec` only:** the change is active, not archived, and
+     `openspec validate <change> --strict` passes at the pinned tree.
+   * The `Surface lifecycle:` contract it names exists: the lock manifest for `build`;
+     the behavior ledger, replay, safe dev-server entrypoint, and fixture source for
+     `revise`.
+   * The classification is not `manual`; a manual order has nothing to execute.
 
-   On a flat non-Astra order with `Session fit:`, a session whose system-prompt
-   model is named in that paragraph at or above the selected rung proceeds directly
-   to step 4, skipping the remainder of Model-check and without asking about model
-   fit or effort. On a chunked non-Astra order, take that same fast path only when
-   every `SUB-ORDER` has exactly one `Session fit:` paragraph whose ladder is an ordered non-empty sequence of display-name rungs byte-identical across every `SUB-ORDER`, whose exactly one `selected Agent rung: <Rung>` annotation names
-   exactly one rung in that paragraph, and whose coordinator system-prompt model is
-   named at or above that selected rung in every paragraph. Otherwise, the order's
-   `Open as:` line names a required model and effort. A session cannot reliably
-   introspect its own reasoning effort from context, so do not guess it or answer
-   from memory of an earlier guess. Consume actual effort already provided by the
-   host; otherwise ask the user in prose to confirm it. Compare both against
-   `Open as:`. Weaker on either axis: say so and stop, so the user relaunches
-   correctly. Same or stronger on both: proceed. On a chunked order, also check
-   every `SUB-ORDER`'s `Agent:` line against the confirmed model: the session must
-   be at least as strong as the strongest chunk. Weaker than any one and the whole
-   order is refused. Never run part of it or launch an agent smarter than the
-   coordinator.
+3. **Reuse the worktree** triage cut, confirming `git -C <worktree> branch
+   --show-current`. Respin it the way triage did only when it is gone. Move the ticket to
+   in progress.
 
-4. **Worktree and branch.** This is the first repository action after the shared
-   opening. Never work in the control checkout. Reuse the worktree
-   and branch triage cut, verifying with
-   `git -C <worktree> branch --show-current`. Only cut fresh when triage's worktree
-   is gone, with the same command shape triage used
-   ([verbs/triage.md](triage.md), step 2). A dirty control checkout is valid and
-   remains untouched. The helper refuses an existing target path; surface that
-   ownership check and do not force it.
-   Use the worktree path the helper printed as the working directory for every step
-   below. Move the ticket to in progress. Then bind that worktree's graph identity
-   per the skill page's graph-identity rule, before step 5 reads any code, and
-   report what it printed: a fresh session resolves this from the checkout it just
-   verified rather than inheriting triage's.
+4. **Build.** Read the repo's `AGENTS.md`/`CLAUDE.md`; its rules bind every line on this
+   branch. Execute the pinned tasks or the `Do` steps and nothing outside `Expected diff`.
+   * New behavior with testable acceptance goes test-first through `/tdd`, with a test
+     that fails for the right reason before the fix.
+   * `Surface lifecycle: build` runs `/ui-craft build` against the manifest; `revise`
+     runs `/ui-craft revise` against the frozen ledger and replay.
+   * A new module or interface loads `/codebase-design` first; CI changes read
+     `/ci-design`.
+   * Probe a CLI or API with `--help` or a real call before coding against it, and
+     prove a security or confinement claim by attempting the forbidden action.
+   * Tick `tasks.md` as each item is done and verified.
 
-5. **Sufficiency check.** From the ticket worktree, admit the located order before
-   reading it as instructions. Validate every row below before any implementation
-   or worker dispatch, including the coordinator-mode switch in step 6.
+5. **Verify until it matches.** Run `Verification:` locally and iterate until the output
+   matches `Expectation:`. CI is the check of record, not the loop. When it cannot run
+   at all (no credentials, no runnable suite), stop building, open the pull request as a
+   draft, and name the missing evidence. Never fabricate output.
 
-   **Legacy `WORK ORDER` header.** Today's sufficiency rules apply with no inferred
-   pin, forever: read the order against the actual repo. If the repo has drifted
-   since triage (files moved, the constraint it names is gone), stop and report the
-   mismatch; the fix is a re-triage, not improvisation. On a chunked order, confirm
-   the chunks' declared file and target ownership is still disjoint; an overlap
-   that drift introduced is a re-triage, not a merge problem to solve later. A
-   supersession uses the new protocol below.
+6. **Review once.** Re-read the repo's `AGENTS.md`/`CLAUDE.md` and audit the full diff
+   against it. Then run one `/code-review` of the branch since the default branch at the
+   stamped depth, with the order as the spec; it dispatches its own fresh-context
+   reviewer. Fix each confirmed finding, re-run step 5 if code changed, and carry
+   anything still open into the pull request body as known issues. Under
+   `Profile: hardening`, follow the skill page's hardening rule instead.
 
-   **`EXECUTION LOCK` header — recognized version and mode.** An unrecognized
-   `EXECUTION LOCK` version, or a `Source:` mode this protocol does not define,
-   refuses execution: report "unrecognized lock version or source mode on
-   `<ticket-id>`; run /ticket triage `<ticket-id>`" and stop. Never fall back to an
-   older comment, and never consult the locate operation again to find one; this is
-   the newest recognized lock or nothing.
-
-   **`EXECUTION LOCK v2` admission matrix.** Once the version and mode are
-   recognized, every row below must hold before the order is sufficient. Any one
-   failure refuses the same way — name the row, report it, and route to
-   `/ticket triage <ticket-id>` for attended re-triage — and admission never merges
-   a field from an older comment to patch a failing row.
-
-   * **Grammar.** The `Source:` line names exactly one of `openspec`,
-     `repository-native`, or `inline`, with exactly one version and exactly one
-     commit or path, per the grammar in
-     [templates/work-order.md](../templates/work-order.md). A missing or malformed
-     `Source:` line refuses: bad version or mode.
-   * **Commit resolution** (`openspec`, `repository-native` only). The pinned
-     reference is a full commit OID. `git cat-file -e <oid>^{commit}` from the
-     ticket worktree; a short or unresolvable OID refuses. Then confirm the named
-     source path exists at that commit's tree with
-     `git ls-tree <oid> -- <path>`; an empty result is a missing path and refuses.
-   * **Branch pin.** The ticket branch contains the pinned commit —
-     `git merge-base --is-ancestor <oid> HEAD` from the ticket worktree, exit 0
-     required. A branch that does not contain it refuses: branch missing the pin.
-     Never substitute the branch head for the pin, even when the head is newer.
-   * **Change state** (`openspec` only). The named change is active at the pinned
-     commit (present under `openspec/changes/`, not archived); an archived change
-     refuses. Then it is strictly valid at that pinned tree
-     (`openspec validate <change> --strict` run against the pinned commit's
-     checkout); a change that fails strict validation refuses: invalid change.
-   * **Selection completeness.** Every `Selected tasks:` and `Acceptance anchors:`
-     positional number resolves against the pinned commit's own numbered
-     `tasks.md` checklist (`openspec`) or the pinned artifact's own positional
-     numbering (`repository-native`). Any number absent at that commit refuses:
-     absent anchors. An empty selection refuses the same way.
-   * **Unauthorized amendment.** From the ticket worktree,
-     `git log --oneline <oid>..<ticket-branch-head> -- <path>`. A non-empty result
-     means the source changed after this lock pinned `<oid>`. Read what changed:
-     an **amendment** is any edit to what the source authorizes — its prose, its
-     requirements and scenarios, the text of a task, or a task added or removed.
-     Ticking or unticking a `tasks.md` checkbox is not an amendment but the
-     executor's own bookkeeping, which the workflow requires of it as work
-     completes, so those commits pass this row. For a real amendment, the newest
-     located lock must be the one naming that later commit; if it still names the
-     older `<oid>`, refuse: the amendment is unauthorized until a newer lock pins
-     it. This is the only place a source amendment is read from — never diff the
-     pinned commit against branch head to "catch up" the pin.
-   * **Delivery fields.** `Verification:`, `Expectation:`, and `Expected diff`
-     are each present and non-empty; any one missing refuses. Without the closed
-     allowlist there is nothing bounding what the executor may touch. On a chunked
-     lock the allowlist is per fence, so check it on the header and on every
-     sub-lock: one sub-lock missing its `Expected diff` refuses the whole order,
-     because that chunk's fence would otherwise dispatch with nothing closing its
-     scope.
-   * **Ownership.** On a chunked order, confirm the chunks' declared file and
-     target ownership is still disjoint; an overlap refuses, whether triage stated
-     it wrong or drift introduced it since.
-   * **Model fit.** Checked at step 3; a mismatch found there stands as this row's
-     refusal and is not re-litigated here.
-
-   `inline` sources carry no pinned commit: commit resolution, branch pin, change
-   state, selection completeness, and unauthorized amendment do not apply, since
-   there is nothing external to resolve. Grammar, delivery fields, ownership, and
-   model fit still apply.
-
-   Resolve the order's `Surface lifecycle:` before implementation. `build` requires
-   the named locked manifest. `revise` requires the named shipped behavior ledger,
-   replay, and repo-declared safe dev-server entrypoint plus fixture source. `none`
-   selects no UI Craft mode. An unknown value or a named contract that is absent is
-   drift and requires re-triage. For a legacy order posted before this slot existed,
-   infer `build` only when it explicitly names a locked manifest; otherwise select
-   no UI Craft mode. A legacy order that still asks to change a rendered surface
-   without either contract is insufficient and requires re-triage. On a chunked
-   order, apply the same check to every sub-order before switching to coordinator
-   mode.
-
-6. **Chunked order: switch to coordinator mode.** If the `Execution:` line says
-   `chunked`, load `/orchestrate` now, then follow
-   [references/coordinator-mode.md](../references/coordinator-mode.md) instead of
-   steps 8 through 12, and rejoin at step 13. Flat orders skip this and continue at
-   step 7.
-
-7. **Read the standing decisions**, per the skill page's standing-decisions slot,
-   before implementing. Absent, say so in one line and continue. This never refuses
-   the order.
-
-### Builder self-check
-
-Before declaring the change ready, run each check below.
-
-1. **External surface by execution.** Before coding against a CLI or API surface, run `--help` or a probe call against that surface; do not infer flags, arguments, or behavior from memory.
-2. **Fail-first tests.** For changed executable behavior where a meaningful negative test exists, run it against the pre-change behavior or a deliberately broken variant and observe the expected failure. A fake that accepts every input or a mock of the function under test is not evidence. Prose behavior uses the admitted bounded fresh-session evidence, not a string-matching test.
-3. **Boundaries by execution.** Prove a security or confinement claim by attempting the forbidden action in a real run; configuration inspection alone is not evidence.
-4. **Post-fix sweep.** After each late fix, sweep its affected path for uncalled symbols, dead parameters, and prose that still describes the pre-fix behavior.
-
-8. **Implement.** Read [drafting conventions](../references/drafting-conventions.md)
-   with the locked order, then read the repo's `AGENTS.md` or `CLAUDE.md`; its rules
-   bind everything you write on this branch. Never add or edit one yourself; if the
-   repo has none, work to the user's global standards. Follow the order's Do section.
-   Match the repo's existing idioms, reading neighboring code first. Record the
-   change where the repo already records changes, on the same branch, per the skill
-   page's change-record rule. An epic child creates no per-child change record: the
-   parent epic's existing change record is authoritative, and implementation
-   preserves the parent-plan bytes already committed by triage.
-
-   **Route by shape of the change.** `Surface lifecycle: build` runs `/ui-craft
-   build` against the named locked manifest. `Surface lifecycle: revise` runs
-   `/ui-craft revise` against the named shipped behavior ledger and replay through
-   the repo-declared safe dev-server entrypoint and fixture source. `Surface
-   lifecycle: none` skips UI Craft. A new module or interface loads
-   `/codebase-design` vocabulary before the seam is cut. With `Profile: none`, new
-   behavior with testable acceptance criteria goes test-first through `/tdd`. With
-   `Profile: hardening`, write tests through the public interface without `/tdd`.
-   CI or workflow-file changes read `/ci-design` first.
-
-9. **Verification loop.** Run the order's `Verification:` command locally and
-   iterate until its output matches the order's `Expectation:` line exactly, per the
-   skill page's verification-step rule. Never fabricate the output.
-
-10. **Repo-rules audit and adversarial review, before the pull request.** An order
-    with no `Profile:` line is `Profile: none`.
-
-    A delegated `start` worker returns its review-ready implementation diff to its
-    coordinator through the coordinator-recorded durable result locator, then
-    stops at this boundary. Its coordinator dispatches `/review`, verifies the
-    verdict, and resumes the same worker with actionable findings or a verified
-    clean verdict. The worker must not launch a nested reviewer. A coordinator-run
-    start follows the profile route below directly.
-
-    **Profile: none.** Re-read the
-   repo's `AGENTS.md` or `CLAUDE.md`, which has decayed from context by now, and
-   audit the full diff against it rule by rule, including any completion checklist
-   it defines. Fix violations, then hand off to `/review` on the branch's changes
-   since the default branch, with the work order as the spec: one axis checks the
-   diff against the order, the other against the repo's documented conventions. Run
-   it at the order's stamped `Review depth:`, reading
-   [references/review-depth.md](../references/review-depth.md) for what each depth
-   checks and what counts as blocking. Classify every grounded finding with
-   [references/review-actions.md](../references/review-actions.md). Fix confirmed
-   findings, re-run the verification loop if code changed, then review once more.
-   Two rounds maximum; findings still open after round two go into the pull request
-   body as known issues, never silently dropped.
-
-    **Profile: hardening.** Run `/clean` on the branch diff, then run the repo's
-    `Harden:` command. Fix uncovered lines, surviving mutants, and high-CRAP
-    functions, re-running until the command exits 0 and every survivor is killed by
-    a public-interface test or listed as equivalent with a one-line reason in the
-    pull request body. Stop after at most three passes and open the pull request as
-    a draft naming the residue. A `Harden:` command that cannot run (tool missing,
-    parse failure, wrong runtime) is an error: open a draft pull request, name the
-    missing evidence, and never a pass. Targeted and Focused orders run no
-    `/review`; Full orders run one `/review` round after hardening.
-
-11. **Preserve the change record for merge.** Outside an epic, the active change
-    and its deltas remain reviewable in the pull request. Do not fold or archive
-    them before merge. An epic child creates no per-child change record and
-    preserves the parent-plan bytes with implementation in the pull request. After
-    a human merge, `finalize` leaves the parent active for epic-owned archive.
-
-12. **Preflight the outbound OpenSpec change.** Only an ordinary OpenSpec-backed
-   ticket uses this gate. After implementation, review, and all active-change fixes
-   are complete, run `git fetch origin` immediately before the command, then run:
+7. **Prove the change applies** (OpenSpec tickets only; other conventions skip this).
+   Run `git fetch origin`, then:
 
    ```sh
    python3 <ticket-skill-directory>/scripts/ticket.py preflight-openspec \
-     --repo <ticket-worktree> \
-     --base-ref refs/remotes/origin/HEAD
+     --repo <ticket-worktree> --base-ref refs/remotes/origin/HEAD
    ```
 
-   The fetch refreshes the base that the command resolves locally. A ticket using
-   another or no change-record convention, or an epic child, bypasses this gate
-   unchanged. Fetch, ref, or preflight failure stops visibly; do not open the pull
-   request. Finalization remains the sole authoritative archive owner.
+   It archives the change in a disposable copy of the current baseline. A failure stops
+   here; fix the delta rather than opening the pull request.
 
-13. **Open the pull request.** `gh pr create` against the default branch. The body
-    follows an existing template when one exists, in this order: the repo's
-    `.github/pull_request_template.md` (or its `PULL_REQUEST_TEMPLATE/` directory),
-    then the organization default in the organization's `.github` repo. Keep the
-    template's headings and checklist verbatim, fill its sections with the substance
-    below, and tick only checklist items actually done. Add a section the template
-    lacks only when required content has no home in it. Never discard or rewrite a
-    template because it seems unsuitable: open the pull request with it filled as
-    best as possible, and raise the mismatch to the user. Only when no template
-    exists anywhere, write the body free-form. Either way the body carries what
-    changed, the verification output in a fence, and a link to the ticket. Under
-    `Profile: hardening`, it also carries the `Harden:` output in a fence, the
-    survivor list with dispositions, and the QA script verbatim. Then move the ticket
-    to pending review and comment on it (attribution first) with the pull
-    request link and a one-line status.
+8. **Open the pull request** with `gh pr create` against the default branch. Use the
+   repo's pull-request template when it has one, keeping its headings and ticking only
+   what was done. Write the body for the human who merges, in the app's own domain
+   terms: what changed, why, and what to check, never a tour of file names. Add the
+   verification output in a fence and a link to the ticket. UI work attaches its
+   lifecycle evidence: mock-versus-build screenshots and a fidelity ledger for `build`,
+   before/after screenshots and the replay output for `revise`. Move the ticket to
+   pending review and comment the pull request link on it.
 
-    **Surface evidence follows the lifecycle.** A `build` attaches paired
-    mock-versus-build screenshots (same fixture and viewports as the lock) and a
-    fidelity ledger walking every lock-manifest term to met, re-settle, or blocked.
-    A `revise` attaches base-versus-revision before/after screenshots from the same
-    safe fixture, the amended frozen behavior ledger, and raw replay output against
-    the built revision. Missing lifecycle evidence is a blocking gap, not a nit;
-    `revise` never invents a lock manifest or fidelity ledger after the fact.
-
-14. **Stop.** Report the pull request URL, the verification evidence, review
-    findings fixed or carried, and anything from the order left undone and why. On a
-    chunked order also report each chunk's outcome and tier. Do not merge, do not
-    self-approve, and do not respond to reviews; that is `/ticket revise`.
-
-## Refusals
-
-* No work order (step 2), model mismatch (step 3), repo drift or overlapping chunk
-  ownership (step 5).
-* The order's classification is `manual`: nothing to execute, so say so.
-* Verification cannot be run at all (no credentials, no access, no runnable suite):
-  stop after implementation, open the pull request as a draft, and say which
-  evidence is missing. Never fabricate expected output.
-* A chunked order whose sub-orders are not independently executable: refuse the
-  order and route back to `/ticket triage <ticket-id>`. Do not rewrite the slice
-  in flight.
+9. **Stop.** Report the pull request URL, the verification evidence, the review findings
+   fixed or carried, and anything left undone. Do not merge, approve, or answer reviews;
+   that is `/ticket revise`.
