@@ -28,14 +28,14 @@ public-interface unittest modules, syntax checks, and the DCO check where
 applicable, and MUST install exactly the pinned OpenSpec CLI version through
 the documented global npm path and run `openspec validate --all --strict` so an
 invalid baseline spec or active change fails CI deterministically. CI MUST run
-the configured install, installed-copy, and browser-driver checks when
-changed-path classification selects the expensive path. The repository MUST
-treat named unittest and syntax-check lists as explicit selections rather than
-a claim that every eligible file is discovered automatically. The unittest
-module selection in the documented test command MUST equal the selection in
-the primary validation workflow, and a repository test MUST reject drift
-between them. The OpenSpec CLI MUST remain repository CI and development
-tooling rather than a pack runtime dependency.
+the configured install and installed-copy checks when changed-path
+classification selects the expensive path. The repository MUST treat named
+unittest and syntax-check lists as explicit selections rather than a claim that
+every eligible file is discovered automatically. The unittest module selection
+in the documented test command MUST equal the selection in the primary
+validation workflow, and a repository test MUST reject drift between them. The
+OpenSpec CLI MUST remain repository CI and development tooling rather than a
+pack runtime dependency.
 
 #### Scenario: CI evaluates a proposed pack change
 
@@ -72,8 +72,7 @@ can be resolved.
 
 The pack SHALL install and run with the Python standard library and Node 20,
 without a pack-wide third-party dependency installation step. Repository-only
-development tooling and the browser driver's own dependency installation MUST NOT
-become runtime dependencies of the skill pack.
+development tooling MUST NOT become a runtime dependency of the skill pack.
 
 #### Scenario: The pack is installed through the skills CLI
 
