@@ -1,12 +1,11 @@
 ---
 name: review
-description: Front door for review of any kind — code, a plan, a document that needs named reviewer perspectives, or pending changes with a security question. Classifies the subject in front of it and routes to exactly one review skill; does no reviewing itself. Use for 'review this', '/review', or any request to review a PR, diff, plan, spec, brief, document, or security-sensitive change.
+description: Front door for review of any kind — code, a plan, or pending changes with a security question. Classifies the subject in front of it and routes to exactly one review skill; does no reviewing itself. Use for 'review this', '/review', or any request to review a PR, diff, plan, spec, brief, or security-sensitive change.
 ---
 
 # Review
 
-Front door for review, the way `scope` is the front door for work that isn't ready to
-build. Classify what is in front of it, announce the route, invoke that route's
+Front door for review. Classify what is in front of it, announce the route, invoke that route's
 skill. This skill does none of the reviewing itself — the standards-and-spec pass it
 used to run now lives in `code-review`.
 
@@ -14,13 +13,11 @@ used to run now lives in `code-review`.
 
 Routes are data, not prose, layered from two files:
 
-- **Shipped:** [`routes.json`](routes.json) in this directory. Four rows ship today:
+- **Shipped:** [`routes.json`](routes.json) in this directory. Three rows ship today:
   - `code` → `code-review` — changed code against the repo's documented standards and
     the originating issue.
   - `plan` → `plan-review` — a plan, spec, work order, or agent brief, before anything
     is built.
-  - `personas` → `persona-review` — a document that needs named reviewer
-    perspectives.
   - `security` → the security review that ships with the agent — pending changes
     carrying a security question.
 - **Operator:** `~/.config/review/routes.json`. A row whose `route` matches a shipped
@@ -40,7 +37,7 @@ Routes are data, not prose, layered from two files:
 
 ## Ambiguity
 
-Matching `scope`: pick a route and announce it. Ask exactly **one** framing question
+Pick a route and announce it. Ask exactly **one** framing question
 only when the subject genuinely admits two routes — a spec with code already written
 against it, say. Never ask when the subject is clearly one thing; a clear subject
 paired with a manufactured question is stalling, not scoping.

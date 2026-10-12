@@ -95,7 +95,7 @@ Write the design brief from `design-rules.md` (job, audience and setting,
 direction, signature move, density, constraints, anti-references) plus: one
 surface, one decision, hard constraints, states to render, and three or four
 named concept directions that differ in layout metaphor, information
-hierarchy, or interaction model — not decoration. Use `scope`'s interview mode to
+hierarchy, or interaction model — not decoration. Use `/ticket triage` to
 sharpen the brief when installed.
 
 ### 4. Prep the shared scaffold

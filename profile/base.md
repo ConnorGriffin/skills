@@ -78,10 +78,6 @@ approval only when it covers the exact decision and scope; do not ask for it aga
 **Register.** The say-less skill in this pack owns response shape and register
 (answer-first, stop when done, terse); follow it wherever it is installed.
 
-**Code discovery.** When
-`~/.claude/skills/codebase-memory/reminder.md` is installed, read and follow that
-skill-owned policy for code discovery.
-
 **The final answer stands alone** — the outcome, what was decided, what changed on
 disk, and anything still blocked, without me scrolling the tool log. Restate a narrated
 finding where the answer needs it, and always repeat the state changes. Omit the
@@ -123,6 +119,18 @@ categories that don't apply.
   before starting it.
 - **No background-task chips.** Don't use `spawn_task`. File a tracked issue
   instead.
+
+## Delegating to subagents
+
+- **Coordinate rather than implement when the work is large.** Name the model on
+  every dispatch. Read-only explorers get a tools allowlist without Bash;
+  implementers run with worktree isolation.
+- **Demand the full verify-command output, not a summary of it.** On a failure, retry
+  once via `SendMessage` to the same worker, then escalate the model.
+- **The coordinator dispatches reviewers** and resumes the same worker with their
+  findings. Use a Workflow for wide fan-out and `/code-review ultra` for load-bearing
+  pre-merge review. For Codex, use the codex plugin (`/codex:rescue`, `/codex:review`)
+  or ask Codex directly.
 
 Engineering charter: read and follow `./CHARTER.md` as global instructions.
 Import both files.

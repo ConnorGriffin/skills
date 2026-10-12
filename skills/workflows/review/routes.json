@@ -12,12 +12,6 @@
     "for": "a plan, spec, work order, or agent brief, before anything is built"
   },
   {
-    "route": "personas",
-    "skill": "persona-review",
-    "kind": "skill",
-    "for": "a document that needs named reviewer perspectives"
-  },
-  {
     "route": "security",
     "skill": "security-review",
     "kind": "agent-builtin",

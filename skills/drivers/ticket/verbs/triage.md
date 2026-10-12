@@ -308,7 +308,7 @@ disclosed target and exact mutation.
     needs none — the ticket plus its posted findings are the record — and
     `start` is not run on it.
 
-For a flat order, copy the already-selected execution row's `Ladder` value from [`routing-table.md`](../../orchestrate/references/routing-table.md) into the template's `Session fit:` paragraph, keeping each model's display name and ladder order.
+For a flat order, copy the already-selected execution row's `Ladder` value from `routing-table.md` into the template's `Session fit:` paragraph, keeping each model's display name and ladder order.
 
 ### Chunked session fit
 

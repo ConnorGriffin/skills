@@ -115,7 +115,7 @@ non-blocking rule.
 
    a. Run `/review` for the chunk diff, then apply the selected review skill's matrix
    entry from
-   [review-routing.md](../../orchestrate/references/review-routing.md) using that
+   review-routing.md using that
    chunk's stamped depth. Builder tier is not an input. Dispatch the selected
    reviewer on the chunk's branch against the ticket branch. Findings go back to
    the chunk's own agent to fix. Claim each dispatched reviewer session through the

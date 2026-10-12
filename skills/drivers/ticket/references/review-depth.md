@@ -56,7 +56,7 @@ Under `Profile: hardening`, Targeted and Focused orders get no reviewer; Full-de
 orders keep one review round after hardening.
 
 Review depth is an input to
-[review-routing.md](../../orchestrate/references/review-routing.md), which owns
+review-routing.md, which owns
 reviewer classification, eligibility, and model precedence.
 
 An executor or coordinator admitted through explicit host metadata is not thereby

@@ -104,7 +104,7 @@ chunk 1".
   implement, revise, or depend on another chunk's private capability; make it
   serial when that work or dependency is real.
 * **Agent tier** comes from
-  [the routing table](../../orchestrate/references/routing-table.md): classify the
+  the routing table: classify the
   chunk into an area (exploration, hermetic implementation, documentation, review)
   and read the route off. Never name Fable, which is the coordinator tier only.
 * **Review depth** comes from [review-depth.md](review-depth.md), stamped with its
@@ -128,5 +128,5 @@ chunk 1".
 The order's `Open as:` names the tier the coordinator session must run at: the
 **highest** tier any chunk names (haiku < sonnet < opus), and never Haiku, which
 cannot review
-([review-routing.md](../../orchestrate/references/review-routing.md)). The coordinator never launches
+(review-routing.md). The coordinator never launches
 an agent smarter than itself.

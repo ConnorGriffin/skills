@@ -27,7 +27,7 @@ VALID_KINDS = {"skill", "agent-builtin"}
 # Skill names this pack itself ships a directory for. A row naming one of these
 # gets the pack's own install command when missing; any other skill name gets a
 # pointer at the row's source file instead, since this pack can't install it.
-PACK_SHIPPED_SKILLS = {"code-review", "plan-review", "persona-review"}
+PACK_SHIPPED_SKILLS = {"code-review", "plan-review"}
 INSTALL_COMMAND = "npx skills add ConnorGriffin/skills --skill {skill}"
 
 EXIT_INSTALLED = 0

@@ -38,17 +38,8 @@ Invoking this skill authorizes every sub-agent dispatch that this procedure mark
 
 ## Cold-reader dispatch
 
-At the standard skill root, when `orchestrate` is installed, read its
-`references/review-routing.md` and `references/routing-table.md` directly before
-dispatch. Use the four-row reviewer matrix and apply its Claude-parent Codex
-presence/headroom gate. For this skill, use `Plan / spec writing` as the table's
-closest validated classification, not a benchmarked plan-review verdict.
-
-When `orchestrate` or its `review-routing.md` is not installed, say so in one
-line and continue Claude-only with Opus, with no Codex attempt.
-
-Reviewer-routing stakes and this skill's plan stakes tier are independent.
-Neither derives from, overrides, or rewrites the other.
+Dispatch the cold reader on Opus unless the caller names another model. For a
+Codex reviewer, use the codex plugin (`/codex:review`) or ask Codex directly.
 
 Before composing the cold-reader prompt, run:
 
@@ -61,18 +52,10 @@ including its not-installed carve-out. Keep the pointer and store content inside
 worker prompts only; never copy them into tracker comments, work orders, pull request
 bodies, or target-repository files.
 
-The coordinator supplies the selected adapter, explicit reviewer model,
-explicit reviewer effort, and the cold-reader prompt's five allowed inputs.
-Dispatch only through
-`skills/drivers/orchestrate/scripts/codex-worker.py` or
-`skills/drivers/orchestrate/scripts/claude-worker.py`, using the selected
-adapter's read-only review surface. Never use the built-in Agent tool, Workflow
-tool, or background-agent machinery.
-
-After selection, the cold-reader interface does not reclassify review work or
-choose a model or effort. Preserve adapter-owned state, same-worker resume, and
-coordinator-owned recovery through the orchestrate adapter contract; do not
-restate its command or lifecycle mechanics here.
+The coordinator supplies the reviewer model and the
+cold-reader prompt's five allowed inputs. Dispatch the cold reader as a read-only
+subagent with the model named on the dispatch, and resume that same subagent
+(`SendMessage`) for its re-checks.
 
 The cold-reader prompt contains exactly:
 1. plan location;
@@ -139,7 +122,7 @@ definitions below are the fallback.
    at build time is how shallow modules happen.
 4. **Scope, risk contract, and complexity budget.** Out-of-scope must be explicit.
    For bounded work, load the admitted
-   [risk contract](../../workflows/scope/SKILL.md#risk-contract). Missing risk decisions block
+   [risk contract](../../drivers/ticket/verbs/triage.md) from `/ticket triage`. Missing risk decisions block
    countersign only when the build would otherwise have to invent failure handling,
    recovery, or evidence obligations. An edge case earns handling only if it is
    reachable from inputs the acceptance criteria describe **and** its contracted
@@ -180,13 +163,13 @@ definitions below are the fallback.
    The same rule extends past executable literals to **facts**. A hand-typed
    count, path, param name, version, or enumeration is an automatic first
    objection: demand the generated-facts appendix — `command → output` pairs the
-   prose cites, which the `preflight` skill produces — rather than reviewing the
+   prose cites, which `/ticket triage` produces — rather than reviewing the
    prose figures, because verifying a number by hand costs a round and re-costs
    it every time the plan is edited. In one measured review of a load-bearing
    process document, roughly half of sixty-two objections across ten rounds were
    figures written from memory and wrong. A load-bearing plan that arrives with
-   no preflight at all is sent through it before the cold pass, not reviewed as
-   drafted.
+   no generated-facts appendix is sent back through `/ticket triage` before the
+   cold pass, not reviewed as drafted.
 1. **Cold read + grounding pass.** Read the plan, then the code it touches.
    Verify claims before forming opinions. A literal in the plan — a regex, a
    shell fragment, a workflow expression, a query — is verified by executing
@@ -215,7 +198,7 @@ definitions below are the fallback.
    fix" was applied verbatim still need verifying against the real machinery.
 
    If the coordinator session running the review has its context compacted mid-review,
-   it re-reads the settled decisions in the plan's scope ledger wherever `/scope`
+   it re-reads the settled decisions in the plan's scope ledger wherever `/ticket triage`
    placed it (`docs/scope/<slug>.md` or the session scratchpad) and the risk contract
    copied into the plan before evaluating the reviewer's deltas. It treats decisions
    recorded there as settled rather than re-deriving them from what survived
@@ -228,16 +211,9 @@ definitions below are the fallback.
      re-verify the deltas; then done. Plan review here only needs to catch
      what is *expensive* to catch later, not everything.
    - **Load-bearing or hard-to-reverse plan** (standards, machinery other
-     agents inherit, migrations — anywhere a miss propagates): convene the
-     persona panel via the `persona-review` skill when it is installed, and
-     feed its panel verdict into the objection list alongside the cold pass's
-     own (the panel's memory writes are proposed records surfaced at close,
-     user-approved — the review itself still edits nothing). Without that
-     skill installed, this step is a no-op and the review proceeds on the
-     fresh cold pass alone. The review still ends only when a **fresh cold
-     pass returns no blocking objections**; whichever termination path gets
-     there — a clean fresh pass or the three-panel cap — is what runs the
-     panel's deferred close approval pass.
+     agents inherit, migrations — anywhere a miss propagates): the review
+     ends only when a **fresh cold pass returns no blocking objections**, or
+     at the three-panel cap.
      The objecting reviewer's own re-verification never terminates — a
      reviewer verifying fixes to their own objections is anchored on them.
      After each revision cycle converges, dispatch a new cold reviewer through
