@@ -14,12 +14,8 @@ pushed and answered.
 
 3. **Worktree.** Reuse the ticket's worktree when `git -C <worktree> branch
    --show-current` equals `headRefName`. Otherwise remove it if `git status --short` is
-   empty (stop and report if not; never force) and respin:
-
-   ```sh
-   python3 <spin-worktree-skill-directory>/scripts/spin-worktree.py \
-     --repo <control checkout> --pr <number> --name <ticket-id-lowercased>
-   ```
+   empty (stop and report if not; never force) and work in a fresh worktree on
+   `headRefName`, fetched up to date from `origin`.
 
 4. **Re-admit the lock.** Locate the newest lock fresh and run [start](start.md) step 2's
    checks against this worktree. A newer lock posted since start is the one this round

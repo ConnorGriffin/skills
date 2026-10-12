@@ -42,14 +42,10 @@ jobs:
           python3 scripts/check_dco.py
           "${{ github.event.pull_request.base.sha }}"
           "${{ github.event.pull_request.head.sha }}"
-      - name: Check Python, JavaScript, and shell syntax
+      - name: Check Python syntax
         run: |
-          python3 -m py_compile skills/tools/spin-worktree/scripts/spin-worktree.py
-          python3 -m py_compile skills/workflows/review/scripts/resolve_route.py
           python3 -m py_compile skills/drivers/ticket/scripts/ticket.py
           python3 -m py_compile scripts/ci_changed_paths.py
-          node --check skills/tools/drive-local-webapp/scripts/driver.mjs
-          node --check skills/tools/drive-local-webapp/scripts/self-check.mjs
       - name: Classify changed paths
         id: changed-paths
         run: >-
@@ -67,17 +63,7 @@ jobs:
       - name: Verify installed skills
         if: steps.changed-paths.outputs.run_expensive != 'false'
         run: |
-          for skill in drive-local-webapp spin-worktree research \
-            implement tdd review prototype plan-review ui-craft; do
+          for skill in research implement tdd prototype \
+            code-review plan-review ui-craft; do
             test -f ".agents/skills/$skill/SKILL.md"
           done
-      - name: Install pinned browser driver dependencies
-        if: steps.changed-paths.outputs.run_expensive != 'false'
-        working-directory: skills/tools/drive-local-webapp
-        run: |
-          npm ci
-          npx playwright install chromium
-      - name: Run browser driver self-check
-        if: steps.changed-paths.outputs.run_expensive != 'false'
-        working-directory: skills/tools/drive-local-webapp
-        run: npm run self-check

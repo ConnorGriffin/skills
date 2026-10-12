@@ -13,24 +13,20 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 CATEGORIES = {"workflows", "drivers", "tools"}
 EXPECTED = {
-    "workflows/review",
     "drivers/implement",
     "drivers/openspec-adopt",
     "drivers/ui-craft",
     "drivers/ticket",
     "tools/ci-design",
-    "tools/clean",
     "tools/code-review",
     "tools/codebase-design",
     "tools/domain-modeling",
-    "tools/drive-local-webapp",
     "tools/handoff",
     "tools/plan-review",
     "tools/prototype",
     "tools/research",
     "tools/reviewer-memory",
     "tools/say-less",
-    "tools/spin-worktree",
     "tools/tdd",
     "tools/writing-for-agents",
 }

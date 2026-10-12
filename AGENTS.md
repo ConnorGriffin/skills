@@ -9,9 +9,7 @@ ui-surfaces: none
 
 ## Repo facts
 
-- Install: none for the pack itself; Python 3 standard library only. The browser
-  driver installs its own deps under `skills/tools/drive-local-webapp` (`npm ci`
-  plus `npx playwright install chromium`).
+- Install: none for the pack itself; Python 3 standard library only.
 - Test: `python3 scripts/validate.py && python3 -m unittest tests.test_behavior
   tests.test_ticket tests.test_reviewer_memory tests.test_check_dco
   tests.test_ci_changed_paths tests.test_site_build && python3 -m py_compile
@@ -40,5 +38,4 @@ ui-surfaces: none
   from a stock Python 3 and Node 20 with no package manager step, which is what
   makes it portable across agents.
 - Never run the pack's own scripts against a real project checkout while testing
-  them. `skills/tools/spin-worktree/scripts/spin-worktree.py` creates worktrees
-  and branches in whatever repo it is aimed at.
+  them; point them at a scratch repository.

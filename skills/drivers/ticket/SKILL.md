@@ -35,9 +35,10 @@ request, not after green CI. Merging is the human's gate.
    The name comes from `~/.config/ticket/config.json` key `operator`; without one, drop
    ` operating for <operator>`.
 4. **One worktree and one branch per ticket, for the whole lifecycle.** Triage cuts
-   them with `spin-worktree`; start and revise reuse them; finalize tears them down.
-   Never read, write, stash, or switch the control checkout, even when it is dirty.
-   Confirm the working directory is the helper's printed path before the first write.
+   them fresh off the up-to-date remote base; start and revise reuse them; finalize
+   tears them down. Never read, write, stash, or switch the control checkout, even when
+   it is dirty. Confirm the working directory is the ticket worktree before the first
+   write.
 5. **The tracker is the source of truth for status.** Triage moves the ticket to
    triaged, start to in progress and then pending review, finalize to done. A failed
    move is said in one line and never retried.
@@ -77,7 +78,7 @@ downgrades. A missing stamp reviews as Targeted. A finding blocks only when it b
 the order's `Done when`, its verification expectation, or a named repo rule.
 
 **Hardening profile.** When the target repo declares `Harden: <command>` and the user
-asks for it, triage stamps `Profile: hardening`. Start and revise then run `/clean` and
+asks for it, triage stamps `Profile: hardening`. Start and revise then run `/simplify` and
 the `Harden:` command until it exits 0 (three passes at most, residue listed in the pull
 request), and run `/code-review` only at Full depth. A `Harden:` command that cannot run
 is an error, never a pass.

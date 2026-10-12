@@ -71,8 +71,8 @@ Fetch the default branch, branch or create a worktree from its exact tip, and
 record the base SHA. The revision changes the real app in place; never build a
 duplicate route that carries a second implementation of the surface.
 
-When live before/after comparison matters, use `spin-worktree` to serve the base
-branch from a second worktree. Give the two servers distinct ports and the same
+When live before/after comparison matters, serve the base branch from a second
+fresh worktree off the up-to-date remote base. Give the two servers distinct ports and the same
 safe data bytes. A second route inside the revision branch is not a comparison:
 it duplicates the surface and can drift with it.
 

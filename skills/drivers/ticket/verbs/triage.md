@@ -9,18 +9,11 @@ one artifact: the order, posted on the ticket after the user approves it.
    order: say so and ask whether to supersede it. A parent ticket whose checklist tracks
    child issues is not triaged itself: triage the next open child instead.
 
-2. **Cut or reuse the worktree** before reading the repo. Derive a short kebab slug from
-   the title.
-
-   ```sh
-   python3 <spin-worktree-skill-directory>/scripts/spin-worktree.py \
-     --repo <control checkout> --issue <ticket-id> --slug <slug> --name <ticket-id>
-   ```
-
-   A non-numeric id first creates `<prefix>/<id-lowercased>-<slug>` from
-   `origin/<default branch>` with `git -C <control checkout> branch`, then passes it as
-   `--branch`; `<prefix>` is whatever `spin-worktree` resolves, never invented. A reused
-   worktree must be on the ticket's branch. Surface the helper's refusals; never force.
+2. **Cut or reuse the worktree** before reading the repo. Work in a fresh worktree off
+   the up-to-date remote base: fetch `origin`, then cut a branch named
+   `<id-lowercased>-<slug>` (a short kebab slug from the title) from
+   `origin/<default branch>` into its own worktree, or use the harness's native worktree
+   isolation. A reused worktree must be on the ticket's branch. Never force.
 
 3. **Ground.** Follow shared rule 6, then for each target repo run
    `python3 <reviewer-memory-skill-directory>/scripts/memory.py ensure <repo>` and read

@@ -1,7 +1,7 @@
 # Lock manifest — docs-site
 
 Locked: 2026-08-26 by Claude Fable 5 (ui-craft `lock`, issue #198)
-Re-settled: 2026-08-26 — first pass: terms 3, 4, 7, 19, the footer string, new term 26. Second pass: term 3 again, term 26 clarified, new term 27 (see **Re-settled terms** below)
+Re-settled: 2026-08-26 — first pass: terms 3, 4, 7, 19, the footer string, new term 26. Second pass: term 3 again, term 26 clarified, new term 27 (see **Re-settled terms** below). #300 pass: terms 7 and 15, the nav, the category list, and the lede count, because the pack no longer ships a `workflows` skill
 Mocks: `docs-site-index.html`, `docs-site-skill.html`, `docs-site-narrative.html`, `_theme.css`, `SCAFFOLD.md`
 Supersedes: — (greenfield; this repo ships no application and no prior docs surface, so the predecessor inventory is skipped by the one-line greenfield rule in `lock.md` §9.3)
 
@@ -29,7 +29,7 @@ switcher: these are separate URLs, not modes of one screen.
 | 4 | Diagrams are build-time inline `<svg>` generated from the repository's own data — never a library, never a raster, never hand-drawn. Node and edge data come from `site/relationships.py` (term 7); the text in each box and each description comes from SKILL.md frontmatter (term 17). *(Re-settled 2026-08-26.)* | gate | assertion: `<svg class="diagram">` present, no chart library in output |
 | 5 | Every diagram box is coloured by its skill's category, using `--cat`/`--cat-bg`, on every page. Colour is the only carrier of category meaning in the palette. | gate | assertion: each `.node` carries a `cat-*` class matching its skill's directory |
 | 6 | Edges are directed: every edge path carries `marker-end` pointing at the referenced skill. | gate | assertion |
-| 7 | Index hero is the full pack map, in four layout columns labelled `workflows` / `drivers` / `tools` (tools split across two columns). **The authoritative graph is the hand-maintained `site/relationships.py`** — a `uses` and a `requirements` field per skill, transcribed from the README tables and SKILL.md prose — and node and edge counts follow that data file. Endpoint existence is checked at build: every endpoint must name a real skill directory. Stale or incomplete edges are an accepted failure, not a build error. The map rendered in the lock mock is an exploratory SKILL.md body scan and is **not** authoritative; no count from it is binding. *(Re-settled 2026-08-26.)* | gate | assertion: `.node` count == skills in `relationships.py`, `.edge` count == `uses` entries, every endpoint resolves to a real skill directory |
+| 7 | Index hero is the full pack map, in three layout columns labelled `drivers` / `tools` (tools split across two columns). **The authoritative graph is the hand-maintained `site/relationships.py`** — a `uses` and a `requirements` field per skill, transcribed from the README tables and SKILL.md prose — and node and edge counts follow that data file. Endpoint existence is checked at build: every endpoint must name a real skill directory. Stale or incomplete edges are an accepted failure, not a build error. The map rendered in the lock mock is an exploratory SKILL.md body scan and is **not** authoritative; no count from it is binding. *(Re-settled 2026-08-26.)* | gate | assertion: `.node` count == skills in `relationships.py`, `.edge` count == `uses` entries, every endpoint resolves to a real skill directory |
 | 8 | Edges rest at 16% opacity. Hovering or keyboard-focusing a box drops all other edges to 5% and lifts that skill's edges to 95% in its category colour. Pure CSS `:has()`; a `@supports not selector(:has(*))` fallback renders the map static at 20%. | eye | paired render, rest vs. hover |
 | 9 | Every diagram box is keyboard reachable (`tabindex="0"`) and carries a `<title>` naming the skill and its category; every `<svg class="diagram">` has `role="img"` and a sentence-long `aria-label`. | gate | assertion |
 | 10 | The page body never scrolls horizontally, at 375px, 768px, 1280px, or 1440px. Diagrams scroll inside their own `.diagram-scroll` box (`min-width: 620px`). | gate | browser-gate: `documentElement.scrollWidth <= innerWidth` at four widths |
@@ -37,7 +37,7 @@ switcher: these are separate URLs, not modes of one screen.
 | 12 | Body text is the serif stack; all UI furniture — nav, headings, labels, tags, captions, table headers, footer — is the sans stack. Code is the mono stack. No web fonts; system stacks only. | gate | computed-style assertion on one element of each class |
 | 13 | Light and dark both ship, via `prefers-color-scheme` only. There is no theme toggle — adding one would need JavaScript and violate term 1. | gate | render both schemes |
 | 14 | All body and UI text meets WCAG AA (4.5:1) against its own background in both schemes. Measured at lock: light `--ink-dim` 4.97:1, dark 4.89:1; category ink on its own box ≥5.14:1. | gate | contrast assertion over the token pairs |
-| 15 | Index category board is asymmetric: a narrow left column carrying workflows and drivers stacked, and a wide right column where the tools list flows into two text columns. Collapses to one column below 52rem. A symmetric three-column board is banned — it strands ~1400px beside the 19-row tools list. | gate | computed `grid-template-columns` at 1280 and 375 |
+| 15 | Index category board is asymmetric: a narrow left column carrying drivers, and a wide right column where the tools list flows into two text columns. Collapses to one column below 52rem. A symmetric three-column board is banned — it strands ~1400px beside the 19-row tools list. | gate | computed `grid-template-columns` at 1280 and 375 |
 | 16 | Each category section shows its name, its live count, and a one-sentence blurb, in that order, above the list. | eye | render |
 | 17 | Every skill entry is its name plus the first sentence of its real SKILL.md `description`. No invented copy, no truncation with an ellipsis, no count badges. | gate | string diff against frontmatter |
 | 18 | Skill page order is fixed: category tag, name, full description, meta list, focused map, then the rendered SKILL.md body under an `SKILL.md` heading. | eye | render |
@@ -89,16 +89,15 @@ nothing here is personal or sensitive. What the build must exercise:
 ## Verbatim strings
 
 Navigation, in order, on every page:
-`Overview` · `Workflows` · `Drivers` · `Tools` · `The ticket flow` · `Source on GitHub`
+`Overview` · `Drivers` · `Tools` · `The ticket flow` · `Source on GitHub`
 
 Category names and blurbs:
 
-- `workflows` — "Front doors. You name the situation; the workflow classifies it and routes to exactly one specialist skill — it does no work itself."
 - `drivers` — "Lifecycles. A driver owns a piece of work from arrival to done, through named verbs and state it records outside the conversation."
 - `tools` — "References and single passes. Load one for its vocabulary, its checklist, or one bounded job, then get on with the work."
 
 Index lede:
-"A portable skill pack for coding agents. Twenty-seven skills that turn a vague request into tracked work, that work into a reviewed pull request, and that pull request into merged history — with the decisions written down as they are made."
+"A portable skill pack for coding agents. Sixteen skills that turn a vague request into tracked work, that work into a reviewed pull request, and that pull request into merged history — with the decisions written down as they are made."
 
 Diagram captions:
 

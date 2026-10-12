@@ -182,8 +182,8 @@ Neither substitutes for the other.
 - Vary the concept, not the decoration; three variants that differ only in
   color are one design.
 - Inspect rendered output — source review alone never validates a visual
-  artifact. Use `drive-local-webapp` for rendering; ask to install it if
-  missing.
+  artifact. Use the harness's built-in browser or preview tool to render and
+  screenshot.
 - **Sibling exactness** ([reference/sibling-fidelity.md](reference/sibling-fidelity.md)):
   any element with a sibling in a shipped surface uses the shipped values
   exactly — geometry, type, alignment spines, chart furniture, and interaction

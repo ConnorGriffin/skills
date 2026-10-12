@@ -15,9 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GITHUB = "https://github.com/ConnorGriffin/skills"
 BUILD_STAMP = ".site-build-stamp"
-CATEGORIES = ("workflows", "drivers", "tools")
+CATEGORIES = ("drivers", "tools")
 BLURBS = {
-    "workflows": "Front doors. You name the situation; the workflow classifies it and routes to exactly one specialist skill — it does no work itself.",
     "drivers": "Lifecycles. A driver owns a piece of work from arrival to done, through named verbs and state it records outside the conversation.",
     "tools": "References and single passes. Load one for its vocabulary, its checklist, or one bounded job, then get on with the work.",
 }
@@ -185,13 +184,13 @@ def diagram(skills, edges, kind="map", focus=None, flow=None):
         labels=('<text class="glabel" x="24" y="28">referenced by</text>'
                 '<text class="glabel" x="424" y="28">references</text>')
     else:
-        positions=[]; width=900; rows=defaultdict(int)
-        # Tools is far longer than the other two; it runs in two sub-columns so
+        positions=[]; width=688; rows=defaultdict(int)
+        # Tools is far longer than drivers; it runs in two sub-columns so
         # the map stays wide rather than tall (lock term 7).
         by_category={c:[s for s in skills.values() if s["category"]==c] for c in CATEGORIES}
         split=(len(by_category["tools"])+1)//2
-        columns=[("workflows", by_category["workflows"], 24), ("drivers", by_category["drivers"], 248),
-                 ("tools", by_category["tools"][:split], 472), (None, by_category["tools"][split:], 684)]
+        columns=[("drivers", by_category["drivers"], 24),
+                 ("tools", by_category["tools"][:split], 248), (None, by_category["tools"][split:], 472)]
         for _, members, x in columns:
             for i, skill in enumerate(members): positions.append((skill, x, 54+i*36))
         height=max(210, 64+max(len(m) for _, m, _ in columns)*36)
@@ -217,7 +216,7 @@ def isolation_style(skills, names):
 
 
 def chrome(title, subtitle, current, prefix="", style="", tag=""):
-    nav=[("Overview", f"{prefix}index.html", current=="Overview"), ("Workflows", f"{prefix}index.html#workflows", current=="Workflows"), ("Drivers", f"{prefix}index.html#drivers", current=="Drivers"), ("Tools", f"{prefix}index.html#tools", current=="Tools"), ("The ticket flow", f"{prefix}workflows/ticket-flow.html", current=="The ticket flow"), ("Source on GitHub", GITHUB, False)]
+    nav=[("Overview", f"{prefix}index.html", current=="Overview"), ("Drivers", f"{prefix}index.html#drivers", current=="Drivers"), ("Tools", f"{prefix}index.html#tools", current=="Tools"), ("The ticket flow", f"{prefix}workflows/ticket-flow.html", current=="The ticket flow"), ("Source on GitHub", GITHUB, False)]
     tagmark=f'<span class="tag">{tag}</span>' if tag else ""
     tagclass=f" cat-{tag}" if tag else ""
     links = "".join(
@@ -253,7 +252,7 @@ def build(out: Path):
         rows="".join(f'<li><a class="name" href="skills/{s["name"]}.html">{s["name"]}</a><span class="desc">{first_sentence(s["description"])}</span></li>' for s in entries)
         tables.append(f'<section class="cat-{category}" id="{category}"><div class="cathead"><h2>{category}</h2><span class="count">{len(entries)}</span></div><p>{BLURBS[category]}</p><ul class="skills">{rows}</ul></section>')
     index_style = isolation_style(skills, skills)
-    index=chrome("skills", "", "Overview", style=index_style) + '<p class="prose">A portable skill pack for coding agents. Twenty-seven skills that turn a vague request into tracked work, that work into a reviewed pull request, and that pull request into merged history — with the decisions written down as they are made.</p><figure class="figure"><div class="diagram-scroll">' + diagram(skills,relationships) + '</div><div class="legend"><span class="cat-workflows"><i></i>workflows</span><span class="cat-drivers"><i></i>drivers</span><span class="cat-tools"><i></i>tools</span><span>→ references</span></div><figcaption>Every skill in the pack, and every skill it names. Hover or tab to a box to isolate that skill’s references.</figcaption></figure><div class="catgrid"><div class="catcol">' + tables[0]+tables[1] + '</div><div class="catcol cat-tools">'+tables[2]+'</div></div>'+footer()
+    index=chrome("skills", "", "Overview", style=index_style) + '<p class="prose">A portable skill pack for coding agents. Sixteen skills that turn a vague request into tracked work, that work into a reviewed pull request, and that pull request into merged history — with the decisions written down as they are made.</p><figure class="figure"><div class="diagram-scroll">' + diagram(skills,relationships) + '</div><div class="legend"><span class="cat-drivers"><i></i>drivers</span><span class="cat-tools"><i></i>tools</span><span>→ references</span></div><figcaption>Every skill in the pack, and every skill it names. Hover or tab to a box to isolate that skill’s references.</figcaption></figure><div class="catgrid"><div class="catcol">' + tables[0] + '</div><div class="catcol cat-tools">'+tables[1]+'</div></div>'+footer()
     (out / "index.html").write_text(index)
     for skill in skills.values():
         n=skill["name"]; incoming=[x for x,d in relationships.items() if n in d["uses"]]; outgoing=relationships[n]["uses"]

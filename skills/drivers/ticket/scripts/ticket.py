@@ -45,7 +45,7 @@ CODEX_ARCHIVED_SESSIONS_DIR = CODEX_SESSIONS_DIR.parent / "archived_sessions"
 SESSION_VARIABLES = (("claude", "CLAUDE_CODE_SESSION_ID"), ("codex", "CODEX_SESSION_ID"))
 
 # What a claimed session was doing, so cost is attributed to the work that spent
-# it. The coordinator drives the ticket, a worker builds one chunk, a reviewer
+# it. The coordinator drives the ticket, a worker builds the work, a reviewer
 # only reviews. A claim written before roles existed is read back as `legacy`,
 # which is not a guess about which of the three it was.
 ROLES = ("coordinator", "worker", "reviewer")
@@ -59,8 +59,6 @@ LEGACY_VERB = "legacy"
 # A session past this peaked into the degradation band: it should have been
 # sliced below this line.
 DEGRADE_PEAK = 180_000
-# A chunk session under this was mostly fixed overhead, not real work.
-FLOOR_PEAK = 120_000
 
 
 class TelemetryError(RuntimeError):
@@ -392,27 +390,13 @@ def scan(ticket_id: str, projects_dir: Path, current_repo: Optional[str]) -> dic
     }
 
 
-def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
+def verdict(actual: dict) -> tuple[str, str]:
     """Compare the shape triage stamped against what the work actually cost.
 
     Only the sessions that built the work are evidence about how big the work
     was. Review-only sessions are overhead on every order, so their peaks are
-    reported and never judged. A flat order is judged on its own peak.
-
-    A chunked order is judged on its implementation workers' peaks alone.
-    A coordinator's context grows with dispatches, returned results, review
-    rounds and merges, so slicing the same work more finely can raise it while
-    lowering every chunk's peak: reading it as chunk size inverts the answer.
-    When every chunk worker held under the band but the coordinator did not,
-    `coordination-degraded` reports that the slice was right and coordination
-    was not. Incomplete worker coverage never yields `coordination-degraded`;
-    it falls through to `ok` only when no earlier branch fired, because an
-    unmeasured chunk could itself have crossed the band.
-    `subagent_peak` cannot stand in either, because a coordinator dispatches
-    review panels as sub-agents too and the transcript cannot tell the two
-    apart — and per ADR 70 attribution comes from explicit claims, never from
-    transcript shape. With no measured worker there is therefore no measurement
-    of chunk size, which is `coordinator-only` rather than a guess.
+    reported and never judged. The order is judged on its own non-reviewer
+    `start` peak.
     """
     if actual["claim_count"] == 0:
         excluded = actual.get("excluded_claims") or 0
@@ -431,140 +415,62 @@ def verdict(actual: dict, chunked: bool, chunks: int) -> tuple[str, str]:
             )
         return "no-data", "no session claimed this ticket, so nothing measured it"
 
-    if not chunked:
-        eligible = [
-            session
-            for session in actual["sessions"]
-            if session["verb"] == "start" and session["role"] != "reviewer"
-        ]
-        usable = [
-            session["peak_context"]
-            for session in eligible
-            if session["transcripts"] and session["peak_context"]
-        ]
-        if not usable:
-            unreadable = len([session for session in eligible if not session["transcripts"]])
-            zero_peak = len(
-                [
-                    session
-                    for session in eligible
-                    if session["transcripts"] and not session["peak_context"]
-                ]
-            )
-            if eligible:
-                details = []
-                if unreadable:
-                    unreadable_codex = len(
-                        [
-                            session
-                            for session in eligible
-                            if session["agent"] == "codex" and not session["transcripts"]
-                        ]
-                    )
-                    if unreadable_codex:
-                        details.append(
-                            f"{unreadable_codex} Codex session(s) carried a start claim, "
-                            "but their rollout files could not be read"
-                        )
-                    if unreadable > unreadable_codex:
-                        details.append(
-                            f"{unreadable - unreadable_codex} start claim(s) were unreadable "
-                            "because their transcripts are gone"
-                        )
-                if zero_peak:
-                    details.append(f"{zero_peak} start claim(s) recorded no usable context peak")
-                reason = " and ".join(details)
-            else:
-                reason = (
-                    "lifecycle, reviewer, or legacy claims were visible but none was an "
-                    "eligible non-reviewer start claim"
-                )
-            return "unmeasurable", f"flat order could not be measured: {reason}"
-        own = max(usable)
-        if own >= DEGRADE_PEAK:
-            return (
-                "under-sliced",
-                f"flat order execution peaked at {own:,} tokens, past the "
-                f"{DEGRADE_PEAK:,} degradation band",
-            )
-        return "ok", f"flat order execution peaked at {own:,} tokens"
-
-    if actual["session_count"] == 0:
-        if actual["claim_count"]:
-            unreadable_codex = [
+    eligible = [
+        session
+        for session in actual["sessions"]
+        if session["verb"] == "start" and session["role"] != "reviewer"
+    ]
+    usable = [
+        session["peak_context"]
+        for session in eligible
+        if session["transcripts"] and session["peak_context"]
+    ]
+    if not usable:
+        unreadable = len([session for session in eligible if not session["transcripts"]])
+        zero_peak = len(
+            [
                 session
-                for session in actual["sessions"]
-                if session["agent"] == "codex" and not session["transcripts"]
+                for session in eligible
+                if session["transcripts"] and not session["peak_context"]
             ]
-            if unreadable_codex:
-                return (
-                    "unmeasurable",
-                    f"{len(unreadable_codex)} Codex session(s) claimed this ticket, but their "
-                    "rollout files could not be read, so nothing could be measured",
+        )
+        if eligible:
+            details = []
+            if unreadable:
+                unreadable_codex = len(
+                    [
+                        session
+                        for session in eligible
+                        if session["agent"] == "codex" and not session["transcripts"]
+                    ]
                 )
-            return (
-                "unmeasurable",
-                f"{actual['claim_count']} session(s) claimed this ticket and their "
-                "transcripts are gone, so nothing could be measured",
-            )
-    judged = [session for session in actual["sessions"] if session["role"] != "reviewer"]
-    own = max((session["peak_context"] for session in judged), default=0)
-    worker_peaks = [peak for peak in actual["worker_peaks"] if peak]
-    if not worker_peaks:
-        if actual["peak_context"] == 0:
-            return (
-                "unmeasurable",
-                f"{chunks} chunk(s), but no usable context peak was measured, so chunk size "
-                "could not be measured",
-            )
-        measured_roles = {
-            session["role"] for session in actual["sessions"] if session["transcripts"]
-        }
-        if measured_roles and measured_roles <= {"reviewer"}:
-            shape = "only review-only sessions were measured"
+                if unreadable_codex:
+                    details.append(
+                        f"{unreadable_codex} Codex session(s) carried a start claim, "
+                        "but their rollout files could not be read"
+                    )
+                if unreadable > unreadable_codex:
+                    details.append(
+                        f"{unreadable - unreadable_codex} start claim(s) were unreadable "
+                        "because their transcripts are gone"
+                    )
+            if zero_peak:
+                details.append(f"{zero_peak} start claim(s) recorded no usable context peak")
+            reason = " and ".join(details)
         else:
-            shape = f"the sessions that were measured peaked at {own:,} tokens"
-        return (
-            "coordinator-only",
-            f"{chunks} chunk(s), but chunk size was not measured: "
-            f"{actual['claimed_workers']} claim(s) carried an implementation-worker role "
-            f"and 0 of them were measurable; {shape}",
-        )
-
-    peak = max(worker_peaks)
-    if peak >= DEGRADE_PEAK:
-        return (
-            "still-degraded",
-            f"{chunks} chunk(s) and the largest implementation worker still peaked at "
-            f"{peak:,} tokens, past the {DEGRADE_PEAK:,} degradation band; the chunks were too big",
-        )
-    if chunks > 1 and peak < FLOOR_PEAK:
-        # over-sliced says no chunk was big enough to need its own agent, which
-        # takes a measured worker for every chunk. An unreadable or never-claimed
-        # worker leaves a chunk whose cost is unknown, and an unknown chunk
-        # cannot be the small one. More workers than chunks is ordinary rather
-        # than suspicious: a chunk that escalates a tier claims the escalation as
-        # a second worker session, so the test is coverage, not equality.
-        if len(worker_peaks) >= chunks:
-            return (
-                "over-sliced",
-                f"{chunks} chunks but no implementation worker exceeded {peak:,} tokens; "
-                "one agent would have held it",
+            reason = (
+                "lifecycle, reviewer, or legacy claims were visible but none was an "
+                "eligible non-reviewer start claim"
             )
+        return "unmeasurable", f"flat order could not be measured: {reason}"
+    own = max(usable)
+    if own >= DEGRADE_PEAK:
         return (
-            "ok",
-            f"{len(worker_peaks)} of {chunks} chunk(s) measured an implementation worker, "
-            f"peaking at {peak:,} tokens; too few to call it over-sliced",
+            "under-sliced",
+            f"flat order execution peaked at {own:,} tokens, past the "
+            f"{DEGRADE_PEAK:,} degradation band",
         )
-    if len(worker_peaks) >= chunks and actual["coordinator_peak"] >= DEGRADE_PEAK:
-        return (
-            "coordination-degraded",
-            f"{chunks} chunk(s) and every measured implementation worker held under the "
-            f"{DEGRADE_PEAK:,} degradation band, but the coordinator peaked at "
-            f"{actual['coordinator_peak']:,} tokens; the slice was right while the "
-            "coordinating session was not",
-        )
-    return "ok", f"implementation workers peaked at {peak:,} tokens across {chunks} chunk(s)"
+    return "ok", f"flat order execution peaked at {own:,} tokens"
 
 
 def report_write_denial(path: Path, error: OSError) -> None:
@@ -594,14 +500,12 @@ def command_record(arguments: argparse.Namespace) -> int:
     ticket_id = validate_ticket_id(arguments.ticket_id)
     current_repo = resolve_repo(Path(arguments.project) if arguments.project else Path.cwd())
     actual = scan(ticket_id, arguments.projects_dir, current_repo)
-    call, reason = verdict(actual, arguments.chunked, arguments.chunks)
+    call, reason = verdict(actual)
     record = {
         "ticket_id": ticket_id,
         "verbs": arguments.verb,
         "traits": arguments.trait,
         "depth": arguments.depth,
-        "chunked": arguments.chunked,
-        "chunks": arguments.chunks,
         "repo": actual["repo"],
         "session_count": actual["session_count"],
         "claim_count": actual["claim_count"],
@@ -924,10 +828,6 @@ def parse_arguments() -> argparse.Namespace:
         help="slicing rubric trait that fired; repeatable; omit when none fired",
     )
     record_parser.add_argument("--depth", required=True, help="review depth that was stamped")
-    record_parser.add_argument("--chunked", action="store_true", help="the order was chunked")
-    record_parser.add_argument(
-        "--chunks", type=int, default=1, help="chunk count when --chunked is set"
-    )
     record_parser.set_defaults(handler=command_record)
 
     preflight_openspec_parser = subparsers.add_parser(

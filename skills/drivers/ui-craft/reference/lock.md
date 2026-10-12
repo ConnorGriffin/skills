@@ -136,8 +136,9 @@ briefs if parallel agents are unavailable.
 
 ### 6. Render and inspect
 
-Serve `mockups/` over HTTP; render every required state with
-`drive-local-webapp`; inspect the actual images and console errors.
+Serve `mockups/` over HTTP; use the harness's built-in browser or preview tool to
+render and screenshot every required state; inspect the actual images and console
+errors.
 Screenshots go outside the repo.
 
 ### 7. Review tersely
