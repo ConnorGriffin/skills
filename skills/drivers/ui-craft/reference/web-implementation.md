@@ -1,9 +1,9 @@
 # Web implementation
 
 Use this reference for CSS or JavaScript/TypeScript changes made through UI Craft's
-`build`, `revise`, or general UI implementation route. It guides mechanics, not
-lifecycle: the lock manifest, where present; the frozen behavior ledger, where
-applicable; and rendered evidence remain the UI Craft contract.
+`build` or `revise` modes, or any other UI implementation. It covers how the code
+gets written. The UI Craft contract stays the same: the lock doc, its must-survive
+list where the surface already ships, and rendered evidence.
 
 ## Establish the baseline
 
@@ -32,9 +32,9 @@ adaptation. Prefer logical properties where direction can vary, honor reduced mo
 and accessibility needs, and use `@supports` with an explicit fallback or acceptable
 degradation when support varies.
 
-Every choice must preserve the locked visual contract or behavior ledger and be
-proven in the rendered evidence required by the active UI Craft mode. Do not replace
-that contract with a compatibility claim.
+Every choice must preserve the lock doc and its must-survive list, and be proven in
+the rendered evidence the active UI Craft mode requires. A compatibility claim never
+replaces that contract.
 
 ## Boundaries and provenance
 

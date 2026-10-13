@@ -1,4 +1,4 @@
 interface:
   display_name: "UI Craft"
-  short_description: "Revise shipped UI; lock, build, and review greenfield surfaces."
-  default_prompt: "Use $ui-craft for this surface: revise shipped UI in the running app, lock a greenfield visual spec, build to a lock with fidelity evidence, critique with personas, audit, or run the polish gate."
+  short_description: "Structure first, one-page lock, then build or revise against it."
+  default_prompt: "Use $ui-craft for this surface: settle structure, lock a one-page design in the repo, build or revise against the lock, or review rendered UI."

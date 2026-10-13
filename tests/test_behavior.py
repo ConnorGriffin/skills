@@ -11,10 +11,7 @@ from typing import Optional
 
 
 ROOT = Path(__file__).resolve().parents[1]
-UI_CRAFT_AUDIT = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "audit.md"
-UI_CRAFT_CRITIQUE = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "critique.md"
-UI_CRAFT_SWEEP = ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "behavior-sweep.md"
-UI_CRAFT_ROUTE = ROOT / "skills" / "drivers" / "ui-craft" / "scripts" / "route.mjs"
+UI_CRAFT = ROOT / "skills" / "drivers" / "ui-craft"
 README = ROOT / "README.md"
 
 def run(
@@ -32,45 +29,207 @@ def run(
 
 
 class UiCraftContractTests(unittest.TestCase):
-    def test_shipped_surface_routing_contract_is_closed(self):
-        audit = UI_CRAFT_AUDIT.read_text(encoding="utf-8")
-        critique = UI_CRAFT_CRITIQUE.read_text(encoding="utf-8")
-        sweep = UI_CRAFT_SWEEP.read_text(encoding="utf-8")
-        readme = README.read_text(encoding="utf-8")
+    """The design session settles structure, locks one page, and never builds."""
 
-        cases = (
-            (("greenfield", "unavailable", "absent", "unknown"), 0, "lock"),
-            (("shipped", "runnable", "complete", "synthetic"), 0, "revise"),
-            (("shipped", "runnable", "complete", "manufactured"), 0, "revise"),
-            (("shipped", "runnable", "absent", "unknown"), 0, "lock-fallback"),
-            (("shipped", "runnable", "incomplete", "unknown"), 2, "refuse"),
-            (("shipped", "runnable", "ambiguous", "unknown"), 2, "refuse"),
-            (("shipped", "runnable", "complete", "real"), 2, "refuse"),
-            (("shipped", "unavailable", "complete", "synthetic"), 2, "refuse"),
+    SKILL_DIR = UI_CRAFT
+
+    def read(self, *parts: str) -> str:
+        return " ".join(self.SKILL_DIR.joinpath(*parts).read_text(encoding="utf-8").split())
+
+    def test_structure_step_is_approved_before_any_visual_work(self):
+        lock = self.read("reference", "lock.md")
+        self.assertLess(lock.index("## 1. Structure (no pixels)"), lock.index("## 3. Directions (concept only)"))
+        for requirement in (
+            "every tab and navigation name",
+            "what each screen owns, and only that",
+            "empty, loading, and error states, plus each transient state",
+            "every touch gesture and its desktop equivalent",
+            "every user-facing noun and verb",
+            "A label nobody serves does not appear on any screen",
+            "**one numbered round**",
+            "The operator approves the structure before any pixel exists",
+        ):
+            self.assertIn(requirement, lock)
+
+    def test_lock_is_one_page_in_the_repo_with_its_absolute_bans(self):
+        skill = self.read("SKILL.md")
+        lock = self.read("reference", "lock.md")
+        self.assertIn("**One page, in the repo.**", skill)
+        self.assertIn("It never lives in a scratchpad, a temp folder, or a canvas", skill)
+        self.assertIn("**Checked against the page and nothing else.**", skill)
+        for section in (
+            "## Navigation", "## Screens", "## States", "## Interaction map", "## Glossary",
+            "## Served vocabulary", "## Allowed strings", "## Tokens", "## Components",
+            "## Bans", "## Must survive", "## Approved screens", "## Amendments",
+        ):
+            self.assertIn(section, lock)
+        for ban in (
+            "No microcopy", "No predictions", "No invented labels or data",
+            "Color is never the only signal", "At most one primary action per screen",
+            "No content on a screen that does not own it",
+        ):
+            self.assertIn(ban, lock)
+        self.assertIn("Tokens** come from the running app's stylesheet", lock)
+        self.assertIn("one size per role", lock)
+
+    def test_stages_run_in_order_at_component_grain(self):
+        lock = self.read("reference", "lock.md")
+        stages = [
+            "## 1. Structure (no pixels)",
+            "## 2. Lock prep",
+            "## 3. Directions (concept only)",
+            "## 4. Component inventory",
+            "## 5. Library",
+            "## 6. Sync",
+            "## 7. Compose",
+            '## 8. "Locked", per screen',
+        ]
+        positions = [lock.index(stage) for stage in stages]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("**The review grain is a component, not a screen.**", lock)
+        self.assertIn("The gate passes when **the operator picks one**", lock)
+        for field in ("its states", "the served data fields it may show",
+                      "its desktop equivalent for each touch gesture", "one size per role"):
+            self.assertIn(field, lock)
+        self.assertIn("The inventory is a gated deliverable", lock)
+        self.assertIn("**in isolation, in batches of three to five, never as a full screen**", lock)
+        self.assertIn("**from approved components only**", lock)
+        self.assertIn("Never draw a one-off", lock)
+
+        library = self.read("reference", "library.md")
+        self.assertIn("**one story per state**", library)
+        self.assertIn("**one screenshot per story**", library)
+        self.assertIn("Run `precheck.py` on each story's saved HTML", library)
+        self.assertIn("**in isolation, in batches of three to five, never composed into a screen**", library)
+        self.assertIn("this ticket, the first code ticket, records the stack choice as an ADR", library)
+
+    def test_every_gate_prechecks_critiques_and_caps_rounds(self):
+        lock = self.read("reference", "lock.md")
+        gates = lock[lock.index("## How every gate runs"):lock.index("## 0. Embodiment")]
+        self.assertIn("**Before the operator sees anything**, the stage's renders pass `precheck.py`", gates)
+        self.assertIn("A failing check means the operator does not see that render", gates)
+        self.assertIn("a cold critique has run", gates)
+        self.assertIn("fresh, read-only subagent with a named model", gates)
+        self.assertIn("only the lock doc and the stage's renders", gates)
+        self.assertIn("**At most three refinement rounds per stage.** After the third, stop.", gates)
+        self.assertIn("Never run a fourth round on your own", gates)
+        self.assertIn("**Echo every comment and instruction received**", gates)
+
+    def test_locked_gate_is_per_screen_and_hands_off_to_a_build_ticket(self):
+        lock = self.read("reference", "lock.md")
+        skill = self.read("SKILL.md")
+        build = self.read("reference", "build.md")
+        self.assertIn('The operator saying **"locked"** about a screen is the only approval', lock)
+        self.assertIn("**separate build ticket**", lock)
+        self.assertIn("**Screens are never built in a design session.**", lock)
+        self.assertIn("A design session never builds screens", skill)
+        self.assertIn("from the approved component library", build)
+        self.assertIn("side by side, with the screen's locked canvas artboard", build)
+        self.assertIn(
+            "- <surface> · <draft | locked | shipped> · <issue> · <lock doc path> · <canvas or artifact URL>",
+            skill,
         )
-        for arguments, exit_code, mode in cases:
-            with self.subTest(arguments=arguments):
-                result = run(
-                    [
-                        "node",
-                        str(UI_CRAFT_ROUTE),
-                        "--embodiment",
-                        arguments[0],
-                        "--runnability",
-                        arguments[1],
-                        "--declaration",
-                        arguments[2],
-                        "--data-source",
-                        arguments[3],
-                    ],
-                    cwd=ROOT,
-                )
-                self.assertEqual(result.returncode, exit_code, result.stderr)
-                self.assertEqual(json.loads(result.stdout)["mode"], mode)
 
-        self.assertIn("`revise` for shipped-surface changes", audit)
-        self.assertIn("Route every shipped-surface change through `revise`", critique)
-        self.assertRegex(sweep, r"Under `revise`, the\s+ledger amendment")
+    def test_plain_dom_path_skips_the_library_and_names_its_losses(self):
+        lock = self.read("reference", "lock.md")
+        plain = lock[lock.index("## Plain-DOM path (no library)"):lock.index("## Lock doc format")]
+        self.assertIn("skips stages 4 to 6", plain)
+        self.assertIn("composes screens straight from `Tokens`", plain)
+        self.assertIn("**component review grain:**", plain)
+        self.assertIn("**sync:**", plain)
+
+    def test_revise_keeps_shipped_behavior_without_ledger_machinery(self):
+        revise = self.read("reference", "revise.md")
+        self.assertIn("**Never rebuild a shipped surface as a from-scratch mock** (ADR 48)", revise)
+        self.assertIn("at most one page", revise)
+        self.assertIn("There is no replay script and no per-story ledger", revise)
+        self.assertIn("Do not start the app to find out what it reads", revise)
+        self.assertIn("A dropped, changed, or moved behavior without its amendment blocks the PR", revise)
+        self.assertIn("Before and after render pairs", revise)
+
+    def test_ledger_replay_and_detector_machinery_is_gone(self):
+        files = sorted(p.relative_to(self.SKILL_DIR).as_posix() for p in self.SKILL_DIR.rglob("*") if p.is_file())
+        self.assertEqual(
+            files,
+            [
+                "SKILL.md", "agents/openai.yaml",
+                "reference/brand.md", "reference/build.md", "reference/design-rules.md",
+                "reference/library.md", "reference/lock.md", "reference/product.md", "reference/review.md",
+                "reference/revise.md", "reference/tools.md", "reference/web-implementation.md",
+                "scripts/precheck.py",
+            ],
+        )
+        for path in self.SKILL_DIR.rglob("*.md"):
+            text = path.read_text(encoding="utf-8")
+            for retired in ("behavior-sweep", "resettle", "fidelity ledger", "behavior ledger", "context.mjs"):
+                with self.subTest(page=path.name, term=retired):
+                    self.assertNotIn(retired, text)
+        self.assertLess(len((self.SKILL_DIR / "SKILL.md").read_text(encoding="utf-8").splitlines()), 150)
+
+    def test_tool_instructions_and_privacy_bounds(self):
+        tools = self.read("reference", "tools.md")
+        skill = self.read("SKILL.md")
+        self.assertIn("**Once the project has a component library**", tools)
+        self.assertIn("`/design-sync` has nothing to mirror, so skip it", tools)
+        self.assertIn("**Best supported: React + TypeScript + Storybook.**", tools)
+        self.assertIn("Storybook MCP", tools)
+        self.assertIn("**No-framework alternative: Web Components with Storybook.**", tools)
+        self.assertIn("tool support is weaker", tools)
+        self.assertIn("records the stack choice as an ADR in the `library` ticket, the first code ticket", tools)
+        self.assertIn("**Size the viewport to the frame first**", tools)
+        self.assertIn("viewport has no width", tools)
+        self.assertIn("**Design System** artifact", tools)
+        self.assertIn("the Artifact tool's **Design** type", tools)
+        self.assertIn("**Fallback when the Design type is unavailable**", tools)
+        self.assertIn("**Echo every received comment back to the operator before acting**", tools)
+        self.assertIn("Claude in Chrome or the desktop app's built-in browser", tools)
+        self.assertIn("**Never put real personal, health, or customer data on a canvas or artifact.**", skill)
+        self.assertIn("**Real-data inversion is repo-scoped and opt-in.**", skill)
+        self.assertIn("real-data renders **stay local**", skill)
+        self.assertIn("**Repo personas win:**", skill)
+        self.assertIn("*interface* means a module's API", skill)
+
+    def test_per_screen_lock_is_what_the_ticket_checks(self):
+        lock = self.read("reference", "lock.md")
+        ticket = ROOT / "skills" / "drivers" / "ticket"
+        template = " ".join((ticket / "templates" / "work-order.md").read_text(encoding="utf-8").split())
+        triage = " ".join((ticket / "verbs" / "triage.md").read_text(encoding="utf-8").split())
+        start = " ".join((ticket / "verbs" / "start.md").read_text(encoding="utf-8").split())
+        self.assertIn("A screen's line in `Approved screens`, ending in `locked <date>`, is the record", lock)
+        self.assertIn("The doc-level `Status:` is only a summary", lock)
+        self.assertIn("Surface lifecycle: <none | build <lock doc> <screens> | revise <lock doc> <screens>>", template)
+        self.assertIn("**Each named screen must be locked:**", template)
+        self.assertIn("so it is never the check", template)
+        for verb in (triage, start):
+            self.assertIn("every screen it names is locked in the lock doc", verb)
+            self.assertNotIn("a lock doc marked `locked`", verb)
+
+    def test_stage_list_and_stack_adr_have_one_authority(self):
+        skill = self.read("SKILL.md")
+        readme = " ".join(README.read_text(encoding="utf-8").split())
+        narrative = (ROOT / "site" / "narratives" / "ui-lifecycle.md").read_text(encoding="utf-8")
+        self.assertIn("The stage list lives only in [reference/lock.md](reference/lock.md)", skill)
+        self.assertIn("eight gates", skill)
+        self.assertIn("eight gated stages", readme)
+        self.assertIn("[lock reference](skills/drivers/ui-craft/reference/lock.md)", readme)
+        self.assertIn("eight gated stages, defined in its lock reference", narrative)
+        for copy in (skill, readme, narrative):
+            self.assertNotIn("component inventory →", copy)
+        stale = "build ticket before the library stage"
+        for path in [*UI_CRAFT.rglob("*.md"), ROOT / "docs" / "adr" / "adr-303-ui-craft-structure-first-lock.md"]:
+            with self.subTest(page=path.name):
+                self.assertNotIn(stale, " ".join(path.read_text(encoding="utf-8").split()))
+        lock = self.read("reference", "lock.md")
+        self.assertIn("`Components` is only a size table", lock)
+
+    def test_every_precheck_caller_declares_the_frame(self):
+        tools = self.read("reference", "tools.md")
+        self.assertIn("declare that frame per [lock.md](lock.md)'s precheck conventions", tools)
+        for page in ("build.md", "revise.md", "review.md"):
+            with self.subTest(page=page):
+                self.assertIn("per [lock.md](lock.md)'s precheck conventions", self.read("reference", page))
+        lock = self.read("reference", "lock.md")
+        self.assertIn("On the plain-DOM path, also fill in `Components` here", lock)
 
     def test_web_implementation_is_disclosed_without_becoming_a_standalone_skill(self):
         skill = (ROOT / "skills" / "drivers" / "ui-craft" / "SKILL.md").read_text(
@@ -114,8 +273,8 @@ class UiCraftContractTests(unittest.TestCase):
             "reduced motion",
             "@supports",
             "fallback or acceptable degradation",
-            "lock manifest",
-            "behavior ledger",
+            "lock doc",
+            "must-survive list",
             "rendered evidence",
         ):
             self.assertIn(requirement, web_contract)
@@ -133,88 +292,6 @@ class UiCraftContractTests(unittest.TestCase):
         )
         for name in ("modern-css", "modern-javascript"):
             self.assertFalse((ROOT / "skills" / "tools" / name).exists())
-
-    def test_revision_rounds_and_retired_premise_bind_through_ui_craft(self):
-        revise = (
-            ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "revise.md"
-        ).read_text(encoding="utf-8")
-        sweep = UI_CRAFT_SWEEP.read_text(encoding="utf-8")
-        build = (ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "build.md").read_text(
-            encoding="utf-8"
-        )
-
-        self.assertIn("### Running the rounds", revise)
-        rounds = revise[revise.index("### Running the rounds") :]
-        rounds = rounds[: rounds.index("When the decisions settle,")]
-        rounds_contract = " ".join(rounds.split())
-        for requirement in (
-            "Interactive divergent work only",
-            "One question per round",
-            "nothing ruled reopens",
-            "differ in concept, not decoration",
-            "carries a stated cost, the recommended one included",
-            "Measure the claim instead of asserting it",
-            "operator's eye outranks the measurement",
-            "Build only after the direction is ruled",
-        ):
-            self.assertIn(requirement, rounds_contract)
-
-        changes = revise[revise.index("### Behavior changes") :]
-        changes = changes[: changes.index("## 5.")]
-        changes_contract = " ".join(changes.split())
-        self.assertIn("**Moved:**", changes_contract)
-        self.assertIn("same ceremony as a removal", changes_contract)
-        # A move keeps its entry: the sweep admits exactly three entry types, so
-        # leaving this open reads a moved behavior's absence as a retirement.
-        self.assertIn("lands as an amended STORY rather than a retirement", changes_contract)
-        for requirement in (
-            "under-specifies every selector that names it",
-            "presence proxy",
-            "blast radius is the repository, not the directory",
-        ):
-            self.assertIn(requirement, changes_contract)
-
-        # A case nothing blocks on is not a case: the blocking sentence and the
-        # landing checks reach a moved behavior and a retirement's premise too.
-        self.assertIn(
-            "A dropped, changed or moved behavior without that record blocks",
-            changes_contract,
-        )
-        landing = " ".join(revise[revise.index("Before landing, confirm:") :].split())
-        self.assertIn("launched by whoever can launch them", landing)
-        self.assertIn("every added, changed or moved behavior", landing)
-        self.assertIn("everything `behavior-sweep` requires of one", landing)
-
-        sweep_contract = " ".join(sweep.split())
-        self.assertIn("asserts the premise the retirement reasoned from", sweep_contract)
-        self.assertIn("QUESTION-round trigger asking for a fresh ruling", sweep_contract)
-        self.assertIn("not a `replayed-fail`", sweep_contract)
-        self.assertIn("premise:  the preset window controls are present", sweep)
-
-        # What a retirement owes is enumerated on exactly one page. Three pages
-        # each carrying the list is how the premise obligation reached one of
-        # them and not the others; every other page names the case and points.
-        self.assertIn("What a retirement owes, in one place", sweep_contract)
-        resettle = (
-            ROOT / "skills" / "drivers" / "ui-craft" / "reference" / "resettle.md"
-        ).read_text(encoding="utf-8")
-        pages = {
-            "revise.md": revise,
-            "resettle.md": resettle,
-            "build.md": build,
-        }
-        for name, text in pages.items():
-            with self.subTest(page=name):
-                self.assertIn("behavior-sweep", text)
-                # The sanction template is the tell that a page restated the list.
-                self.assertNotIn("sanction: <", text)
-        self.assertEqual(sweep.count("sanction: <"), 1)
-
-        build_contract = " ".join(build.split())
-        self.assertIn(
-            "*premise* has failed while its behavior stays absent is `re-settle requested`",
-            build_contract,
-        )
 
 
 class CodebaseDesignHexagonalContractTests(unittest.TestCase):
@@ -735,96 +812,106 @@ class OpenSpecAdoptionContractTests(unittest.TestCase):
             self.assertNotIn("established `docs/adr/` tree wins", surface)
 
 
-class UiCraftCliMainGuardTests(unittest.TestCase):
-    """Every ui-craft CLI runs the same way through a symlinked skill directory.
+class UiCraftPrecheckTests(unittest.TestCase):
+    """The precheck runs on fixture renders, including through a symlinked skill dir."""
 
-    Skill packs are installed by symlink, so a CLI whose main guard compares raw
-    path strings exits 0 without running. `route.mjs` is pinned against its own
-    documented output; the other four are pinned differentially, against
-    themselves, so no baseline is invented for output this repo never recorded.
-    """
+    FIXTURES = ROOT / "tests" / "fixtures" / "ui-craft-prechecks"
 
-    UI_CRAFT = ROOT / "skills" / "drivers" / "ui-craft"
+    def precheck(self, render: Path, script: Path = UI_CRAFT / "scripts" / "precheck.py"):
+        return run(["python3", str(script), str(render), str(self.FIXTURES / "lock.md")], cwd=ROOT)
 
-    def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temporary.cleanup)
-        self.workdir = Path(self.temporary.name)
-        self.linked = self.workdir / "ui-craft-link"
-        self.linked.symlink_to(self.UI_CRAFT, target_is_directory=True)
+    def counts(self, stdout: str) -> dict:
+        return {name: int(count) for name, count in re.findall(r"^(?:pass|FAIL)  ([a-z ]+): (\d+)$", stdout, re.MULTILINE)}
 
-    def script(self, *parts: str) -> tuple[Path, Path]:
-        """The same script by its real path and through the symlinked directory."""
-        relative = Path("scripts").joinpath(*parts)
-        return self.UI_CRAFT / relative, self.linked / relative
-
-    def test_route_prints_its_decision_through_a_symlinked_skill_directory(self):
-        cases = (
-            (("greenfield", "runnable", "complete", "manufactured"), 0, "lock"),
-            (("shipped", "unavailable", "complete", "synthetic"), 2, "refuse"),
+    def test_a_render_that_honors_the_lock_passes_every_check(self):
+        result = self.precheck(self.FIXTURES / "clean")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(
+            self.counts(result.stdout),
+            {"microcopy": 0, "provenance": 0, "primary actions": 0, "frame fit": 0,
+             "button sizes": 0, "glossary": 0},
         )
-        _, linked_route = self.script("route.mjs")
-        for arguments, exit_code, mode in cases:
-            with self.subTest(arguments=arguments):
-                result = run(
-                    [
-                        "node",
-                        str(linked_route),
-                        "--embodiment",
-                        arguments[0],
-                        "--runnability",
-                        arguments[1],
-                        "--declaration",
-                        arguments[2],
-                        "--data-source",
-                        arguments[3],
-                    ],
-                    cwd=self.workdir,
-                )
-                self.assertEqual(result.returncode, exit_code, result.stderr)
-                self.assertEqual(json.loads(result.stdout)["mode"], mode)
 
-    def assert_symlink_parity(
-        self, parts: tuple[str, ...], arguments: list[str], suffix: str = ""
-    ):
-        """One read-only invocation run twice: by real path, then through the link.
-
-        Non-emptiness is load-bearing. Bare parity is satisfied by two silent
-        runs, so a guard that never fires would pass this test green — the very
-        defect being repaired.
-
-        `suffix` is appended to the path as a string, after pathlib is done with
-        it: pathlib strips a trailing separator, which would silently turn the
-        trailing-separator case into a rerun of the plain one.
-        """
-        real, linked = self.script(*parts)
-        real_run = run(["node", f"{real}{suffix}", *arguments], cwd=self.workdir)
-        linked_run = run(["node", f"{linked}{suffix}", *arguments], cwd=self.workdir)
-        self.assertTrue(real_run.stdout.strip(), real_run.stderr)
-        self.assertEqual(linked_run.stdout, real_run.stdout, linked_run.stderr)
-        self.assertEqual(linked_run.returncode, real_run.returncode, linked_run.stderr)
-
-    def test_migrated_clis_behave_identically_through_a_symlinked_directory(self):
-        cases = (
-            (("context-signals.mjs",), []),
-            (("context.mjs",), []),
-            (("critique-storage.mjs",), ["trend", "no-such-target"]),
-            (("detector", "detect-antipatterns.mjs"), ["--help"]),
+    def test_each_violation_fails_its_check_and_blocks_the_render(self):
+        result = self.precheck(self.FIXTURES / "dirty" / "library.html")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(
+            self.counts(result.stdout),
+            {"microcopy": 2, "provenance": 1, "primary actions": 1, "frame fit": 1,
+             "button sizes": 1, "glossary": 1},
         )
-        for parts, arguments in cases:
-            with self.subTest(script=parts[-1]):
-                self.assert_symlink_parity(parts, arguments)
+        for finding in ("'Ready to start reading?'", "'Reading streak'", "2 primary actions",
+                        "480px exceeds its 390px frame", "2 button sizes, lock allows 1", "'Bookcase'"):
+            self.assertIn(finding, result.stdout)
+        self.assertIn("static markup only", result.stdout)
 
-    def test_detector_entry_path_arrives_normalized_with_a_trailing_separator(self):
-        """Pins the invariant that let the `endsWith('...mjs/')` clause be deleted.
+    def test_frame_fit_checks_each_render_against_its_own_frame(self):
+        clean = self.precheck(self.FIXTURES / "clean")
+        self.assertEqual(clean.returncode, 0, clean.stdout)
+        self.assertIn("4 render(s) checked", clean.stdout)
+        desktop = self.precheck(self.FIXTURES / "dirty" / "desktop-1440.html")
+        self.assertEqual(desktop.returncode, 1, desktop.stdout)
+        self.assertEqual(self.counts(desktop.stdout)["frame fit"], 2)
+        self.assertIn("1600px exceeds its 1440px frame", desktop.stdout)
+        self.assertIn("1500px exceeds its 1440px frame", desktop.stdout)
+        self.assertNotIn("3000px", desktop.stdout)
+        self.assertNotIn("2000px", desktop.stdout)
 
-        Node normalizes the entry path before the module sees it, so
-        `process.argv[1]` never carries a trailing separator. If a future runtime
-        stops normalizing, this fails loudly instead of exiting 0 in silence.
-        """
-        self.assert_symlink_parity(
-            ("detector", "detect-antipatterns.mjs"), ["--help"], suffix="/"
-        )
+    def test_unparseable_at_rules_fail_open(self):
+        result = self.precheck(self.FIXTURES / "clean" / "motion-390.html")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(self.counts(result.stdout)["frame fit"], 0)
+        skill_text = " ".join((UI_CRAFT / "reference" / "lock.md").read_text(encoding="utf-8").split())
+        self.assertIn("fail open", skill_text)
+        self.assertIn("em dash (` — `) or en dash (` – `)", skill_text)
+
+    def test_a_render_with_no_frame_fails_frame_fit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            render = Path(temporary) / "library.html"
+            render.write_text('<main data-screen="library"><h1>Library</h1></main>', encoding="utf-8")
+            result = self.precheck(render)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("no frame declared", result.stdout)
+
+    def test_bad_lock_values_and_non_utf8_renders_are_usage_errors(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            lock = Path(temporary) / "lock.md"
+            lock.write_text(
+                (self.FIXTURES / "lock.md").read_text(encoding="utf-8").replace("Button sizes: 1", "Button sizes: one"),
+                encoding="utf-8",
+            )
+            bad_lock = run(["python3", str(UI_CRAFT / "scripts" / "precheck.py"), str(self.FIXTURES / "clean"), str(lock)], cwd=ROOT)
+            render = Path(temporary) / "library-390.html"
+            render.write_bytes(b"<p>\xff\xfe</p>")
+            bad_render = self.precheck(render)
+        self.assertEqual(bad_lock.returncode, 2, bad_lock.stdout)
+        self.assertIn("Button sizes: must be a whole number", bad_lock.stderr)
+        self.assertEqual(bad_render.returncode, 2, bad_render.stdout)
+        self.assertIn("precheck: bad input:", bad_render.stderr)
+
+    def test_glossary_entries_split_only_on_the_documented_dash(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            lock = Path(temporary) / "lock.md"
+            lock.write_text(
+                "Frames: 390x844\n\n## Glossary\n\n- Before - after view — compares two days\n",
+                encoding="utf-8",
+            )
+            render = Path(temporary) / "compare-390.html"
+            render.write_text("<main><h1>Before - after view</h1></main>", encoding="utf-8")
+            result = run(["python3", str(UI_CRAFT / "scripts" / "precheck.py"), str(render), str(lock)], cwd=ROOT)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_runs_through_a_symlinked_skill_directory(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            linked = Path(temporary) / "ui-craft-link"
+            linked.symlink_to(UI_CRAFT, target_is_directory=True)
+            result = self.precheck(self.FIXTURES / "clean", linked / "scripts" / "precheck.py")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("4 render(s) checked", result.stdout)
+
+    def test_missing_input_is_a_usage_error_not_a_pass(self):
+        result = run(["python3", str(UI_CRAFT / "scripts" / "precheck.py"), "no-such-render", "no-such-lock"], cwd=ROOT)
+        self.assertEqual(result.returncode, 2)
 
 
 class DelegationAuthorityContractTests(unittest.TestCase):

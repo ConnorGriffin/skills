@@ -1,198 +1,133 @@
 ---
 name: ui-craft
-description: Lifecycle for user-facing surfaces — revise a shipped surface in the running app, lock a greenfield visual spec, build to a lock, critique/audit/polish a UI, or re-settle a locked term. Use for any request to design, review, or verify rendered UI (screens, dashboards, flows, components). Not for backend-only work or module/API design ("interface" in the code sense — use codebase-design for that).
+description: Design and verify user-facing surfaces — settle structure first, lock a one-page design in the repo, then build or revise against it in a separate ticket, and review rendered UI. Use for any request to design, redesign, review, or verify screens, dashboards, flows, or components. Not for backend-only work or module/API design ("interface" in the code sense — use codebase-design for that).
 ---
 
 # UI craft
 
-One skill for the whole life of a user-facing surface: **revise** a shipped
-surface in place, **lock** a greenfield visual spec, **build** to it,
-**critique** it, **audit** it, **polish** it, **re-settle** it.
-Parts absorbed from `impeccable` (Apache-2.0, by Paul Bakaus — see the repo
-NOTICE).
+A design session settles **structure before pixels**, then reviews at
+**component grain** through eight gates. Each screen ends at the operator's
+**"locked"** in a one-page lock doc that lives in the repo. The stage list lives
+only in [reference/lock.md](reference/lock.md). Building screens is a separate
+ticket, checked against that page and nothing else. Parts are derived from `impeccable` (Apache-2.0, by Paul Bakaus —
+see the repo NOTICE).
 
 Vocabulary guard: in the engineering charter, *interface* means a module's API.
-This skill owns **surfaces** — rendered UI. If the request is about a Python
-class, function signature, or module boundary, this is the wrong skill.
-
-## Setup (every invocation)
-
-1. Resolve this skill's installed directory as `UI_CRAFT_SKILL_DIR` (e.g.
-   `~/.claude/skills/ui-craft`).
-2. Run `node $UI_CRAFT_SKILL_DIR/scripts/context.mjs` once per session
-   (`--target <path>` inside a monorepo). It prints PRODUCT.md / DESIGN.md or
-   reports `NO_PRODUCT_MD` — in that case follow `reference/init.md` first.
-   Ignore any `UPDATE_AVAILABLE` directive; this is a maintained fork.
-   If `node` is unavailable or a script here errors, say so, read
-   PRODUCT.md / DESIGN.md directly, and continue — the scripts are
-   accelerators, not gates.
-
-Before routing any design change:
-
-3. Resolve whether the app already embodies the surface (`shipped` or
-   `greenfield`). For a shipped surface, classify local runnability as `runnable`
-   or `unavailable`; inspect its `CLAUDE.md` / `AGENTS.md` dev-server declaration
-   and classify it as `absent`, `complete`, `incomplete` or `ambiguous`; classify
-   its named data source as `manufactured`, `synthetic` or `unknown`.
-4. Run `node $UI_CRAFT_SKILL_DIR/scripts/route.mjs --embodiment <state>
-   --runnability <state> --declaration <state> --data-source <kind>` and obey its
-   mode. A `refuse` result is blocking. `lock-fallback` is the recorded
-   predecessor fallback in `reference/revise.md`, not ordinary `lock`
-   permission.
-
-Ticket triage may prepare a shipped surface's first-revision evidence in its
-admitted checkout only after this route verifies a safe start and manufactured
-data. It runs `behavior-sweep`, then freezes the ledger and replay through the
-existing sanction path before source admission. This authorizes evidence
-preparation, not implementation, a new mock, or a replacement checkout/base.
-
-For `revise`, `lock`, `build`, and general design invocations only:
-
-5. Read the project's design system: tokens, theme, one representative
-   component or page. Use what's there when it works. **The shipped app wins
-   over any mock scaffold**: when a repo carries both an app stylesheet and a
-   `mockups/` theme, the app is chrome ground truth for every surface that
-   has shipped. `revise` operates on that app directly; `lock` mode's step-0
-   pre-flight (reference/lock.md) refuses to replace it with a fresh mock.
-6. Read the matching register reference: `reference/brand.md` when design IS
-   the product (marketing, landing, portfolio), `reference/product.md` when
-   design SERVES the product (app UI, dashboards, tools).
-7. New project with no committed tokens: run
-   `node $UI_CRAFT_SKILL_DIR/scripts/palette.mjs` for a brand seed.
-
-## The contract follows the surface
-
-For a greenfield surface that has been through `lock`, the contract is:
-
-- a `★ LOCKED` header in the mockup HTML, and
-- a **lock manifest** — `mockups/<surface>.lock.md` — the checkable inventory
-  `build` reads. Format in `reference/lock.md`.
-
-For a surface the app already ships, `revise` bans a from-scratch mock. Its
-contract is the frozen **behavior ledger** plus its replay script, exercised
-against the built app. The app branch is the visual artifact; screenshots record
-the review, but no lock manifest is pinned to an app template.
-
-Rules that bind every mode:
-
-- **No arbitration in private.** If two locked artifacts disagree, a locked
-  term collides with the app's shipped design system beyond what the manifest's
-  precedence line settles, or a revision drops shipped behavior, stop and ask.
-  Implementer judgment never silently overrides a contract.
-- **Deviation is recorded.** Any build or refactor that changes a locked term
-  goes through `re-settle`; any revision that changes shipped behavior amends
-  the frozen behavior ledger. Both paths are dated and sanctioned, never quiet.
-- **Evidence over green gates.** A locked surface is done when every manifest
-  term has evidence; a revision is done when every behavior story replayed and
-  every affected state has before/after evidence. A green suite alone is never
-  the finish line.
+This skill owns **surfaces**, meaning rendered UI. If the request is about a class,
+function signature, or module boundary, this is the wrong skill.
 
 ## Modes
 
-Route on the first word (or obvious intent). Read the mode's reference before
-acting — it defines the flow.
+Route on the first word or obvious intent, then read that mode's reference
+before acting. Never auto-run a mode.
 
 | Mode | Job | Reference |
 | --- | --- | --- |
-| `revise [surface]` | Inventory shipped behavior, then iterate the running app on a branch; never mock the shipped surface from scratch | [reference/revise.md](reference/revise.md) |
-| `lock [surface]` | Explore grounded variants for a greenfield surface, converge, lock spec + manifest | [reference/lock.md](reference/lock.md) |
-| `behavior-sweep [surface]` | Freeze interactive behavior into a ledger + replay script. `revise` runs it against the built app before design; the lock fallback also diffs a shipped predecessor before locking | [reference/behavior-sweep.md](reference/behavior-sweep.md) |
-| `build [surface]` | Implement a locked spec; ship the fidelity ledger | [reference/build.md](reference/build.md) |
-| `critique [target]` | Heuristic scoring, slop verdict, persona walkthroughs | [reference/critique.md](reference/critique.md) |
-| `audit [target]` | Technical checks (a11y, contrast, responsive, detector) + lock-fidelity audit when a manifest exists | [reference/audit.md](reference/audit.md) |
-| `polish [target]` | Pre-ship quality gate; includes the manifest walk | [reference/polish.md](reference/polish.md) |
-| `resettle [term]` | Amend a locked term with record-keeping | [reference/resettle.md](reference/resettle.md) |
-| `init` / `document` | Project context setup / generate DESIGN.md | [reference/init.md](reference/init.md), [reference/document.md](reference/document.md) |
+| `lock [surface]` | The design lifecycle's eight gates, from structure to "locked" per screen; at most three rounds per gate | [reference/lock.md](reference/lock.md) |
+| `library [component]` | `lock`'s library gate, run as its own ticket: the approved inventory built and reviewed one component at a time | [reference/library.md](reference/library.md) |
+| `build [surface]` | Build ticket for a greenfield surface: assemble locked screens from the library, verified against the locked canvas | [reference/build.md](reference/build.md) |
+| `revise [surface]` | Build ticket for a shipped surface: change the running app on a branch, keeping its must-survive behaviors | [reference/revise.md](reference/revise.md) |
+| `review [target]` | Critique and technical audit of rendered UI, against the lock when one exists | [reference/review.md](reference/review.md) |
 
-No argument: recommend the 1–3 most useful modes from context (a shipped
-surface → `revise`; a greenfield surface or explicitly recorded safe-start
-fallback → `lock`; an unlocked fallback mock with no predecessor verdicts →
-`behavior-sweep`'s predecessor pass **before** `lock`; frozen manifest for a
-greenfield surface with interactive behavior and no behavior ledger →
-`behavior-sweep` **before** `build`; open manifest without a fidelity ledger →
-`build`; never critiqued → `critique`), then list the table. Never auto-run a
-mode.
+Routing, in prose:
 
-Three artifacts carry the word *ledger*; always qualify it. The **fidelity
-ledger** is one row per manifest term (`build`; `revise` has none). The
-**behavior ledger** is
-`mockups/<surface>.behavior.md`, one entry per story plus one permanent entry
-per sanctioned retirement (`behavior-sweep`). The **surface ledger** is
-`mockups/INDEX.md`, one row per surface.
+- Designing or redesigning anything, shipped or not, goes to `lock`. A design
+  session never builds screens. The `library` ticket is the only code written
+  before a screen locks.
+- A project that declines a component library takes `lock`'s plain-DOM path,
+  which says what that path loses.
+- After "locked", the build ticket runs `build` for a greenfield surface or
+  `revise` for one the app already ships (ADR 48: a shipped surface is never
+  rebuilt from a from-scratch mock).
+- A fix inside an existing lock goes straight to `build` or `revise`: spacing, a
+  bug, or a state the lock already lists. A change that adds or renames a
+  screen, state, navigation item, gesture, or user-facing term reopens `lock`.
+- With no argument, read `mockups/INDEX.md` and recommend one or two modes,
+  then list the table.
 
-General design invocations with no mode match (e.g. "make this less bland",
-"fix the spacing") route by embodiment: shipped surface → `revise`-then-fix;
-greenfield surface → `critique`-then-fix. Use
-[reference/design-rules.md](reference/design-rules.md) for the craft pass.
+[reference/tools.md](reference/tools.md) says how to use the harness's own design
+tooling for these jobs: the Design and Design System artifact types,
+`/design-sync` when the repo has a component library, artifact comments,
+Claude in Chrome or the built-in browser, and the cold-critique subagent. Read
+it before the first canvas, artifact, or browser step.
 
-When a mode settles an answer or completes a helper, resume the caller's next
-authorized step. Stop only the dependent work for an unanswered decision, denied
-sanction, unavailable required evidence, or explicit handoff.
+## Setup (every mode)
 
-**Web implementation.** For `build`, `revise`, and general UI implementation that
-changes CSS or JavaScript/TypeScript, read
-[reference/web-implementation.md](reference/web-implementation.md) before changing
-code. It governs web mechanics; UI Craft retains lifecycle, visual-contract,
-behavior-preservation, and rendered-evidence ownership.
+1. Read the repo's `CLAUDE.md`/`AGENTS.md` for these four things: personas, a
+   declared real-data protocol, the safe dev-server entrypoint and its data
+   source, and the design doc location.
+2. Read `mockups/INDEX.md` and the surface's lock doc if one exists.
+3. Read [reference/design-rules.md](reference/design-rules.md). Then read one
+   register reference: [reference/brand.md](reference/brand.md) when the design
+   *is* the product (marketing, landing, portfolio), or
+   [reference/product.md](reference/product.md) when it *serves* the product (app
+   UI, dashboards, tools).
+4. For `library`, `build`, `revise`, and any change to CSS or JavaScript/TypeScript, read
+   [reference/web-implementation.md](reference/web-implementation.md) first. It
+   governs web mechanics. This skill keeps ownership of the lock and the rendered
+   evidence.
 
-## Design rules (all modes)
+## The lock is the contract
 
-[reference/design-rules.md](reference/design-rules.md) carries the shared
-craft discipline: the design-brief template, token-system-before-components,
-typography/color/layout/motion rules, the absolute bans (side-stripes,
-gradient text, default glassmorphism, hero-metric template, identical card
-grids, eyebrow-on-every-section…), the AI-slop and category-reflex tests, and
-the layered critique order. It is required reading for `lock`, `build`, and
-any general invocation; the other modes consult it as needed.
+- **One page, in the repo.** It lives in the project's `DESIGN.md`, or in
+  `docs/design/<surface>.md` when the project has several surfaces. It never
+  lives in a scratchpad, a temp folder, or a canvas. The format is in
+  [reference/lock.md](reference/lock.md).
+- **Checked against the page and nothing else.** Prechecks, the cold critique,
+  `review`, and the build's verification all read the lock doc. Anything the
+  page does not say is not a requirement, and anything it bans is a failure.
+- **No arbitration in private.** Stop and ask when one of these happens:
+  - the lock contradicts the app's design system;
+  - a build needs something the lock does not list;
+  - a shipped behavior on the must-survive list would be lost.
+
+  A changed term is a dated line under the lock's `Amendments`, carrying the
+  operator's words, made in the same change. It is never a quiet edit.
+- **Evidence over green gates.** A surface is done when its rendered screens
+  match the lock at every frame and state the lock lists. A passing suite alone
+  never finishes a surface.
+
+## Surface ledger
+
+`mockups/INDEX.md` holds one line per surface:
+
+```text
+- <surface> · <draft | locked | shipped> · <issue> · <lock doc path> · <canvas or artifact URL>
+```
+
+Every mode that changes a surface's status updates its line in the same change.
 
 ## Personas
 
-Persona walkthroughs live in `critique` (five built-in archetypes plus
-project-specific ones). **Repo personas win:** if the repo has its own persona
-definitions (canonically `.claude/qa/personas/*.md`, or a location named in
-its CLAUDE.md/AGENTS.md), use those personas — a diabetic user, a concerned
-parent — instead of inventing equivalents, and follow the repo's sweep protocol
-when one exists.
+`lock`'s cold critique and `review` walk the primary task as personas. **Repo
+personas win:** if the repo defines its own (canonically
+`.claude/qa/personas/*.md`, or a location its `CLAUDE.md`/`AGENTS.md` names), use
+those instead of inventing equivalents. When the repo has its own sweep
+protocol, follow it. Built-in archetypes fill only the roles the repo's set
+lacks.
 
-**"The repo's sweep protocol" is not `behavior-sweep`.** That phrase means the
-repo's persona-driven QA pass — exploratory, judgment-led, run against a live
-app to find bugs. `behavior-sweep` is a mode of this skill: mechanical, run
-against the **built app** before a revision, or against a locked mock plus its
-shipped predecessor on the explicit fallback path. Its output is a contract.
-Neither substitutes for the other.
+## Grounding rules (every mode)
 
-## Grounding rules (inherited from ui-mockups, apply everywhere)
-
-- Ground every artifact in the app's real tokens, shipping UI/chart library
-  at its shipping version, and real data shape from a **safe, manufactured
-  fixture** — never production, personal, health, credential, or customer
-  data. **This is the shared default and it does not bend on convenience.**
-- **Real-data inversion — repo-scoped, opt-in.** Some repos invert the rule:
-  their build contracts must be grounded in the owner's *own real* data, because
-  a fixture cannot reveal what the surface does at real scale. That inversion
-  applies **only** where the repo's own `CLAUDE.md`/`AGENTS.md` declares an
-  operator-sanctioned real-data protocol (e.g. a read-only snapshot flow), and
-  only within that protocol's bounds. Absent that declaration, the manufactured
-  default above governs — no exceptions inferred from context or precedent.
-  Where the inversion does apply: renders of real personal/health data **never
-  commit and never attach to a PR** (a PR is a publish) without the operator's
-  exact authorizing sentence quoted in the record; committed and PR-attached
-  evidence uses labeled synthetic fixtures, and real-data renders stay local,
-  handed to the verifier with the pinned data.
-- Vary the concept, not the decoration; three variants that differ only in
+- Ground everything in the app's real tokens, its shipping UI and chart library at
+  the shipping version, and the real data *shape* from a **safe, manufactured
+  fixture**. Never use production, personal, health, credential, or customer
+  data. This default does not bend for convenience.
+- **Never put real personal, health, or customer data on a canvas or artifact.**
+  Both are published pages on claude.ai, however private their sharing setting.
+- **Real-data inversion is repo-scoped and opt-in.** Some repos require build
+  evidence grounded in the owner's own real data, because a fixture cannot show
+  what the surface does at real scale. That inversion applies **only** where the
+  repo's own `CLAUDE.md`/`AGENTS.md` declares an operator-sanctioned real-data
+  protocol, and only within that protocol's bounds. Without that declaration, the
+  manufactured default governs, and no exception is inferred from context or
+  precedent. Where the inversion applies, real-data renders **stay local**: they
+  are never published to a canvas or artifact, never committed, and never
+  attached to a PR. Committed and published evidence uses labeled synthetic
+  fixtures.
+- Vary the concept, not the decoration. Three directions that differ only in
   color are one design.
-- Inspect rendered output — source review alone never validates a visual
-  artifact. Use the harness's built-in browser or preview tool to render and
-  screenshot.
-- **Sibling exactness** ([reference/sibling-fidelity.md](reference/sibling-fidelity.md)):
-  any element with a sibling in a shipped surface uses the shipped values
-  exactly — geometry, type, alignment spines, chart furniture, and interaction
-  idioms alike — and fidelity is proven with a computed-style diff against the
-  running app, never by eyeball. Token bridges are verified by computed value
-  on the consuming element; mock-global base styles (body font/line-height)
-  are banned because they shift extracted chrome off its shipped pixels.
-- Keep `mockups/INDEX.md` as the surface ledger (one row per surface:
-  Surface / Concept / Status / Issue / File). `locked` rows are binding
-  precedent; `shipped` rows defer to the app itself, and are also how the next
-  lock finds its predecessor (`behavior-sweep` §2). Every mode that touches
-  a lock updates the ledger in the same change — a stale ledger is a defect.
+- Judge a visual artifact by its rendered output in a real browser. Source review
+  alone never validates one.
+- **Sibling exactness:** an element with a sibling on a shipped surface uses the
+  shipped values exactly. Prove it with computed styles read in the browser,
+  never by eye.
