@@ -41,6 +41,48 @@ Every interactive component has: default, hover, focus, active, disabled, loadin
 - Motion conveys state, not decoration. State change, feedback, loading, reveal: nothing else.
 - No orchestrated page-load sequences. Product loads into a task; users don't want to watch it load.
 
+## Platform conventions
+
+Apple's Human Interface Guidelines (and Material Design where it differs) are
+the reference for touch-first product UI, a web app included. Borrow their
+principles, never their visuals: a web app that imitates iOS chrome, with a
+fake status bar or iOS-styled controls on a desktop browser, reads as a copy.
+
+- **Content first, chrome recedes.** Hierarchy comes from type, weight and
+  position, not boxes and fills. One dominant element per screen.
+- **Touch targets at least 44 × 44 px** (Material: 48 dp), including icon
+  buttons, rows and tab items, even when the glyph is smaller.
+- **Top-level navigation is a tab bar of three to five sections** on a phone,
+  persistent on every screen, with the same items in a sidebar or rail on wide
+  layouts. Tabs navigate; they never trigger actions. Each tab keeps its own
+  scroll and drill-down state.
+- **Adapt to the width class; don't stretch.** Compact width stacks; regular
+  width shows list and detail side by side. Respect safe areas and keep one
+  side margin per width class.
+- **Modality is for a short, focused task** with an obvious way out. A sheet
+  carries one task, at most one primary action, and a cancel or swipe-down.
+  Prefer non-modal paths; never chain sheets.
+- **Undo beats confirmation** for anything reversible. Reserve a confirmation
+  for what can't be undone, and name the consequence in its button.
+- **Every gesture has a visible equivalent.** A swipe action is also a button
+  or a menu item, and no gesture overrides a system one (edge swipe back,
+  pull to refresh, the home indicator).
+- **Pick the standard control for the job.** A segmented control for two to
+  five mutually exclusive views of the same content; a switch for a setting
+  that applies immediately; a list row with a chevron for navigation; a picker
+  for a bounded value.
+- **Data entry asks for the least.** Bring up the right keyboard (numeric for
+  amounts), default to the likely value (now, the last used), size a field to
+  its content, and validate inline rather than on submit.
+- **Feedback is immediate.** Every touch shows a pressed state at once; work
+  that takes longer than a moment shows progress in place.
+- **Respect the reader's settings.** Text scales with the user's size setting
+  without clipping, nothing reads below 11 px, and reduced motion and increased
+  contrast are honoured.
+- **Colour is sparse and means one thing.** One accent marks what can be
+  pressed or is selected; a status colour never stands alone without a label,
+  glyph or position.
+
 ## Product bans (on top of the shared absolute bans)
 
 - Decorative motion that doesn't convey state.
