@@ -53,19 +53,26 @@ The script checks six things:
   `Allowed strings`;
 - provenance: every `data-label` is in `Served vocabulary`;
 - one primary action per screen (each component story counts as a screen);
-- fixed widths wider than the narrowest frame;
+- frame fit: fixed `width`, `min-width`, or `flex-basis` px values above that
+  file's own frame. `max-width` is ignored, and `@media` blocks count only when
+  their min-width and max-width conditions hold at that frame;
 - distinct button sizes against `Button sizes:`;
 - glossary: every short visible term is in the glossary or another lock list.
 
 Renders mark the conventions the script reads:
 
+- the frame the file renders at: `data-frame="<width>"` on any element, or a
+  file name ending in `-<width>` (`library-1440.html`). The width must be one
+  of `Frames:`, and each frame is its own file;
 - `data-screen` on each screen or story root;
 - `data-label` on served-data labels;
 - `data-value` on served values;
 - `data-primary` on the one primary action.
 
-The script reads static markup only. The browser pass in [tools.md](tools.md)
-measures real overflow and rendered button heights. Paste the full output into
+The script reads static markup only, so it catches fixed widths above the
+frame, not overflow. Real overflow and rendered button heights come from the
+browser pass in [tools.md](tools.md). A malformed lock value or a render that is
+not UTF-8 exits 2, which is a usage error, not a pass. Paste the full output into
 the round.
 
 ### Cold critique
@@ -125,8 +132,9 @@ Fill in `Tokens`, `Stack`, `Frames`, `Button sizes`, `Bans`, and
   never transcribe them from memory. A greenfield app with no stylesheet
   commits to a small set here.
 - **Stack:** the project's component library, or `plain-DOM (declined)`. A repo
-  with no library picks a stack per [tools.md](tools.md). The build ticket
-  records that choice as an ADR before the library stage.
+  with no library picks a stack per [tools.md](tools.md). The `library` ticket,
+  the first code ticket, records that choice as an ADR before its first
+  component ([library.md](library.md)).
 - Set up the canvas's design system as [tools.md](tools.md) describes.
 
 ## 3. Directions (concept only)
@@ -180,22 +188,28 @@ component as its own library batch. Never draw a one-off.
 
 ## 8. "Locked", per screen
 
-The operator saying **"locked"** about a screen is the only approval. Then, in
-one change:
+The operator saying **"locked"** about a screen is the only approval. A
+screen's line in `Approved screens`, ending in `locked <date>`, is the record
+that it is locked. Build and ticket checks read that line. The doc-level
+`Status:` is only a summary: `draft` until every listed screen is locked, then
+`locked <date> by <operator>`. Then, in one change:
 
-1. Add the screen, its frames, and its canvas URL to `Approved screens`. When
-   every screen is locked, set `Status: locked <date> by <operator>`.
+1. Add the screen, its frames, its canvas URL, and `locked <date>` to
+   `Approved screens`, and update `Status:` if this was the last screen.
 2. Update the surface's one line in `mockups/INDEX.md`.
 3. File or update the **separate build ticket**. It names the lock doc path,
-   the locked screens and their canvas URLs, and `build` or `revise`.
+   the locked screens it builds and their canvas URLs, and `build` or `revise`.
 4. Commit the lock doc and the INDEX line.
 
 ## Plain-DOM path (no library)
 
 A project that declines a component library skips stages 4 to 6. After the
-direction is picked, it composes screens straight from `Tokens` and a
-`Components` list of sizes per role, then locks per screen. It loses two
-things, and the lock doc says so in `Stack`:
+direction is picked, it composes screens straight from `Tokens`, then locks per
+screen. On this path, `Components` is only a size table: one height, padding,
+and type per role, with no states, stories, or approvals. Compose and build
+draw every button, field, and row from that table. Without a library, it is the
+only guard against mixed sizes. The path loses two things, and the lock doc
+says so in `Stack`:
 
 - **component review grain:** the operator reviews whole screens, which is
   where inconsistencies like three button sizes hide;
@@ -237,6 +251,7 @@ Canvas: <canvas or artifact URL>
 - Color, type scale, spacing, radius: <values>
 ## Components
 - <Component> — states: …; fields: …; gestures: <touch> → <desktop>; size: <role: height, padding, type>; story: <path>; approved: <date>
+  (plain-DOM: `- <role> — <height, padding, type>` only)
 ## Bans
 - No microcopy: no explanatory sentences, rhetorical questions, or
   subtitles that explain the screen. Only Allowed strings.

@@ -101,7 +101,7 @@ class UiCraftContractTests(unittest.TestCase):
         self.assertIn("**one screenshot per story**", library)
         self.assertIn("Run `precheck.py` on each story's saved HTML", library)
         self.assertIn("**in isolation, in batches of three to five, never composed into a screen**", library)
-        self.assertIn("record the stack choice as an ADR in this ticket first", library)
+        self.assertIn("this ticket, the first code ticket, records the stack choice as an ADR", library)
 
     def test_every_gate_prechecks_critiques_and_caps_rounds(self):
         lock = self.read("reference", "lock.md")
@@ -175,7 +175,9 @@ class UiCraftContractTests(unittest.TestCase):
         self.assertIn("Storybook MCP", tools)
         self.assertIn("**No-framework alternative: Web Components with Storybook.**", tools)
         self.assertIn("tool support is weaker", tools)
-        self.assertIn("records the stack choice as an ADR in the build ticket before the library stage", tools)
+        self.assertIn("records the stack choice as an ADR in the `library` ticket, the first code ticket", tools)
+        self.assertIn("**Size the viewport to the frame first**", tools)
+        self.assertIn("viewport has no width", tools)
         self.assertIn("**Design System** artifact", tools)
         self.assertIn("the Artifact tool's **Design** type", tools)
         self.assertIn("**Fallback when the Design type is unavailable**", tools)
@@ -186,6 +188,39 @@ class UiCraftContractTests(unittest.TestCase):
         self.assertIn("real-data renders **stay local**", skill)
         self.assertIn("**Repo personas win:**", skill)
         self.assertIn("*interface* means a module's API", skill)
+
+    def test_per_screen_lock_is_what_the_ticket_checks(self):
+        lock = self.read("reference", "lock.md")
+        ticket = ROOT / "skills" / "drivers" / "ticket"
+        template = " ".join((ticket / "templates" / "work-order.md").read_text(encoding="utf-8").split())
+        triage = " ".join((ticket / "verbs" / "triage.md").read_text(encoding="utf-8").split())
+        start = " ".join((ticket / "verbs" / "start.md").read_text(encoding="utf-8").split())
+        self.assertIn("A screen's line in `Approved screens`, ending in `locked <date>`, is the record", lock)
+        self.assertIn("The doc-level `Status:` is only a summary", lock)
+        self.assertIn("Surface lifecycle: <none | build <lock doc> <screens> | revise <lock doc> <screens>>", template)
+        self.assertIn("**Each named screen must be locked:**", template)
+        self.assertIn("so it is never the check", template)
+        for verb in (triage, start):
+            self.assertIn("every screen it names is locked in the lock doc", verb)
+            self.assertNotIn("a lock doc marked `locked`", verb)
+
+    def test_stage_list_and_stack_adr_have_one_authority(self):
+        skill = self.read("SKILL.md")
+        readme = " ".join(README.read_text(encoding="utf-8").split())
+        narrative = (ROOT / "site" / "narratives" / "ui-lifecycle.md").read_text(encoding="utf-8")
+        self.assertIn("The stage list lives only in [reference/lock.md](reference/lock.md)", skill)
+        self.assertIn("eight gates", skill)
+        self.assertIn("eight gated stages", readme)
+        self.assertIn("[lock reference](skills/drivers/ui-craft/reference/lock.md)", readme)
+        self.assertIn("eight gated stages, defined in its lock reference", narrative)
+        for copy in (skill, readme, narrative):
+            self.assertNotIn("component inventory →", copy)
+        stale = "build ticket before the library stage"
+        for path in [*UI_CRAFT.rglob("*.md"), ROOT / "docs" / "adr" / "adr-303-ui-craft-structure-first-lock.md"]:
+            with self.subTest(page=path.name):
+                self.assertNotIn(stale, " ".join(path.read_text(encoding="utf-8").split()))
+        lock = self.read("reference", "lock.md")
+        self.assertIn("`Components` is only a size table", lock)
 
     def test_web_implementation_is_disclosed_without_becoming_a_standalone_skill(self):
         skill = (ROOT / "skills" / "drivers" / "ui-craft" / "SKILL.md").read_text(
@@ -797,9 +832,57 @@ class UiCraftPrecheckTests(unittest.TestCase):
              "button sizes": 1, "glossary": 1},
         )
         for finding in ("'Ready to start reading?'", "'Reading streak'", "2 primary actions",
-                        "480px exceeds the 390px frame", "2 button sizes, lock allows 1", "'Bookcase'"):
+                        "480px exceeds its 390px frame", "2 button sizes, lock allows 1", "'Bookcase'"):
             self.assertIn(finding, result.stdout)
         self.assertIn("static markup only", result.stdout)
+
+    def test_frame_fit_checks_each_render_against_its_own_frame(self):
+        clean = self.precheck(self.FIXTURES / "clean")
+        self.assertEqual(clean.returncode, 0, clean.stdout)
+        self.assertIn("3 render(s) checked", clean.stdout)
+        desktop = self.precheck(self.FIXTURES / "dirty" / "desktop-1440.html")
+        self.assertEqual(desktop.returncode, 1, desktop.stdout)
+        self.assertEqual(self.counts(desktop.stdout)["frame fit"], 2)
+        self.assertIn("1600px exceeds its 1440px frame", desktop.stdout)
+        self.assertIn("1500px exceeds its 1440px frame", desktop.stdout)
+        self.assertNotIn("3000px", desktop.stdout)
+        self.assertNotIn("2000px", desktop.stdout)
+
+    def test_a_render_with_no_frame_fails_frame_fit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            render = Path(temporary) / "library.html"
+            render.write_text('<main data-screen="library"><h1>Library</h1></main>', encoding="utf-8")
+            result = self.precheck(render)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("no frame declared", result.stdout)
+
+    def test_bad_lock_values_and_non_utf8_renders_are_usage_errors(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            lock = Path(temporary) / "lock.md"
+            lock.write_text(
+                (self.FIXTURES / "lock.md").read_text(encoding="utf-8").replace("Button sizes: 1", "Button sizes: one"),
+                encoding="utf-8",
+            )
+            bad_lock = run(["python3", str(UI_CRAFT / "scripts" / "precheck.py"), str(self.FIXTURES / "clean"), str(lock)], cwd=ROOT)
+            render = Path(temporary) / "library-390.html"
+            render.write_bytes(b"<p>\xff\xfe</p>")
+            bad_render = self.precheck(render)
+        self.assertEqual(bad_lock.returncode, 2, bad_lock.stdout)
+        self.assertIn("Button sizes: must be a whole number", bad_lock.stderr)
+        self.assertEqual(bad_render.returncode, 2, bad_render.stdout)
+        self.assertIn("precheck: bad input:", bad_render.stderr)
+
+    def test_glossary_entries_split_only_on_the_documented_dash(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            lock = Path(temporary) / "lock.md"
+            lock.write_text(
+                "Frames: 390x844\n\n## Glossary\n\n- Before - after view — compares two days\n",
+                encoding="utf-8",
+            )
+            render = Path(temporary) / "compare-390.html"
+            render.write_text("<main><h1>Before - after view</h1></main>", encoding="utf-8")
+            result = run(["python3", str(UI_CRAFT / "scripts" / "precheck.py"), str(render), str(lock)], cwd=ROOT)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_runs_through_a_symlinked_skill_directory(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -807,7 +890,7 @@ class UiCraftPrecheckTests(unittest.TestCase):
             linked.symlink_to(UI_CRAFT, target_is_directory=True)
             result = self.precheck(self.FIXTURES / "clean", linked / "scripts" / "precheck.py")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("1 render(s) checked", result.stdout)
+        self.assertIn("3 render(s) checked", result.stdout)
 
     def test_missing_input_is_a_usage_error_not_a_pass(self):
         result = run(["python3", str(UI_CRAFT / "scripts" / "precheck.py"), "no-such-render", "no-such-lock"], cwd=ROOT)

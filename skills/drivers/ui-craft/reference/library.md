@@ -11,9 +11,9 @@ Input: a lock doc whose `Components` inventory the operator approved, and whose
 
 1. Read [web-implementation.md](web-implementation.md) and
    [tools.md](tools.md)'s library stack section.
-2. With no component library in the repo, record the stack choice as an ADR in
-   this ticket first, in the repo's ADR home. Then scaffold the library and
-   its story tooling.
+2. With no component library in the repo, this ticket, the first code ticket,
+   records the stack choice as an ADR in the repo's ADR home before the first
+   component. Then scaffold the library and its story tooling.
 3. Branch from a freshly fetched default branch.
 
 ## Each component
@@ -21,8 +21,9 @@ Input: a lock doc whose `Components` inventory the operator approved, and whose
 1. Build it with the lock's `Tokens` and its inventory entry's single size per
    role. Labels read only the fields its entry lists.
 2. Write **one story per state** in the entry. Each story uses manufactured
-   data and marks the precheck conventions: the story root carries
-   `data-screen`, plus `data-label`, `data-value`, and `data-primary`.
+   data and marks the precheck conventions in [lock.md](lock.md): the story
+   root carries `data-screen` and `data-frame`, plus `data-label`,
+   `data-value`, and `data-primary`.
 3. Take **one screenshot per story**, at every frame where the component
    changes, using the rendered verification in [tools.md](tools.md).
 4. Run `precheck.py` on each story's saved HTML, plus the browser pass. Then run

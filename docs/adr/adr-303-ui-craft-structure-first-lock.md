@@ -59,16 +59,18 @@ Claude Code now covers the dropped scripts' jobs:
 - **Mechanical prechecks before the operator sees a render.** One
   standard-library Python script, `scripts/precheck.py`, checks rendered HTML
   against the lock: microcopy, label provenance, primary actions per screen,
-  fixed widths past the frame, button sizes, and glossary use. It is honest
+  fixed widths above each render's own declared frame, button sizes, and
+  glossary use. It is honest
   that it reads static markup only. Layout is measured in the browser. A
   failing check withholds the render.
 - **A cold critique, then at most three refinement rounds.** A fresh read-only
   subagent with a named model sees only the lock and the renders. After three
   rounds on the chosen direction, the skill stops and reports what is
   unresolved.
-- **An explicit "locked" gate.** The operator's word "locked" marks the doc,
-  writes a one-line `mockups/INDEX.md` entry (surface · status · issue · lock
-  doc · URL), and files a separate build ticket. A design session never builds.
+- **An explicit "locked" gate**, given per screen since the amendment below.
+  The operator's word "locked" marks the doc, writes a one-line
+  `mockups/INDEX.md` entry (surface · status · issue · lock doc · URL), and
+  files a separate build ticket. A design session never builds.
 - **Tool instructions instead of bundled tooling.** `reference/tools.md` covers
   the Design type and the plain-artifact fallback, and when to use the Design
   System type or `/design-sync`. Every received comment is echoed back to the
@@ -96,40 +98,22 @@ Claude Code now covers the dropped scripts' jobs:
 
 Before review, the operator chose a component as the review grain instead of a
 screen. The eight rounds in the evidence session reviewed whole screens, and
-three button sizes survived all of them. The default lifecycle for a surface
-built from scratch or rewritten in place is now:
+three button sizes survived all of them.
 
-1. the structure step;
-2. three directions on the Design canvas, concept only, until the operator
-   picks one;
-3. a gated **component inventory** in the lock doc: every component, with its
-   states, the served fields it may show, a desktop equivalent for each touch
-   gesture, and one size per role;
-4. a **library** stage in its own ticket (`library` mode), one component at a
-   time, with a story and a screenshot per state and prechecks per component.
-   The operator reviews components in isolation, in batches of three to five,
-   never as a full screen.
-5. `/design-sync` mirroring the real library;
-6. screens **composed** on the canvas from approved components only;
-7. "locked" given per screen.
+The lifecycle for a surface built from scratch or rewritten in place is now
+eight gated stages, with the three-round cap applied per stage. The stages are
+defined in one place, `skills/drivers/ui-craft/reference/lock.md`. They run
+from the structure step, through a component inventory and a library reviewed
+in small isolated batches, to screens composed from approved components only.
+"Locked" is given per screen: a screen's `Approved screens` line is what the
+ticket checks, and the doc-level status is only a summary. `build` assembles
+locked screens from the library and compares them with the locked canvas.
 
-`build` then assembles the locked screens from the library and verifies them by
-rendered comparison to the locked canvas.
-
-Every stage is a gate, and the three-round cap applies per stage.
-
-The best-supported stack is React + TypeScript + Storybook, which has the
-Storybook MCP, `/design-sync`, and per-story screenshots. Web Components with
-Storybook is the no-framework alternative, with weaker tool support. A repo
-with no component library records its stack choice as an ADR in the build
-ticket before the library stage.
-
-A project that declines a library takes a plain-DOM path. It composes from
-tokens and loses component-grain review and sync, and the lock doc's `Stack`
-line says so.
-
-The library ticket is the only code written before a screen locks. Screens are
-still never built in a design session.
+A repo with no component library records its stack choice as an ADR in the
+`library` ticket, the first code ticket. A project that declines a library
+takes the plain-DOM path. That path composes from tokens and a size table and
+gives up component-grain review and sync. The library ticket is the only code
+written before a screen locks.
 
 ## ADR 48 still stands
 

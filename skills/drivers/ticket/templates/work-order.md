@@ -12,7 +12,7 @@ EXECUTION LOCK v2 <ticket-id> <lock-id>
 Source: <openspec <change-path>@<full-commit-oid> | repository-native <path>@<full-commit-oid> | inline>
 Classification: <code | investigation | manual>
 Repo: <org/repo>
-Surface lifecycle: <none | build <lock doc> | revise <lock doc>>
+Surface lifecycle: <none | build <lock doc> <screens> | revise <lock doc> <screens>>
 Review depth: <focused | targeted | full> (<one-line reason>)
 Profile: <none | hardening>
 Verification: <the command, transcribed byte-exact from the repo's Test: entry>
@@ -56,9 +56,12 @@ Boundaries
   pinned source means posting a newer lock.
 * **`Surface lifecycle:`** is `none` when no rendered surface changes, `build` for a
   greenfield surface, and `revise` for a shipped one. Either way, it names the lock doc
-  the operator marked `locked` in a `/ui-craft lock` session. A fix inside an existing
-  lock names that lock. One ticket never mixes `build` and `revise`, and triage never
-  runs the design session itself.
+  and the screens this ticket builds. **Each named screen must be locked:** its line
+  under the lock doc's `Approved screens` ends in `locked <date>`. The doc-level
+  `Status:` is a summary and stays `draft` until every screen locks, so it is never the
+  check. A fix inside an existing lock names the screens it touches. `revise` also needs
+  the repo's declared safe dev-server entrypoint and fixture source. One ticket never
+  mixes `build` and `revise`, and triage never runs the design session itself.
 * **`Profile: hardening`** adds a `QA script` after `Done when`: numbered
   Given/When/Then steps a human follows in the running app.
 * **Generated facts** are pasted verbatim. To shorten output, change the command

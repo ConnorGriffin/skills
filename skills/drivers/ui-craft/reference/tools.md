@@ -39,8 +39,9 @@ Sources:
   stories and per-story screenshots, but tool support is weaker. Treat
   `/design-sync` coverage as unverified until one component round-trips.
 - **A repo with no component library** records the stack choice as an ADR in
-  the build ticket before the library stage. The ADR states the stack, why,
-  and what the plain-DOM path would have lost.
+  the `library` ticket, the first code ticket, before its first component
+  ([library.md](library.md)). The ADR states the stack, why, and what the
+  plain-DOM path would have lost.
 - **Declining a library** takes the plain-DOM path in [lock.md](lock.md):
   review at screen grain, and no sync.
 
@@ -94,20 +95,29 @@ documented delivery failures:
 ## Rendered verification
 
 Use Claude in Chrome or the desktop app's built-in browser. Start a dev server
-only through the repo's declared safe entrypoint. Render each approved screen
-and state at every frame, read the console, and screenshot. Then measure what
-the static precheck cannot see:
+only through the repo's declared safe entrypoint. **Size the viewport to the
+frame first**, for example with the built-in browser's window resize. A hidden
+or unsized pane reports a viewport 0 wide, and every page then looks like it
+overflows. Render each approved screen and state at every frame, read the
+console, and screenshot. Then measure what the static precheck cannot see:
 
 ```js
-({ overflow: document.documentElement.scrollWidth > innerWidth,
-   buttonHeights: [...new Set([...document.querySelectorAll('button,[role=button]')]
-     .map(b => Math.round(b.getBoundingClientRect().height)))] })
+(() => { const w = document.documentElement.clientWidth;
+  if (!w) return { error: 'viewport has no width: size the window to the frame first' };
+  return { frame: w, overflow: document.documentElement.scrollWidth > w,
+    buttonHeights: [...new Set([...document.querySelectorAll('button,[role=button]')]
+      .map(b => Math.round(b.getBoundingClientRect().height)))] }; })()
 ```
 
-`overflow: true`, or more distinct heights than `Button sizes:`, fails the
-same way a precheck fails. To run `precheck.py` on the running build, save the
-page's `document.documentElement.outerHTML` to a local file. Real-data renders
-stay in the local browser.
+The checks:
+
+- `frame` must equal the frame being checked.
+- `overflow: true` fails the same way a precheck fails.
+- More distinct `buttonHeights` than `Button sizes:` also fails.
+
+To run `precheck.py` on the running build, save the page's
+`document.documentElement.outerHTML` to a local file named `-<width>.html`, or
+add `data-frame`. Real-data renders stay in the local browser.
 
 ## Cold critique and verifier subagents
 

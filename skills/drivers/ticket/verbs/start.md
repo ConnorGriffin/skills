@@ -22,8 +22,8 @@ Build to the locked order in a fresh session. The output is one open pull reques
      `tasks.md` checkbox ticks. Any other edit is an amendment that needs a newer lock.
    * **`openspec` only:** the change is active, not archived, and
      `openspec validate <change> --strict` passes at the pinned tree.
-   * The `Surface lifecycle:` contract it names exists: a lock doc marked `locked`, plus
-     the safe dev-server entrypoint and fixture source for `revise`.
+   * The `Surface lifecycle:` contract still meets the template's rule: every screen it
+     names is locked in the lock doc, and `revise` has its safe start.
    * The classification is not `manual`; a manual order has nothing to execute.
 
 3. **Reuse the worktree** triage cut, confirming `git -C <worktree> branch

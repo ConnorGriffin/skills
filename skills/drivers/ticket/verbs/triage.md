@@ -63,9 +63,9 @@ one artifact: the order, posted on the ticket after the user approves it.
 
 8. **Stamp** `Review depth:` and `Profile:` per the skill page's review-depth section,
    checking the sensitivity floor first, and `Surface lifecycle:` per the template. A
-   `build` or `revise` lifecycle needs a lock doc marked `locked`. A `revise` lifecycle
-   also needs the repo's declared safe dev-server entrypoint and fixture source. When
-   any of these is missing, name it and post no lock.
+   `build` or `revise` lifecycle must meet the template's `Surface lifecycle:` rule:
+   every screen it names is locked in the lock doc, and `revise` has its safe start.
+   When any of these is missing, name it and post no lock.
 
 9. **Draft the order** from [the template](../templates/work-order.md) and run its
    before-the-draft checks.

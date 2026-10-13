@@ -9,6 +9,8 @@ real overflow, contrast, or text painted into a canvas; the rendered browser pas
 owns those. Exit 0 when every check passes, 1 when any fails, 2 on bad input.
 
 Render conventions it relies on:
+  data-frame="<width>"  the frame this file renders at, one of the lock's Frames
+                        (or end the file name with -<width>, e.g. home-1440.html)
   data-screen="<name>"  root of each screen (default: one screen per file)
   data-label            text naming served data; must be in the served vocabulary
   data-value            a served value (number, name, time); skipped by text checks
@@ -34,7 +36,8 @@ ACTION = {"button", "a", "input"}
 SIZE_WORD = re.compile(r"(?:^|[-_])(?:xs|sm|small|md|medium|lg|large|xl|compact|mini|tiny|big)$")
 SIZE_UTILITY = re.compile(r"^(?:h|min-h|px|py|p|text)-(?:\d|xs|sm|base|lg|xl)")
 SIZE_PROP = re.compile(r"\b(height|min-height|padding|font-size)\s*:\s*([^;]+)")
-WIDE = re.compile(r"\b(?:width|min-width|flex-basis)\s*:\s*(\d+(?:\.\d+)?)px")
+WIDE = re.compile(r"(?<![-\w])(?:width|min-width|flex-basis)\s*:\s*(\d+(?:\.\d+)?)px")
+FRAME_NAME = re.compile(r"[-_@](\d{3,4})(?:px)?$")
 RULE = re.compile(r"([^{}]+)\{([^{}]*)\}")
 WORD = re.compile(r"[A-Za-z][A-Za-z'’-]*")
 
@@ -50,20 +53,52 @@ def read_lock(path: Path) -> dict:
             continue
         bullet = re.match(r"^\s*[-*]\s+(.+)$", line)
         if bullet and current:
-            item = re.split(r"\s+[—–]\s+|\s+-\s+", bullet.group(1), maxsplit=1)[0]
+            item = re.split(r"\s+[—–]\s+", bullet.group(1), maxsplit=1)[0]
             sections[current].append(item.strip().strip("`\"'").lower())
             continue
         key = re.match(r"^([A-Za-z ]+):\s*(.+)$", line)
         if key:
             keys[key.group(1).strip().lower()] = key.group(2).strip()
-    frames = [int(w) for w, _ in re.findall(r"(\d+)\s*[x×]\s*(\d+)", keys.get("frames", ""))]
+    frames = {int(w) for w, _ in re.findall(r"(\d+)\s*[x×]\s*(\d+)", keys.get("frames", ""))}
+    if not frames:
+        raise ValueError("lock has no Frames: line such as 'Frames: 390x844, 1440x900'")
+    sizes = keys.get("button sizes", "1")
+    if not sizes.isdigit():
+        raise ValueError(f"lock's Button sizes: must be a whole number, got {sizes!r}")
     return {
         "glossary": set(sections.get("glossary", [])),
         "served": set(sections.get("served vocabulary", [])),
         "allowed": set(sections.get("allowed strings", [])),
-        "narrowest": min(frames) if frames else None,
-        "button_sizes": int(keys.get("button sizes", "1")),
+        "frames": frames,
+        "button_sizes": int(sizes),
     }
+
+
+def media_applies(prelude: str, frame: int) -> bool:
+    """Evaluate an at-rule's min-width/max-width px conditions at this frame width."""
+    lows = [float(n) for n in re.findall(r"min-width\s*:\s*(\d+(?:\.\d+)?)px", prelude)]
+    highs = [float(n) for n in re.findall(r"max-width\s*:\s*(\d+(?:\.\d+)?)px", prelude)]
+    return all(frame >= n for n in lows) and all(frame <= n for n in highs)
+
+
+def applied_bodies(css: str, frame: int) -> list:
+    """Declaration blocks of rules whose enclosing at-rules apply at this frame."""
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+    stack, buffer, bodies = [], "", []
+    for char in css:
+        if char == "{":
+            prelude = buffer.strip()
+            stack.append(media_applies(prelude, frame) if prelude.startswith("@") else None)
+            buffer = ""
+        elif char == "}":
+            if stack and stack[-1] is None and False not in stack[:-1]:
+                bodies.append(buffer)
+            if stack:
+                stack.pop()
+            buffer = ""
+        else:
+            buffer += char
+    return bodies
 
 
 class Render(HTMLParser):
@@ -75,8 +110,9 @@ class Render(HTMLParser):
         self.texts = []  # (text, screen, kind) kind: plain | label | value
         self.primaries = {}
         self.buttons = []  # (classes, inline style)
-        self.styles = []
+        self.inline_widths = []
         self.css = ""
+        self.frame = None
 
     def handle_starttag(self, tag, attrs):
         attrs = {k: v or "" for k, v in attrs}
@@ -96,10 +132,12 @@ class Render(HTMLParser):
             tag in ACTION and any("btn" in c or "button" in c for c in classes)
         ):
             self.buttons.append((classes, attrs.get("style", "")))
+        if self.frame is None and attrs.get("data-frame", "").isdigit():
+            self.frame = int(attrs["data-frame"])
         if attrs.get("placeholder"):
             self.texts.append((attrs["placeholder"], screen, "plain"))
         for match in WIDE.finditer(attrs.get("style", "")):
-            self.styles.append(float(match.group(1)))
+            self.inline_widths.append(float(match.group(1)))
         if tag in VOID:
             return
         kind = "value" if "data-value" in attrs else "label" if "data-label" in attrs else None
@@ -138,8 +176,6 @@ class Render(HTMLParser):
 
     def styles_css(self, css):
         self.css += css
-        for match in WIDE.finditer(css):
-            self.styles.append(float(match.group(1)))
 
 
 def button_signatures(render: Render) -> set:
@@ -175,7 +211,7 @@ def check(files: list, lock: dict) -> dict:
     signatures = set()
     for path in files:
         render = Render(path.stem)
-        render.feed(path.read_text(encoding="utf-8"))
+        render.feed(path.read_text(encoding="utf-8"))  # UnicodeDecodeError: bad input
         render.close()
         where = path.name
         for text, screen, kind in render.texts:
@@ -193,11 +229,20 @@ def check(files: list, lock: dict) -> dict:
         for screen, count in sorted(render.primaries.items()):
             if count > 1:
                 results["primary actions"].append(f"{where} [{screen}]: {count} primary actions")
-        if lock["narrowest"]:
-            for width in render.styles:
-                if width > lock["narrowest"]:
+        named = FRAME_NAME.search(path.stem)
+        frame = render.frame or (int(named.group(1)) if named else None)
+        if frame is None:
+            results["frame fit"].append(f"{where}: no frame declared (data-frame or -<width> name)")
+        elif frame not in lock["frames"]:
+            results["frame fit"].append(f"{where}: frame {frame} is not one of the lock's Frames")
+        else:
+            widths = list(render.inline_widths)
+            for body in applied_bodies(render.css, frame):
+                widths += [float(m.group(1)) for m in WIDE.finditer(body)]
+            for width in widths:
+                if width > frame:
                     results["frame fit"].append(
-                        f"{where}: fixed width {width:g}px exceeds the {lock['narrowest']}px frame"
+                        f"{where}: fixed width {width:g}px exceeds its {frame}px frame"
                     )
         signatures |= button_signatures(render)
     if len(signatures) > lock["button_sizes"]:
@@ -217,7 +262,11 @@ def main(argv: list) -> int:
     if not files or not all(f.is_file() for f in files) or not lock_path.is_file():
         print("precheck: no render or no lock doc at the given paths", file=sys.stderr)
         return 2
-    results = check(files, read_lock(lock_path))
+    try:
+        results = check(files, read_lock(lock_path))
+    except (ValueError, UnicodeDecodeError) as error:
+        print(f"precheck: bad input: {error}", file=sys.stderr)
+        return 2
     failed = False
     for name, findings in results.items():
         failed |= bool(findings)
