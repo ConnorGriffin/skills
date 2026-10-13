@@ -22,9 +22,8 @@ Build to the locked order in a fresh session. The output is one open pull reques
      `tasks.md` checkbox ticks. Any other edit is an amendment that needs a newer lock.
    * **`openspec` only:** the change is active, not archived, and
      `openspec validate <change> --strict` passes at the pinned tree.
-   * The `Surface lifecycle:` contract it names exists: the lock manifest for `build`;
-     the behavior ledger, replay, safe dev-server entrypoint, and fixture source for
-     `revise`.
+   * The `Surface lifecycle:` contract it names exists: a lock doc marked `locked`, plus
+     the safe dev-server entrypoint and fixture source for `revise`.
    * The classification is not `manual`; a manual order has nothing to execute.
 
 3. **Reuse the worktree** triage cut, confirming `git -C <worktree> branch
@@ -35,8 +34,8 @@ Build to the locked order in a fresh session. The output is one open pull reques
    branch. Execute the pinned tasks or the `Do` steps and nothing outside `Expected diff`.
    * New behavior with testable acceptance goes test-first through `/tdd`, with a test
      that fails for the right reason before the fix.
-   * `Surface lifecycle: build` runs `/ui-craft build` against the manifest; `revise`
-     runs `/ui-craft revise` against the frozen ledger and replay.
+   * `Surface lifecycle: build` runs `/ui-craft build` against the lock doc; `revise`
+     runs `/ui-craft revise` against the lock doc and its must-survive list.
    * A new module or interface loads `/codebase-design` first; CI changes read
      `/ci-design`.
    * Probe a CLI or API with `--help` or a real call before coding against it, and
@@ -71,8 +70,9 @@ Build to the locked order in a fresh session. The output is one open pull reques
    what was done. Write the body for the human who merges, in the app's own domain
    terms: what changed, why, and what to check, never a tour of file names. Add the
    verification output in a fence and a link to the ticket. UI work attaches its
-   lifecycle evidence: mock-versus-build screenshots and a fidelity ledger for `build`,
-   before/after screenshots and the replay output for `revise`. Move the ticket to
+   lifecycle evidence: a render per approved screen, frame, and state plus the precheck
+   output for `build`; before/after render pairs, the must-survive checks, and the
+   precheck output for `revise`. Move the ticket to
    pending review and comment the pull request link on it.
 
 9. **Stop.** Report the pull request URL, the verification evidence, the review findings

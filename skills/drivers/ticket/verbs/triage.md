@@ -63,9 +63,9 @@ one artifact: the order, posted on the ticket after the user approves it.
 
 8. **Stamp** `Review depth:` and `Profile:` per the skill page's review-depth section,
    checking the sensitivity floor first, and `Surface lifecycle:` per the template. A
-   `revise` lifecycle runs `/ui-craft`'s setup during triage and freezes the behavior
-   ledger and replay before the lock; when its safe-start or fixture source is missing,
-   name it and post no lock.
+   `build` or `revise` lifecycle needs a lock doc marked `locked`. A `revise` lifecycle
+   also needs the repo's declared safe dev-server entrypoint and fixture source. When
+   any of these is missing, name it and post no lock.
 
 9. **Draft the order** from [the template](../templates/work-order.md) and run its
    before-the-draft checks.

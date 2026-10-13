@@ -20,7 +20,7 @@ The two branches produce very different artifacts — getting this wrong wastes 
 
 The UI branch overlaps with the `ui-craft` skill — pick deliberately:
 
-- **`ui-craft`** is a *pre-implementation* exploration. It produces standalone static HTML mockups, outside the app, screenshotted and iterated until a visual spec is **locked**. Reach for it when nothing is built yet and the deliverable is an agreed-on design.
+- **`ui-craft`** is a *pre-implementation* design session. It settles structure, explores directions on a canvas outside the app, and ends with a one-page lock doc the operator marks **locked**. Reach for it when the deliverable is an agreed-on design, for a new surface or a redesign of a shipped one.
 - **`prototype`'s UI branch** produces throwaway *runnable* variants **inside the actual app**, wired to real routing, components, and data. Reach for it when the question can only be answered by real app behavior — interaction, live state, existing components under real content.
 
 If you only need to see what it should look like, use `ui-craft`. If you need to feel how it behaves, prototype it in the app.

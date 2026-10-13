@@ -12,7 +12,7 @@ EXECUTION LOCK v2 <ticket-id> <lock-id>
 Source: <openspec <change-path>@<full-commit-oid> | repository-native <path>@<full-commit-oid> | inline>
 Classification: <code | investigation | manual>
 Repo: <org/repo>
-Surface lifecycle: <none | build <lock manifest> | revise <behavior ledger and replay>>
+Surface lifecycle: <none | build <lock doc> | revise <lock doc>>
 Review depth: <focused | targeted | full> (<one-line reason>)
 Profile: <none | hardening>
 Verification: <the command, transcribed byte-exact from the repo's Test: entry>
@@ -55,9 +55,10 @@ Boundaries
   `Context`/`Do`/`Done when`. A legacy `WORK ORDER` fence reads as `inline`. Amending a
   pinned source means posting a newer lock.
 * **`Surface lifecycle:`** is `none` when no rendered surface changes, `build` for a
-  greenfield surface after `/ui-craft lock`, and `revise` for a shipped surface whose
-  behavior ledger and replay `/ui-craft` froze during triage. One ticket never mixes
-  `build` and `revise`.
+  greenfield surface, and `revise` for a shipped one. Either way, it names the lock doc
+  the operator marked `locked` in a `/ui-craft lock` session. A fix inside an existing
+  lock names that lock. One ticket never mixes `build` and `revise`, and triage never
+  runs the design session itself.
 * **`Profile: hardening`** adds a `QA script` after `Done when`: numbered
   Given/When/Then steps a human follows in the running app.
 * **Generated facts** are pasted verbatim. To shorten output, change the command
