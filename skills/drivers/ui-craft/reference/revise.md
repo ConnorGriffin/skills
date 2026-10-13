@@ -43,6 +43,8 @@ the surface. Those renders are the "before" half of the evidence.
 Work in short rounds:
 
 1. Change the branch, using the app's own tokens, components, and chart library.
+   A rewrite in place assembles its locked screens from the approved library
+   and compares them with the locked canvas, as `build` does.
 2. Render the affected states and frames, and run the
    [tools.md](tools.md) browser pass.
 3. Run `precheck.py` on the saved rendered HTML.

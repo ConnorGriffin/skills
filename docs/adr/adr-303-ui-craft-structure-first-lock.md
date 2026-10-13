@@ -92,6 +92,45 @@ Claude Code now covers the dropped scripts' jobs:
   - `web-implementation.md`;
   - `revise` for shipped surfaces.
 
+## Amendment, 2026-10-12: component review grain
+
+Before review, the operator chose a component as the review grain instead of a
+screen. The eight rounds in the evidence session reviewed whole screens, and
+three button sizes survived all of them. The default lifecycle for a surface
+built from scratch or rewritten in place is now:
+
+1. the structure step;
+2. three directions on the Design canvas, concept only, until the operator
+   picks one;
+3. a gated **component inventory** in the lock doc: every component, with its
+   states, the served fields it may show, a desktop equivalent for each touch
+   gesture, and one size per role;
+4. a **library** stage in its own ticket (`library` mode), one component at a
+   time, with a story and a screenshot per state and prechecks per component.
+   The operator reviews components in isolation, in batches of three to five,
+   never as a full screen.
+5. `/design-sync` mirroring the real library;
+6. screens **composed** on the canvas from approved components only;
+7. "locked" given per screen.
+
+`build` then assembles the locked screens from the library and verifies them by
+rendered comparison to the locked canvas.
+
+Every stage is a gate, and the three-round cap applies per stage.
+
+The best-supported stack is React + TypeScript + Storybook, which has the
+Storybook MCP, `/design-sync`, and per-story screenshots. Web Components with
+Storybook is the no-framework alternative, with weaker tool support. A repo
+with no component library records its stack choice as an ADR in the build
+ticket before the library stage.
+
+A project that declines a library takes a plain-DOM path. It composes from
+tokens and loses component-grain review and sync, and the lock doc's `Stack`
+line says so.
+
+The library ticket is the only code written before a screen locks. Screens are
+still never built in a design session.
+
 ## ADR 48 still stands
 
 A shipped surface is never rebuilt as a from-scratch mock and ported back. The

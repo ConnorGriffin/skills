@@ -1,12 +1,13 @@
 # Mode: build
 
-Implement a **locked** greenfield surface in the app, in the build ticket the
-lock gate filed. The lock doc is the whole contract: the build is checked
-against it and nothing else. A shipped surface uses `revise` instead.
+Assemble a greenfield surface's **locked screens** in the app from the approved
+component library, in the build ticket the lock gate filed. The lock doc is the
+whole contract: the build is checked against it and nothing else. A shipped
+surface uses `revise` instead.
 
-Input: the lock doc with `Status: locked`, plus its canvas URL or reference
-bundle. If the status is not locked, stop. Building from a draft is how
-decisions get made in private.
+Input: the lock doc, its `Approved screens` with their locked canvas URLs, and
+the merged library. Build only screens marked locked. Building from a draft is
+how decisions get made in private.
 
 ## Before writing code
 
@@ -22,10 +23,12 @@ decisions get made in private.
 
 ## While building
 
-- Build with the app's own components and the lock's `Tokens`. Treat the canvas
-  as a picture of the target, not code to transplant. The Design type's export
-  or handoff is a starting point at most, and it must end on the app's
-  components.
+- Assemble each screen from the library's approved components and the lock's
+  `Tokens`. A screen that seems to need a new component or a one-off variant
+  stops the build: it is an inventory amendment and a `library` batch, never a
+  build choice. On the plain-DOM path, build with the app's own markup and the
+  lock's `Components` sizes.
+- Treat the canvas as a picture of the target, not code to transplant.
 - Every label reads a backend field listed in `Served vocabulary`. A label the
   backend does not serve is a lock amendment, not a build choice.
 - The ported code is fed a payload from across a process boundary, not a
@@ -43,14 +46,17 @@ Use the rendered verification in [tools.md](tools.md).
    Use manufactured data, in both themes where the app has two.
 2. Save each rendered page's HTML and run `precheck.py` on it. Run the
    overflow and button-height measurement too.
-3. Compare each render with its approved screen. Check that each interaction
-   map row works with touch and with pointer or keyboard.
+3. Compare each render, side by side, with the screen's locked canvas
+   artboard at the same frame and state. Any difference is a finding until
+   the operator rules on it. Check that each interaction map row works with
+   touch and with pointer or keyboard.
 4. Hand a fresh verifier subagent ([tools.md](tools.md)) only the lock doc and
    the renders. The builder never grades its own build.
 
 ## PR evidence
 
-- One render per approved screen, frame, and state, from manufactured data;
+- Render pairs, locked canvas artboard beside the build, for each approved
+  screen, frame, and state, from manufactured data;
 - the full `precheck.py` output;
 - the verifier's findings and how each was closed;
 - the base SHA and data provenance;

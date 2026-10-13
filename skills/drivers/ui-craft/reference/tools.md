@@ -1,6 +1,6 @@
 # Tools
 
-How `lock`, `build`, `revise`, and `review` use the harness's own design and
+How `lock`, `library`, `build`, `revise`, and `review` use the harness's own design and
 browser tooling. The skill does not ship its own copies of these jobs. Each
 claim below comes from the cited docs or the tool's own description, and
 anything not verified there is marked unverified.
@@ -13,21 +13,36 @@ Sources:
 
 ## Design system for the canvas
 
-- **A repo with a compilable component library** (React components, a
-  Storybook): run `/design-sync` from the repo root before the first canvas. It
-  mirrors that library into a design-system project, so canvases mount the real
-  components. Import quality follows the source's quality, so fix messy tokens
-  in the lock doc first. Exact sync mechanics are unverified.
-- **A plain-DOM or tokens-only frontend:** `/design-sync` has nothing to
-  mirror, so skip it. Write the palette, type scale, radius, and spacing into
-  the lock doc's `Tokens`, copied from the app's stylesheet. If canvases should
-  pick them up, also publish a tokens-only **Design System** artifact (the
-  Artifact tool's Design System type). That type holds a README, tokens across
-  themes, the type scale, and components with live previews, and the agents
-  building canvases read it.
+- **Once the project has a component library** (after the library stage, or one
+  the repo already has): run `/design-sync` from the repo root. It mirrors a
+  compilable component library or Storybook into a design-system project, so
+  canvases mount the real components. Import quality follows the source's
+  quality. Exact sync mechanics are unverified.
+- **Before the library exists, and on the plain-DOM path:** `/design-sync` has
+  nothing to mirror, so skip it. Write the palette, type scale, radius, and
+  spacing into the lock doc's `Tokens`, copied from the app's stylesheet. If
+  canvases should pick them up, also publish a tokens-only **Design System**
+  artifact (the Artifact tool's Design System type). That type holds a README,
+  tokens across themes, the type scale, and components with live previews, and
+  the agents building canvases read it.
 - When the account lists a default design system for the Design type, the
   canvas uses it. For a product surface, make sure that default is the
   project's own system.
+
+## Library stack
+
+- **Best supported: React + TypeScript + Storybook.** The tooling works best
+  here: the Storybook MCP server lets an agent read stories, `/design-sync`
+  mirrors the library, and per-story screenshots come straight from Storybook's
+  story iframes. The Storybook MCP's setup details are unverified.
+- **No-framework alternative: Web Components with Storybook.** It keeps
+  stories and per-story screenshots, but tool support is weaker. Treat
+  `/design-sync` coverage as unverified until one component round-trips.
+- **A repo with no component library** records the stack choice as an ADR in
+  the build ticket before the library stage. The ADR states the stack, why,
+  and what the plain-DOM path would have lost.
+- **Declining a library** takes the plain-DOM path in [lock.md](lock.md):
+  review at screen grain, and no sync.
 
 ## Directions on a Design canvas
 

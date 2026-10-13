@@ -1,14 +1,82 @@
 # Mode: lock
 
-The design session for one surface, shipped or greenfield. Its order is fixed:
-structure, then lock prep, then directions, prechecks, a cold critique, and at
-most three refinement rounds. It ends at the operator's "locked". **Building never
-starts in this session.**
+The design lifecycle for a surface built from scratch or rewritten in place,
+shipped or greenfield. **The review grain is a component, not a screen.** The
+operator approves components in isolation, then screens composed only from
+approved components.
+
+Every stage below is a gate the operator approves before the next one starts:
+
+1. **Structure:** names, ownership, states, interactions, glossary. No pixels.
+2. **Lock prep:** tokens and the library stack.
+3. **Directions:** three concepts on the Design canvas. The operator picks one.
+4. **Component inventory:** every component the chosen direction needs.
+5. **Library:** each component built in the project's component library, in
+   its own ticket (`library`, [library.md](library.md)).
+6. **Sync:** `/design-sync` mirrors the real library onto the canvas.
+7. **Compose:** each screen on the canvas, from approved components only.
+8. **"Locked":** given per screen.
+
+After that, `build` (greenfield) or `revise` (shipped) assembles the locked
+screens from the library. **Screens are never built in a design session.** The
+library ticket is the only code before a screen locks.
 
 The order matters because a redesign that skips it fails in a predictable way.
-Visuals come first. Then labels get invented that the backend does not serve,
-tabs get renamed every round, and where a screen's errors live gets settled
-after the pixels. The only record ends up in a scratch folder.
+Visuals come first. Labels get invented that the backend does not serve, tabs
+get renamed every round, and the review drifts across whole screens, so three
+button sizes survive eight rounds. The only record ends up in a scratch folder.
+
+## How every gate runs
+
+- **Before the operator sees anything**, the stage's renders pass `precheck.py`
+  and the browser pass, and a cold critique has run (below). A failing check
+  means the operator does not see that render.
+- **Echo every comment and instruction received** back to the operator as a
+  numbered list before acting, and ask them to name anything missing.
+- **At most three refinement rounds per stage.** After the third, stop. Report
+  what is unresolved, and offer three options: approve as it stands, amend an
+  earlier stage, or end here. Never run a fourth round on your own.
+- Nothing already ruled reopens. A change to a name, screen, state, or gesture
+  amends the structure sections first.
+- Each approval is a dated line under the lock doc's `Amendments`, carrying the
+  operator's words.
+
+### Prechecks
+
+```sh
+python3 <ui-craft-skill-directory>/scripts/precheck.py <render.html | dir> <lock doc>
+```
+
+The script checks six things:
+
+- microcopy: sentences, rhetorical questions, and explanatory subtitles not in
+  `Allowed strings`;
+- provenance: every `data-label` is in `Served vocabulary`;
+- one primary action per screen (each component story counts as a screen);
+- fixed widths wider than the narrowest frame;
+- distinct button sizes against `Button sizes:`;
+- glossary: every short visible term is in the glossary or another lock list.
+
+Renders mark the conventions the script reads:
+
+- `data-screen` on each screen or story root;
+- `data-label` on served-data labels;
+- `data-value` on served values;
+- `data-primary` on the one primary action.
+
+The script reads static markup only. The browser pass in [tools.md](tools.md)
+measures real overflow and rendered button heights. Paste the full output into
+the round.
+
+### Cold critique
+
+Dispatch a fresh, read-only subagent with a named model, as
+[tools.md](tools.md) describes. Give it only the lock doc and the stage's
+renders: no transcript, no rationale. It reports violations of the lock, the
+[design-rules.md](design-rules.md) bans and slop test, and, for directions and
+composed screens, a persona walk of the primary task, using repo personas
+first. Fix each confirmed finding and rerun the prechecks. Carry any rejected
+finding to the operator with the reason it was rejected.
 
 ## 0. Embodiment
 
@@ -16,13 +84,13 @@ Check the app's routes, its render modules, and `mockups/INDEX.md`.
 
 - **Greenfield:** nothing ships yet, and the build ticket will run `build`.
 - **Shipped:** the app already renders this surface or the shell it lives in.
-  The build ticket will run `revise` against the running app. The canvas
-  directions are throwaway wireframes. They carry no fidelity claim, and their
-  code is never ported (ADR 48). Capture "before" renders of the current surface
-  now, through the safe entrypoint the repo declares. Without one, ask the
-  operator for captures. Never start an undeclared entrypoint.
+  The build ticket will run `revise` against the running app, rewriting in
+  place from library components. Canvas directions are throwaway wireframes.
+  They carry no fidelity claim, and their code is never ported (ADR 48).
+  Capture "before" renders now through the repo's declared safe entrypoint,
+  or ask the operator for captures. Never start an undeclared entrypoint.
 
-## 1. Structure step (no pixels)
+## 1. Structure (no pixels)
 
 Write the lock doc's structure sections from the code and the operator's brief:
 `Navigation`, `Screens`, `States`, `Interaction map`, `Glossary`,
@@ -49,97 +117,90 @@ approves the structure before any pixel exists.
 
 ## 2. Lock prep
 
-Fill in `Tokens`, `Components`, `Bans`, `Frames`, and `Allowed strings`.
+Fill in `Tokens`, `Stack`, `Frames`, `Button sizes`, `Bans`, and
+`Allowed strings`.
 
 - **Tokens** come from the running app's stylesheet: palette in both themes,
   type scale, spacing, and radius. Copy them from that file and cite its path,
-  never transcribe them from memory. A greenfield app with no stylesheet commits
-  to a small set here, and the build creates it.
-- **Components:** one size per role. Give the button height, padding, and type
-  once per role, and set `Button sizes:` to the number of distinct sizes.
-- Set up the design system for the canvas as [tools.md](tools.md) describes.
+  never transcribe them from memory. A greenfield app with no stylesheet
+  commits to a small set here.
+- **Stack:** the project's component library, or `plain-DOM (declined)`. A repo
+  with no library picks a stack per [tools.md](tools.md). The build ticket
+  records that choice as an ADR before the library stage.
+- Set up the canvas's design system as [tools.md](tools.md) describes.
 
-## 3. Directions
+## 3. Directions (concept only)
 
 Make **three genuinely different directions** on a Design canvas
 ([tools.md](tools.md)). Vary the concept and layout: information hierarchy,
 layout metaphor, interaction model. Never vary only color. Draw each direction
 at every frame in `Frames:`, phone and desktop at least. Draw the primary screen
-in its typical state and in one hard state (empty or error).
+in its typical state and in one hard state (empty or error). Use manufactured
+data only.
 
-Mark the render conventions `precheck.py` reads:
+The directions settle concept, not craft. Present each with a one-line bet,
+its cost, and the critique's open findings, and recommend one. The gate passes
+when **the operator picks one**. Refinement rounds here may sharpen the
+concept, but component detail waits for the inventory.
 
-- `data-screen` on each screen root;
-- `data-label` on served-data labels;
-- `data-value` on served values;
-- `data-primary` on the one primary action.
+## 4. Component inventory
 
-Use manufactured data only.
+Fill in `Components` for the chosen direction. Every component appears once,
+with:
 
-## 4. Prechecks (before the operator sees anything)
+- its states (default, hover, focus, active, disabled, loading, error, and any
+  empty or transient state it shows);
+- the served data fields it may show, each one in `Served vocabulary`;
+- its desktop equivalent for each touch gesture;
+- one size per role, with height, padding, and type given once.
 
-```sh
-python3 <ui-craft-skill-directory>/scripts/precheck.py <render.html | dir> <lock doc>
-```
+The inventory is a gated deliverable. The operator approves the list itself
+before any component is built.
 
-The script checks six things:
+## 5. Library
 
-- microcopy: sentences, rhetorical questions, and explanatory subtitles not in
-  `Allowed strings`;
-- provenance: every `data-label` is in `Served vocabulary`;
-- one primary action per screen;
-- fixed widths wider than the narrowest frame;
-- distinct button sizes against `Button sizes:`;
-- glossary: every short visible term is in the glossary or another lock list.
+The `library` ticket builds the approved inventory one component at a time,
+following [library.md](library.md). Each component gets a story per state and a
+screenshot per story, with prechecks run per component. The operator reviews
+components **in isolation, in batches of three to five, never as a full
+screen**. Each batch is a gate.
 
-It reads static markup, so it cannot see computed layout. Follow it with the
-browser pass in [tools.md](tools.md) for real overflow and rendered button
-heights.
+## 6. Sync
 
-**A failing check means the operator does not see that render.** Fix the
-render and rerun until every check passes. Paste the full output into the
-round.
+Once the batches are approved, run `/design-sync` from the repo root. The
+canvas then mounts the real library, not look-alikes. Confirm that one
+synced component's values match the lock's `Tokens`.
 
-## 5. Cold critique
+## 7. Compose
 
-Dispatch a fresh, read-only subagent with a named model, as
-[tools.md](tools.md) describes. Give it only the lock doc and the renders: no
-transcript, no rationale. It reports violations of the lock, the
-[design-rules.md](design-rules.md) bans and slop test, and a persona walk of the
-primary task, using repo personas first.
+Compose each screen on the Design canvas **from approved components only**, at
+every frame and in every state the lock lists. A screen that needs a component
+not in the inventory goes back to stage 4: amend the inventory, then build the
+component as its own library batch. Never draw a one-off.
 
-Fix each confirmed finding, rerun the prechecks, and carry any rejected finding
-to the operator with the reason it was rejected.
+## 8. "Locked", per screen
 
-## 6. Operator review, at most three refinement rounds
+The operator saying **"locked"** about a screen is the only approval. Then, in
+one change:
 
-Present the three directions. Give each a one-line bet, its cost, and the
-critique's open findings, and recommend one.
-
-After the operator picks a direction, refinement rounds begin:
-
-1. Echo every comment and instruction received back to the operator as a
-   numbered list before acting. Ask them to name anything missing.
-2. Apply the changes. A change to a name, screen, state, or gesture amends the
-   structure sections first.
-3. Rerun the prechecks and the browser pass, then present the result.
-
-Nothing already ruled reopens.
-
-**After the third round, stop.** Report what is unresolved, then offer three
-options: lock as it stands, amend the structure and start a new session, or end
-here. Never run a fourth round on your own.
-
-## 7. The "locked" gate
-
-The operator saying **"locked"** is the only approval. Then, in one change:
-
-1. Set `Status: locked <date> by <operator>` and fill `Approved screens` with
-   each screen, frame, and canvas or artifact URL.
+1. Add the screen, its frames, and its canvas URL to `Approved screens`. When
+   every screen is locked, set `Status: locked <date> by <operator>`.
 2. Update the surface's one line in `mockups/INDEX.md`.
-3. File or update a **separate build ticket**. It names the lock doc path, the
-   canvas URL or a reference bundle, and `build` or `revise`.
-4. Commit the lock doc and INDEX line. The design session ends here.
+3. File or update the **separate build ticket**. It names the lock doc path,
+   the locked screens and their canvas URLs, and `build` or `revise`.
+4. Commit the lock doc and the INDEX line.
+
+## Plain-DOM path (no library)
+
+A project that declines a component library skips stages 4 to 6. After the
+direction is picked, it composes screens straight from `Tokens` and a
+`Components` list of sizes per role, then locks per screen. It loses two
+things, and the lock doc says so in `Stack`:
+
+- **component review grain:** the operator reviews whole screens, which is
+  where inconsistencies like three button sizes hide;
+- **sync:** the canvas draws look-alikes, so the build is compared against
+  drawings rather than the parts it will actually use.
 
 ## Lock doc format
 
@@ -152,6 +213,7 @@ without regard to case.
 # <Surface> — design lock
 Status: draft | locked <YYYY-MM-DD> by <operator>
 Embodiment: greenfield (build) | shipped (revise)
+Stack: <library and its location> | plain-DOM (declined; screen-grain review, no sync)
 Frames: 390x844, 1440x900
 Button sizes: 1
 Canvas: <canvas or artifact URL>
@@ -174,7 +236,7 @@ Canvas: <canvas or artifact URL>
 - Source: <app stylesheet path>
 - Color, type scale, spacing, radius: <values>
 ## Components
-- Button, primary — <height, padding, type>; one per screen
+- <Component> — states: …; fields: …; gestures: <touch> → <desktop>; size: <role: height, padding, type>; story: <path>; approved: <date>
 ## Bans
 - No microcopy: no explanatory sentences, rhetorical questions, or
   subtitles that explain the screen. Only Allowed strings.
@@ -187,7 +249,7 @@ Canvas: <canvas or artifact URL>
 ## Must survive (shipped only)
 - <behavior> — seen in: <screen and state>
 ## Approved screens
-- <Screen> at <frame> — <URL>
+- <Screen> at <frames> — <canvas URL> — locked <date>
 ## Amendments
-- <YYYY-MM-DD> <operator>: <what changed>, "<their words>"
+- <YYYY-MM-DD> <operator>: <what changed or was approved>, "<their words>"
 ```

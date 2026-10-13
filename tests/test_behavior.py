@@ -38,7 +38,7 @@ class UiCraftContractTests(unittest.TestCase):
 
     def test_structure_step_is_approved_before_any_visual_work(self):
         lock = self.read("reference", "lock.md")
-        self.assertLess(lock.index("## 1. Structure step (no pixels)"), lock.index("## 3. Directions"))
+        self.assertLess(lock.index("## 1. Structure (no pixels)"), lock.index("## 3. Directions (concept only)"))
         for requirement in (
             "every tab and navigation name",
             "what each screen owns, and only that",
@@ -72,30 +72,71 @@ class UiCraftContractTests(unittest.TestCase):
         self.assertIn("Tokens** come from the running app's stylesheet", lock)
         self.assertIn("one size per role", lock)
 
-    def test_prechecks_and_cold_critique_run_before_the_operator_sees_a_render(self):
+    def test_stages_run_in_order_at_component_grain(self):
         lock = self.read("reference", "lock.md")
-        prechecks = lock.index("## 4. Prechecks (before the operator sees anything)")
-        critique = lock.index("## 5. Cold critique")
-        operator = lock.index("## 6. Operator review, at most three refinement rounds")
-        self.assertLess(prechecks, critique)
-        self.assertLess(critique, operator)
-        self.assertIn("**A failing check means the operator does not see that render.**", lock)
-        self.assertIn("fresh, read-only subagent with a named model", lock)
-        self.assertIn("only the lock doc and the renders", lock)
-        self.assertIn("**After the third round, stop.**", lock)
-        self.assertIn("Never run a fourth round on your own", lock)
+        stages = [
+            "## 1. Structure (no pixels)",
+            "## 2. Lock prep",
+            "## 3. Directions (concept only)",
+            "## 4. Component inventory",
+            "## 5. Library",
+            "## 6. Sync",
+            "## 7. Compose",
+            '## 8. "Locked", per screen',
+        ]
+        positions = [lock.index(stage) for stage in stages]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("**The review grain is a component, not a screen.**", lock)
+        self.assertIn("The gate passes when **the operator picks one**", lock)
+        for field in ("its states", "the served data fields it may show",
+                      "its desktop equivalent for each touch gesture", "one size per role"):
+            self.assertIn(field, lock)
+        self.assertIn("The inventory is a gated deliverable", lock)
+        self.assertIn("**in isolation, in batches of three to five, never as a full screen**", lock)
+        self.assertIn("**from approved components only**", lock)
+        self.assertIn("Never draw a one-off", lock)
 
-    def test_locked_gate_hands_off_to_a_separate_build_ticket(self):
+        library = self.read("reference", "library.md")
+        self.assertIn("**one story per state**", library)
+        self.assertIn("**one screenshot per story**", library)
+        self.assertIn("Run `precheck.py` on each story's saved HTML", library)
+        self.assertIn("**in isolation, in batches of three to five, never composed into a screen**", library)
+        self.assertIn("record the stack choice as an ADR in this ticket first", library)
+
+    def test_every_gate_prechecks_critiques_and_caps_rounds(self):
+        lock = self.read("reference", "lock.md")
+        gates = lock[lock.index("## How every gate runs"):lock.index("## 0. Embodiment")]
+        self.assertIn("**Before the operator sees anything**, the stage's renders pass `precheck.py`", gates)
+        self.assertIn("A failing check means the operator does not see that render", gates)
+        self.assertIn("a cold critique has run", gates)
+        self.assertIn("fresh, read-only subagent with a named model", gates)
+        self.assertIn("only the lock doc and the stage's renders", gates)
+        self.assertIn("**At most three refinement rounds per stage.** After the third, stop.", gates)
+        self.assertIn("Never run a fourth round on your own", gates)
+        self.assertIn("**Echo every comment and instruction received**", gates)
+
+    def test_locked_gate_is_per_screen_and_hands_off_to_a_build_ticket(self):
         lock = self.read("reference", "lock.md")
         skill = self.read("SKILL.md")
-        self.assertIn('The operator saying **"locked"** is the only approval', lock)
+        build = self.read("reference", "build.md")
+        self.assertIn('The operator saying **"locked"** about a screen is the only approval', lock)
         self.assertIn("**separate build ticket**", lock)
-        self.assertIn("**Building never starts in this session.**", lock)
-        self.assertIn("A design session never builds", skill)
+        self.assertIn("**Screens are never built in a design session.**", lock)
+        self.assertIn("A design session never builds screens", skill)
+        self.assertIn("from the approved component library", build)
+        self.assertIn("side by side, with the screen's locked canvas artboard", build)
         self.assertIn(
             "- <surface> · <draft | locked | shipped> · <issue> · <lock doc path> · <canvas or artifact URL>",
             skill,
         )
+
+    def test_plain_dom_path_skips_the_library_and_names_its_losses(self):
+        lock = self.read("reference", "lock.md")
+        plain = lock[lock.index("## Plain-DOM path (no library)"):lock.index("## Lock doc format")]
+        self.assertIn("skips stages 4 to 6", plain)
+        self.assertIn("composes screens straight from `Tokens`", plain)
+        self.assertIn("**component review grain:**", plain)
+        self.assertIn("**sync:**", plain)
 
     def test_revise_keeps_shipped_behavior_without_ledger_machinery(self):
         revise = self.read("reference", "revise.md")
@@ -113,7 +154,7 @@ class UiCraftContractTests(unittest.TestCase):
             [
                 "SKILL.md", "agents/openai.yaml",
                 "reference/brand.md", "reference/build.md", "reference/design-rules.md",
-                "reference/lock.md", "reference/product.md", "reference/review.md",
+                "reference/library.md", "reference/lock.md", "reference/product.md", "reference/review.md",
                 "reference/revise.md", "reference/tools.md", "reference/web-implementation.md",
                 "scripts/precheck.py",
             ],
@@ -128,8 +169,13 @@ class UiCraftContractTests(unittest.TestCase):
     def test_tool_instructions_and_privacy_bounds(self):
         tools = self.read("reference", "tools.md")
         skill = self.read("SKILL.md")
-        self.assertIn("**A repo with a compilable component library**", tools)
+        self.assertIn("**Once the project has a component library**", tools)
         self.assertIn("`/design-sync` has nothing to mirror, so skip it", tools)
+        self.assertIn("**Best supported: React + TypeScript + Storybook.**", tools)
+        self.assertIn("Storybook MCP", tools)
+        self.assertIn("**No-framework alternative: Web Components with Storybook.**", tools)
+        self.assertIn("tool support is weaker", tools)
+        self.assertIn("records the stack choice as an ADR in the build ticket before the library stage", tools)
         self.assertIn("**Design System** artifact", tools)
         self.assertIn("the Artifact tool's **Design** type", tools)
         self.assertIn("**Fallback when the Design type is unavailable**", tools)
