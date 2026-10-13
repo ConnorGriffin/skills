@@ -47,7 +47,8 @@ Work in short rounds:
    and compares them with the locked canvas, as `build` does.
 2. Render the affected states and frames, and run the
    [tools.md](tools.md) browser pass.
-3. Run `precheck.py` on the saved rendered HTML.
+3. Run `precheck.py` on the saved rendered HTML, with its frame declared per
+   [lock.md](lock.md)'s precheck conventions.
 4. Compare against the before renders and the lock.
 
 In interactive work, take the running branch to the operator after each round.

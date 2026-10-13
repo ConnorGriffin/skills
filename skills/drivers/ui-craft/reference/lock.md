@@ -54,8 +54,11 @@ The script checks six things:
 - provenance: every `data-label` is in `Served vocabulary`;
 - one primary action per screen (each component story counts as a screen);
 - frame fit: fixed `width`, `min-width`, or `flex-basis` px values above that
-  file's own frame. `max-width` is ignored, and `@media` blocks count only when
-  their min-width and max-width conditions hold at that frame;
+  file's own frame. `max-width` is ignored. An `@media` block counts only when
+  every condition is a px min-width or max-width that holds at that frame.
+  `@keyframes`, `@container`, em or rem units, range syntax, and other
+  features fail open, meaning they are never flagged, and the browser pass
+  covers them;
 - distinct button sizes against `Button sizes:`;
 - glossary: every short visible term is in the glossary or another lock list.
 
@@ -125,7 +128,9 @@ approves the structure before any pixel exists.
 ## 2. Lock prep
 
 Fill in `Tokens`, `Stack`, `Frames`, `Button sizes`, `Bans`, and
-`Allowed strings`.
+`Allowed strings`. On the plain-DOM path, also fill in `Components` here as its
+size table, which the operator approves with the rest of lock prep. On the
+library path, `Components` waits for the inventory (§4).
 
 - **Tokens** come from the running app's stylesheet: palette in both themes,
   type scale, spacing, and radius. Copy them from that file and cite its path,
@@ -220,7 +225,8 @@ says so in `Stack`:
 
 Keep it to one page. `precheck.py` reads three headings: `Glossary`,
 `Served vocabulary`, and `Allowed strings`. It also reads the `Frames:` and
-`Button sizes:` lines. A bullet's text before ` — ` is the entry, matched
+`Button sizes:` lines. A bullet's text before a spaced em dash (` — `) or en
+dash (` – `) is the entry, matched
 without regard to case.
 
 ```markdown

@@ -44,7 +44,8 @@ Use the rendered verification in [tools.md](tools.md).
 
 1. Render every approved screen, at every frame, in every state the lock lists.
    Use manufactured data, in both themes where the app has two.
-2. Save each rendered page's HTML and run `precheck.py` on it. Run the
+2. Save each rendered page's HTML, declaring its frame per
+   [lock.md](lock.md)'s precheck conventions, and run `precheck.py` on it. Run the
    overflow and button-height measurement too.
 3. Compare each render, side by side, with the screen's locked canvas
    artboard at the same frame and state. Any difference is a finding until

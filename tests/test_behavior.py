@@ -222,6 +222,15 @@ class UiCraftContractTests(unittest.TestCase):
         lock = self.read("reference", "lock.md")
         self.assertIn("`Components` is only a size table", lock)
 
+    def test_every_precheck_caller_declares_the_frame(self):
+        tools = self.read("reference", "tools.md")
+        self.assertIn("declare that frame per [lock.md](lock.md)'s precheck conventions", tools)
+        for page in ("build.md", "revise.md", "review.md"):
+            with self.subTest(page=page):
+                self.assertIn("per [lock.md](lock.md)'s precheck conventions", self.read("reference", page))
+        lock = self.read("reference", "lock.md")
+        self.assertIn("On the plain-DOM path, also fill in `Components` here", lock)
+
     def test_web_implementation_is_disclosed_without_becoming_a_standalone_skill(self):
         skill = (ROOT / "skills" / "drivers" / "ui-craft" / "SKILL.md").read_text(
             encoding="utf-8"
@@ -839,7 +848,7 @@ class UiCraftPrecheckTests(unittest.TestCase):
     def test_frame_fit_checks_each_render_against_its_own_frame(self):
         clean = self.precheck(self.FIXTURES / "clean")
         self.assertEqual(clean.returncode, 0, clean.stdout)
-        self.assertIn("3 render(s) checked", clean.stdout)
+        self.assertIn("4 render(s) checked", clean.stdout)
         desktop = self.precheck(self.FIXTURES / "dirty" / "desktop-1440.html")
         self.assertEqual(desktop.returncode, 1, desktop.stdout)
         self.assertEqual(self.counts(desktop.stdout)["frame fit"], 2)
@@ -847,6 +856,14 @@ class UiCraftPrecheckTests(unittest.TestCase):
         self.assertIn("1500px exceeds its 1440px frame", desktop.stdout)
         self.assertNotIn("3000px", desktop.stdout)
         self.assertNotIn("2000px", desktop.stdout)
+
+    def test_unparseable_at_rules_fail_open(self):
+        result = self.precheck(self.FIXTURES / "clean" / "motion-390.html")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(self.counts(result.stdout)["frame fit"], 0)
+        skill_text = " ".join((UI_CRAFT / "reference" / "lock.md").read_text(encoding="utf-8").split())
+        self.assertIn("fail open", skill_text)
+        self.assertIn("em dash (` — `) or en dash (` – `)", skill_text)
 
     def test_a_render_with_no_frame_fails_frame_fit(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -890,7 +907,7 @@ class UiCraftPrecheckTests(unittest.TestCase):
             linked.symlink_to(UI_CRAFT, target_is_directory=True)
             result = self.precheck(self.FIXTURES / "clean", linked / "scripts" / "precheck.py")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("3 render(s) checked", result.stdout)
+        self.assertIn("4 render(s) checked", result.stdout)
 
     def test_missing_input_is_a_usage_error_not_a_pass(self):
         result = run(["python3", str(UI_CRAFT / "scripts" / "precheck.py"), "no-such-render", "no-such-lock"], cwd=ROOT)

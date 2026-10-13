@@ -8,6 +8,12 @@ Reads the static HTML of each render. It sees markup, text, classes and inline o
 real overflow, contrast, or text painted into a canvas; the rendered browser pass
 owns those. Exit 0 when every check passes, 1 when any fails, 2 on bad input.
 
+Frame fit reads fixed width, min-width and flex-basis px values. Inside an at-rule
+it counts only @media blocks whose every condition is a px min-width or max-width
+that holds at the render's frame. It fails open: @keyframes, @container, em or rem
+units, range syntax, other media features, `not`, and comma lists are treated as
+not applying, so their widths are never flagged. The browser pass catches those.
+
 Render conventions it relies on:
   data-frame="<width>"  the frame this file renders at, one of the lock's Frames
                         (or end the file name with -<width>, e.g. home-1440.html)
@@ -74,11 +80,26 @@ def read_lock(path: Path) -> dict:
     }
 
 
-def media_applies(prelude: str, frame: int) -> bool:
-    """Evaluate an at-rule's min-width/max-width px conditions at this frame width."""
-    lows = [float(n) for n in re.findall(r"min-width\s*:\s*(\d+(?:\.\d+)?)px", prelude)]
-    highs = [float(n) for n in re.findall(r"max-width\s*:\s*(\d+(?:\.\d+)?)px", prelude)]
-    return all(frame >= n for n in lows) and all(frame <= n for n in highs)
+PX_WIDTH = re.compile(r"\s*(min|max)-width\s*:\s*(\d+(?:\.\d+)?)px\s*")
+
+
+def at_rule_applies(prelude: str, frame: int) -> bool:
+    """Whether an at-rule's contents count at this frame; unparseable means no."""
+    name = prelude.split(None, 1)[0].lower()
+    if name.endswith("keyframes") or name == "@container":
+        return False
+    if name != "@media":
+        return True  # @supports, @layer and the like do not depend on width
+    if re.search(r",|\bnot\b", prelude):
+        return False
+    for feature in re.findall(r"\(([^()]*)\)", prelude):
+        match = PX_WIDTH.fullmatch(feature)
+        if not match:
+            return False
+        bound = float(match.group(2))
+        if (match.group(1) == "min" and frame < bound) or (match.group(1) == "max" and frame > bound):
+            return False
+    return True
 
 
 def applied_bodies(css: str, frame: int) -> list:
@@ -88,7 +109,7 @@ def applied_bodies(css: str, frame: int) -> list:
     for char in css:
         if char == "{":
             prelude = buffer.strip()
-            stack.append(media_applies(prelude, frame) if prelude.startswith("@") else None)
+            stack.append(at_rule_applies(prelude, frame) if prelude.startswith("@") else None)
             buffer = ""
         elif char == "}":
             if stack and stack[-1] is None and False not in stack[:-1]:

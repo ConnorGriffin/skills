@@ -63,9 +63,9 @@ Claude Code now covers the dropped scripts' jobs:
   glossary use. It is honest
   that it reads static markup only. Layout is measured in the browser. A
   failing check withholds the render.
-- **A cold critique, then at most three refinement rounds.** A fresh read-only
-  subagent with a named model sees only the lock and the renders. After three
-  rounds on the chosen direction, the skill stops and reports what is
+- **A cold critique, then at most three refinement rounds per stage.** A fresh
+  read-only subagent with a named model sees only the lock and the renders.
+  After three rounds on any stage, the skill stops and reports what is
   unresolved.
 - **An explicit "locked" gate**, given per screen since the amendment below.
   The operator's word "locked" marks the doc, writes a one-line

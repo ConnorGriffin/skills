@@ -66,6 +66,10 @@ offers it. The skill never depends on that command.
 - The brief carries the approved structure sections, the frames, the bans, and
   this line: "three directions that differ in concept and layout, not color;
   every frame; manufactured data only".
+- The brief also tells the artboard agent to give each frame its own artboard
+  and to declare that frame per [lock.md](lock.md)'s precheck conventions:
+  `data-frame="<width>"` on the artboard root, or a file name ending in
+  `-<width>`. An undeclared frame fails the first precheck.
 - Canvases start private, and the operator shares them from the page.
 
 **Fallback when the Design type is unavailable** (not listed, turned off for

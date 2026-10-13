@@ -9,7 +9,8 @@ from `impeccable` (see the repo NOTICE).
 
 1. Resolve the target to a source path or URL, and render it with the browser
    pass in [tools.md](tools.md), at the lock's frames or at 390 and 1440 wide.
-2. When a lock doc exists, run `precheck.py` on the saved HTML. Then walk the
+2. When a lock doc exists, run `precheck.py` on the saved HTML, with its frame
+   declared per [lock.md](lock.md)'s precheck conventions. Then walk the
    lock section by section: structure, bans, components, approved screens, must
    survive. A lock violation is at least P1. "It looks fine" never closes one.
 3. When review is `lock`'s cold critique or a build's verifier, it runs as a
