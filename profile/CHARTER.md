@@ -34,6 +34,10 @@ and enforced at review: a violation below is a blocking finding.
   file / function / test names or CSS / API specifics. The diff already shows the
   implementation; a body that leans on it instead of app behavior is a **blocking**
   gap, not a nit.
+- **OpenSpec task ticks ride the pull request that does the work.** Tick `tasks.md`
+  items in the same pull request that implements them. Never open a pull request
+  whose only change is ticking boxes. The archive and spec roll-up at the end of a
+  ticket is the one documentation-only pull request a change gets.
 
 ## Testing — through the interface
 
