@@ -89,7 +89,9 @@ Record the change where the repo already records changes. In an OpenSpec repo th
 an active change on the ticket branch (`proposal.md`, `tasks.md`, spec deltas, and
 `design.md` when a decision needs one); it rides the pull request unarchived, and
 finalize archives it after the merge. Whoever executes ticks `tasks.md` as items are
-done and verified. A repo with another convention follows it; a repo with none gets a
+done and verified, and the ticks land in the pull request that implements those items.
+Never open a pull request that only ticks boxes; the archive pull request is the one
+documentation-only pull request a change gets. A repo with another convention follows it; a repo with none gets a
 note where its readers look. Never invent a convention.
 
 ## The tracker contract
