@@ -12,14 +12,14 @@ Every stage below is a gate the operator approves before the next one starts:
 3. **Directions:** three concepts on the Design canvas. The operator picks one.
 4. **Component inventory:** every component the chosen direction needs.
 5. **Library:** each component built in the project's component library, in
-   its own ticket (`library`, [library.md](library.md)).
+   its own work order (`library`, [library.md](library.md)).
 6. **Sync:** `/design-sync` mirrors the real library onto the canvas.
 7. **Compose:** each screen on the canvas, from approved components only.
 8. **"Locked":** given per screen.
 
 After that, `build` (greenfield) or `revise` (shipped) assembles the locked
 screens from the library. **Screens are never built in a design session.** The
-library ticket is the only code before a screen locks.
+library work order is the only code before a screen locks.
 
 The order matters because a redesign that skips it fails in a predictable way.
 Visuals come first. Labels get invented that the backend does not serve, tabs
@@ -92,9 +92,9 @@ finding to the operator with the reason it was rejected.
 
 Check the app's routes, its render modules, and `mockups/INDEX.md`.
 
-- **Greenfield:** nothing ships yet, and the build ticket will run `build`.
+- **Greenfield:** nothing ships yet, and the build work order will run `build`.
 - **Shipped:** the app already renders this surface or the shell it lives in.
-  The build ticket will run `revise` against the running app, rewriting in
+  The build work order will run `revise` against the running app, rewriting in
   place from library components. Canvas directions are throwaway wireframes.
   They carry no fidelity claim, and their code is never ported (ADR 48).
   Capture "before" renders now through the repo's declared safe entrypoint,
@@ -137,8 +137,8 @@ library path, `Components` waits for the inventory (§4).
   never transcribe them from memory. A greenfield app with no stylesheet
   commits to a small set here.
 - **Stack:** the project's component library, or `plain-DOM (declined)`. A repo
-  with no library picks a stack per [tools.md](tools.md). The `library` ticket,
-  the first code ticket, records that choice as an ADR before its first
+  with no library picks a stack per [tools.md](tools.md). The `library` work order,
+  the first code work order, records that choice as an ADR before its first
   component ([library.md](library.md)).
 - Set up the canvas's design system as [tools.md](tools.md) describes.
 
@@ -172,7 +172,7 @@ before any component is built.
 
 ## 5. Library
 
-The `library` ticket builds the approved inventory one component at a time,
+The `library` work order builds the approved inventory one component at a time,
 following [library.md](library.md). Each component gets a story per state and a
 screenshot per story, with prechecks run per component. The operator reviews
 components **in isolation, in batches of three to five, never as a full
@@ -202,8 +202,11 @@ that it is locked. Build and ticket checks read that line. The doc-level
 1. Add the screen, its frames, its canvas URL, and `locked <date>` to
    `Approved screens`, and update `Status:` if this was the last screen.
 2. Update the surface's one line in `mockups/INDEX.md`.
-3. File or update the **separate build ticket**. It names the lock doc path,
-   the locked screens it builds and their canvas URLs, and `build` or `revise`.
+3. Add the build as the next piece on the ticket that ran the lock, as a
+   **separate build work order**; file a separate build ticket only when the
+   lock ran outside a ticket or the operator asks for one. The build order
+   names the lock doc path, the locked screens it builds and their canvas
+   URLs, and `build` or `revise`.
 4. Commit the lock doc and the INDEX line.
 
 ## Plain-DOM path (no library)

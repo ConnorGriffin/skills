@@ -22,7 +22,7 @@ and enforced at review: a violation below is a blocking finding.
 
 - Every user-facing surface follows **`/ui-craft`**: an approved structure step
   before any visuals, then a one-page lock doc in the repo that the operator
-  approves with "locked". A separate build ticket is checked against that page
+  approves with "locked". A separate build work order, on the same ticket, is checked against that page
   with rendered evidence. A shipped surface is revised in the running app, under
   its required safe start, and keeps the lock's must-survive behaviors. The full
   rules live with `/ui-craft`.

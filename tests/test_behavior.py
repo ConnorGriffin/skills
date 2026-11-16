@@ -101,7 +101,7 @@ class UiCraftContractTests(unittest.TestCase):
         self.assertIn("**one screenshot per story**", library)
         self.assertIn("Run `precheck.py` on each story's saved HTML", library)
         self.assertIn("**in isolation, in batches of three to five, never composed into a screen**", library)
-        self.assertIn("this ticket, the first code ticket, records the stack choice as an ADR", library)
+        self.assertIn("this work order, the first code work order, records the stack choice as an ADR", library)
 
     def test_every_gate_prechecks_critiques_and_caps_rounds(self):
         lock = self.read("reference", "lock.md")
@@ -120,7 +120,7 @@ class UiCraftContractTests(unittest.TestCase):
         skill = self.read("SKILL.md")
         build = self.read("reference", "build.md")
         self.assertIn('The operator saying **"locked"** about a screen is the only approval', lock)
-        self.assertIn("**separate build ticket**", lock)
+        self.assertIn("**separate build work order**", lock)
         self.assertIn("**Screens are never built in a design session.**", lock)
         self.assertIn("A design session never builds screens", skill)
         self.assertIn("from the approved component library", build)
@@ -175,7 +175,7 @@ class UiCraftContractTests(unittest.TestCase):
         self.assertIn("Storybook MCP", tools)
         self.assertIn("**No-framework alternative: Web Components with Storybook.**", tools)
         self.assertIn("tool support is weaker", tools)
-        self.assertIn("records the stack choice as an ADR in the `library` ticket, the first code ticket", tools)
+        self.assertIn("records the stack choice as an ADR in the `library` work order, the first code work order", tools)
         self.assertIn("**Size the viewport to the frame first**", tools)
         self.assertIn("viewport has no width", tools)
         self.assertIn("**Design System** artifact", tools)

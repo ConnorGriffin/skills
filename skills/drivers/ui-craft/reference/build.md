@@ -1,7 +1,7 @@
 # Mode: build
 
 Assemble a greenfield surface's **locked screens** in the app from the approved
-component library, in the build ticket the lock gate filed. The lock doc is the
+component library, in the build work order that follows the lock. The lock doc is the
 whole contract: the build is checked against it and nothing else. A shipped
 surface uses `revise` instead.
 
