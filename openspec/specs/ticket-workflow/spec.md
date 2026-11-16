@@ -241,19 +241,6 @@ name its defaults, and continue without asking.
 - **WHEN** a draft claims that a parameter, flag, or fixture is honored by a tool
 - **THEN** triage runs one live probe of that claim and amends the draft before review
 
-### Requirement: Oversized work becomes tracked child issues
-
-Triage MUST slice work that will not fit one session into pull-request-sized child
-issues, each triaged into its own work order, and MUST track them as a checklist on
-the parent ticket. Triage MUST record which slicing traits fired.
-
-#### Scenario: Two slicing traits fire
-
-- **WHEN** grounding finds two or more slicing traits, or a projected peak past the
-  session band
-- **THEN** triage files child issues, lists them on the parent's checklist, and
-  locks no single order for the whole effort
-
 ### Requirement: Review at the stamped depth
 
 Triage MUST stamp one review depth with a reason, raised to Full by the sensitivity
@@ -451,3 +438,26 @@ rubric prose and the helper constant together.
 - **WHEN** role-aware measurement returns `no-data` or `unmeasurable`
 - **THEN** finalization reports that verdict's own meaning and reports no slicing
   misprediction
+
+### Requirement: Multi-pull-request work stays on one ticket
+
+Triage MUST keep work that spans repos, needs several pull requests, follows a UI
+lock, or will not fit one session on its ticket. It MUST post a checklist of
+pull-request-sized pieces on the ticket and lock one piece at a time, each lock
+bounded by its own expected diff. Triage MUST record which slicing traits fired.
+Triage MUST NOT ask whether to split the ticket and MUST file child issues only when
+the operator asks. Finalize MUST leave the ticket open while a checklist piece
+remains.
+
+#### Scenario: Two slicing traits fire
+
+- **WHEN** grounding finds two or more slicing traits, or a projected peak past the
+  session band
+- **THEN** triage posts a pieces checklist on the ticket, locks the first piece, and
+  files no child issues
+
+#### Scenario: A piece merges with pieces remaining
+
+- **WHEN** finalize runs on a merged piece and the checklist has an open box
+- **THEN** it ticks the merged piece, leaves the ticket open, and names the next
+  piece, and the next triage locks that piece without asking
