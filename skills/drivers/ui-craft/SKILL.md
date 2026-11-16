@@ -1,6 +1,6 @@
 ---
 name: ui-craft
-description: Design and verify user-facing surfaces — settle structure first, lock a one-page design in the repo, then build or revise against it in a separate ticket, and review rendered UI. Use for any request to design, redesign, review, or verify screens, dashboards, flows, or components. Not for backend-only work or module/API design ("interface" in the code sense — use codebase-design for that).
+description: Design and verify user-facing surfaces — settle structure first, lock a one-page design in the repo, then build or revise against it in a separate work order, and review rendered UI. Use for any request to design, redesign, review, or verify screens, dashboards, flows, or components. Not for backend-only work or module/API design ("interface" in the code sense — use codebase-design for that).
 ---
 
 # UI craft
@@ -9,7 +9,7 @@ A design session settles **structure before pixels**, then reviews at
 **component grain** through eight gates. Each screen ends at the operator's
 **"locked"** in a one-page lock doc that lives in the repo. The stage list lives
 only in [reference/lock.md](reference/lock.md). Building screens is a separate
-ticket, checked against that page and nothing else. Parts are derived from `impeccable` (Apache-2.0, by Paul Bakaus —
+work order, checked against that page and nothing else. Parts are derived from `impeccable` (Apache-2.0, by Paul Bakaus —
 see the repo NOTICE).
 
 Vocabulary guard: in the engineering charter, *interface* means a module's API.
@@ -24,19 +24,19 @@ before acting. Never auto-run a mode.
 | Mode | Job | Reference |
 | --- | --- | --- |
 | `lock [surface]` | The design lifecycle's eight gates, from structure to "locked" per screen; at most three rounds per gate | [reference/lock.md](reference/lock.md) |
-| `library [component]` | `lock`'s library gate, run as its own ticket: the approved inventory built and reviewed one component at a time | [reference/library.md](reference/library.md) |
-| `build [surface]` | Build ticket for a greenfield surface: assemble locked screens from the library, verified against the locked canvas | [reference/build.md](reference/build.md) |
-| `revise [surface]` | Build ticket for a shipped surface: change the running app on a branch, keeping its must-survive behaviors | [reference/revise.md](reference/revise.md) |
+| `library [component]` | `lock`'s library gate, run as its own work order: the approved inventory built and reviewed one component at a time | [reference/library.md](reference/library.md) |
+| `build [surface]` | Build work order for a greenfield surface: assemble locked screens from the library, verified against the locked canvas | [reference/build.md](reference/build.md) |
+| `revise [surface]` | Build work order for a shipped surface: change the running app on a branch, keeping its must-survive behaviors | [reference/revise.md](reference/revise.md) |
 | `review [target]` | Critique and technical audit of rendered UI, against the lock when one exists | [reference/review.md](reference/review.md) |
 
 Routing, in prose:
 
 - Designing or redesigning anything, shipped or not, goes to `lock`. A design
-  session never builds screens. The `library` ticket is the only code written
+  session never builds screens. The `library` work order is the only code written
   before a screen locks.
 - A project that declines a component library takes `lock`'s plain-DOM path,
   which says what that path loses.
-- After "locked", the build ticket runs `build` for a greenfield surface or
+- After "locked", the build work order runs `build` for a greenfield surface or
   `revise` for one the app already ships (ADR 48: a shipped surface is never
   rebuilt from a from-scratch mock).
 - A fix inside an existing lock goes straight to `build` or `revise`: spacing, a

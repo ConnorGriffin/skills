@@ -12,7 +12,8 @@ code host back to the tracker; this verb is that sync.
    Then confirm the post-merge workflow is green with `gh run list`; a red run stops here.
 
 3. **Archive through a reviewed pull request** (OpenSpec changes only). The archive takes two
-   finalizations, because a human merges it. Scan the ticket's comments newest-first for
+   finalizations, because a human merges it. Scan the ticket's comments posted since the
+   current lock, newest-first, for
    `Archive PR: <url>`.
 
    * **None yet.** Follow the repo's `operations.archive.guidance`: in a sibling archive
@@ -26,9 +27,11 @@ code host back to the tracker; this verb is that sync.
      human review and stop. Closed unmerged: stop for operator direction; never open a
      replacement. Merged: confirm its post-merge run is green, then continue.
 
-4. **Close the ticket.** Comment the merged pull request, a one-line outcome, the
-   post-merge evidence, and the merged archive pull request when there is one. Move the
-   ticket to done.
+4. **Close the piece or the ticket.** Comment the merged pull request, a one-line
+   outcome, the post-merge evidence, and the merged archive pull request when there is
+   one. On a ticket with a pieces checklist, tick the merged piece's box. An open box
+   left: name the next piece in the comment, leave the ticket open, and report
+   `/ticket triage <ticket-id>` as the next step. Otherwise move the ticket to done.
 
 5. **Record what it cost**, before removing the worktree:
 

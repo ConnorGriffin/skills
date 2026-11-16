@@ -1,7 +1,7 @@
 # Mode: library
 
 Build the lock's approved component inventory in the project's component
-library, one component at a time, in its own ticket. This is the only code
+library, one component at a time, in its own work order. This is the only code
 written before a screen locks. It builds components, never screens.
 
 Input: a lock doc whose `Components` inventory the operator approved, and whose
@@ -11,7 +11,7 @@ Input: a lock doc whose `Components` inventory the operator approved, and whose
 
 1. Read [web-implementation.md](web-implementation.md) and
    [tools.md](tools.md)'s library stack section.
-2. With no component library in the repo, this ticket, the first code ticket,
+2. With no component library in the repo, this work order, the first code work order,
    records the stack choice as an ADR in the repo's ADR home before the first
    component. Then scaffold the library and its story tooling.
 3. Branch from a freshly fetched default branch.

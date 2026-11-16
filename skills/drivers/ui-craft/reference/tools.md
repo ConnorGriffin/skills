@@ -39,7 +39,7 @@ Sources:
   stories and per-story screenshots, but tool support is weaker. Treat
   `/design-sync` coverage as unverified until one component round-trips.
 - **A repo with no component library** records the stack choice as an ADR in
-  the `library` ticket, the first code ticket, before its first component
+  the `library` work order, the first code work order, before its first component
   ([library.md](library.md)). The ADR states the stack, why, and what the
   plain-DOM path would have lost.
 - **Declining a library** takes the plain-DOM path in [lock.md](lock.md):

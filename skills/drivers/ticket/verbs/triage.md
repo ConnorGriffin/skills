@@ -6,8 +6,11 @@ one artifact: the order, posted on the ticket after the user approves it.
 ## Procedure
 
 1. **Read the ticket** through the tracker contract, with every comment. An existing
-   order: say so and ask whether to supersede it. A parent ticket whose checklist tracks
-   child issues is not triaged itself: triage the next open child instead.
+   order whose pull request has not merged: say so and ask whether to supersede it. An
+   existing order whose pull request merged, on a ticket whose pieces checklist (step 7)
+   has an open box: lock the next open piece without asking. A parent ticket whose
+   checklist tracks child issues is not triaged itself: triage the next open child
+   instead.
 
 2. **Cut or reuse the worktree** before reading the repo. Work in a fresh worktree off
    the up-to-date remote base: fetch `origin`, then cut a branch named
@@ -40,7 +43,7 @@ one artifact: the order, posted on the ticket after the user approves it.
    | A load-bearing assumption nobody has run | Spike the first hour (below). |
    | Behavior only running code can show | `/prototype`. |
    | What a surface should look like | `/ui-craft lock`. |
-   | Too big for one session | Slice (below). |
+   | More than one pull request, or too big for one session | Sequence locks (below). |
 
    Record each settled decision where the repo records decisions (an OpenSpec
    `design.md` ADR section, or the order's Context). If the user is unavailable for a
@@ -52,14 +55,24 @@ one artifact: the order, posted on the ticket after the user approves it.
    claim of the form "X is honored by Y" gets one live probe. Findings amend the draft;
    the scratch work is never committed unless the order references it as a test.
 
-7. **Slice when the work will not fit one session.** It will not fit when two or more of
-   these traits fire, or when it projects past a ~180k-token peak: `multiple targets`,
+7. **Sequence locks when the work needs more than one pull request.** The ticket
+   describes the work, not how many pull requests land it. Work that spans repos, lands
+   in several pull requests, follows a `/ui-craft lock`, or will not fit one session
+   stays on this ticket. It will not fit one session when two or more of these traits
+   fire, or when it projects past a ~180k-token peak: `multiple targets`,
    `live-resource import`, `cross-trust-boundary writes`, `multiple deliverables`,
-   `live run inside the ticket`, `split-path evidence`, `lockstep copies`. File child
-   issues, each a pull-request-sized piece with its own triage, and track them as a
-   checklist on this ticket, which closes when every box is checked; a child projected
-   under ~120k folds into a neighbour. A child whose outcome hangs on an unsettled
-   decision waits behind a spike child that settles it. Record which traits fired.
+   `live run inside the ticket`, `split-path evidence`, `lockstep copies`.
+   * Post a pieces checklist on the ticket: each pull-request-sized piece in build
+     order, with its repo and what it waits on. The ticket closes when every box is
+     checked.
+   * Lock only the first open piece. Its `Expected diff` is that piece's boundary.
+     Triage again after it merges to lock the next one.
+   * A piece projected under ~120k folds into a neighbour in the same repo. A piece
+     whose outcome hangs on an unsettled decision waits behind a spike piece that
+     settles it.
+   * Record which traits fired.
+   * Never ask whether to split the ticket. File child issues only when the user asks
+     for them.
 
 8. **Stamp** `Review depth:` and `Profile:` per the skill page's review-depth section,
    checking the sensitivity floor first, and `Surface lifecycle:` per the template. A
