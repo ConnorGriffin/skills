@@ -55,8 +55,9 @@ question wins for the part that depends on it and finishing wins for everything 
 Batch the frontier: every decision whose prerequisites are already settled goes in one
 numbered round; a question whose framing depends on another answer waits for the next
 round. Lead each question with the symptom in plain terms, file and function names
-after as supporting detail; for a genuine choice, two to four options with their costs
-and your recommendation; for a missing fact or an approval, just ask it. An offer to
+after as supporting detail. Write each question as plain prose: what you would do, its
+cost, and a real alternative only when one exists. Never invent options to make a
+question multiple choice. For a missing fact or an approval, just ask it. An offer to
 measure instead of asking ("I can measure this — want me to?") is a valid question
 when the honest basis for an answer is my data rather than my preference.
 

@@ -108,26 +108,17 @@ recompute the frontier and ask the next round; carry unanswered decisions
 forward without re-asking settled ones. Facts from the environment are yours
 to find before asking; only genuine decisions go to the reader.
 
-Phrase each question as system behavior (code terms only as a parenthetical)
-and render it as:
+Number the questions in a round and write each one as plain prose. Phrase it as
+system behavior (code terms only as a parenthetical). State what you would do and
+its cost, then ask. Name an alternative only when it is a real one you could
+defend, with its cost. Never invent options to make a question multiple choice,
+and never use lettered option lists or a templated recommendation line. Keep
+numbers stable within the session and accept shorthand answers ("1 yes, 2 no").
+"I don't know" converts to a measurement offer or a stated default.
 
-```
-**Q1. Question, phrased as behavior?**
-> A. first option
-> B. second option
->
-> ↳ *rec A: one-line why*
-```
-
-Options are 2 to 4, concrete, each priced. Stable Q-numbers within the session;
-accept shorthand answers ("Q1 yes; Q2 B"). "I don't know" converts to a
-measurement offer or a stated default.
-
-Use this locked form where the host permits it. If a higher-priority host restriction
-requires a plain question, disclose that change, compare the proposal and substantive
-alternatives with meaningful costs, then ask one concise stable-Q-ID question. The
-recommendation is not accepted by default; accept rejection, free-form alternatives,
-partial answers, and explicit delegation, and wait for required unanswered decisions.
+Your proposal is not accepted by default. Accept rejection, free-form
+alternatives, partial answers, and explicit delegation, and wait for required
+unanswered decisions.
 
 ## Pre-send check
 
