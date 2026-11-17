@@ -12,10 +12,13 @@ that without asking.
 ## What changes
 
 * Triage keeps multi-repo, multi-pull-request, and oversized work on one ticket.
-  It posts a pieces checklist and locks one piece at a time. It never asks whether
-  to split, and files child issues only when the operator asks.
-* Triage locks the next open piece without asking once the current lock's pull
-  request has merged.
+  It posts a pieces checklist and locks a work order for every piece in one pass,
+  approved once. It never asks whether to split, and files child issues only when
+  the operator asks.
+* Each piece has its own branch, source, `Piece:` and `Waits on:` lines. Start builds
+  the first unchecked piece and refuses one whose dependency has not merged.
+* Triage runs again on a ticket only to refresh an order start refused, or to order a
+  piece that waited on a spike.
 * Finalize ticks the merged piece, leaves the ticket open while pieces remain, and
   closes it after the last one.
 * UI Craft hands a locked surface to a build work order on the same ticket instead

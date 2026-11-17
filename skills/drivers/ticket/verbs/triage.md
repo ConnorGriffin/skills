@@ -1,22 +1,26 @@
 # /ticket triage `<ticket-id>`
 
-Turn a ticket into a locked work order, or say why it cannot be one yet. The output is
-one artifact: the order, posted on the ticket after the user approves it.
+Turn a ticket into locked work orders, one per piece, or say why it cannot be one yet.
+The output is one artifact: every piece's order, posted on the ticket after the user
+approves them.
 
 ## Procedure
 
 1. **Read the ticket** through the tracker contract, with every comment. An existing
-   order whose pull request has not merged: say so and ask whether to supersede it. An
-   existing order whose pull request merged, on a ticket whose pieces checklist (step 7)
-   has an open box: lock the next open piece without asking. A parent ticket whose
-   checklist tracks child issues is not triaged itself: triage the next open child
-   instead.
+   order whose pull request has not merged: say so and ask whether to supersede it. A
+   ticket whose pieces (step 7) are already locked is triaged again only to refresh an
+   order `start` refused: re-pin it without asking when only its pin moved, and show the
+   user anything else that changed before posting. A piece that waited on a spike gets
+   its order once the spike merges. A parent ticket whose checklist tracks child issues
+   is not triaged itself: triage the next open child instead.
 
-2. **Cut or reuse the worktree** before reading the repo. Work in a fresh worktree off
+2. **Cut or reuse the worktrees** before reading the repo. Work in a fresh worktree off
    the up-to-date remote base: fetch `origin`, then cut a branch named
    `<id-lowercased>-<slug>` (a short kebab slug from the title) from
    `origin/<default branch>` into its own worktree, or use the harness's native worktree
-   isolation. A reused worktree must be on the ticket's branch. Never force.
+   isolation. Each further piece (step 7) gets its own, named
+   `<id-lowercased>-<n>-<slug>`, in its own repo. A reused worktree must be on its
+   piece's branch. Never force.
 
 3. **Ground.** Follow shared rule 6 for each target repo. A target repo that does not
    exist yet stops triage: name the ticket that has to land first.
@@ -43,7 +47,7 @@ one artifact: the order, posted on the ticket after the user approves it.
    | A load-bearing assumption nobody has run | Spike the first hour (below). |
    | Behavior only running code can show | `/prototype`. |
    | What a surface should look like | `/ui-craft lock`. |
-   | More than one pull request, or too big for one session | Sequence locks (below). |
+   | More than one pull request, or too big for one session | Order every piece (below). |
 
    Record each settled decision where the repo records decisions (an OpenSpec
    `design.md` ADR section, or the order's Context). If the user is unavailable for a
@@ -55,7 +59,7 @@ one artifact: the order, posted on the ticket after the user approves it.
    claim of the form "X is honored by Y" gets one live probe. Findings amend the draft;
    the scratch work is never committed unless the order references it as a test.
 
-7. **Sequence locks when the work needs more than one pull request.** The ticket
+7. **Order every piece when the work needs more than one pull request.** The ticket
    describes the work, not how many pull requests land it. Work that spans repos, lands
    in several pull requests, follows a `/ui-craft lock`, or will not fit one session
    stays on this ticket. It will not fit one session when two or more of these traits
@@ -65,11 +69,14 @@ one artifact: the order, posted on the ticket after the user approves it.
    * Post a pieces checklist on the ticket: each pull-request-sized piece in build
      order, with its repo and what it waits on. The ticket closes when every box is
      checked.
-   * Lock only the first open piece. Its `Expected diff` is that piece's boundary.
-     Triage again after it merges to lock the next one.
+   * Ground, draft, and review an order for every piece in this pass, each with its own
+     `Piece:`, `Waits on:`, source, and `Expected diff`. In an OpenSpec repo each piece
+     gets its own change on its own branch. A piece blocked on another piece or another
+     ticket still gets its order now; `start` refuses it until what it waits on merges.
    * A piece projected under ~120k folds into a neighbour in the same repo. A piece
      whose outcome hangs on an unsettled decision waits behind a spike piece that
-     settles it.
+     settles it. That piece is the one order triage defers: the checklist names the
+     spike, and triage orders the piece once the spike merges.
    * Record which traits fired.
    * Never ask whether to split the ticket. File child issues only when the user asks
      for them.
@@ -82,7 +89,7 @@ one artifact: the order, posted on the ticket after the user approves it.
 
 9. **Draft the order** from [the template](../templates/work-order.md) and run its
    before-the-draft checks.
-   * **OpenSpec repo:** author the change on the ticket branch, run `openspec validate
+   * **OpenSpec repo:** author the change on the piece's branch, run `openspec validate
      <change> --strict` until it passes, commit, read back `git rev-parse HEAD`, and pin
      `Source: openspec <change-path>@<that full OID>`.
    * **Another versioned plan artifact:** commit and pin it the same way as
@@ -91,14 +98,15 @@ one artifact: the order, posted on the ticket after the user approves it.
    * An `investigation` worked in this session needs no lock; one dispatched to a
      worker gets an ordinary lock whose `Expected diff` names the findings files.
 
-10. **Review the draft.** At Full depth, run `/plan-review` once, as an ordinary plan:
-    one cold, fresh-context reviewer, one round. Reproduce each objection's claim before
+10. **Review the draft.** At Full depth, run `/plan-review` once over every piece's draft,
+    as an ordinary plan: one cold, fresh-context reviewer, one round. Reproduce each objection's claim before
     acting on it (run the regex, open the cited line) and drop the ones that fail. Fix
     what blocks; an objection that turns out to be an unsettled decision goes back to
     the user per step 5. Below Full depth, run the template's checks yourself.
 
-11. **Confirm, then post.** Show the user the draft. On approval, post it as one comment
-    (attribution, summary, fence) and move the ticket to triaged with its
+11. **Confirm, then post.** Show the user every piece's draft together; one approval
+    covers them all. On approval, post each order as its own comment (attribution,
+    summary, fence) in build order, and move the ticket to triaged with its
     classification.
 
 ## Risk contract

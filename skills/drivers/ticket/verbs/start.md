@@ -6,11 +6,16 @@ Build to the locked order in a fresh session. The output is one open pull reques
 
 1. **Open and claim** per shared rules 1 and 2, before locating the order.
 
-2. **Locate and admit the lock.** Use the tracker's locate operation. No order: refuse
+2. **Locate and admit the lock.** Use the tracker's locate operation for the first
+   unchecked piece on the pieces checklist (no checklist: piece 1). No order: refuse
    with "no work order on `<ticket-id>`; run /ticket triage `<ticket-id>`" and stop.
-   Then, from the ticket worktree, every check below must pass; any failure names the
-   check, refuses, and routes to `/ticket triage <ticket-id>`. Never fall back to an
-   older comment and never patch a field from one.
+   Its `Waits on:` names a piece or ticket that has not merged: refuse, name it, and
+   stop; the order stays valid. Then bring the piece's worktree up to date by merging
+   `origin/<default branch>` into its branch, never rebasing, so the pin stays an
+   ancestor; a conflict stops here and routes to triage. From that worktree, every check
+   below must pass; any failure names the check, refuses, and routes to
+   `/ticket triage <ticket-id>`. Never fall back to an older comment and never patch a
+   field from one.
 
    * The fence is `EXECUTION LOCK v2` (or a legacy `WORK ORDER`, read as `inline`), with
      a `Source:` mode of `openspec`, `repository-native`, or `inline`.
@@ -26,7 +31,7 @@ Build to the locked order in a fresh session. The output is one open pull reques
      names is locked in the lock doc, and `revise` has its safe start.
    * The classification is not `manual`; a manual order has nothing to execute.
 
-3. **Reuse the worktree** triage cut, confirming `git -C <worktree> branch
+3. **Reuse the piece's worktree** triage cut, confirming `git -C <worktree> branch
    --show-current`. Respin it the way triage did only when it is gone. Move the ticket to
    in progress.
 
@@ -59,7 +64,7 @@ Build to the locked order in a fresh session. The output is one open pull reques
 
    ```sh
    python3 <ticket-skill-directory>/scripts/ticket.py preflight-openspec \
-     --repo <ticket-worktree> --base-ref refs/remotes/origin/HEAD
+     --repo <piece-worktree> --base-ref refs/remotes/origin/HEAD
    ```
 
    It archives the change in a disposable copy of the current baseline. A failure stops

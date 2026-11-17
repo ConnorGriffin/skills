@@ -9,7 +9,7 @@ One ticket, one verb, one artifact per stage, a human at every gate.
 
 | Verb | Produces | Human gate after it |
 |---|---|---|
-| [triage](verbs/triage.md) | a locked work order posted on the ticket | the user approves the order before it posts |
+| [triage](verbs/triage.md) | a locked work order for every piece, posted on the ticket | the user approves the orders before they post |
 | [start](verbs/start.md) | an open pull request | a human reviews |
 | [revise](verbs/revise.md) | one review round pushed | a human reviews again or merges |
 | [finalize](verbs/finalize.md) | the ticket closed, the change archived, the cost recorded | a human merges the archive pull request |
@@ -34,10 +34,11 @@ request, not after green CI. Merging is the human's gate.
    `> Written by an AI agent operating for <operator>. Verify before relying on it.`
    The name comes from `~/.config/ticket/config.json` key `operator`; without one, drop
    ` operating for <operator>`.
-4. **One worktree and one branch per ticket, for the whole lifecycle.** Triage cuts
-   them fresh off the up-to-date remote base; start and revise reuse them; finalize
-   tears them down. Never read, write, stash, or switch the control checkout, even when
-   it is dirty. Confirm the working directory is the ticket worktree before the first
+4. **One worktree and one branch per piece, for the whole lifecycle.** A ticket without
+   a pieces checklist is one piece. Triage cuts every piece's worktree and branch fresh
+   off the up-to-date remote base; start and revise reuse them; finalize tears down the
+   merged piece's. Never read, write, stash, or switch the control checkout, even when
+   it is dirty. Confirm the working directory is the piece worktree before the first
    write.
 5. **The tracker is the source of truth for status.** Triage moves the ticket to
    triaged, start to in progress and then pending review, finalize to done. A failed
@@ -56,7 +57,7 @@ request, not after green CI. Merging is the human's gate.
 Invoking `/ticket` authorizes every sub-agent dispatch that this procedure marks mandatory: triage's mandatory `/plan-review` at Full depth and the `/code-review` pass in start and revise. Do not ask again solely because a session-level preference says "do not spawn agents"; apply that preference to discretionary delegation only. An explicit task-level refusal of this required review or revocation of delegation overrides this authorization: stop and state that the requested workflow cannot run without its required independent review.
 
 Delegate build work per `profile/base.md` "Delegating to subagents": name the model,
-isolate an implementer in the ticket worktree, and demand the full verify output. The
+isolate an implementer in the piece worktree, and demand the full verify output. The
 coordinator dispatches every reviewer and resumes the same worker with `SendMessage`;
 a worker never launches its own reviewer. A review that fails to launch or returns no
 verdict is unavailable, never clean, and the ticket does not advance as reviewed.
@@ -86,7 +87,7 @@ is an error, never a pass.
 ## The change record
 
 Record the change where the repo already records changes. In an OpenSpec repo that is
-an active change on the ticket branch (`proposal.md`, `tasks.md`, spec deltas, and
+an active change on the piece branch (`proposal.md`, `tasks.md`, spec deltas, and
 `design.md` when a decision needs one); it rides the pull request unarchived, and
 finalize archives it after the merge. Whoever executes ticks `tasks.md` as items are
 done and verified, and the ticks land in the pull request that implements those items.
@@ -104,9 +105,11 @@ them; GitHub issues is the shipped one ([bindings/github-issues.md](bindings/git
 3. **Move** status to triaged, in progress, pending review, or done. A move to triaged
    carries the classification; `code` also ensures the `build` label, and a failure
    there skips `ticket:triaged`.
-4. **Locate** the newest work order: the newest comment whose fence opens
-   `EXECUTION LOCK ` (any version) or the legacy `WORK ORDER`. Newest by post time wins;
-   no field is ever merged from an older comment.
+4. **Locate** the work orders: every comment whose fence opens `EXECUTION LOCK ` (any
+   version) or the legacy `WORK ORDER`, in post order. The verb takes the newest one
+   for the piece it needs, matching the fence's `Piece:` line; a fence without one is
+   piece 1. Newest by post time wins within a piece; no field is ever merged from an
+   older comment.
 
 A binding for another tracker is one page with the same four operations, the command
 for each, what it needs installed, and the message it prints when that is missing. It

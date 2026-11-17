@@ -31,14 +31,15 @@ code host back to the tracker; this verb is that sync.
    outcome, the post-merge evidence, and the merged archive pull request when there is
    one. On a ticket with a pieces checklist, tick the merged piece's box. An open box
    left: name the next piece in the comment, leave the ticket open, and report
-   `/ticket triage <ticket-id>` as the next step. Otherwise move the ticket to done.
+   `/ticket start <ticket-id>` as the next step (`/ticket triage <ticket-id>` when that
+   piece's order is deferred behind a spike). Otherwise move the ticket to done.
 
 5. **Record what it cost**, before removing the worktree:
 
    ```sh
    python3 <ticket-skill-directory>/scripts/ticket.py record <ticket-id> \
      --verb <each verb that ran> [--trait <each trait triage recorded>] \
-     --depth <stamped depth> [--project <ticket worktree>]
+     --depth <stamped depth> [--project <piece worktree>]
    ```
 
    Print a successful record command's standard output once. Keep the record local;
@@ -54,13 +55,13 @@ code host back to the tracker; this verb is that sync.
 
    ```sh
    git -C <control checkout> worktree remove <worktree path>
-   git -C <control checkout> branch -D <ticket branch>
+   git -C <control checkout> branch -D <piece branch>
    git -C <control checkout> worktree prune
    ```
 
    A dirty worktree makes `worktree remove` fail: report it and stop, never force.
-   Delete the remote branch with `git push origin --delete <ticket branch>` only if
-   `git ls-remote --heads origin <ticket branch>` still lists it. Retire the archive
+   Delete the remote branch with `git push origin --delete <piece branch>` only if
+   `git ls-remote --heads origin <piece branch>` still lists it. Retire the archive
    checkout and its branch the same way.
 
 7. **Abandoned path** (closed unmerged, or cancelled): comment why, then tear down per

@@ -12,6 +12,8 @@ EXECUTION LOCK v2 <ticket-id> <lock-id>
 Source: <openspec <change-path>@<full-commit-oid> | repository-native <path>@<full-commit-oid> | inline>
 Classification: <code | investigation | manual>
 Repo: <org/repo>
+Piece: <n> of <total>
+Waits on: <none | piece <n> | <ticket-id> merged>
 Surface lifecycle: <none | build <lock doc> <screens> | revise <lock doc> <screens>>
 Review depth: <focused | targeted | full> (<one-line reason>)
 Profile: <none | hardening>
@@ -48,8 +50,13 @@ Boundaries
 
 ## Field rules
 
-* **`<lock-id>`** is 1 for the ticket's first lock and one more than the highest posted
-  for each lock that supersedes one. Newest by post time still wins.
+* **`<lock-id>`** is unique on the ticket: triage numbers its orders 1 upward in build
+  order, and each lock that supersedes one takes one more than the highest posted.
+  Newest by post time still wins within a piece.
+* **`Piece:`** matches the piece's position on the ticket's pieces checklist. A ticket
+  without a checklist is `1 of 1`.
+* **`Waits on:`** names every piece or ticket that must merge before `start` builds
+  this one. `none` when nothing does.
 * **`Source:`** pins exact bytes. `openspec` and `repository-native` name a path and the
   full commit OID read back after committing it; `inline` carries the whole plan in
   `Context`/`Do`/`Done when`. A legacy `WORK ORDER` fence reads as `inline`. Amending a

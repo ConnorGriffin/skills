@@ -835,7 +835,7 @@ def parse_arguments() -> argparse.Namespace:
         help="prove the changed active OpenSpec change applies without mutating its source",
     )
     preflight_openspec_parser.add_argument(
-        "--repo", type=Path, required=True, help="ticket worktree containing the OpenSpec change"
+        "--repo", type=Path, required=True, help="piece worktree containing the OpenSpec change"
     )
     preflight_openspec_parser.add_argument(
         "--base-ref", required=True, help="local Git ref naming the base OpenSpec tree"
