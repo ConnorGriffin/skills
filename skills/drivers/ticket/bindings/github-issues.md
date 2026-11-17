@@ -42,13 +42,14 @@ Create a missing status label once with `gh label create ticket:<state> --repo
 posted order. The `build` type label and the `ticket:*` status
 labels stay independent.
 
-## 4. Locate the newest work order
+## 4. Locate the work orders
 
 ````sh
 gh issue view <id> --repo <org/repo> --json comments \
-  --jq '[.comments[] | select(.body | test("(?m)^```[a-z]*\\s*\\r?\\n(EXECUTION LOCK |WORK ORDER)"))] | last'
+  --jq '[.comments[] | select(.body | test("(?m)^```[a-z]*\\s*\\r?\\n(EXECUTION LOCK |WORK ORDER)"))]'
 ````
 
-The last match is the newest order, of any lock version. Empty output means no order,
-which is `start`'s refusal; a non-zero exit is a transport failure and is reported as
-one.
+The matches come in post order, of any lock version. The newest whose `Piece:` line
+names the piece is that piece's order; a fence without one is piece 1. Empty output
+means no order, which is `start`'s refusal; a non-zero exit is a transport failure and
+is reported as one.
