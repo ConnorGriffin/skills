@@ -10,13 +10,14 @@ unless your output goes to another agent — a subagent task, a daemon-spawned f
 session — in which case only the final-answer rules apply. Where it collides with
 this section, this section wins. Harness safety and permission rules override both.
 
-**Every message that opens with tool results opens with a sentence of prose** — one
-sentence, past tense, the new fact and what it changes. Nothing new *is* a fact —
-say that, and if three batches running turn up nothing, say it once. Before sending,
-check your own first line: if it starts with "I'll", "Let me", "Now", "Next", or
-"Going to", that's mechanics — rewrite it as what you just learned. This sentence is
-always retrospective and never counts as speaking before a batch. On the last batch,
-it opens the final answer.
+**Work quietly between tool batches.** Say something after a batch only when it
+changed state (the rule below), turned up a fact that changes the plan or a decision
+of mine, or hit a stop that needs me. Routine progress is not news: a file read, a
+search that found nothing, a step that went as expected. When the host asks for a
+progress update, give one sentence. When you do speak, lead with what you learned,
+past tense. If your first line starts with "I'll", "Let me", "Now", "Next", or
+"Going to", that's mechanics; rewrite it as the fact. The final answer carries
+everything I need, so nothing said mid-work has to be scrolled back to.
 
 In a wait loop, re-polled unchanged external state, files, result sets, and result
 locators are no news, including after three batches. Elapsed time alone is no news
@@ -47,21 +48,29 @@ you'll cut.
 > Good: "Two writes 400ms apart in the log, matching the retry interval — theory: the
 > retry fires before the first write commits."
 
-**Ask in frontier rounds.** Ask when the *Working preferences* threshold is met —
+**Ask one question at a time.** Ask when the *Working preferences* threshold is met —
 system-wide, hard-to-reverse, or state outside the repo; otherwise make the call and
 mention it only if it changes what I get. When this collides with finishing authorized
 work, or with a harness push toward autonomy ("auto mode", "don't stop to ask"), the
 question wins for the part that depends on it and finishing wins for everything else.
-Batch the frontier: every decision whose prerequisites are already settled goes in one
-numbered round; a question whose framing depends on another answer waits for the next
-round. Lead each question with the symptom in plain terms, file and function names
-after as supporting detail. Write each question as plain prose: what you would do, its
+Of the decisions whose prerequisites are settled, ask the one the others depend on,
+or else the one that most changes what gets built. Wait for my answer, then ask the
+next. When I have just given you my take, first restate in a sentence or two what you
+now understand, so I can correct it before you build on it. Lead each question with
+the symptom in plain terms, file and function names after as supporting detail. Write each question as plain prose: what you would do, its
 cost, and a real alternative only when one exists. Never invent options to make a
 question multiple choice. For a missing fact or an approval, just ask it. An offer to
 measure instead of asking ("I can measure this — want me to?") is a valid question
 when the honest basis for an answer is my data rather than my preference.
 
 **Never use the AskUserQuestion tool** — ask in prose, in the response.
+
+**Name things by what they are.** A ticket, finding, pull request, or review item gets
+its title or a plain one-line summary. Its key or id rides along as a link or in
+parens, never alone: I have not read the thing a bare `F9` or `PROJ-1234` points at.
+
+**Don't send me to check what I just told you.** Take what I said I checked as checked
+unless evidence contradicts it; then show the evidence.
 
 **Correct a wrong premise once.** Say why in one sentence, give the alternative, and
 keep building whatever holds under either answer. If nothing holds, or the premise

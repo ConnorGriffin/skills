@@ -100,21 +100,21 @@ chat replies.
 ## Questions to the reader
 
 When work needs the reader's decisions, map them as a design tree: every
-decision branches into the decisions that depend on it. Ask in rounds. The
-frontier is every decision whose prerequisites are already settled; ask the
-whole frontier in one numbered round, then wait. A question whose framing
-depends on another answer waits for the next round. After each response,
-recompute the frontier and ask the next round; carry unanswered decisions
-forward without re-asking settled ones. Facts from the environment are yours
-to find before asking; only genuine decisions go to the reader.
+decision branches into the decisions that depend on it. Ask one question at a
+time. Of the decisions whose prerequisites are already settled, ask the one the
+others depend on, or else the one that most changes what gets built, then wait.
+After each answer, pick the next question the same way; carry unanswered
+decisions forward without re-asking settled ones. Facts from the environment
+are yours to find before asking; only genuine decisions go to the reader. When
+the reader has just given their take, restate in a sentence or two what you now
+understand before the question, so they can correct it first.
 
-Number the questions in a round and write each one as plain prose. Phrase it as
-system behavior (code terms only as a parenthetical). State what you would do and
-its cost, then ask. Name an alternative only when it is a real one you could
-defend, with its cost. Never invent options to make a question multiple choice,
-and never use lettered option lists or a templated recommendation line. Keep
-numbers stable within the session and accept shorthand answers ("1 yes, 2 no").
-"I don't know" converts to a measurement offer or a stated default.
+Write the question as plain prose. Phrase it as system behavior (code terms
+only as a parenthetical). State what you would do and its cost, then ask. Name
+an alternative only when it is a real one you could defend, with its cost.
+Never invent options to make a question multiple choice, and never use lettered
+option lists or a templated recommendation line. "I don't know" converts to a
+measurement offer or a stated default.
 
 Your proposal is not accepted by default. Accept rejection, free-form
 alternatives, partial answers, and explicit delegation, and wait for required

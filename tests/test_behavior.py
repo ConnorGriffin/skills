@@ -370,6 +370,39 @@ class ReviewerRoutingCanonicalContractTests(unittest.TestCase):
         )
 
 
+class QuietWorkOneQuestionContractTests(unittest.TestCase):
+    def setUp(self):
+        self.profile = " ".join((ROOT / "profile" / "base.md").read_text(encoding="utf-8").split())
+        self.style = " ".join(
+            (ROOT / "output-styles" / "say-less.md").read_text(encoding="utf-8").split()
+        )
+        self.triage = " ".join(
+            (ROOT / "skills" / "drivers" / "ticket" / "verbs" / "triage.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+
+    def test_routine_progress_between_batches_stays_silent(self):
+        self.assertIn("**Work quietly between tool batches.**", self.profile)
+        self.assertIn("Routine progress is not news", self.profile)
+        self.assertNotIn("Every message that opens with tool results", self.profile)
+
+    def test_questions_go_one_at_a_time_everywhere(self):
+        self.assertIn("**Ask one question at a time.**", self.profile)
+        self.assertIn("Ask one question at a time.", self.style)
+        self.assertIn("Ask one question at a time:", self.triage)
+        for text in (self.profile, self.style, self.triage):
+            self.assertNotIn("one numbered round", text)
+
+    def test_take_is_restated_before_the_next_question(self):
+        self.assertIn("restate in a sentence or two what you now understand", self.profile)
+        self.assertIn("restate in a sentence or two what you now understand", self.style)
+
+    def test_items_are_named_by_title_not_bare_id(self):
+        self.assertIn("**Name things by what they are.**", self.profile)
+        self.assertIn("never alone", self.profile)
+
+
 class CodeReviewDispatchTests(unittest.TestCase):
     SKILL = ROOT / "skills" / "tools" / "code-review" / "SKILL.md"
 
