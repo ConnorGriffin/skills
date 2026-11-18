@@ -42,7 +42,7 @@ approves them.
    | Uncertainty | Move |
    |---|---|
    | None: the decisions are settled or have obvious defaults | Say so in one line, name the defaults, and continue. |
-   | A decision only the user can make | Ask in rounds: every question whose prerequisites are settled goes in one numbered round, each with options, costs, and a recommendation. |
+   | A decision only the user can make | Ask one question at a time: the one the other open decisions depend on, with what you would do and its cost. Wait for the answer before the next. |
    | A fact the docs or sources can answer | `/research`. |
    | A load-bearing assumption nobody has run | Spike the first hour (below). |
    | Behavior only running code can show | `/prototype`. |
